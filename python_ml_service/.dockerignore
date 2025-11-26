@@ -1,0 +1,64 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+test_reports/
+
+# Logs
+logs/
+*.log
+
+# Models (will be downloaded at runtime)
+models/*/
+!models/.gitkeep
+
+# Data
+data/*/
+!data/.gitkeep
+
+# Cache
+cache/
+*.cache
+
+# Benchmarks
+benchmarks/
+quantization_benchmark_report.json
+
+# Documentation
+*.md
+!README.md
+
+# Git
+.git/
+.gitignore
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Railway
+railway.json
+
+# OS
+.DS_Store
+Thumbs.db
+
