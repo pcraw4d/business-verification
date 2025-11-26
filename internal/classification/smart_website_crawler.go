@@ -18,6 +18,7 @@ import (
 
 	"kyb-platform/internal/classification/nlp"
 
+	"github.com/temoto/robotstxt"
 	"golang.org/x/net/html"
 )
 
@@ -297,7 +298,8 @@ func (c *SmartWebsiteCrawler) CrawlWebsite(ctx context.Context, websiteURL strin
 
 	// Check robots.txt if enabled
 	if c.respectRobots {
-		if blocked, err := c.checkRobotsTxt(ctx, baseURL); err == nil && blocked {
+		blocked, _, err := c.checkRobotsTxt(ctx, baseURL, "/")
+		if err == nil && blocked {
 			result.Error = "Website blocked by robots.txt"
 			return result, fmt.Errorf("website blocked by robots.txt")
 		}
@@ -711,9 +713,11 @@ func (c *SmartWebsiteCrawler) analyzePage(ctx context.Context, pageURL string) P
 		return analysis
 	}
 
-	// Set headers
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
-	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+	// Set headers with randomization
+	headers := GetRandomizedHeaders(GetUserAgent())
+	for key, value := range headers {
+		req.Header.Set(key, value)
+	}
 
 	// Retry logic for HTTP requests (up to 3 attempts with exponential backoff)
 	var resp *http.Response
@@ -756,6 +760,26 @@ func (c *SmartWebsiteCrawler) analyzePage(ctx context.Context, pageURL string) P
 	analysis.StatusCode = resp.StatusCode
 	analysis.ResponseTime = time.Since(startTime)
 
+	// Handle specific HTTP status codes
+	if resp.StatusCode == 429 {
+		// Too Many Requests - stop immediately
+		retryAfter := resp.Header.Get("Retry-After")
+		c.logger.Printf("⚠️ [PageAnalysis] Rate limited (429) for %s, Retry-After: %s - stopping", pageURL, retryAfter)
+		analysis.RelevanceScore = 0.0
+		return analysis
+	}
+	if resp.StatusCode == 403 {
+		// Forbidden - stop immediately
+		c.logger.Printf("🚫 [PageAnalysis] Access forbidden (403) for %s - stopping", pageURL)
+		analysis.RelevanceScore = 0.0
+		return analysis
+	}
+	if resp.StatusCode == 503 {
+		// Service Unavailable - log but don't retry (retry logic is handled at higher level)
+		c.logger.Printf("⚠️ [PageAnalysis] Service unavailable (503) for %s", pageURL)
+		analysis.RelevanceScore = 0.0
+		return analysis
+	}
 	if resp.StatusCode != 200 {
 		analysis.RelevanceScore = 0.0
 		return analysis
@@ -769,6 +793,15 @@ func (c *SmartWebsiteCrawler) analyzePage(ctx context.Context, pageURL string) P
 	}
 
 	analysis.ContentLength = len(body)
+
+	// Check for CAPTCHA before processing
+	captchaResult := DetectCAPTCHA(resp, body)
+	if captchaResult.Detected {
+		c.logger.Printf("🚫 [PageAnalysis] CAPTCHA detected (%s) for %s - stopping", captchaResult.Type, pageURL)
+		analysis.RelevanceScore = 0.0
+		return analysis
+	}
+
 	content := string(body)
 
 	// Extract title
@@ -819,45 +852,93 @@ func (c *SmartWebsiteCrawler) normalizeURL(websiteURL string) (string, error) {
 	return parsedURL.String(), nil
 }
 
-// checkRobotsTxt checks if crawling is allowed by robots.txt
-func (c *SmartWebsiteCrawler) checkRobotsTxt(ctx context.Context, baseURL string) (bool, error) {
+// checkRobotsTxt checks if crawling is allowed by robots.txt for a specific path.
+// Returns: (blocked, crawlDelay, error)
+// - blocked: true if the path is disallowed
+// - crawlDelay: the crawl delay specified in robots.txt (0 if not specified)
+// - error: any error that occurred during the check
+func (c *SmartWebsiteCrawler) checkRobotsTxt(ctx context.Context, baseURL, path string) (bool, time.Duration, error) {
 	parsedURL, err := url.Parse(baseURL)
 	if err != nil {
-		return false, err
+		return false, 0, err
 	}
 
 	robotsURL := fmt.Sprintf("%s://%s/robots.txt", parsedURL.Scheme, parsedURL.Host)
 
 	req, err := http.NewRequestWithContext(ctx, "GET", robotsURL, nil)
 	if err != nil {
-		return false, err
+		return false, 0, err
 	}
+
+	// Use our identifiable User-Agent for robots.txt requests
+	req.Header.Set("User-Agent", GetUserAgent())
 
 	resp, err := c.client.Do(req)
 	if err != nil {
-		return false, err
+		// If robots.txt is unavailable, allow crawling (graceful degradation)
+		return false, 0, nil
 	}
 	defer resp.Body.Close()
 
+	// If robots.txt doesn't exist (404) or is unavailable, allow crawling
 	if resp.StatusCode != 200 {
-		return false, nil // No robots.txt, allow crawling
+		return false, 0, nil
 	}
 
-	// Parse robots.txt (simplified)
-	// In a real implementation, you'd use a proper robots.txt parser
+	// Read robots.txt content
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return false, err
+		return false, 0, fmt.Errorf("failed to read robots.txt: %w", err)
 	}
 
-	content := strings.ToLower(string(body))
-
-	// Check for disallow rules
-	if strings.Contains(content, "disallow: /") {
-		return true, nil // Blocked
+	// Parse robots.txt using the library
+	robotsData, err := robotstxt.FromBytes(body)
+	if err != nil {
+		// If parsing fails, log but allow crawling (graceful degradation)
+		c.logger.Printf("⚠️ [RobotsTxt] Failed to parse robots.txt for %s: %v (allowing crawl)", parsedURL.Host, err)
+		return false, 0, nil
 	}
 
-	return false, nil // Allowed
+	// Get our User-Agent string
+	userAgent := GetUserAgent()
+	// Extract just the bot name from User-Agent for matching
+	// Format: "Mozilla/5.0 (compatible; KYBPlatformBot/1.0; ...)"
+	botName := "KYBPlatformBot"
+
+	// Check rules for our specific User-Agent first, then wildcard
+	var group *robotstxt.Group
+	group = robotsData.FindGroup(userAgent)
+	if group == nil {
+		// Try with just the bot name
+		group = robotsData.FindGroup(botName)
+	}
+	if group == nil {
+		// Try wildcard (*) rules
+		group = robotsData.FindGroup("*")
+	}
+
+	// If no group found, allow crawling
+	if group == nil {
+		return false, 0, nil
+	}
+
+	// Test if the specific path is allowed
+	allowed := group.Test(path)
+	blocked := !allowed
+
+	// Extract crawl delay if specified
+	var crawlDelay time.Duration
+	if group.CrawlDelay > 0 {
+		crawlDelay = time.Duration(group.CrawlDelay) * time.Second
+	}
+
+	if blocked {
+		c.logger.Printf("🚫 [RobotsTxt] Path %s blocked by robots.txt for %s", path, parsedURL.Host)
+	} else if crawlDelay > 0 {
+		c.logger.Printf("⏳ [RobotsTxt] Crawl delay of %v specified for %s", crawlDelay, parsedURL.Host)
+	}
+
+	return blocked, crawlDelay, nil
 }
 
 // Placeholder methods for content extraction

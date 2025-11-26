@@ -122,6 +122,14 @@ func (ews *EnhancedWebsiteScraper) ScrapeWebsite(ctx context.Context, websiteURL
 		return result
 	}
 
+	// Check for CAPTCHA before processing
+	captchaResult := DetectCAPTCHA(resp, body)
+	if captchaResult.Detected {
+		result.Error = fmt.Sprintf("CAPTCHA detected (%s)", captchaResult.Type)
+		ews.logger.Printf("🚫 [Enhanced] CAPTCHA detected (%s) for %s - stopping", captchaResult.Type, websiteURL)
+		return result // Stop immediately when CAPTCHA is detected
+	}
+
 	result.Content = string(body)
 	result.ContentLength = int64(len(body))
 
@@ -169,21 +177,11 @@ func (ews *EnhancedWebsiteScraper) createRequest(ctx context.Context, websiteURL
 		return nil, err
 	}
 
-	// Set comprehensive headers to mimic a real browser
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8")
-	req.Header.Set("Accept-Language", "en-US,en;q=0.9")
-	req.Header.Set("Accept-Encoding", "gzip, deflate, br")
-	req.Header.Set("DNT", "1")
-	req.Header.Set("Connection", "keep-alive")
-	req.Header.Set("Upgrade-Insecure-Requests", "1")
-	req.Header.Set("Sec-Fetch-Dest", "document")
-	req.Header.Set("Sec-Fetch-Mode", "navigate")
-	req.Header.Set("Sec-Fetch-Site", "none")
-	req.Header.Set("Cache-Control", "max-age=0")
-	req.Header.Set("Sec-Ch-Ua", `"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"`)
-	req.Header.Set("Sec-Ch-Ua-Mobile", "?0")
-	req.Header.Set("Sec-Ch-Ua-Platform", `"Windows"`)
+	// Set comprehensive headers with randomization to mimic a real browser
+	headers := GetRandomizedHeaders(GetUserAgent())
+	for key, value := range headers {
+		req.Header.Set(key, value)
+	}
 
 	return req, nil
 }

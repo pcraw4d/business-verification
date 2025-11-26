@@ -774,18 +774,11 @@ func (mmc *MultiMethodClassifier) extractKeywordsFromWebsite(ctx context.Context
 		return []string{}
 	}
 
-	// Set comprehensive headers to mimic a real browser
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8")
-	req.Header.Set("Accept-Language", "en-US,en;q=0.9")
-	req.Header.Set("Accept-Encoding", "gzip, deflate, br")
-	req.Header.Set("DNT", "1")
-	req.Header.Set("Connection", "keep-alive")
-	req.Header.Set("Upgrade-Insecure-Requests", "1")
-	req.Header.Set("Sec-Fetch-Dest", "document")
-	req.Header.Set("Sec-Fetch-Mode", "navigate")
-	req.Header.Set("Sec-Fetch-Site", "none")
-	req.Header.Set("Cache-Control", "max-age=0")
+	// Set comprehensive headers with randomization to mimic a real browser
+	headers := GetRandomizedHeaders(GetUserAgent())
+	for key, value := range headers {
+		req.Header.Set(key, value)
+	}
 
 	mmc.logger.Printf("📡 Making HTTP request to: %s", websiteURL)
 
@@ -830,6 +823,13 @@ func (mmc *MultiMethodClassifier) extractKeywordsFromWebsite(ctx context.Context
 	}
 
 	mmc.logger.Printf("📄 Read %d bytes from %s", len(body), websiteURL)
+
+	// Check for CAPTCHA before processing
+	captchaResult := DetectCAPTCHA(resp, body)
+	if captchaResult.Detected {
+		mmc.logger.Printf("🚫 CAPTCHA detected (%s) for %s - stopping", captchaResult.Type, websiteURL)
+		return []string{} // Stop immediately when CAPTCHA is detected
+	}
 
 	// Extract text content from HTML
 	textContent := mmc.extractTextFromHTML(string(body))

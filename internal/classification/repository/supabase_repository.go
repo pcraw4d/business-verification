@@ -7,12 +7,16 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math"
 	"math/rand"
 	"net"
 	"net/http"
+	"net/http/cookiejar"
 	"net/url"
+	"os"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -149,6 +153,141 @@ type SupabaseKeywordRepository struct {
 	rateLimiter map[string]time.Time // Domain -> last request time
 	rateMutex   sync.Mutex
 	minDelay    time.Duration // Minimum delay between requests to same domain
+
+	// Session management for cookies and referer tracking
+	sessionManager *scrapingSessionManager
+}
+
+// scrapingSessionManager manages scraping sessions (duplicate to avoid import cycles)
+type scrapingSessionManager struct {
+	enabled     bool
+	sessions    map[string]*scrapingSession
+	sessionMutex sync.RWMutex
+	maxAge      time.Duration
+}
+
+// scrapingSession represents a scraping session (duplicate to avoid import cycles)
+type scrapingSession struct {
+	domain       string
+	cookieJar    *cookiejar.Jar
+	referer      string
+	createdAt    time.Time
+	lastAccess   time.Time
+	requestCount int
+	mu           sync.RWMutex
+}
+
+// newScrapingSessionManager creates a new session manager
+func newScrapingSessionManager() *scrapingSessionManager {
+	enabled := os.Getenv("SCRAPING_SESSION_MANAGEMENT_ENABLED")
+	enabledBool := true // Default to enabled
+	if enabled != "" {
+		if val, err := strconv.ParseBool(enabled); err == nil {
+			enabledBool = val
+		}
+	}
+
+	maxAgeStr := os.Getenv("SCRAPING_SESSION_MAX_AGE")
+	maxAge := 1 * time.Hour // Default 1 hour
+	if maxAgeStr != "" {
+		if duration, err := time.ParseDuration(maxAgeStr); err == nil {
+			maxAge = duration
+		}
+	}
+
+	return &scrapingSessionManager{
+		enabled:  enabledBool,
+		sessions: make(map[string]*scrapingSession),
+		maxAge:   maxAge,
+	}
+}
+
+// getOrCreateSession gets or creates a session for a domain
+func (ssm *scrapingSessionManager) getOrCreateSession(domain string) (*scrapingSession, error) {
+	if !ssm.enabled {
+		// If disabled, return a temporary session
+		jar, err := cookiejar.New(nil)
+		if err != nil {
+			return nil, err
+		}
+		return &scrapingSession{
+			domain:       domain,
+			cookieJar:    jar,
+			referer:      "",
+			createdAt:    time.Now(),
+			lastAccess:   time.Now(),
+			requestCount: 1,
+		}, nil
+	}
+
+	ssm.sessionMutex.Lock()
+	defer ssm.sessionMutex.Unlock()
+
+	// Check if session exists and is still valid
+	if session, exists := ssm.sessions[domain]; exists {
+		if time.Since(session.lastAccess) < ssm.maxAge {
+			session.lastAccess = time.Now()
+			session.requestCount++
+			return session, nil
+		}
+		// Session expired, remove it
+		delete(ssm.sessions, domain)
+	}
+
+	// Create new session
+	jar, err := cookiejar.New(nil)
+	if err != nil {
+		return nil, err
+	}
+
+	now := time.Now()
+	session := &scrapingSession{
+		domain:       domain,
+		cookieJar:    jar,
+		referer:      "",
+		createdAt:    now,
+		lastAccess:   now,
+		requestCount: 1,
+	}
+
+	ssm.sessions[domain] = session
+	return session, nil
+}
+
+// getReferer gets the referer for a domain
+func (ssm *scrapingSessionManager) getReferer(domain string) string {
+	if !ssm.enabled {
+		return ""
+	}
+
+	ssm.sessionMutex.RLock()
+	session, exists := ssm.sessions[domain]
+	ssm.sessionMutex.RUnlock()
+
+	if !exists {
+		return ""
+	}
+
+	session.mu.RLock()
+	defer session.mu.RUnlock()
+	return session.referer
+}
+
+// updateReferer updates the referer for a domain
+func (ssm *scrapingSessionManager) updateReferer(domain string, referer string) {
+	if !ssm.enabled {
+		return
+	}
+
+	ssm.sessionMutex.RLock()
+	session, exists := ssm.sessions[domain]
+	ssm.sessionMutex.RUnlock()
+
+	if exists {
+		session.mu.Lock()
+		session.referer = referer
+		session.mu.Unlock()
+	}
 }
 
 // dnsCacheEntry represents a cached DNS resolution with TTL
@@ -166,6 +305,231 @@ type IndustryCodeCacheStats struct {
 	LastWarming       time.Time
 	WarmingCount      int64
 	InvalidationCount int64
+}
+
+// getUserAgent returns an identifiable User-Agent string for the KYB Platform bot.
+// This is a duplicate of classification.GetUserAgent() to avoid import cycles.
+func getUserAgent() string {
+	contactURL := os.Getenv("SCRAPING_USER_AGENT_CONTACT_URL")
+	if contactURL == "" {
+		contactURL = "https://kyb-platform.com/bot-info"
+	}
+	return "Mozilla/5.0 (compatible; KYBPlatformBot/1.0; +" + contactURL + "; Business Verification)"
+}
+
+// getRandomizedHeaders returns randomized headers while maintaining the identifiable User-Agent.
+// This is a duplicate of classification.GetRandomizedHeaders() to avoid import cycles.
+func getRandomizedHeaders(baseUserAgent string, referer string) map[string]string {
+	enabled := os.Getenv("SCRAPING_HEADER_RANDOMIZATION_ENABLED")
+	enabledBool := true // Default to enabled
+	if enabled != "" {
+		if val, err := strconv.ParseBool(enabled); err == nil {
+			enabledBool = val
+		}
+	}
+
+	headers := make(map[string]string)
+	headers["User-Agent"] = baseUserAgent // Always use identifiable User-Agent
+
+	if !enabledBool {
+		// If disabled, return minimal headers
+		headers["Accept"] = "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+		headers["Accept-Language"] = "en-US,en;q=0.9"
+		headers["Accept-Encoding"] = "gzip, deflate, br"
+		headers["Connection"] = "keep-alive"
+		headers["Upgrade-Insecure-Requests"] = "1"
+		if referer != "" {
+			headers["Referer"] = referer
+		}
+		return headers
+	}
+
+	// Use a simple randomizer (full implementation in classification package)
+	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
+	
+	// Randomize Accept
+	acceptVariants := []string{
+		"text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
+		"text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+		"text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+	}
+	headers["Accept"] = acceptVariants[rng.Intn(len(acceptVariants))]
+
+	// Randomize Accept-Language
+	langVariants := []string{
+		"en-US,en;q=0.9",
+		"en-US,en;q=0.9,fr;q=0.8",
+		"en-GB,en;q=0.9",
+		"en-US,en;q=0.9,es;q=0.8",
+		"en-US,en;q=0.9,de;q=0.8",
+	}
+	headers["Accept-Language"] = langVariants[rng.Intn(len(langVariants))]
+
+	// Randomize Accept-Encoding
+	encVariants := []string{
+		"gzip, deflate, br",
+		"gzip, deflate",
+		"gzip, br",
+		"deflate, br",
+	}
+	headers["Accept-Encoding"] = encVariants[rng.Intn(len(encVariants))]
+
+	headers["DNT"] = "1"
+	headers["Connection"] = "keep-alive"
+	headers["Upgrade-Insecure-Requests"] = "1"
+
+	// Randomize Sec-Fetch-* headers
+	secFetchDest := []string{"document", "empty", "image"}
+	secFetchMode := []string{"navigate", "cors", "no-cors"}
+	secFetchSite := []string{"none", "same-origin", "same-site", "cross-site"}
+	headers["Sec-Fetch-Dest"] = secFetchDest[rng.Intn(len(secFetchDest))]
+	headers["Sec-Fetch-Mode"] = secFetchMode[rng.Intn(len(secFetchMode))]
+	headers["Sec-Fetch-Site"] = secFetchSite[rng.Intn(len(secFetchSite))]
+
+	// Randomize Cache-Control
+	cacheControl := []string{"max-age=0", "no-cache", "max-age=3600"}
+	headers["Cache-Control"] = cacheControl[rng.Intn(len(cacheControl))]
+
+	if referer != "" {
+		headers["Referer"] = referer
+	}
+
+	return headers
+}
+
+// detectCAPTCHA detects CAPTCHA in an HTTP response
+// This is a duplicate of classification.DetectCAPTCHA() to avoid import cycles.
+func detectCAPTCHA(resp *http.Response, body []byte) (bool, string) {
+	enabled := os.Getenv("SCRAPING_CAPTCHA_DETECTION_ENABLED")
+	enabledBool := true // Default to enabled
+	if enabled != "" {
+		if val, err := strconv.ParseBool(enabled); err == nil {
+			enabledBool = val
+		}
+	}
+
+	if !enabledBool {
+		return false, ""
+	}
+
+	// Check response headers
+	if resp.Header.Get("cf-challenge") != "" || resp.Header.Get("cf-ray") != "" {
+		return true, "cloudflare"
+	}
+
+	// Check response body if available
+	if len(body) > 0 {
+		bodyLower := strings.ToLower(string(body))
+		
+		// Check for specific CAPTCHA types
+		if strings.Contains(bodyLower, "recaptcha") || strings.Contains(bodyLower, "g-recaptcha") {
+			return true, "recaptcha"
+		}
+		if strings.Contains(bodyLower, "hcaptcha") {
+			return true, "hcaptcha"
+		}
+		if strings.Contains(bodyLower, "cloudflare") || strings.Contains(bodyLower, "cf-browser-verification") ||
+		   strings.Contains(bodyLower, "checking your browser") || strings.Contains(bodyLower, "just a moment") {
+			return true, "cloudflare"
+		}
+		if strings.Contains(bodyLower, "turnstile") {
+			return true, "turnstile"
+		}
+		
+		// Generic CAPTCHA patterns
+		captchaPatterns := []string{"captcha", "challenge", "verify you are human", "prove you are not a robot"}
+		for _, pattern := range captchaPatterns {
+			if strings.Contains(bodyLower, pattern) {
+				return true, "generic"
+			}
+		}
+	}
+
+	return false, ""
+}
+
+// getHumanLikeDelay generates a human-like delay using Weibull distribution
+// This is a duplicate of classification.GetHumanLikeDelay() to avoid import cycles.
+func getHumanLikeDelay(baseDelay time.Duration, domain string) time.Duration {
+	enabled := os.Getenv("SCRAPING_HUMAN_LIKE_TIMING_ENABLED")
+	enabledBool := true // Default to enabled
+	if enabled != "" {
+		if val, err := strconv.ParseBool(enabled); err == nil {
+			enabledBool = val
+		}
+	}
+
+	if !enabledBool {
+		// If disabled, return base delay with simple jitter
+		rng := rand.New(rand.NewSource(time.Now().UnixNano()))
+		jitter := time.Duration(float64(baseDelay) * 0.2 * rng.Float64())
+		return baseDelay + jitter
+	}
+
+	// Use Weibull distribution for human-like timing
+	// Weibull parameters: shape (k) = 1.5, scale (λ) = baseDelay
+	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
+	u := rng.Float64()
+	if u == 0 {
+		u = 0.0001 // Avoid log(0)
+	}
+
+	// Weibull inverse CDF: lambda * (-ln(1-u))^(1/k)
+	k := 1.5
+	weibullValue := float64(baseDelay) * math.Pow(-math.Log(1-u), 1.0/k)
+	weibullDelay := time.Duration(weibullValue)
+
+	// Occasionally add longer pauses (10% chance)
+	if rng.Float64() < 0.1 {
+		extraDelay := time.Duration(float64(baseDelay) * (2.0 + 3.0*rng.Float64()))
+		weibullDelay += extraDelay
+	}
+
+	// Occasionally add shorter bursts (5% chance)
+	if rng.Float64() < 0.05 {
+		weibullDelay = time.Duration(float64(weibullDelay) * (0.5 + 0.5*rng.Float64()))
+	}
+
+	// Ensure minimum delay is respected
+	if weibullDelay < baseDelay {
+		weibullDelay = baseDelay
+	}
+
+	return weibullDelay
+}
+
+// getRateLimitDelay returns the configured rate limit delay from environment variable.
+// Default: 3 seconds, Minimum: 2 seconds (enforced), Maximum: 10 seconds (configurable)
+func getRateLimitDelay() time.Duration {
+	defaultDelay := 3 * time.Second
+	minDelay := 2 * time.Second
+	maxDelay := 10 * time.Second
+
+	envValue := os.Getenv("SCRAPING_RATE_LIMIT_DELAY")
+	if envValue == "" {
+		return defaultDelay
+	}
+
+	// Parse as seconds (integer)
+	seconds, err := strconv.Atoi(envValue)
+	if err != nil {
+		// If parsing fails, return default
+		return defaultDelay
+	}
+
+	delay := time.Duration(seconds) * time.Second
+
+	// Enforce minimum
+	if delay < minDelay {
+		return minDelay
+	}
+
+	// Enforce maximum
+	if delay > maxDelay {
+		return maxDelay
+	}
+
+	return delay
 }
 
 // NewSupabaseKeywordRepository creates a new Supabase-based keyword repository
@@ -221,7 +585,9 @@ func NewSupabaseKeywordRepository(client *database.SupabaseClient, logger *log.L
 		// Phase 9.3: Initialize rate limiter
 		rateLimiter: make(map[string]time.Time),
 		rateMutex:   sync.Mutex{},
-		minDelay:    1 * time.Second, // Minimum 1 second between requests to same domain
+		minDelay:    getRateLimitDelay(), // Configurable delay (default: 3s, min: 2s, max: 10s)
+		// Session management for cookies and referer tracking
+		sessionManager: newScrapingSessionManager(),
 		// Word segmentation for compound domain names
 		segmenter: word_segmentation.NewSegmenter(),
 		// NLP components for enhanced keyword extraction
@@ -284,7 +650,9 @@ func NewSupabaseKeywordRepositoryWithInterface(client SupabaseClientInterface, l
 		// Phase 9.3: Initialize rate limiter
 		rateLimiter: make(map[string]time.Time),
 		rateMutex:   sync.Mutex{},
-		minDelay:    1 * time.Second, // Minimum 1 second between requests to same domain
+		minDelay:    getRateLimitDelay(), // Configurable delay (default: 3s, min: 2s, max: 10s)
+		// Session management for cookies and referer tracking
+		sessionManager: newScrapingSessionManager(),
 		// Word segmentation for compound domain names
 		segmenter: word_segmentation.NewSegmenter(),
 		// NLP components for enhanced keyword extraction
@@ -2482,7 +2850,24 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromHomepageWithRetry(ctx con
 				return baseDialer.DialContext(ctx, network, net.JoinHostPort(ip.String(), port))
 			}
 
-			// Create HTTP client with custom dialer and longer timeout (increased to 60s)
+			// Phase 9.3: Apply rate limiting with jitter
+			// Note: parsedURL already declared above, so we reuse it
+			var domain string
+			var session *scrapingSession
+			if parsedURL != nil {
+				domain = parsedURL.Hostname()
+				r.applyRateLimit(domain)
+				
+				// Get or create session for this domain
+				sess, err := r.sessionManager.getOrCreateSession(domain)
+				if err != nil {
+					r.logger.Printf("⚠️ [HomepageRetry] Failed to get session for %s: %v", domain, err)
+				} else {
+					session = sess
+				}
+			}
+
+			// Create HTTP client with custom dialer, longer timeout, and session cookie jar
 			client := &http.Client{
 				Timeout: 60 * time.Second,
 				Transport: &http.Transport{
@@ -2495,12 +2880,8 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromHomepageWithRetry(ctx con
 					ResponseHeaderTimeout: 30 * time.Second,
 				},
 			}
-
-			// Phase 9.3: Apply rate limiting with jitter
-			// Note: parsedURL already declared above, so we reuse it
-			if parsedURL != nil {
-				domain := parsedURL.Hostname()
-				r.applyRateLimit(domain)
+			if session != nil {
+				client.Jar = session.cookieJar
 			}
 
 			// Create request
@@ -2510,17 +2891,15 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromHomepageWithRetry(ctx con
 				continue
 			}
 
-			// Enhanced headers to avoid blocking by websites that detect automated requests
-			req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-			req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8")
-			req.Header.Set("Accept-Language", "en-US,en;q=0.9")
-			req.Header.Set("Accept-Encoding", "gzip, deflate, br")
-			req.Header.Set("Connection", "keep-alive")
-			req.Header.Set("Upgrade-Insecure-Requests", "1")
-			req.Header.Set("Sec-Fetch-Dest", "document")
-			req.Header.Set("Sec-Fetch-Mode", "navigate")
-			req.Header.Set("Sec-Fetch-Site", "none")
-			req.Header.Set("Cache-Control", "max-age=0")
+			// Enhanced headers with randomization to avoid blocking by websites that detect automated requests
+			referer := ""
+			if session != nil {
+				referer = r.sessionManager.getReferer(domain)
+			}
+			headers := getRandomizedHeaders(getUserAgent(), referer)
+			for key, value := range headers {
+				req.Header.Set(key, value)
+			}
 
 			// Make request
 			resp, err := client.Do(req)
@@ -2539,6 +2918,30 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromHomepageWithRetry(ctx con
 			}
 			defer resp.Body.Close()
 
+			// Handle specific HTTP status codes
+			if resp.StatusCode == 429 {
+				// Too Many Requests - stop immediately, do not retry
+				retryAfter := resp.Header.Get("Retry-After")
+				r.logger.Printf("⚠️ [HomepageRetry] Rate limited (429) for %s, Retry-After: %s - stopping immediately", websiteURL, retryAfter)
+				return []string{} // Stop immediately
+			}
+			if resp.StatusCode == 403 {
+				// Forbidden - stop immediately, do not retry
+				r.logger.Printf("🚫 [HomepageRetry] Access forbidden (403) for %s - stopping immediately", websiteURL)
+				return []string{} // Stop immediately
+			}
+			if resp.StatusCode == 503 {
+				// Service Unavailable - implement exponential backoff
+				if attempt < maxRetries {
+					backoffDelay := time.Duration(attempt) * 2 * time.Second // 2s, 4s, 6s
+					r.logger.Printf("⚠️ [HomepageRetry] Service unavailable (503) for %s (attempt %d/%d), retrying after %v", websiteURL, attempt, maxRetries, backoffDelay)
+					time.Sleep(backoffDelay)
+					continue // Retry with exponential backoff
+				} else {
+					r.logger.Printf("❌ [HomepageRetry] Service unavailable (503) for %s after %d attempts", websiteURL, maxRetries)
+					return []string{} // Stop after max retries
+				}
+			}
 			if resp.StatusCode != 200 {
 				r.logger.Printf("⚠️ [HomepageRetry] Non-200 status code: %d", resp.StatusCode)
 				continue // Try next DNS server
@@ -2549,6 +2952,12 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromHomepageWithRetry(ctx con
 			if err != nil {
 				r.logger.Printf("⚠️ [HomepageRetry] Failed to read response body: %v", err)
 				continue // Try next DNS server
+			}
+
+			// Check for CAPTCHA before processing
+			if detected, captchaType := detectCAPTCHA(resp, body); detected {
+				r.logger.Printf("🚫 [HomepageRetry] CAPTCHA detected (%s) for %s - stopping", captchaType, websiteURL)
+				return []string{} // Stop immediately when CAPTCHA is detected
 			}
 
 			// Extract keywords from content
@@ -2713,9 +3122,24 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromWebsite(ctx context.Conte
 
 	// Phase 9.3: Apply rate limiting with jitter
 	// Note: parsedURL already declared above, so we reuse it
+	var domain string
+	var session *scrapingSession
 	if parsedURL != nil {
-		domain := parsedURL.Hostname()
+		domain = parsedURL.Hostname()
 		r.applyRateLimit(domain)
+		
+		// Get or create session for this domain
+		sess, err := r.sessionManager.getOrCreateSession(domain)
+		if err != nil {
+			r.logger.Printf("⚠️ [SinglePage] Failed to get session for %s: %v", domain, err)
+		} else {
+			session = sess
+		}
+	}
+
+	// Update HTTP client to use session cookie jar
+	if session != nil {
+		client.Jar = session.cookieJar
 	}
 
 	// Create request with enhanced headers
@@ -2725,18 +3149,15 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromWebsite(ctx context.Conte
 		return []string{}
 	}
 
-	// Set comprehensive headers to mimic a real browser
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8")
-	req.Header.Set("Accept-Language", "en-US,en;q=0.9")
-	req.Header.Set("Accept-Encoding", "gzip, deflate, br")
-	req.Header.Set("DNT", "1")
-	req.Header.Set("Connection", "keep-alive")
-	req.Header.Set("Upgrade-Insecure-Requests", "1")
-	req.Header.Set("Sec-Fetch-Dest", "document")
-	req.Header.Set("Sec-Fetch-Mode", "navigate")
-	req.Header.Set("Sec-Fetch-Site", "none")
-	req.Header.Set("Cache-Control", "max-age=0")
+	// Set comprehensive headers with randomization to mimic a real browser
+	referer := ""
+	if session != nil {
+		referer = r.sessionManager.getReferer(domain)
+	}
+	headers := getRandomizedHeaders(getUserAgent(), referer)
+	for key, value := range headers {
+		req.Header.Set(key, value)
+	}
 
 	r.logger.Printf("📡 [KeywordExtraction] [SinglePage] Making HTTP request to: %s", websiteURL)
 
@@ -2760,6 +3181,68 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromWebsite(ctx context.Conte
 		return []string{}
 	}
 	defer resp.Body.Close()
+
+	// Handle specific HTTP status codes
+	if resp.StatusCode == 429 {
+		// Too Many Requests - stop immediately, do not retry
+		retryAfter := resp.Header.Get("Retry-After")
+		r.logger.Printf("⚠️ [SinglePage] Rate limited (429) for %s, Retry-After: %s - stopping immediately", websiteURL, retryAfter)
+		return []string{}
+	}
+	if resp.StatusCode == 403 {
+		// Forbidden - stop immediately, do not retry
+		r.logger.Printf("🚫 [SinglePage] Access forbidden (403) for %s - stopping immediately", websiteURL)
+		return []string{}
+	}
+	if resp.StatusCode == 503 {
+		// Service Unavailable - implement exponential backoff (up to 3 retries)
+		maxRetries := 3
+		for retryAttempt := 1; retryAttempt <= maxRetries; retryAttempt++ {
+			backoffDelay := time.Duration(retryAttempt) * 2 * time.Second // 2s, 4s, 6s
+			r.logger.Printf("⚠️ [SinglePage] Service unavailable (503) for %s (retry %d/%d), waiting %v", websiteURL, retryAttempt, maxRetries, backoffDelay)
+			
+			// Wait for backoff delay
+			select {
+			case <-ctx.Done():
+				return []string{}
+			case <-time.After(backoffDelay):
+			}
+			
+			// Retry request
+			retryReq, err := http.NewRequestWithContext(ctx, "GET", websiteURL, nil)
+			if err != nil {
+				return []string{}
+			}
+			// Set randomized headers for retry
+			retryHeaders := getRandomizedHeaders(getUserAgent(), "")
+			for key, value := range retryHeaders {
+				retryReq.Header.Set(key, value)
+			}
+			
+			retryResp, err := client.Do(retryReq)
+			if err != nil {
+				continue // Try next retry
+			}
+			defer retryResp.Body.Close()
+			
+			if retryResp.StatusCode == 200 {
+				// Success on retry
+				resp = retryResp
+				break
+			} else if retryResp.StatusCode == 503 && retryAttempt < maxRetries {
+				// Still 503, continue retrying
+				continue
+			} else {
+				// Other status code or max retries reached
+				resp = retryResp
+				break
+			}
+		}
+		if resp.StatusCode == 503 {
+			r.logger.Printf("❌ [SinglePage] Service unavailable (503) for %s after %d retry attempts", websiteURL, maxRetries)
+			return []string{}
+		}
+	}
 
 	// Log response details
 	r.logger.Printf("📊 [KeywordExtraction] [SinglePage] Response received - Status: %d, Content-Type: %s, Content-Length: %d",
@@ -2818,6 +3301,12 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromWebsite(ctx context.Conte
 	}
 
 	r.logger.Printf("📄 [KeywordExtraction] [SinglePage] Read %d bytes from %s (decompressed: %v)", len(body), websiteURL, contentEncoding != "")
+
+	// Check for CAPTCHA before processing
+	if detected, captchaType := detectCAPTCHA(resp, body); detected {
+		r.logger.Printf("🚫 [SinglePage] CAPTCHA detected (%s) for %s - stopping", captchaType, websiteURL)
+		return []string{} // Stop immediately when CAPTCHA is detected
+	}
 
 	// Check if body appears to be binary/garbled (contains null bytes or high percentage of non-printable chars)
 	if len(body) > 0 {
@@ -3342,9 +3831,10 @@ func (r *SupabaseKeywordRepository) getCachedDNSResolutionWithKey(cacheKey, host
 	return ips, nil
 }
 
-// applyRateLimit applies rate limiting with jitter to avoid thundering herd
+// applyRateLimit applies rate limiting with jitter to avoid thundering herd.
+// If crawlDelay is provided and greater than the configured minDelay, it will be used instead.
 // Phase 9.3: Performance optimization to respect rate limits and add jitter
-func (r *SupabaseKeywordRepository) applyRateLimit(domain string) {
+func (r *SupabaseKeywordRepository) applyRateLimit(domain string, crawlDelay ...time.Duration) {
 	if domain == "" {
 		return
 	}
@@ -3367,17 +3857,31 @@ func (r *SupabaseKeywordRepository) applyRateLimit(domain string) {
 		r.logger.Printf("🧹 [Performance] Cleaned up %d old rate limiter entries", cleanedCount)
 	}
 
+	// Determine effective delay: use robots.txt crawl delay if specified and greater than minDelay
+	effectiveDelay := r.minDelay
+	if len(crawlDelay) > 0 && crawlDelay[0] > 0 {
+		if crawlDelay[0] > r.minDelay {
+			effectiveDelay = crawlDelay[0]
+			r.logger.Printf("⏳ [RobotsTxt] Using robots.txt crawl delay of %v for %s (greater than configured %v)",
+				crawlDelay[0], domain, r.minDelay)
+		}
+	}
+
 	lastRequest, exists := r.rateLimiter[domain]
 	if exists {
 		elapsed := time.Since(lastRequest)
-		if elapsed < r.minDelay {
-			// Calculate delay with jitter (random 0-20% of minDelay)
-			remainingDelay := r.minDelay - elapsed
-			jitter := time.Duration(float64(remainingDelay) * 0.2 * rand.Float64())
-			totalDelay := remainingDelay + jitter
+		if elapsed < effectiveDelay {
+			// Use human-like timing instead of fixed delay + jitter
+			remainingDelay := effectiveDelay - elapsed
+			totalDelay := getHumanLikeDelay(remainingDelay, domain)
 
-			r.logger.Printf("⏳ [Performance] Rate limiting: waiting %v before request to %s (base: %v, jitter: %v)",
-				totalDelay, domain, remainingDelay, jitter)
+			delaySource := "configured"
+			if len(crawlDelay) > 0 && crawlDelay[0] > r.minDelay {
+				delaySource = "robots.txt"
+			}
+
+			r.logger.Printf("⏳ [Performance] Rate limiting: waiting %v before request to %s (human-like delay, source: %s)",
+				totalDelay, domain, delaySource)
 			time.Sleep(totalDelay)
 		}
 	}
