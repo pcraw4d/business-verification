@@ -3,6 +3,7 @@ package repository
 import (
 	"math"
 	"strings"
+	"sync"
 	"unicode"
 )
 
@@ -17,6 +18,7 @@ type MatchResult struct {
 type KeywordMatcher struct {
 	synonymMap map[string][]string
 	stemCache  map[string]string
+	stemMutex  sync.RWMutex // Protects stemCache from concurrent access
 }
 
 // NewKeywordMatcher creates a new keyword matcher with default synonym dictionary
@@ -105,17 +107,30 @@ func (km *KeywordMatcher) matchStem(searchKeyword, databaseKeyword string) bool 
 }
 
 // stem performs simple Porter-like stemming
+// Thread-safe: uses RWMutex to protect stemCache from concurrent access
 func (km *KeywordMatcher) stem(word string) string {
-	// Check cache first
+	// Check cache first with read lock
+	km.stemMutex.RLock()
 	if cached, exists := km.stemCache[word]; exists {
+		km.stemMutex.RUnlock()
 		return cached
 	}
+	km.stemMutex.RUnlock()
 
+	// Compute stem (no lock needed for computation)
 	stemmed := word
 
 	// Only stem words longer than 3 characters
 	if len(stemmed) <= 3 {
+		// Write to cache with write lock
+		km.stemMutex.Lock()
+		// Double-check after acquiring write lock (another goroutine might have added it)
+		if cached, exists := km.stemCache[word]; exists {
+			km.stemMutex.Unlock()
+			return cached
+		}
 		km.stemCache[word] = stemmed
+		km.stemMutex.Unlock()
 		return stemmed
 	}
 
@@ -152,7 +167,15 @@ func (km *KeywordMatcher) stem(word string) string {
 		}
 	}
 
+	// Write to cache with write lock
+	km.stemMutex.Lock()
+	// Double-check after acquiring write lock (another goroutine might have added it)
+	if cached, exists := km.stemCache[word]; exists {
+		km.stemMutex.Unlock()
+		return cached
+	}
 	km.stemCache[word] = stemmed
+	km.stemMutex.Unlock()
 	return stemmed
 }
 
