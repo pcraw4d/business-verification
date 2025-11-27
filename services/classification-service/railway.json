@@ -16,13 +16,15 @@
     "production": {
       "variables": {
         "ENV": "production",
-        "LOG_LEVEL": "info"
+        "LOG_LEVEL": "info",
+        "PYTHON_ML_SERVICE_URL": "https://python-ml-service-production.up.railway.app"
       }
     },
     "staging": {
       "variables": {
         "ENV": "staging",
-        "LOG_LEVEL": "debug"
+        "LOG_LEVEL": "debug",
+        "PYTHON_ML_SERVICE_URL": "https://python-ml-service-staging.up.railway.app"
       }
     }
   }
