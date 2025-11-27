@@ -79,7 +79,6 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health').read()" || exit 1
 
 # Production command
-# Railway sets PORT env var automatically
-# Use 1 worker to reduce memory usage and startup time
-# Note: Railway's startCommand in railway.json overrides this
-CMD ["python", "-m", "uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
+# Railway sets PORT env var automatically and startCommand in railway.json overrides this
+# This CMD is a fallback - Railway's startCommand (sh start.sh) will be used instead
+CMD ["sh", "start.sh"]
