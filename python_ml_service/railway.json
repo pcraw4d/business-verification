@@ -17,7 +17,6 @@
       "variables": {
         "ENVIRONMENT": "production",
         "LOG_LEVEL": "info",
-        "PORT": "8000",
         "USE_QUANTIZATION": "true",
         "QUANTIZATION_DTYPE": "qint8",
         "MODEL_SAVE_PATH": "/app/models/distilbart",
