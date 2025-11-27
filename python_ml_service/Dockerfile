@@ -58,6 +58,9 @@ RUN pip install -r requirements.txt
 COPY . /app
 WORKDIR /app
 
+# Make start script executable
+RUN chmod +x start.sh
+
 # Create necessary directories
 RUN mkdir -p /app/models /app/data /app/logs /app/cache /app/explainability /app/benchmarks
 
