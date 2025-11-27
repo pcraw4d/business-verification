@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 )
@@ -82,13 +83,16 @@ func NewPythonMLService(endpoint string, logger *log.Logger) *PythonMLService {
 
 	ctx, cancel := context.WithCancel(context.Background())
 
+	// Normalize endpoint URL - remove trailing slash to avoid double slashes
+	normalizedEndpoint := strings.TrimSuffix(endpoint, "/")
+
 	// Create HTTP client with timeout
 	httpClient := &http.Client{
 		Timeout: 30 * time.Second,
 	}
 
 	return &PythonMLService{
-		endpoint: endpoint,
+		endpoint: normalizedEndpoint,
 		config: PythonMLServiceConfig{
 			DefaultModelType:    "bert",
 			SupportedModelTypes: []string{"bert", "distilbert", "custom"},
