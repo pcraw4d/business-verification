@@ -1023,20 +1023,20 @@ func (h *ClassificationHandler) generateEnhancedClassification(ctx context.Conte
 			// Call Python ML service
 			enhancedResp, err := pms.ClassifyEnhanced(ctx, enhancedReq)
 			if err == nil && enhancedResp != nil && enhancedResp.Success {
+				// Get primary industry from classifications array
+				primaryIndustry := "Unknown"
+				if len(enhancedResp.Classifications) > 0 {
+					primaryIndustry = enhancedResp.Classifications[0].Label
+				}
+				
 				h.logger.Info("Python ML service enhanced classification successful",
 					zap.String("request_id", req.RequestID),
-					zap.String("industry", enhancedResp.Industry),
+					zap.String("industry", primaryIndustry),
 					zap.Float64("confidence", enhancedResp.Confidence),
 					zap.Bool("quantization_enabled", enhancedResp.QuantizationEnabled))
 				
 				// Extract keywords from explanation and summary
 				keywords := h.extractKeywordsFromText(enhancedResp.Explanation + " " + enhancedResp.Summary)
-				
-				// Get primary industry from enhanced response
-				primaryIndustry := enhancedResp.Industry
-				if len(enhancedResp.Classifications) > 0 {
-					primaryIndustry = enhancedResp.Classifications[0].Label
-				}
 				
 				// Generate classification codes
 				codesInfo, err := h.codeGenerator.GenerateClassificationCodes(
@@ -1387,10 +1387,16 @@ func (h *ClassificationHandler) buildEnhancedResultFromPythonML(
 	req *ClassificationRequest,
 	keywords []string,
 ) *EnhancedClassificationResult {
-	// Get primary industry
-	primaryIndustry := enhancedResp.Industry
+	// Get primary industry from classifications array
+	primaryIndustry := "Unknown"
 	if len(enhancedResp.Classifications) > 0 {
 		primaryIndustry = enhancedResp.Classifications[0].Label
+	}
+	
+	// Build all industry scores map from classifications array
+	allIndustryScores := make(map[string]float64)
+	for _, classification := range enhancedResp.Classifications {
+		allIndustryScores[classification.Label] = classification.Confidence
 	}
 	
 	// Convert codes to handler format (limit to top 3 per type)
@@ -1444,7 +1450,7 @@ func (h *ClassificationHandler) buildEnhancedResultFromPythonML(
 			"quantization_enabled":   enhancedResp.QuantizationEnabled,
 			"model_version":          enhancedResp.ModelVersion,
 			"processing_time":        enhancedResp.ProcessingTime,
-			"all_industry_scores":    enhancedResp.AllScores,
+			"all_industry_scores":    allIndustryScores,
 		},
 	}
 	
