@@ -2,7 +2,8 @@
 
 **Issue**: Railway is auto-detecting the wrong Dockerfile (Go service) instead of using the Python ML service Dockerfile.
 
-**Error**: 
+**Error**:
+
 ```
 ERROR: failed to build: failed to solve: failed to compute cache key: failed to calculate checksum of ref 8qf4slnal40gxtfuku357sdv3::jku0s9w8v8o9uac5qn84veerw: "/go.sum": not found
 ```
@@ -27,6 +28,7 @@ Railway is auto-detecting a Dockerfile from the repository root instead of using
 6. Redeploy
 
 This ensures Railway:
+
 - Builds from the `python_ml_service/` directory
 - Uses the correct Dockerfile
 - Has the correct build context
@@ -69,6 +71,7 @@ railway up
 ## Verification
 
 After fixing, the build should:
+
 1. ✅ Use Python base image (`python:3.11-slim`)
 2. ✅ Install Python dependencies from `requirements.txt`
 3. ✅ Build the production stage
@@ -77,6 +80,7 @@ After fixing, the build should:
 ## Current Configuration
 
 The `python_ml_service/railway.json` is correctly configured:
+
 ```json
 {
   "build": {
@@ -99,4 +103,3 @@ However, Railway may ignore this if the service root directory isn't set correct
 ---
 
 **Status**: ⚠️ **Requires Railway Dashboard Configuration**
-

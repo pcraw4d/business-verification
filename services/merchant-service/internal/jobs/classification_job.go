@@ -44,6 +44,10 @@ type ClassificationResult struct {
 	SICCodes        []IndustryCode         `json:"sicCodes,omitempty"`
 	NAICSCodes      []IndustryCode          `json:"naicsCodes,omitempty"`
 	Status          string                 `json:"status"`
+	Explanation     string                 `json:"explanation,omitempty"`     // DistilBART explanation
+	ContentSummary  string                 `json:"contentSummary,omitempty"`  // DistilBART content summary
+	QuantizationEnabled bool               `json:"quantizationEnabled,omitempty"` // Quantization status
+	ModelVersion     string                 `json:"modelVersion,omitempty"`    // Model version
 	Metadata        map[string]interface{} `json:"metadata,omitempty"`
 }
 
@@ -465,6 +469,20 @@ func (j *ClassificationJob) extractClassificationFromResponse(response map[strin
 		if analysisMethod, ok := metadata["analysisMethod"].(string); ok {
 			result.Metadata["analysisMethod"] = analysisMethod
 		}
+		
+		// Extract DistilBART enhancement fields
+		if explanation, ok := metadata["explanation"].(string); ok {
+			result.Explanation = explanation
+		}
+		if contentSummary, ok := metadata["content_summary"].(string); ok {
+			result.ContentSummary = contentSummary
+		}
+		if quantizationEnabled, ok := metadata["quantization_enabled"].(bool); ok {
+			result.QuantizationEnabled = quantizationEnabled
+		}
+		if modelVersion, ok := metadata["model_version"].(string); ok {
+			result.ModelVersion = modelVersion
+		}
 	}
 
 	// Add data source priority metadata (based on classification priority)
@@ -620,6 +638,20 @@ func (j *ClassificationJob) saveResultToDB(ctx context.Context, result *Classifi
 		"confidenceScore": result.ConfidenceScore,
 		"riskLevel":       result.RiskLevel,
 		"status":          result.Status,
+	}
+
+	// Add DistilBART enhancement fields
+	if result.Explanation != "" {
+		classificationData["explanation"] = result.Explanation
+	}
+	if result.ContentSummary != "" {
+		classificationData["contentSummary"] = result.ContentSummary
+	}
+	if result.QuantizationEnabled {
+		classificationData["quantizationEnabled"] = result.QuantizationEnabled
+	}
+	if result.ModelVersion != "" {
+		classificationData["modelVersion"] = result.ModelVersion
 	}
 
 	// Add industry codes

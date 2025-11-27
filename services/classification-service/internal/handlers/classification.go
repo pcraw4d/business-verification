@@ -14,6 +14,7 @@ import (
 	"go.uber.org/zap"
 
 	"kyb-platform/internal/classification"
+	"kyb-platform/internal/machine_learning/infrastructure"
 	"kyb-platform/services/classification-service/internal/config"
 	"kyb-platform/services/classification-service/internal/errors"
 	"kyb-platform/services/classification-service/internal/supabase"
@@ -32,6 +33,7 @@ type ClassificationHandler struct {
 	config                *config.Config
 	industryDetector       *classification.IndustryDetectionService
 	codeGenerator         *classification.ClassificationCodeGenerator
+	pythonMLService       interface{} // *infrastructure.PythonMLService - using interface to avoid import cycle
 	cache                 map[string]*cacheEntry
 	cacheMutex            sync.RWMutex
 }
@@ -43,6 +45,7 @@ func NewClassificationHandler(
 	config *config.Config,
 	industryDetector *classification.IndustryDetectionService,
 	codeGenerator *classification.ClassificationCodeGenerator,
+	pythonMLService interface{}, // *infrastructure.PythonMLService - optional, can be nil
 ) *ClassificationHandler {
 	handler := &ClassificationHandler{
 		supabaseClient:  supabaseClient,
@@ -50,6 +53,7 @@ func NewClassificationHandler(
 		config:          config,
 		industryDetector: industryDetector,
 		codeGenerator:   codeGenerator,
+		pythonMLService: pythonMLService,
 		cache:           make(map[string]*cacheEntry),
 	}
 	
@@ -140,6 +144,10 @@ type ClassificationResponse struct {
 	RiskAssessment     *RiskAssessmentResult  `json:"risk_assessment"`
 	VerificationStatus *VerificationStatus    `json:"verification_status"`
 	ConfidenceScore    float64                `json:"confidence_score"`
+	Explanation        string                 `json:"explanation,omitempty"`        // DistilBART explanation
+	ContentSummary     string                 `json:"contentSummary,omitempty"`     // DistilBART content summary
+	QuantizationEnabled bool                  `json:"quantizationEnabled,omitempty"` // Quantization status
+	ModelVersion       string                 `json:"modelVersion,omitempty"`        // Model version
 	DataSource         string                 `json:"data_source"`
 	Status             string                 `json:"status"`
 	Success            bool                   `json:"success"`
@@ -392,6 +400,28 @@ func (h *ClassificationHandler) processClassification(ctx context.Context, req *
 	// Generate verification status
 	verificationStatus := h.generateVerificationStatus(req, enhancedResult, time.Since(startTime))
 
+	// Extract DistilBART enhancement fields from metadata if present
+	var explanation, contentSummary, modelVersion string
+	var quantizationEnabled bool
+	if enhancedResult.Metadata != nil {
+		if exp, ok := enhancedResult.Metadata["explanation"].(string); ok {
+			explanation = exp
+		}
+		if summary, ok := enhancedResult.Metadata["content_summary"].(string); ok {
+			contentSummary = summary
+		}
+		if quant, ok := enhancedResult.Metadata["quantization_enabled"].(bool); ok {
+			quantizationEnabled = quant
+		}
+		if version, ok := enhancedResult.Metadata["model_version"].(string); ok {
+			modelVersion = version
+		}
+	}
+	// Fallback to ClassificationReasoning if explanation not in metadata
+	if explanation == "" {
+		explanation = enhancedResult.ClassificationReasoning
+	}
+
 	// Create response with enhanced reasoning
 	response := &ClassificationResponse{
 		RequestID:          req.RequestID,
@@ -402,6 +432,10 @@ func (h *ClassificationHandler) processClassification(ctx context.Context, req *
 		RiskAssessment:     riskAssessment,
 		VerificationStatus: verificationStatus,
 		ConfidenceScore:    enhancedResult.ConfidenceScore,
+		Explanation:        explanation,
+		ContentSummary:     contentSummary,
+		QuantizationEnabled: quantizationEnabled,
+		ModelVersion:       modelVersion,
 		DataSource:         "smart_crawling_classification_service",
 		Status:             "success",
 		Success:            true,
@@ -420,6 +454,12 @@ func (h *ClassificationHandler) processClassification(ctx context.Context, req *
 			if enhancedResult.Metadata != nil {
 				if codeGen, ok := enhancedResult.Metadata["codeGeneration"]; ok {
 					metadata["codeGeneration"] = codeGen
+				}
+				// Include all other metadata fields
+				for k, v := range enhancedResult.Metadata {
+					if k != "explanation" && k != "content_summary" && k != "quantization_enabled" && k != "model_version" {
+						metadata[k] = v
+					}
 				}
 			}
 			return metadata
@@ -960,6 +1000,73 @@ func (h *ClassificationHandler) generateEnhancedClassification(ctx context.Conte
 		return nil, fmt.Errorf("classification services not initialized: code generator is nil")
 	}
 
+	// Try Python ML service enhanced classification if available and website URL is provided
+	if h.pythonMLService != nil && req.WebsiteURL != "" {
+		// Type assert to get the actual PythonMLService
+		pms, ok := h.pythonMLService.(interface {
+			ClassifyEnhanced(ctx context.Context, req *infrastructure.EnhancedClassificationRequest) (*infrastructure.EnhancedClassificationResponse, error)
+		})
+		if ok {
+			h.logger.Info("Using Python ML service for enhanced classification",
+				zap.String("request_id", req.RequestID),
+				zap.String("website_url", req.WebsiteURL))
+			
+			// Prepare enhanced classification request
+			enhancedReq := &infrastructure.EnhancedClassificationRequest{
+				BusinessName:     req.BusinessName,
+				Description:      req.Description,
+				WebsiteURL:       req.WebsiteURL,
+				MaxResults:       5,
+				MaxContentLength: 1024,
+			}
+			
+			// Call Python ML service
+			enhancedResp, err := pms.ClassifyEnhanced(ctx, enhancedReq)
+			if err == nil && enhancedResp != nil && enhancedResp.Success {
+				h.logger.Info("Python ML service enhanced classification successful",
+					zap.String("request_id", req.RequestID),
+					zap.String("industry", enhancedResp.Industry),
+					zap.Float64("confidence", enhancedResp.Confidence),
+					zap.Bool("quantization_enabled", enhancedResp.QuantizationEnabled))
+				
+				// Extract keywords from explanation and summary
+				keywords := h.extractKeywordsFromText(enhancedResp.Explanation + " " + enhancedResp.Summary)
+				
+				// Get primary industry from enhanced response
+				primaryIndustry := enhancedResp.Industry
+				if len(enhancedResp.Classifications) > 0 {
+					primaryIndustry = enhancedResp.Classifications[0].Label
+				}
+				
+				// Generate classification codes
+				codesInfo, err := h.codeGenerator.GenerateClassificationCodes(
+					ctx,
+					keywords,
+					primaryIndustry,
+					enhancedResp.Confidence,
+				)
+				if err != nil {
+					h.logger.Warn("Code generation failed after enhanced classification",
+						zap.String("request_id", req.RequestID),
+						zap.Error(err))
+					codesInfo = &classification.ClassificationCodesInfo{
+						MCC:   []classification.MCCCode{},
+						SIC:   []classification.SICCode{},
+						NAICS: []classification.NAICSCode{},
+					}
+				}
+				
+				// Build enhanced result with Python ML service data
+				return h.buildEnhancedResultFromPythonML(enhancedResp, codesInfo, req, keywords), nil
+			} else {
+				h.logger.Warn("Python ML service enhanced classification failed, falling back to standard classification",
+					zap.String("request_id", req.RequestID),
+					zap.Error(err))
+				// Continue with standard classification below
+			}
+		}
+	}
+
 	// Step 1: Detect industry using IndustryDetectionService
 	h.logger.Info("Starting industry detection",
 		zap.String("request_id", req.RequestID),
@@ -1271,6 +1378,155 @@ func (z *zapLoggerAdapter) Write(p []byte) (n int, err error) {
 // convertIndustryCodes converts IndustryCode to handlers.IndustryCode
 func convertIndustryCodes(codes []IndustryCode) []IndustryCode {
 	return codes // Same type, no conversion needed
+}
+
+// buildEnhancedResultFromPythonML builds EnhancedClassificationResult from Python ML service response
+func (h *ClassificationHandler) buildEnhancedResultFromPythonML(
+	enhancedResp *infrastructure.EnhancedClassificationResponse,
+	codesInfo *classification.ClassificationCodesInfo,
+	req *ClassificationRequest,
+	keywords []string,
+) *EnhancedClassificationResult {
+	// Get primary industry
+	primaryIndustry := enhancedResp.Industry
+	if len(enhancedResp.Classifications) > 0 {
+		primaryIndustry = enhancedResp.Classifications[0].Label
+	}
+	
+	// Convert codes to handler format (limit to top 3 per type)
+	const maxCodesPerType = 3
+	mccCodes := h.convertMCCCodes(codesInfo.MCC, maxCodesPerType)
+	sicCodes := h.convertSICCodes(codesInfo.SIC, maxCodesPerType)
+	naicsCodes := h.convertNAICSCodes(codesInfo.NAICS, maxCodesPerType)
+	
+	// Build website analysis
+	websiteAnalysis := &WebsiteAnalysisData{
+		Success:           req.WebsiteURL != "",
+		PagesAnalyzed:     1, // Python ML service analyzed the website
+		RelevantPages:     1,
+		KeywordsExtracted: keywords,
+		IndustrySignals:   []string{strings.ToLower(strings.ReplaceAll(primaryIndustry, " ", "_"))},
+		AnalysisMethod:    "python_ml_service",
+		ProcessingTime:    time.Duration(enhancedResp.ProcessingTime * float64(time.Second)),
+		OverallRelevance:  enhancedResp.Confidence,
+		ContentQuality:    enhancedResp.Confidence,
+		StructuredData: map[string]interface{}{
+			"business_type": "Business",
+			"industry":      primaryIndustry,
+			"summary":      enhancedResp.Summary,
+		},
+	}
+	
+	// Build method weights
+	methodWeights := map[string]float64{
+		"python_ml_service": 100.0,
+	}
+	
+	// Build result
+	result := &EnhancedClassificationResult{
+		BusinessName:            req.BusinessName,
+		PrimaryIndustry:         primaryIndustry,
+		IndustryConfidence:      enhancedResp.Confidence,
+		BusinessType:            h.determineBusinessType(keywords, primaryIndustry),
+		BusinessTypeConfidence:  enhancedResp.Confidence * 0.9,
+		MCCCodes:                mccCodes,
+		SICCodes:                sicCodes,
+		NAICSCodes:              naicsCodes,
+		Keywords:                keywords,
+		ConfidenceScore:         enhancedResp.Confidence,
+		ClassificationReasoning: enhancedResp.Explanation,
+		WebsiteAnalysis:         websiteAnalysis,
+		MethodWeights:           methodWeights,
+		Timestamp:               enhancedResp.Timestamp,
+		Metadata: map[string]interface{}{
+			"explanation":            enhancedResp.Explanation,
+			"content_summary":        enhancedResp.Summary,
+			"quantization_enabled":   enhancedResp.QuantizationEnabled,
+			"model_version":          enhancedResp.ModelVersion,
+			"processing_time":        enhancedResp.ProcessingTime,
+			"all_industry_scores":    enhancedResp.AllScores,
+		},
+	}
+	
+	return result
+}
+
+// extractKeywordsFromText extracts keywords from text (simple implementation)
+func (h *ClassificationHandler) extractKeywordsFromText(text string) []string {
+	// Simple keyword extraction - split by spaces and filter common words
+	words := strings.Fields(strings.ToLower(text))
+	stopWords := map[string]bool{
+		"the": true, "a": true, "an": true, "and": true, "or": true, "but": true,
+		"in": true, "on": true, "at": true, "to": true, "for": true, "of": true,
+		"with": true, "by": true, "from": true, "as": true, "is": true, "was": true,
+		"are": true, "were": true, "been": true, "be": true, "have": true, "has": true,
+		"had": true, "do": true, "does": true, "did": true, "will": true, "would": true,
+		"should": true, "could": true, "may": true, "might": true, "must": true,
+		"this": true, "that": true, "these": true, "those": true, "it": true, "its": true,
+	}
+	
+	keywords := make([]string, 0)
+	seen := make(map[string]bool)
+	for _, word := range words {
+		// Remove punctuation
+		word = strings.Trim(word, ".,!?;:()[]{}\"'")
+		if len(word) > 2 && !stopWords[word] && !seen[word] {
+			keywords = append(keywords, word)
+			seen[word] = true
+		}
+	}
+	return keywords
+}
+
+// convertMCCCodes converts classification.MCCCode to handlers.IndustryCode
+func (h *ClassificationHandler) convertMCCCodes(codes []classification.MCCCode, limit int) []IndustryCode {
+	result := make([]IndustryCode, 0, limit)
+	for i, code := range codes {
+		if i >= limit {
+			break
+		}
+		result = append(result, IndustryCode{
+			Code:        code.Code,
+			Description: code.Description,
+			Confidence:  code.Confidence,
+			Source:      []string{"keyword"},
+		})
+	}
+	return result
+}
+
+// convertSICCodes converts classification.SICCode to handlers.IndustryCode
+func (h *ClassificationHandler) convertSICCodes(codes []classification.SICCode, limit int) []IndustryCode {
+	result := make([]IndustryCode, 0, limit)
+	for i, code := range codes {
+		if i >= limit {
+			break
+		}
+		result = append(result, IndustryCode{
+			Code:        code.Code,
+			Description: code.Description,
+			Confidence:  code.Confidence,
+			Source:      []string{"keyword"},
+		})
+	}
+	return result
+}
+
+// convertNAICSCodes converts classification.NAICSCode to handlers.IndustryCode
+func (h *ClassificationHandler) convertNAICSCodes(codes []classification.NAICSCode, limit int) []IndustryCode {
+	result := make([]IndustryCode, 0, limit)
+	for i, code := range codes {
+		if i >= limit {
+			break
+		}
+		result = append(result, IndustryCode{
+			Code:        code.Code,
+			Description: code.Description,
+			Confidence:  code.Confidence,
+			Source:      []string{"keyword"},
+		})
+	}
+	return result
 }
 
 // HandleHealth handles health check requests

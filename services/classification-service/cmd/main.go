@@ -16,6 +16,7 @@ import (
 	"kyb-platform/internal/classification"
 	classificationAdapters "kyb-platform/internal/classification/adapters"
 	"kyb-platform/internal/classification/repository"
+	"kyb-platform/internal/machine_learning/infrastructure"
 	serviceAdapters "kyb-platform/services/classification-service/internal/adapters"
 	"kyb-platform/services/classification-service/internal/config"
 	"kyb-platform/services/classification-service/internal/errors"
@@ -78,9 +79,32 @@ func main() {
 	industryDetector := classification.NewIndustryDetectionService(keywordRepo, stdLogger)
 	codeGenerator := classification.NewClassificationCodeGenerator(keywordRepo, stdLogger)
 
+	// Initialize Python ML service if URL is configured
+	var pythonMLService *infrastructure.PythonMLService
+	pythonMLServiceURL := os.Getenv("PYTHON_ML_SERVICE_URL")
+	if pythonMLServiceURL != "" {
+		logger.Info("🐍 Initializing Python ML Service",
+			zap.String("url", pythonMLServiceURL))
+		pythonMLService = infrastructure.NewPythonMLService(pythonMLServiceURL, stdLogger)
+		
+		// Initialize the service (test connection)
+		initCtx, initCancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer initCancel()
+		if err := pythonMLService.Initialize(initCtx); err != nil {
+			logger.Warn("⚠️ Failed to initialize Python ML Service, continuing without enhanced classification",
+				zap.Error(err))
+			pythonMLService = nil // Set to nil so service continues without it
+		} else {
+			logger.Info("✅ Python ML Service initialized successfully")
+		}
+	} else {
+		logger.Info("ℹ️ Python ML Service URL not configured, enhanced classification will not be available")
+	}
+
 	logger.Info("✅ Classification services initialized",
 		zap.Bool("industry_detector", industryDetector != nil),
-		zap.Bool("code_generator", codeGenerator != nil))
+		zap.Bool("code_generator", codeGenerator != nil),
+		zap.Bool("python_ml_service", pythonMLService != nil))
 
 	// Initialize handlers
 	classificationHandler := handlers.NewClassificationHandler(
@@ -89,6 +113,7 @@ func main() {
 		cfg,
 		industryDetector,
 		codeGenerator,
+		pythonMLService, // Pass Python ML service (can be nil)
 	)
 
 	// Setup router
