@@ -1003,10 +1003,8 @@ func (h *ClassificationHandler) generateEnhancedClassification(ctx context.Conte
 	// Try Python ML service enhanced classification if available and website URL is provided
 	if h.pythonMLService != nil && req.WebsiteURL != "" {
 		// Type assert to get the actual PythonMLService
-		pms, ok := h.pythonMLService.(interface {
-			ClassifyEnhanced(ctx context.Context, req *infrastructure.EnhancedClassificationRequest) (*infrastructure.EnhancedClassificationResponse, error)
-		})
-		if ok {
+		pms, ok := h.pythonMLService.(*infrastructure.PythonMLService)
+		if ok && pms != nil {
 			h.logger.Info("Using Python ML service for enhanced classification",
 				zap.String("request_id", req.RequestID),
 				zap.String("website_url", req.WebsiteURL))
