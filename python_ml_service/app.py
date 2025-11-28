@@ -838,6 +838,7 @@ def ensure_models_loaded():
             # Check if DistilBART classifier is available
             if DistilBARTBusinessClassifier is None:
                 logger.error("❌ DistilBARTBusinessClassifier not available - import failed")
+                _models_loaded = True  # Mark as tried to prevent retry loops
                 return
             
             use_quantization = os.getenv('USE_QUANTIZATION', 'true').lower() == 'true'
@@ -863,8 +864,20 @@ def ensure_models_loaded():
             _models_loaded = True
         except Exception as e:
             logger.error(f"❌ Failed to load DistilBART classifier: {e}", exc_info=True)
+            _models_loaded = True  # Mark as tried to prevent retry loops
         finally:
             _models_loading = False
+    elif _models_loading:
+        # Models are loading, wait for them (with timeout)
+        import time
+        max_wait = 120  # Wait up to 2 minutes
+        wait_start = time.time()
+        while _models_loading and (time.time() - wait_start) < max_wait:
+            time.sleep(0.5)  # Check every 500ms
+        if _models_loading:
+            raise RuntimeError("Models are still loading after 2 minute timeout")
+        if not _models_loaded or distilbart_classifier is None:
+            raise RuntimeError("Model loading failed or timed out")
 
 # No startup event - everything is lazy-loaded on first request
 # This ensures the app starts immediately and can respond to health checks
@@ -1633,10 +1646,26 @@ async def get_real_time_monitoring():
         logger.error(f"Failed to get monitoring data: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+def preload_models_in_background():
+    """Preload models in background thread so they're ready when requests arrive"""
+    import threading
+    
+    def load_models():
+        try:
+            logger.info("🔄 Starting background model loading...")
+            ensure_models_loaded()
+            logger.info("✅ Background model loading completed - models are ready!")
+        except Exception as e:
+            logger.error(f"❌ Background model loading failed: {e}", exc_info=True)
+    
+    # Start loading in background thread (non-blocking)
+    thread = threading.Thread(target=load_models, daemon=True)
+    thread.start()
+    logger.info("📚 Models are loading in the background - service is ready to accept requests")
+
 if __name__ == "__main__":
     logger.info("🚀 Starting Python ML Service...")
     logger.info(f"📱 Device: {Config.DEVICE}")
-    logger.info("📚 Models will be loaded lazily on first request")
     
     # Get port from environment (Railway sets this automatically)
     port = int(os.getenv("PORT", "8000"))
@@ -1651,6 +1680,10 @@ if __name__ == "__main__":
             logger.warning(f"⚠️ Risk detection models initialization failed: {e}")
     else:
         logger.warning("⚠️ Risk detection manager not available - skipping initialization")
+    
+    # Preload models in background (non-blocking)
+    # This ensures models are ready when first request arrives
+    preload_models_in_background()
     
     uvicorn.run(
         app,
