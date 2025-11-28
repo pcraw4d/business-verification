@@ -1099,10 +1099,19 @@ async def classify_enhanced(request: EnhancedClassificationRequest):
     request_id = f"req_{int(time.time() * 1000)}"
     
     try:
-        # Prepare content
+        # Prepare content (use business_name as fallback if no content provided)
         content = request.website_content or ""
         if not content and request.description:
             content = request.description
+        if not content and request.business_name:
+            content = request.business_name
+        
+        # Validate content is not empty
+        if not content or not content.strip():
+            raise HTTPException(
+                status_code=400,
+                detail="Content is required for classification. Please provide website_content, description, or business_name."
+            )
         
         # Ensure models are loaded (will wait if they're currently loading)
         try:

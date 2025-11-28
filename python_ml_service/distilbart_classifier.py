@@ -211,6 +211,14 @@ class DistilBARTBusinessClassifier:
         
         # Step 1: Zero-shot classification
         logger.info(f"🔍 Classifying business: {business_name}")
+        
+        # Validate inputs
+        if not content or not content.strip():
+            raise ValueError("Content cannot be empty for classification")
+        
+        if not self.industry_labels:
+            raise ValueError("Industry labels cannot be empty")
+        
         try:
             classification_result = classifier(
                 content,
@@ -219,6 +227,8 @@ class DistilBARTBusinessClassifier:
             )
         except Exception as e:
             logger.error(f"❌ Classification failed: {e}")
+            logger.error(f"   Content length: {len(content) if content else 0}")
+            logger.error(f"   Industry labels count: {len(self.industry_labels)}")
             raise
         
         # Step 2: Summarize content
