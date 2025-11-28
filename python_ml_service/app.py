@@ -1105,21 +1105,20 @@ async def classify_enhanced(request: EnhancedClassificationRequest):
         if not content and request.description:
             content = request.description
         
-        # Check if classifier is loaded
-        if distilbart_classifier is None:
+        # Ensure models are loaded (will wait if they're currently loading)
+        try:
+            ensure_models_loaded()
+        except RuntimeError as e:
             raise HTTPException(
                 status_code=503,
-                detail="DistilBART classifier is still loading. Please try again in a moment."
+                detail=f"DistilBART classifier is still loading. Please try again in a moment. ({str(e)})"
             )
         
-        # Ensure models are loaded (lazy loading)
-        ensure_models_loaded()
-        
         # Check if classifier is loaded
         if distilbart_classifier is None:
             raise HTTPException(
                 status_code=503,
-                detail="DistilBART classifier is still loading. Please try again in a moment."
+                detail="DistilBART classifier failed to load. Please check service logs."
             )
         
         # Get enhanced classification (uses quantized models if enabled)
