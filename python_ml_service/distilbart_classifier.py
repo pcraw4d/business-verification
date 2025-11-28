@@ -246,13 +246,13 @@ class DistilBARTBusinessClassifier:
             logger.error(f"   Content preview: {combined_content[:500] if combined_content else 'EMPTY'}")
             raise
         
-        # Step 2: Summarize content
+        # Step 2: Summarize content (use combined_content for consistency)
         logger.info("📝 Summarizing website content...")
         summary = ""
         try:
-            if content and len(content.strip()) > 50:  # Only summarize if enough content
+            if combined_content and len(combined_content.strip()) > 50:  # Only summarize if enough content
                 summary_result = summarizer(
-                    content,
+                    combined_content,
                     max_length=150,
                     min_length=50,
                     do_sample=False
@@ -271,7 +271,8 @@ class DistilBARTBusinessClassifier:
             classification_result['labels'][0],
             classification_result['scores'][0],
             summary,
-            classification_result
+            classification_result,
+            combined_content  # Pass combined content for better explanation
         )
         
         processing_time = time.time() - start_time
