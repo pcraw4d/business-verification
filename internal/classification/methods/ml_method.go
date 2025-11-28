@@ -223,11 +223,20 @@ func (mlcm *MLClassificationMethod) performEnhancedClassification(
 	businessName, description, websiteURL, websiteContent string,
 ) (*shared.IndustryClassification, error) {
 	// Prepare enhanced classification request
+	// Ensure we have at least some content (use description if websiteContent is empty)
+	contentToSend := websiteContent
+	if contentToSend == "" && description != "" {
+		contentToSend = description
+	}
+	if contentToSend == "" && businessName != "" {
+		contentToSend = businessName
+	}
+	
 	req := &infrastructure.EnhancedClassificationRequest{
 		BusinessName:     businessName,
 		Description:      description,
 		WebsiteURL:       websiteURL,
-		WebsiteContent:   websiteContent,
+		WebsiteContent:   contentToSend, // Use fallback content if website scraping failed
 		MaxResults:       5,
 		MaxContentLength: 1024,
 	}
