@@ -212,23 +212,38 @@ class DistilBARTBusinessClassifier:
         # Step 1: Zero-shot classification
         logger.info(f"🔍 Classifying business: {business_name}")
         
+        # Combine business_name with content for better context
+        # This ensures we always have meaningful content even if website_content is minimal
+        combined_content = content
+        if business_name and business_name.strip():
+            # Prepend business name if not already in content
+            if business_name.lower() not in content.lower():
+                combined_content = f"{business_name}. {content}".strip()
+        
         # Validate inputs
-        if not content or not content.strip():
-            raise ValueError("Content cannot be empty for classification")
+        if not combined_content or not combined_content.strip():
+            raise ValueError(f"Content cannot be empty for classification. Original content length: {len(content) if content else 0}, business_name: {business_name}")
         
         if not self.industry_labels:
             raise ValueError("Industry labels cannot be empty")
         
+        # Log content info for debugging
+        logger.info(f"📊 Classification input - Content length: {len(combined_content)}, Labels: {len(self.industry_labels)}")
+        logger.debug(f"📝 Content preview: {combined_content[:200]}...")
+        
         try:
             classification_result = classifier(
-                content,
+                combined_content,
                 self.industry_labels,
                 multi_label=False
             )
         except Exception as e:
             logger.error(f"❌ Classification failed: {e}")
-            logger.error(f"   Content length: {len(content) if content else 0}")
+            logger.error(f"   Combined content length: {len(combined_content) if combined_content else 0}")
+            logger.error(f"   Original content length: {len(content) if content else 0}")
+            logger.error(f"   Business name: {business_name}")
             logger.error(f"   Industry labels count: {len(self.industry_labels)}")
+            logger.error(f"   Content preview: {combined_content[:500] if combined_content else 'EMPTY'}")
             raise
         
         # Step 2: Summarize content
@@ -328,7 +343,8 @@ class DistilBARTBusinessClassifier:
         industry: str,
         confidence: float,
         summary: str,
-        classification_result: Dict[str, Any]
+        classification_result: Dict[str, Any],
+        content: str = ""
     ) -> str:
         """
         Generate human-readable explanation for classification
