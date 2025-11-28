@@ -61,11 +61,16 @@ WORKDIR /app
 # Make start script executable
 RUN chmod +x start.sh
 
-# Create necessary directories
-RUN mkdir -p /app/models /app/data /app/logs /app/cache /app/explainability /app/benchmarks
+# Create necessary directories (including Hugging Face cache)
+RUN mkdir -p /app/models /app/data /app/logs /app/cache /app/explainability /app/benchmarks /app/.cache/huggingface
 
 # Set ownership
 RUN chown -R mluser:mluser /app
+
+# Set Hugging Face cache directory to writable location
+ENV HF_HOME=/app/.cache/huggingface
+ENV TRANSFORMERS_CACHE=/app/.cache/huggingface
+ENV HF_DATASETS_CACHE=/app/.cache/huggingface/datasets
 
 # Switch to non-root user
 USER mluser

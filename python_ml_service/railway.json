@@ -14,10 +14,13 @@
   },
   "environments": {
     "production": {
-      "variables": {
-        "ENVIRONMENT": "production",
-        "LOG_LEVEL": "info",
-        "USE_QUANTIZATION": "true",
+        "variables": {
+          "ENVIRONMENT": "production",
+          "LOG_LEVEL": "info",
+          "HF_HOME": "/app/.cache/huggingface",
+          "TRANSFORMERS_CACHE": "/app/.cache/huggingface",
+          "HF_DATASETS_CACHE": "/app/.cache/huggingface/datasets",
+          "USE_QUANTIZATION": "true",
         "QUANTIZATION_DTYPE": "qint8",
         "MODEL_SAVE_PATH": "/app/models/distilbart",
         "QUANTIZED_MODELS_PATH": "/app/models/quantized",

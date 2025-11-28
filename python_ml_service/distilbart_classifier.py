@@ -83,12 +83,18 @@ class DistilBARTBusinessClassifier:
     def _load_models(self):
         """Load DistilBART models for classification and summarization"""
         try:
+            # Set Hugging Face cache directory to writable location
+            cache_dir = os.getenv('TRANSFORMERS_CACHE', os.getenv('HF_HOME', '/app/.cache/huggingface'))
+            os.makedirs(cache_dir, exist_ok=True)
+            logger.info(f"📁 Using Hugging Face cache directory: {cache_dir}")
+            
             # Load zero-shot classification model (DistilBERT-MNLI - already optimized)
             logger.info("📥 Loading DistilBERT-MNLI for classification...")
             self.classifier = pipeline(
                 "zero-shot-classification",
                 model="typeform/distilbert-base-uncased-mnli",
-                device=0 if torch.cuda.is_available() else -1
+                device=0 if torch.cuda.is_available() else -1,
+                cache_dir=cache_dir
             )
             logger.info("✅ DistilBERT classification model loaded")
             
@@ -97,7 +103,8 @@ class DistilBARTBusinessClassifier:
             self.summarizer = pipeline(
                 "summarization",
                 model="sshleifer/distilbart-cnn-12-6",
-                device=0 if torch.cuda.is_available() else -1
+                device=0 if torch.cuda.is_available() else -1,
+                cache_dir=cache_dir
             )
             logger.info("✅ DistilBART summarization model loaded")
             
