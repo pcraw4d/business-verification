@@ -1028,21 +1028,20 @@ async def classify(request: ClassificationRequest):
             cached_result["processing_time"] = time.time() - start_time
             return ClassificationResponse(**cached_result)
         
-        # Check if classifier is loaded
-        if distilbart_classifier is None:
+        # Ensure models are loaded (will wait if they're currently loading)
+        try:
+            ensure_models_loaded()
+        except RuntimeError as e:
             raise HTTPException(
                 status_code=503,
-                detail="DistilBART classifier is still loading. Please try again in a moment."
+                detail=f"DistilBART classifier is still loading. Please try again in a moment. ({str(e)})"
             )
         
-        # Ensure models are loaded (lazy loading)
-        ensure_models_loaded()
-        
         # Check if classifier is loaded
         if distilbart_classifier is None:
             raise HTTPException(
                 status_code=503,
-                detail="DistilBART classifier is still loading. Please try again in a moment."
+                detail="DistilBART classifier failed to load. Please check service logs."
             )
         
         # Use DistilBART for classification
