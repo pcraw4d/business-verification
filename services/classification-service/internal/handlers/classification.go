@@ -407,7 +407,7 @@ func (h *ClassificationHandler) HandleClassification(w http.ResponseWriter, r *h
 				h.logger.Error("In-flight request failed",
 					zap.String("request_id", req.RequestID),
 					zap.Error(result.err))
-				errors.WriteInternalServerError(w, r, "Classification failed")
+				errors.WriteInternalError(w, r, "Classification failed")
 				return
 			}
 			h.logger.Info("Classification served from in-flight request",
@@ -653,8 +653,8 @@ func (h *ClassificationHandler) handleClassificationStreaming(w http.ResponseWri
 		// Generate codes
 		codes, codeGenErr := h.codeGenerator.GenerateClassificationCodes(
 			ctx,
-			enhancedResult.PrimaryIndustry,
 			enhancedResult.Keywords,
+			enhancedResult.PrimaryIndustry,
 			enhancedResult.ConfidenceScore,
 		)
 		if codeGenErr != nil {
@@ -662,9 +662,9 @@ func (h *ClassificationHandler) handleClassificationStreaming(w http.ResponseWri
 				zap.String("request_id", req.RequestID),
 				zap.Error(codeGenErr))
 		} else {
-			enhancedResult.MCCCodes = codes.MCCCodes
-			enhancedResult.SICCodes = codes.SICCodes
-			enhancedResult.NAICSCodes = codes.NAICSCodes
+			enhancedResult.MCCCodes = convertMCCCodesToIndustryCodes(codes.MCC)
+			enhancedResult.SICCodes = convertSICCodesToIndustryCodes(codes.SIC)
+			enhancedResult.NAICSCodes = convertNAICSCodesToIndustryCodes(codes.NAICS)
 		}
 	}
 
@@ -2398,6 +2398,48 @@ func (z *zapLoggerAdapter) Write(p []byte) (n int, err error) {
 // convertIndustryCodes converts IndustryCode to handlers.IndustryCode
 func convertIndustryCodes(codes []IndustryCode) []IndustryCode {
 	return codes // Same type, no conversion needed
+}
+
+// convertMCCCodesToIndustryCodes converts classification.MCCCode to handlers.IndustryCode
+func convertMCCCodesToIndustryCodes(codes []classification.MCCCode) []IndustryCode {
+	result := make([]IndustryCode, 0, len(codes))
+	for _, code := range codes {
+		result = append(result, IndustryCode{
+			Code:        code.Code,
+			Description: code.Description,
+			Confidence:  code.Confidence,
+			Source:      []string{"keyword"},
+		})
+	}
+	return result
+}
+
+// convertSICCodesToIndustryCodes converts classification.SICCode to handlers.IndustryCode
+func convertSICCodesToIndustryCodes(codes []classification.SICCode) []IndustryCode {
+	result := make([]IndustryCode, 0, len(codes))
+	for _, code := range codes {
+		result = append(result, IndustryCode{
+			Code:        code.Code,
+			Description: code.Description,
+			Confidence:  code.Confidence,
+			Source:      []string{"keyword"},
+		})
+	}
+	return result
+}
+
+// convertNAICSCodesToIndustryCodes converts classification.NAICSCode to handlers.IndustryCode
+func convertNAICSCodesToIndustryCodes(codes []classification.NAICSCode) []IndustryCode {
+	result := make([]IndustryCode, 0, len(codes))
+	for _, code := range codes {
+		result = append(result, IndustryCode{
+			Code:        code.Code,
+			Description: code.Description,
+			Confidence:  code.Confidence,
+			Source:      []string{"keyword"},
+		})
+	}
+	return result
 }
 
 // buildEnhancedResultFromPythonML builds EnhancedClassificationResult from Python ML service response

@@ -6,7 +6,6 @@ import (
 
 	"go.uber.org/zap"
 
-	"kyb-platform/internal/classification/repository"
 	"kyb-platform/services/classification-service/internal/errors"
 )
 

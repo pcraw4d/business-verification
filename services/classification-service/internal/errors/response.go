@@ -103,3 +103,8 @@ func WriteTooManyRequests(w http.ResponseWriter, r *http.Request, message string
 	WriteError(w, r, http.StatusTooManyRequests, "RATE_LIMIT_EXCEEDED", message, "")
 }
 
+// WriteRequestTimeout writes a request timeout error response
+func WriteRequestTimeout(w http.ResponseWriter, r *http.Request, message string) {
+	WriteError(w, r, http.StatusRequestTimeout, "REQUEST_TIMEOUT", message, "")
+}
+
