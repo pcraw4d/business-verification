@@ -317,6 +317,12 @@ type RiskAssessmentResult struct {
 
 // HandleClassification handles classification requests
 func (h *ClassificationHandler) HandleClassification(w http.ResponseWriter, r *http.Request) {
+	// Entry-point logging to confirm request arrival
+	h.logger.Info("📥 [ENTRY-POINT] Classification request received",
+		zap.String("method", r.Method),
+		zap.String("path", r.URL.Path),
+		zap.String("remote_addr", r.RemoteAddr),
+		zap.String("user_agent", r.UserAgent()))
 	startTime := time.Now()
 
 	// Check if streaming is requested
