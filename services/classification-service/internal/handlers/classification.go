@@ -2650,10 +2650,9 @@ func (h *ClassificationHandler) HandleHealth(w http.ResponseWriter, r *http.Requ
 				},
 			}
 			if err == nil && cbHealth != nil {
-				if healthStatus, ok := cbHealth.(*infrastructure.HealthStatus); ok {
-					mlServiceStatus["health_status"] = healthStatus.Status
-					mlServiceStatus["health_checks"] = healthStatus.Checks
-				}
+				// cbHealth is already *infrastructure.HealthStatus, no type assertion needed
+				mlServiceStatus["health_status"] = cbHealth.Status
+				mlServiceStatus["health_checks"] = cbHealth.Checks
 			} else if err != nil {
 				mlServiceStatus["health_check_error"] = err.Error()
 			}
