@@ -3528,16 +3528,18 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromMultiPageWebsite(ctx cont
 		timeoutDuration = time.Until(deadline)
 	}
 	
+	r.logger.Printf("📊 [KeywordExtraction] [MultiPage] Timeout duration: %v (threshold: 5s)", timeoutDuration)
+	
 	var crawlResult CrawlResultInterface
 	var err error
 	
 	if timeoutDuration <= 5*time.Second {
 		// Use fast-path mode for short timeouts
-		r.logger.Printf("🚀 [KeywordExtraction] [MultiPage] Using fast-path mode (timeout: %v, max pages: 8)", timeoutDuration)
+		r.logger.Printf("🚀 [KeywordExtraction] [MultiPage] [FAST-PATH] Using fast-path mode (timeout: %v, max pages: 8, concurrent: 3)", timeoutDuration)
 		crawlResult, err = crawler.CrawlWebsiteFast(analysisCtx, websiteURL, timeoutDuration, 8, 3)
 	} else {
 		// Use regular crawl for longer timeouts
-		r.logger.Printf("🔍 [KeywordExtraction] [MultiPage] Using regular crawl mode (timeout: %v)", timeoutDuration)
+		r.logger.Printf("🔍 [KeywordExtraction] [MultiPage] [REGULAR] Using regular crawl mode (timeout: %v, concurrent: 3)", timeoutDuration)
 		crawlResult, err = crawler.CrawlWebsite(analysisCtx, websiteURL)
 	}
 	if err != nil {

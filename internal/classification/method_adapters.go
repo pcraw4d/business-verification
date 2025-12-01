@@ -185,13 +185,13 @@ func (w *websiteScraperAdapter) ScrapeMultiPage(ctx context.Context, websiteURL 
 	if timeoutDuration <= 5*time.Second {
 		// Use fast-path mode for short timeouts
 		if w.logger != nil {
-			w.logger.Printf("🚀 [ScrapeMultiPage] Using fast-path mode (timeout: %v, max pages: 8)", timeoutDuration)
+			w.logger.Printf("🚀 [ScrapeMultiPage] [FAST-PATH] Using fast-path mode (timeout: %v, max pages: 8, concurrent: 3)", timeoutDuration)
 		}
 		crawlResult, err = w.smartCrawler.CrawlWebsiteFast(ctx, websiteURL, timeoutDuration, 8, 3)
 	} else {
 		// Use regular crawl for longer timeouts
 		if w.logger != nil {
-			w.logger.Printf("🔍 [ScrapeMultiPage] Using regular crawl mode (timeout: %v)", timeoutDuration)
+			w.logger.Printf("🔍 [ScrapeMultiPage] [REGULAR] Using regular crawl mode (timeout: %v, concurrent: 3)", timeoutDuration)
 		}
 		crawlResult, err = w.smartCrawler.CrawlWebsite(ctx, websiteURL)
 	}

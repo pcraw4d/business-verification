@@ -429,12 +429,17 @@ func (c *SmartWebsiteCrawler) CrawlWebsite(ctx context.Context, websiteURL strin
 	if maxConcurrent <= 0 {
 		maxConcurrent = 3 // Default to 3 if not set
 	}
-	c.logger.Printf("🔄 [SmartCrawler] Using parallel processing with %d concurrent requests", maxConcurrent)
+	c.logger.Printf("🔄 [SmartCrawler] [PARALLEL] Starting parallel crawl with %d concurrent requests for %d pages", maxConcurrent, len(prioritizedPages))
+	parallelStart := time.Now()
 	pageAnalyses := c.analyzePagesParallel(ctx, prioritizedPages, maxConcurrent)
+	parallelDuration := time.Since(parallelStart)
+	c.logger.Printf("🔄 [SmartCrawler] [PARALLEL] Parallel analysis completed in %v - %d pages analyzed", parallelDuration, len(pageAnalyses))
 	
 	// Check if we have sufficient content after parallel analysis
 	if len(pageAnalyses) >= 2 && c.hasSufficientContent(pageAnalyses) {
-		c.logger.Printf("✅ [SmartCrawler] Sufficient content gathered in parallel mode")
+		c.logger.Printf("✅ [SmartCrawler] [PARALLEL] Sufficient content gathered (pages: %d, duration: %v)", len(pageAnalyses), parallelDuration)
+	} else {
+		c.logger.Printf("⚠️ [SmartCrawler] [PARALLEL] Content quality check: pages=%d, sufficient=%v", len(pageAnalyses), len(pageAnalyses) >= 2 && c.hasSufficientContent(pageAnalyses))
 	}
 	
 	result.PagesAnalyzed = pageAnalyses
@@ -456,7 +461,8 @@ func (c *SmartWebsiteCrawler) CrawlWebsite(ctx context.Context, websiteURL strin
 // Early exit on sufficient content or time limit
 func (c *SmartWebsiteCrawler) CrawlWebsiteFast(ctx context.Context, websiteURL string, maxTime time.Duration, maxPages int, maxConcurrent int) (*CrawlResult, error) {
 	startTime := time.Now()
-	c.logger.Printf("🚀 [SmartCrawler] Starting fast-path crawl for: %s (max time: %v, max pages: %d)", websiteURL, maxTime, maxPages)
+	c.logger.Printf("🚀 [SmartCrawler] [FAST-PATH] Starting fast-path crawl for: %s", websiteURL)
+	c.logger.Printf("🚀 [SmartCrawler] [FAST-PATH] Configuration: maxTime=%v, maxPages=%d, maxConcurrent=%d", maxTime, maxPages, maxConcurrent)
 
 	// Create timeout context
 	timeoutCtx, cancel := context.WithTimeout(ctx, maxTime)
@@ -501,13 +507,17 @@ func (c *SmartWebsiteCrawler) CrawlWebsiteFast(ctx context.Context, websiteURL s
 	}
 
 	// Discover site structure (with timeout)
+	discoverStart := time.Now()
 	discoverCtx, discoverCancel := context.WithTimeout(timeoutCtx, 3*time.Second)
 	discoveredPages, err := c.discoverSiteStructure(discoverCtx, baseURL)
 	discoverCancel()
+	discoverDuration := time.Since(discoverStart)
 	if err != nil {
-		c.logger.Printf("⚠️ [SmartCrawler] Site structure discovery failed: %v", err)
+		c.logger.Printf("⚠️ [SmartCrawler] [FAST-PATH] Site structure discovery failed in %v: %v", discoverDuration, err)
 		// Fallback to homepage only
 		discoveredPages = []string{baseURL}
+	} else {
+		c.logger.Printf("🔍 [SmartCrawler] [FAST-PATH] Discovery completed in %v - found %d pages", discoverDuration, len(discoveredPages))
 	}
 
 	// Prioritize pages and limit to maxPages
@@ -542,11 +552,17 @@ func (c *SmartWebsiteCrawler) CrawlWebsiteFast(ctx context.Context, websiteURL s
 	}
 
 	// Analyze pages in parallel
+	c.logger.Printf("🚀 [SmartCrawler] [FAST-PATH] Starting parallel analysis of %d pages (concurrent: %d, delay: 500ms)", len(prioritizedPages), maxConcurrent)
+	parallelStart := time.Now()
 	pageAnalyses := c.analyzePagesParallelWithDelay(timeoutCtx, prioritizedPages, maxConcurrent, 500*time.Millisecond, true, startTime, maxTime)
+	parallelDuration := time.Since(parallelStart)
+	c.logger.Printf("🚀 [SmartCrawler] [FAST-PATH] Parallel analysis completed in %v - %d pages analyzed", parallelDuration, len(pageAnalyses))
 	
 	// Check if we have sufficient content after parallel analysis
 	if len(pageAnalyses) >= 2 && c.hasSufficientContent(pageAnalyses) {
-		c.logger.Printf("✅ [SmartCrawler] Fast-path: Sufficient content gathered in parallel mode")
+		c.logger.Printf("✅ [SmartCrawler] [FAST-PATH] Sufficient content gathered in parallel mode (pages: %d, duration: %v)", len(pageAnalyses), parallelDuration)
+	} else {
+		c.logger.Printf("⚠️ [SmartCrawler] [FAST-PATH] Content quality check: pages=%d, sufficient=%v", len(pageAnalyses), len(pageAnalyses) >= 2 && c.hasSufficientContent(pageAnalyses))
 	}
 
 	result.PagesAnalyzed = pageAnalyses
@@ -558,7 +574,11 @@ func (c *SmartWebsiteCrawler) CrawlWebsiteFast(ctx context.Context, websiteURL s
 	result.CrawlDuration = time.Since(startTime)
 	result.Success = true
 
-	c.logger.Printf("✅ [SmartCrawler] Fast-path crawl completed in %v - %d pages analyzed", result.CrawlDuration, result.TotalPages)
+	c.logger.Printf("✅ [SmartCrawler] [FAST-PATH] Crawl completed in %v - %d pages analyzed (target: <5s, achieved: %v)", 
+		result.CrawlDuration, result.TotalPages, result.CrawlDuration < 5*time.Second)
+	if result.CrawlDuration >= 5*time.Second {
+		c.logger.Printf("⚠️ [SmartCrawler] [FAST-PATH] Duration exceeded 5s target by %v", result.CrawlDuration-5*time.Second)
+	}
 	return result, nil
 }
 
@@ -583,16 +603,22 @@ func (c *SmartWebsiteCrawler) analyzePagesParallelWithDelay(ctx context.Context,
 		elapsed := time.Since(startTime)
 		remainingTime := maxTime - elapsed
 		if remainingTime < 1*time.Second {
-			c.logger.Printf("⏰ [SmartCrawler] Time limit approaching (%v remaining), skipping remaining pages", remainingTime)
+			c.logger.Printf("⏰ [SmartCrawler] [FAST-PATH] Time limit approaching (%v remaining), skipping remaining pages", remainingTime)
 			break
 		}
 
 		// Check if we already have sufficient content
 		mu.Lock()
-		hasSufficient := len(analyses) >= 2 && c.hasSufficientContent(analyses)
+		var validAnalyses []PageAnalysis
+		for _, a := range analyses {
+			if a.URL != "" {
+				validAnalyses = append(validAnalyses, a)
+			}
+		}
+		hasSufficient := len(validAnalyses) >= 2 && c.hasSufficientContent(validAnalyses)
 		mu.Unlock()
 		if hasSufficient {
-			c.logger.Printf("✅ [SmartCrawler] Sufficient content gathered, skipping remaining pages")
+			c.logger.Printf("✅ [SmartCrawler] [FAST-PATH] Sufficient content gathered after %d pages, skipping remaining pages", len(validAnalyses))
 			break
 		}
 
@@ -605,7 +631,11 @@ func (c *SmartWebsiteCrawler) analyzePagesParallelWithDelay(ctx context.Context,
 			defer func() { <-semaphore }()
 
 			// Analyze page
+			pageStart := time.Now()
 			analysis := c.analyzePage(ctx, pageURL)
+			pageDuration := time.Since(pageStart)
+			c.logger.Printf("📄 [SmartCrawler] [FAST-PATH] Page %d analyzed in %v: %s (status: %d, content: %d chars, keywords: %d)", 
+				idx+1, pageDuration, pageURL, analysis.StatusCode, analysis.ContentLength, len(analysis.Keywords))
 
 			// Store result in correct position
 			mu.Lock()
@@ -618,7 +648,7 @@ func (c *SmartWebsiteCrawler) analyzePagesParallelWithDelay(ctx context.Context,
 
 			// Check for 403 to signal early stop
 			if analysis.StatusCode == 403 {
-				c.logger.Printf("🚫 [SmartCrawler] Received 403 for %s", pageURL)
+				c.logger.Printf("🚫 [SmartCrawler] [FAST-PATH] Received 403 for %s - stopping crawl", pageURL)
 			}
 		}(i, page)
 
@@ -1340,25 +1370,31 @@ func (c *SmartWebsiteCrawler) hasSufficientContent(analyses []PageAnalysis) bool
 	// Check criteria:
 	// 1. At least 2 successful pages
 	if successfulPages < 2 {
+		c.logger.Printf("📊 [SmartCrawler] [ContentCheck] Insufficient pages: %d < 2", successfulPages)
 		return false
 	}
 
 	// 2. Total content length >= 500 characters
 	if totalContentLength < 500 {
+		c.logger.Printf("📊 [SmartCrawler] [ContentCheck] Insufficient content length: %d < 500 chars", totalContentLength)
 		return false
 	}
 
 	// 3. At least 10 unique keywords
 	if totalKeywords < 10 {
+		c.logger.Printf("📊 [SmartCrawler] [ContentCheck] Insufficient keywords: %d < 10 unique", totalKeywords)
 		return false
 	}
 
 	// 4. Average relevance score >= 0.7
 	avgRelevance := totalRelevance / float64(successfulPages)
 	if avgRelevance < 0.7 {
+		c.logger.Printf("📊 [SmartCrawler] [ContentCheck] Insufficient relevance: %.2f < 0.7", avgRelevance)
 		return false
 	}
 
+	c.logger.Printf("✅ [SmartCrawler] [ContentCheck] Sufficient content: pages=%d, length=%d, keywords=%d, relevance=%.2f", 
+		successfulPages, totalContentLength, totalKeywords, avgRelevance)
 	return true
 }
 
@@ -1401,7 +1437,11 @@ func (c *SmartWebsiteCrawler) analyzePagesParallel(ctx context.Context, pages []
 			defer func() { <-semaphore }()
 
 			// Analyze page (session management is handled by analyzePage internally)
+			pageStart := time.Now()
 			analysis := c.analyzePage(ctx, pageURL)
+			pageDuration := time.Since(pageStart)
+			c.logger.Printf("📄 [SmartCrawler] [PARALLEL] Page %d analyzed in %v: %s (status: %d, content: %d chars, keywords: %d)", 
+				idx+1, pageDuration, pageURL, analysis.StatusCode, analysis.ContentLength, len(analysis.Keywords))
 
 			// Store result in correct position
 			mu.Lock()
@@ -1432,7 +1472,32 @@ func (c *SmartWebsiteCrawler) analyzePagesParallel(ctx context.Context, pages []
 					stopMutex.Lock()
 					shouldStop = true
 					stopMutex.Unlock()
-					c.logger.Printf("✅ [SmartCrawler] Sufficient content gathered after %d pages - stopping parallel crawl early", validCount)
+					// Calculate content metrics for logging
+					totalContent := 0
+					totalKeywords := 0
+					uniqueKeywords := make(map[string]bool)
+					var totalRelevance float64
+					successfulPages := 0
+					for _, a := range validAnalyses {
+						if a.StatusCode >= 200 && a.StatusCode < 400 {
+							successfulPages++
+							totalContent += a.ContentLength
+							for _, kw := range a.Keywords {
+								if !uniqueKeywords[kw] {
+									uniqueKeywords[kw] = true
+									totalKeywords++
+								}
+							}
+							totalRelevance += a.RelevanceScore
+						}
+					}
+					avgRelevance := 0.0
+					if successfulPages > 0 {
+						avgRelevance = totalRelevance / float64(successfulPages)
+					}
+					c.logger.Printf("✅ [SmartCrawler] [PARALLEL] Early exit triggered - sufficient content after %d pages", validCount)
+					c.logger.Printf("✅ [SmartCrawler] [PARALLEL] Content metrics: length=%d chars, keywords=%d unique, relevance=%.2f, pages=%d", 
+						totalContent, totalKeywords, avgRelevance, successfulPages)
 				}
 			}
 			
