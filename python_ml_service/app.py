@@ -810,7 +810,9 @@ class ModelManager:
         return models
 
 # Global model manager and classifier (initialized lazily)
-model_manager: Optional[ModelManager] = None
+# Initialize model_manager at startup so /models endpoint doesn't return 503
+# Models themselves are still loaded lazily on first request
+model_manager: Optional[ModelManager] = ModelManager(load_models=False)
 distilbart_classifier: Optional[DistilBARTBusinessClassifier] = None
 _models_loading = False
 _models_loaded = False
@@ -820,7 +822,7 @@ def ensure_models_loaded():
     """Ensure models are loaded - lazy initialization"""
     global model_manager, distilbart_classifier, _models_loading, _models_loaded
     
-    # Initialize model manager if not done
+    # Initialize model manager if not done (shouldn't happen, but defensive)
     if model_manager is None:
         logger.info("📚 Initializing model manager (lazy loading)...")
         model_manager = ModelManager(load_models=False)
@@ -962,8 +964,13 @@ async def health():
 @app.get("/models", response_model=List[ModelInfo])
 async def get_models():
     """Get available models"""
+    # Initialize model_manager if somehow it's None (shouldn't happen, but defensive)
     if model_manager is None:
-        raise HTTPException(status_code=503, detail="Models are still loading. Please try again in a moment.")
+        global model_manager
+        model_manager = ModelManager(load_models=False)
+    
+    # Return available models (empty list if models haven't been loaded yet)
+    # This allows other services to check the endpoint without getting 503 errors
     return model_manager.get_available_models()
 
 @app.get("/model-info")
@@ -985,8 +992,11 @@ async def get_model_info():
 @app.get("/models/{model_id}/metrics", response_model=ModelMetrics)
 async def get_model_metrics(model_id: str):
     """Get model metrics"""
+    # Initialize model_manager if somehow it's None (shouldn't happen, but defensive)
     if model_manager is None:
-        raise HTTPException(status_code=503, detail="Models are still loading. Please try again in a moment.")
+        global model_manager
+        model_manager = ModelManager(load_models=False)
+    
     if model_id not in model_manager.models:
         raise HTTPException(status_code=404, detail="Model not found")
     

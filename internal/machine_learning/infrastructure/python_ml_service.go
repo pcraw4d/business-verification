@@ -468,6 +468,17 @@ func (pms *PythonMLService) GetAvailableModels(ctx context.Context) ([]*MLModel,
 	}
 	defer resp.Body.Close()
 
+	// Handle 503 Service Unavailable (models still loading) - return empty list
+	if resp.StatusCode == http.StatusServiceUnavailable {
+		pms.logger.Printf("⚠️ Models are still loading, returning empty list")
+		return []*MLModel{}, nil
+	}
+
+	// Handle other non-200 status codes
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status code %d", resp.StatusCode)
+	}
+
 	var models []*MLModel
 	if err := json.NewDecoder(resp.Body).Decode(&models); err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
