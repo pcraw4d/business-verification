@@ -481,12 +481,13 @@ func (arch *MLMicroservicesArchitecture) Initialize(ctx context.Context) error {
 
 	arch.logger.Printf("🚀 Initializing ML Microservices Architecture")
 
-	// Initialize Python ML Service
+	// Initialize Python ML Service with retry logic for resilience (3 retries with exponential backoff)
+	// This handles transient ML service startup issues during system initialization
 	if arch.config.PythonMLServiceEnabled {
 		arch.logger.Printf("🐍 Initializing Python ML Service")
 		arch.pythonMLService = NewPythonMLService(arch.config.PythonMLServiceEndpoint, arch.logger)
-		if err := arch.pythonMLService.Initialize(ctx); err != nil {
-			return fmt.Errorf("failed to initialize Python ML Service: %w", err)
+		if err := arch.pythonMLService.InitializeWithRetry(ctx, 3); err != nil {
+			return fmt.Errorf("failed to initialize Python ML Service after retries: %w", err)
 		}
 	}
 

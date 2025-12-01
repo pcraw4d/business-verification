@@ -10,13 +10,14 @@ import (
 	"strings"
 	"time"
 
-	_ "github.com/lib/pq"
 	"kyb-platform/internal/classification"
 	"kyb-platform/internal/classification/repository"
 	"kyb-platform/internal/database"
 	"kyb-platform/internal/machine_learning"
 	"kyb-platform/internal/machine_learning/infrastructure"
 	testingpkg "kyb-platform/internal/testing"
+
+	_ "github.com/lib/pq"
 )
 
 func main() {
@@ -272,15 +273,17 @@ func maskURL(url string) string {
 }
 
 // initPythonMLService initializes the Python ML service if available
+// Uses InitializeWithRetry for resilient initialization with exponential backoff (3 retries)
 func initPythonMLService(endpoint string, logger *log.Logger) interface{} {
 	service := infrastructure.NewPythonMLService(endpoint, logger)
 	
-	// Test connection
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	// Initialize with retry logic (3 retries) to handle transient startup issues
+	// Increased timeout to accommodate retries: 10s base + (2s + 4s + 6s) retries = ~22s max
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	
-	if err := service.Initialize(ctx); err != nil {
-		logger.Printf("⚠️  Failed to initialize Python ML Service: %v", err)
+	if err := service.InitializeWithRetry(ctx, 3); err != nil {
+		logger.Printf("⚠️  Failed to initialize Python ML Service after retries: %v", err)
 		return nil
 	}
 	

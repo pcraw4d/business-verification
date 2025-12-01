@@ -96,12 +96,13 @@ func NewPythonMLService(endpoint string, logger *log.Logger) *PythonMLService {
 		Timeout: 30 * time.Second,
 	}
 
-	// Initialize circuit breaker with default config
-	// Opens after 5 consecutive failures, stays open for 30s, needs 2 successes to close
+	// Initialize circuit breaker with enhanced config for production resilience
+	// Opens after 10 consecutive failures, stays open for 60s, needs 2 successes to close
 	circuitBreakerConfig := resilience.DefaultCircuitBreakerConfig()
-	circuitBreakerConfig.FailureThreshold = 5  // Open after 5 failures
-	circuitBreakerConfig.Timeout = 30 * time.Second // Stay open for 30s
-	circuitBreakerConfig.SuccessThreshold = 2 // Need 2 successes to close
+	circuitBreakerConfig.FailureThreshold = 10  // Increased from 5 to handle transient initialization failures
+	circuitBreakerConfig.Timeout = 60 * time.Second // Increased from 30s to allow service recovery
+	circuitBreakerConfig.SuccessThreshold = 2 // Keep at 2
+	circuitBreakerConfig.ResetTimeout = 120 * time.Second // Increased from 60s
 	circuitBreaker := resilience.NewCircuitBreaker(circuitBreakerConfig)
 
 	return &PythonMLService{
@@ -158,17 +159,67 @@ func (pms *PythonMLService) Initialize(ctx context.Context) error {
 	pms.mu.Unlock()
 
 	// Test connection to Python service (no lock needed)
-	if err := pms.testConnection(ctx); err != nil {
+	// Use a shorter timeout for initialization to prevent hanging
+	initCtx, initCancel := context.WithTimeout(ctx, 5*time.Second)
+	defer initCancel()
+	
+	if err := pms.testConnection(initCtx); err != nil {
 		return fmt.Errorf("failed to connect to Python ML service: %w", err)
 	}
 
 	// Load available models (this will acquire its own lock)
-	if err := pms.loadAvailableModels(ctx); err != nil {
+	// Use a separate timeout for model loading to prevent blocking initialization
+	modelsCtx, modelsCancel := context.WithTimeout(ctx, 5*time.Second)
+	defer modelsCancel()
+	
+	if err := pms.loadAvailableModels(modelsCtx); err != nil {
 		pms.logger.Printf("⚠️ Warning: failed to load available models: %v", err)
+		// Don't fail initialization if models can't be loaded - they can be loaded later
 	}
 
 	pms.logger.Printf("✅ Python ML Service initialized successfully")
 	return nil
+}
+
+// InitializeWithRetry initializes the Python ML service with retry logic and exponential backoff
+// This provides resilience during initialization, especially when the service is starting up
+func (pms *PythonMLService) InitializeWithRetry(ctx context.Context, maxRetries int) error {
+	// Reset circuit breaker before initialization to clear any previous failure state
+	pms.ResetCircuitBreaker()
+	pms.logger.Printf("🔄 Circuit breaker reset, starting initialization with up to %d retries", maxRetries)
+
+	var lastErr error
+	for i := 0; i < maxRetries; i++ {
+		if i > 0 {
+			// Exponential backoff: wait 2s, 4s, 6s, etc.
+			waitTime := time.Duration(i) * 2 * time.Second
+			pms.logger.Printf("⏳ Retrying initialization (attempt %d/%d) after %v", i+1, maxRetries, waitTime)
+			time.Sleep(waitTime)
+		}
+
+		err := pms.Initialize(ctx)
+		if err == nil {
+			// Verify health before marking as ready
+			healthCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+			defer cancel()
+
+			health, healthErr := pms.HealthCheck(healthCtx)
+			if healthErr == nil && health != nil && health.Status == "pass" {
+				pms.logger.Printf("✅ Python ML Service initialized and healthy")
+				return nil
+			}
+			if healthErr != nil {
+				pms.logger.Printf("⚠️ Health check failed: %v", healthErr)
+			} else if health != nil {
+				pms.logger.Printf("⚠️ Health check returned status: %s", health.Status)
+			}
+		}
+		lastErr = err
+	}
+
+	// Graceful degradation: mark as initialized but unavailable
+	pms.logger.Printf("⚠️ Python ML Service initialization failed after %d retries, continuing with degraded mode", maxRetries)
+	return fmt.Errorf("initialization failed after %d retries: %w", maxRetries, lastErr)
 }
 
 // Start starts the Python ML service
@@ -463,6 +514,13 @@ func (pms *PythonMLService) GetAvailableModels(ctx context.Context) ([]*MLModel,
 
 	resp, err := pms.httpClient.Do(httpReq)
 	if err != nil {
+		// Check if error is due to context timeout/cancellation
+		if ctx.Err() == context.DeadlineExceeded {
+			return nil, fmt.Errorf("request timed out: %w", err)
+		}
+		if ctx.Err() == context.Canceled {
+			return nil, fmt.Errorf("request canceled: %w", err)
+		}
 		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
 	defer resp.Body.Close()
@@ -576,6 +634,13 @@ func (pms *PythonMLService) testConnection(ctx context.Context) error {
 
 	resp, err := pms.httpClient.Do(httpReq)
 	if err != nil {
+		// Check if error is due to context timeout/cancellation
+		if ctx.Err() == context.DeadlineExceeded {
+			return fmt.Errorf("ping request timed out: %w", err)
+		}
+		if ctx.Err() == context.Canceled {
+			return fmt.Errorf("ping request canceled: %w", err)
+		}
 		return fmt.Errorf("ping request failed: %w", err)
 	}
 	defer resp.Body.Close()
@@ -701,4 +766,99 @@ func (pms *PythonMLService) updateMetrics() {
 	pms.metrics.Throughput = float64(pms.metrics.RequestCount) / 60.0
 
 	pms.metrics.LastUpdated = time.Now()
+}
+
+// ResetCircuitBreaker resets the circuit breaker to closed state
+// This is useful during initialization to clear any previous failure state
+func (pms *PythonMLService) ResetCircuitBreaker() {
+	pms.circuitBreaker.Reset()
+	pms.logger.Printf("🔄 Circuit breaker reset to closed state")
+}
+
+// GetCircuitBreakerState returns the current circuit breaker state
+func (pms *PythonMLService) GetCircuitBreakerState() resilience.CircuitState {
+	return pms.circuitBreaker.GetState()
+}
+
+// CircuitBreakerMetrics holds metrics about the circuit breaker
+type CircuitBreakerMetrics struct {
+	State            string    `json:"state"`
+	FailureCount     int       `json:"failure_count"`
+	SuccessCount     int       `json:"success_count"`
+	StateChangeTime  time.Time `json:"state_change_time"`
+	LastFailureTime  time.Time `json:"last_failure_time"`
+	TotalRequests    int64     `json:"total_requests"`
+	RejectedRequests int64    `json:"rejected_requests"`
+}
+
+// GetCircuitBreakerMetrics returns comprehensive metrics about the circuit breaker
+func (pms *PythonMLService) GetCircuitBreakerMetrics() CircuitBreakerMetrics {
+	stats := pms.circuitBreaker.GetStats()
+	
+	pms.mu.RLock()
+	defer pms.mu.RUnlock()
+	
+	var totalRequests, rejectedRequests int64
+	if pms.metrics != nil {
+		totalRequests = pms.metrics.RequestCount
+		rejectedRequests = pms.metrics.ErrorCount
+	}
+	
+	return CircuitBreakerMetrics{
+		State:            stats.State,
+		FailureCount:     stats.FailureCount,
+		SuccessCount:     stats.SuccessCount,
+		StateChangeTime:  stats.StateChange,
+		LastFailureTime:  stats.LastFailure,
+		TotalRequests:    totalRequests,
+		RejectedRequests: rejectedRequests,
+	}
+}
+
+// mapCircuitBreakerState maps circuit breaker state to health check status
+func mapCircuitBreakerState(state resilience.CircuitState) string {
+	switch state {
+	case resilience.CircuitClosed:
+		return "pass"
+	case resilience.CircuitOpen:
+		return "fail"
+	case resilience.CircuitHalfOpen:
+		return "warn"
+	default:
+		return "unknown"
+	}
+}
+
+// HealthCheckWithCircuitBreaker performs a health check including circuit breaker status
+// Returns HealthStatus which includes circuit breaker information
+func (pms *PythonMLService) HealthCheckWithCircuitBreaker(ctx context.Context) (*HealthStatus, error) {
+	healthCheck, err := pms.HealthCheck(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	cbState := pms.circuitBreaker.GetState()
+	cbStats := pms.circuitBreaker.GetStats()
+	
+	// Create health status with circuit breaker information
+	healthStatus := &HealthStatus{
+		Status:    healthCheck.Status,
+		LastCheck: healthCheck.LastCheck,
+		Checks:    make(map[string]HealthCheck),
+		Message:   healthCheck.Message,
+	}
+	
+	// Add service health check
+	healthStatus.Checks["python_ml_service"] = *healthCheck
+	
+	// Add circuit breaker check
+	healthStatus.Checks["circuit_breaker"] = HealthCheck{
+		Name:      "circuit_breaker",
+		Status:    mapCircuitBreakerState(cbState),
+		Message:   fmt.Sprintf("Circuit breaker state: %s (failures: %d, successes: %d)", cbState.String(), cbStats.FailureCount, cbStats.SuccessCount),
+		LastCheck: time.Now(),
+		Duration:  0,
+	}
+
+	return healthStatus, nil
 }

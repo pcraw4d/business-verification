@@ -87,15 +87,16 @@ func main() {
 			zap.String("url", pythonMLServiceURL))
 		pythonMLService = infrastructure.NewPythonMLService(pythonMLServiceURL, stdLogger)
 		
-		// Initialize the service (test connection)
-		initCtx, initCancel := context.WithTimeout(context.Background(), 10*time.Second)
+		// Initialize the service with retry logic for resilience (3 retries with exponential backoff)
+		// This handles transient ML service startup issues gracefully
+		initCtx, initCancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer initCancel()
-		if err := pythonMLService.Initialize(initCtx); err != nil {
-			logger.Warn("⚠️ Failed to initialize Python ML Service, continuing without enhanced classification",
+		if err := pythonMLService.InitializeWithRetry(initCtx, 3); err != nil {
+			logger.Warn("⚠️ Failed to initialize Python ML Service after retries, continuing without enhanced classification",
 				zap.Error(err))
 			pythonMLService = nil // Set to nil so service continues without it
 		} else {
-			logger.Info("✅ Python ML Service initialized successfully")
+			logger.Info("✅ Python ML Service initialized successfully with retry logic")
 		}
 	} else {
 		logger.Info("ℹ️ Python ML Service URL not configured, enhanced classification will not be available")

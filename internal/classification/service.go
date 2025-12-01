@@ -5,11 +5,39 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"sync"
 	"time"
 
 	"kyb-platform/internal/classification/repository"
 	"kyb-platform/internal/machine_learning"
 )
+
+// ClassificationMetrics tracks classification accuracy and performance metrics
+type ClassificationMetrics struct {
+	TotalClassifications    int64              `json:"total_classifications"`
+	MLClassifications      int64              `json:"ml_classifications"`
+	KeywordClassifications int64              `json:"keyword_classifications"`
+	FallbackClassifications int64             `json:"fallback_classifications"`
+	IndustryAccuracy       map[string]float64 `json:"industry_accuracy"` // Industry name -> accuracy percentage
+	MethodAccuracy         map[string]float64 `json:"method_accuracy"`   // Method name -> accuracy percentage
+	IndustryCorrect        map[string]int64   `json:"industry_correct"`  // Industry name -> correct count
+	IndustryTotal          map[string]int64   `json:"industry_total"`    // Industry name -> total count
+	MethodCorrect          map[string]int64   `json:"method_correct"`     // Method name -> correct count
+	MethodTotal            map[string]int64   `json:"method_total"`      // Method name -> total count
+	mu                     sync.RWMutex       `json:"-"`
+}
+
+// NewClassificationMetrics creates a new classification metrics tracker
+func NewClassificationMetrics() *ClassificationMetrics {
+	return &ClassificationMetrics{
+		IndustryAccuracy:       make(map[string]float64),
+		MethodAccuracy:         make(map[string]float64),
+		IndustryCorrect:        make(map[string]int64),
+		IndustryTotal:          make(map[string]int64),
+		MethodCorrect:         make(map[string]int64),
+		MethodTotal:           make(map[string]int64),
+	}
+}
 
 // IndustryDetectionService provides database-driven industry classification
 type IndustryDetectionService struct {
@@ -19,6 +47,7 @@ type IndustryDetectionService struct {
 	multiStrategyClassifier *MultiStrategyClassifier
 	multiMethodClassifier   *MultiMethodClassifier  // Optional: for ML support
 	useML                  bool                    // Flag to enable ML
+	metrics                *ClassificationMetrics  // Classification accuracy metrics
 }
 
 // NewIndustryDetectionService creates a new industry detection service
@@ -34,6 +63,7 @@ func NewIndustryDetectionService(repo repository.KeywordRepository, logger *log.
 		multiStrategyClassifier: NewMultiStrategyClassifier(repo, logger),
 		multiMethodClassifier:   nil,
 		useML:                  false,
+		metrics:                NewClassificationMetrics(),
 	}
 }
 
@@ -64,6 +94,7 @@ func NewIndustryDetectionServiceWithML(
 		multiStrategyClassifier: NewMultiStrategyClassifier(repo, logger), // Keep for fallback
 		multiMethodClassifier:   multiMethodClassifier,
 		useML:                  true,
+		metrics:                NewClassificationMetrics(),
 	}
 }
 
@@ -78,7 +109,104 @@ func NewIndustryDetectionServiceWithMonitoring(repo repository.KeywordRepository
 		logger:               logger,
 		monitor:              monitor,
 		multiStrategyClassifier: NewMultiStrategyClassifier(repo, logger),
+		metrics:                NewClassificationMetrics(),
 	}
+}
+
+// RecordClassification records a classification result for accuracy tracking
+func (s *IndustryDetectionService) RecordClassification(
+	result *IndustryDetectionResult,
+	expectedIndustry string,
+) {
+	if s.metrics == nil {
+		return
+	}
+
+	s.metrics.mu.Lock()
+	defer s.metrics.mu.Unlock()
+
+	s.metrics.TotalClassifications++
+
+	// Track by method
+	switch result.Method {
+	case "ml_distilbart", "ml", "ml_fallback":
+		s.metrics.MLClassifications++
+	case "keyword", "keyword_classification":
+		s.metrics.KeywordClassifications++
+	default:
+		s.metrics.FallbackClassifications++
+	}
+
+	// Track accuracy
+	isCorrect := strings.EqualFold(result.IndustryName, expectedIndustry)
+	
+	// Update industry metrics
+	s.metrics.IndustryTotal[expectedIndustry]++
+	if isCorrect {
+		s.metrics.IndustryCorrect[expectedIndustry]++
+	}
+	
+	// Calculate industry accuracy
+	if total := s.metrics.IndustryTotal[expectedIndustry]; total > 0 {
+		s.metrics.IndustryAccuracy[expectedIndustry] = float64(s.metrics.IndustryCorrect[expectedIndustry]) / float64(total) * 100.0
+	}
+
+	// Update method metrics
+	s.metrics.MethodTotal[result.Method]++
+	if isCorrect {
+		s.metrics.MethodCorrect[result.Method]++
+	}
+	
+	// Calculate method accuracy
+	if total := s.metrics.MethodTotal[result.Method]; total > 0 {
+		s.metrics.MethodAccuracy[result.Method] = float64(s.metrics.MethodCorrect[result.Method]) / float64(total) * 100.0
+	}
+}
+
+// GetClassificationMetrics returns the current classification metrics
+func (s *IndustryDetectionService) GetClassificationMetrics() *ClassificationMetrics {
+	if s.metrics == nil {
+		return NewClassificationMetrics()
+	}
+
+	s.metrics.mu.RLock()
+	defer s.metrics.mu.RUnlock()
+
+	// Return a copy of metrics
+	metricsCopy := &ClassificationMetrics{
+		TotalClassifications:     s.metrics.TotalClassifications,
+		MLClassifications:         s.metrics.MLClassifications,
+		KeywordClassifications:   s.metrics.KeywordClassifications,
+		FallbackClassifications:   s.metrics.FallbackClassifications,
+		IndustryAccuracy:          make(map[string]float64),
+		MethodAccuracy:           make(map[string]float64),
+		IndustryCorrect:          make(map[string]int64),
+		IndustryTotal:            make(map[string]int64),
+		MethodCorrect:           make(map[string]int64),
+		MethodTotal:             make(map[string]int64),
+	}
+
+	// Copy maps
+	for k, v := range s.metrics.IndustryAccuracy {
+		metricsCopy.IndustryAccuracy[k] = v
+	}
+	for k, v := range s.metrics.MethodAccuracy {
+		metricsCopy.MethodAccuracy[k] = v
+	}
+	for k, v := range s.metrics.IndustryCorrect {
+		metricsCopy.IndustryCorrect[k] = v
+	}
+	for k, v := range s.metrics.IndustryTotal {
+		metricsCopy.IndustryTotal[k] = v
+	}
+	for k, v := range s.metrics.MethodCorrect {
+		metricsCopy.MethodCorrect[k] = v
+	}
+	for k, v := range s.metrics.MethodTotal {
+		metricsCopy.MethodTotal[k] = v
+	}
+
+	return metricsCopy
 }
 
 // IndustryDetectionResult represents the result of industry detection

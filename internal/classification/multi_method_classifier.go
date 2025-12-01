@@ -18,6 +18,56 @@ import (
 	"kyb-platform/internal/shared"
 )
 
+// CachedWebsiteContent represents cached website content
+type CachedWebsiteContent struct {
+	Keywords  []string
+	Timestamp time.Time
+}
+
+// WebsiteCache provides thread-safe caching for website content
+type WebsiteCache struct {
+	cache map[string]*CachedWebsiteContent
+	mu    sync.RWMutex
+	ttl   time.Duration
+}
+
+// NewWebsiteCache creates a new website cache with the specified TTL
+func NewWebsiteCache(ttl time.Duration) *WebsiteCache {
+	return &WebsiteCache{
+		cache: make(map[string]*CachedWebsiteContent),
+		ttl:   ttl,
+	}
+}
+
+// Get retrieves cached content for a URL if it exists and is not expired
+func (wc *WebsiteCache) Get(url string) []string {
+	wc.mu.RLock()
+	defer wc.mu.RUnlock()
+
+	cached, exists := wc.cache[url]
+	if !exists {
+		return nil
+	}
+
+	// Check if cache entry is still valid
+	if time.Since(cached.Timestamp) >= wc.ttl {
+		return nil
+	}
+
+	return cached.Keywords
+}
+
+// Set stores content in the cache
+func (wc *WebsiteCache) Set(url string, keywords []string) {
+	wc.mu.Lock()
+	defer wc.mu.Unlock()
+
+	wc.cache[url] = &CachedWebsiteContent{
+		Keywords:  keywords,
+		Timestamp: time.Now(),
+	}
+}
+
 // MultiMethodClassifier provides enhanced classification using multiple methods
 type MultiMethodClassifier struct {
 	keywordRepo              repository.KeywordRepository
@@ -29,6 +79,7 @@ type MultiMethodClassifier struct {
 	enhancedScraper          *EnhancedWebsiteScraper
 	logger                   *log.Logger
 	monitor                  *ClassificationAccuracyMonitoring
+	websiteCache             *WebsiteCache // Cache for website scraping results
 }
 
 // NewMultiMethodClassifier creates a new multi-method classifier
@@ -51,6 +102,7 @@ func NewMultiMethodClassifier(
 		enhancedScraper:          NewEnhancedWebsiteScraper(logger),
 		logger:                   logger,
 		monitor:                  nil, // Will be set separately if monitoring is needed
+		websiteCache:             NewWebsiteCache(24 * time.Hour), // Cache for 24 hours
 	}
 }
 
@@ -522,26 +574,38 @@ func (mmc *MultiMethodClassifier) performPythonMLClassification(
 }
 
 // performGoMLClassification performs ML classification using Go ML classifier (fallback)
+// Enhanced with keyword fallback for better accuracy when ML fails or has low confidence
 func (mmc *MultiMethodClassifier) performGoMLClassification(
 	ctx context.Context,
 	businessName, description, websiteURL string,
 ) (*shared.IndustryClassification, error) {
 	if mmc.mlClassifier == nil {
-		return nil, fmt.Errorf("ML classifier not available")
+		// Fallback to keyword-based classification
+		mmc.logger.Printf("⚠️ ML classifier not available, using keyword fallback")
+		return mmc.performKeywordClassification(ctx, businessName, description, websiteURL)
 	}
 
 	// Combine business information for ML analysis
 	content := mmc.extractTrustedContent(ctx, businessName, description, websiteURL)
 
+	// Validate content quality
+	const minContentLength = 10
+	if len(content) < minContentLength {
+		mmc.logger.Printf("⚠️ Insufficient content for ML classification (length: %d < %d), using keyword fallback", len(content), minContentLength)
+		return mmc.performKeywordClassification(ctx, businessName, description, websiteURL)
+	}
+
 	// Perform ML classification
 	mlResult, err := mmc.mlClassifier.ClassifyContent(ctx, content, "")
 	if err != nil {
-		return nil, fmt.Errorf("ML classification failed: %w", err)
+		mmc.logger.Printf("⚠️ ML classification failed: %v, using keyword fallback", err)
+		return mmc.performKeywordClassification(ctx, businessName, description, websiteURL)
 	}
 
-	// Find the best classification from ML result
+	// Validate results
 	if len(mlResult.Classifications) == 0 {
-		return nil, fmt.Errorf("no classifications returned from ML model")
+		mmc.logger.Printf("⚠️ No classifications from ML, using keyword fallback")
+		return mmc.performKeywordClassification(ctx, businessName, description, websiteURL)
 	}
 
 	// Get the highest confidence classification
@@ -552,19 +616,32 @@ func (mmc *MultiMethodClassifier) performGoMLClassification(
 		}
 	}
 
-	// Get classification codes for the ML-detected industry
-	var classificationCodes shared.ClassificationCodes
-	if bestClassification.Label != "unknown" {
-		classificationCodes = mmc.getClassificationCodesForIndustry(ctx, bestClassification.Label)
+	// Validate confidence threshold
+	const minConfidence = 0.5
+	if bestClassification.Confidence < minConfidence {
+		mmc.logger.Printf("⚠️ ML confidence too low (%.2f < %.2f), using keyword fallback",
+			bestClassification.Confidence, minConfidence)
+		return mmc.performKeywordClassification(ctx, businessName, description, websiteURL)
 	}
+
+	// Map ML label to database industry
+	industryName := mmc.mapMLLabelToIndustry(ctx, bestClassification.Label)
+	if industryName == "" {
+		mmc.logger.Printf("⚠️ Could not map ML label '%s' to industry, using keyword fallback", bestClassification.Label)
+		return mmc.performKeywordClassification(ctx, businessName, description, websiteURL)
+	}
+
+	// Get classification codes
+	classificationCodes := mmc.getClassificationCodesForIndustry(ctx, industryName)
 
 	// Convert to shared format
 	result := &shared.IndustryClassification{
-		IndustryCode:         bestClassification.Label,
-		IndustryName:         bestClassification.Label,
+		IndustryCode:         industryName,
+		IndustryName:         industryName,
 		ConfidenceScore:      bestClassification.Confidence,
-		ClassificationMethod: "ml",
-		Description:          fmt.Sprintf("ML-based classification using %s model", mlResult.ModelID),
+		ClassificationMethod: "ml_fallback",
+		Keywords:             []string{},
+		Description:          fmt.Sprintf("ML-based classification using %s model (fallback)", mlResult.ModelID),
 		Evidence:             fmt.Sprintf("ML model prediction with confidence %.2f%%", bestClassification.Confidence*100),
 		ProcessingTime:       mlResult.ProcessingTime,
 		Metadata: map[string]interface{}{
@@ -572,11 +649,74 @@ func (mmc *MultiMethodClassifier) performGoMLClassification(
 			"model_version":        mlResult.ModelVersion,
 			"all_predictions":      mlResult.Classifications,
 			"quality_score":        mlResult.QualityScore,
+			"original_label":       bestClassification.Label,
+			"mapped_industry":      industryName,
 			"classification_codes": classificationCodes,
 		},
 	}
 
 	return result, nil
+}
+
+// mapMLLabelToIndustry maps ML model labels to database industry names
+// This handles cases where ML labels don't exactly match database industry names
+func (mmc *MultiMethodClassifier) mapMLLabelToIndustry(ctx context.Context, mlLabel string) string {
+	// Normalize the label
+	normalizedLabel := strings.ToLower(strings.TrimSpace(mlLabel))
+
+	// Handle common cases
+	if normalizedLabel == "unknown" || normalizedLabel == "" {
+		return ""
+	}
+
+	// Try direct match first
+	// Check if the label matches an industry name in the database
+	// For now, we'll use a simple mapping approach
+	// In production, this should query the database for industry names
+
+	// Common industry mappings
+	industryMappings := map[string]string{
+		"technology":           "Technology",
+		"tech":                 "Technology",
+		"software":             "Technology",
+		"healthcare":           "Healthcare",
+		"health":               "Healthcare",
+		"medical":              "Healthcare",
+		"retail":               "Retail",
+		"retailer":             "Retail",
+		"manufacturing":        "Manufacturing",
+		"manufacturer":         "Manufacturing",
+		"financial":            "Financial Services",
+		"finance":              "Financial Services",
+		"banking":              "Financial Services",
+		"construction":         "Construction",
+		"professional services": "Professional Services",
+		"professional":         "Professional Services",
+		"transportation":       "Transportation",
+		"transport":            "Transportation",
+		"general business":     "General Business",
+		"general":              "General Business",
+	}
+
+	// Check direct mapping
+	if industry, ok := industryMappings[normalizedLabel]; ok {
+		return industry
+	}
+
+	// Try partial matching
+	for key, industry := range industryMappings {
+		if strings.Contains(normalizedLabel, key) || strings.Contains(key, normalizedLabel) {
+			return industry
+		}
+	}
+
+	// If no mapping found, try to use the label as-is (capitalized)
+	if normalizedLabel != "" {
+		// Capitalize first letter
+		return strings.Title(normalizedLabel)
+	}
+
+	return ""
 }
 
 // performDescriptionClassification performs description-based classification using only verified data sources
@@ -936,9 +1076,16 @@ func (mmc *MultiMethodClassifier) extractKeywords(businessName, websiteURL strin
 }
 
 // extractKeywordsFromWebsite scrapes website content and extracts business-relevant keywords
+// Enhanced with caching and reduced timeout for better performance
 func (mmc *MultiMethodClassifier) extractKeywordsFromWebsite(ctx context.Context, websiteURL string) []string {
 	startTime := time.Now()
 	mmc.logger.Printf("🌐 Starting website scraping for: %s", websiteURL)
+
+	// Check cache first
+	if cached := mmc.websiteCache.Get(websiteURL); cached != nil {
+		mmc.logger.Printf("✅ Using cached website content for: %s (saved %.2fs)", websiteURL, time.Since(startTime).Seconds())
+		return cached
+	}
 
 	// Validate URL
 	parsedURL, err := url.Parse(websiteURL)
@@ -952,18 +1099,23 @@ func (mmc *MultiMethodClassifier) extractKeywordsFromWebsite(ctx context.Context
 		mmc.logger.Printf("🔧 Added HTTPS scheme: %s", websiteURL)
 	}
 
-	// Create HTTP client with enhanced configuration
+	// Create context with strict timeout (reduced from 15s to 5s)
+	scrapeCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	// Create HTTP client with shorter timeout
 	client := &http.Client{
-		Timeout: 15 * time.Second,
+		Timeout: 5 * time.Second,
 		Transport: &http.Transport{
-			MaxIdleConns:       10,
-			IdleConnTimeout:    30 * time.Second,
-			DisableCompression: false,
+			MaxIdleConns:          10,
+			IdleConnTimeout:       30 * time.Second,
+			DisableCompression:    false,
+			ResponseHeaderTimeout: 3 * time.Second,
 		},
 	}
 
 	// Create request with enhanced headers
-	req, err := http.NewRequestWithContext(ctx, "GET", websiteURL, nil)
+	req, err := http.NewRequestWithContext(scrapeCtx, "GET", websiteURL, nil)
 	if err != nil {
 		mmc.logger.Printf("❌ Failed to create request for %s: %v", websiteURL, err)
 		return []string{}
@@ -977,11 +1129,7 @@ func (mmc *MultiMethodClassifier) extractKeywordsFromWebsite(ctx context.Context
 
 	mmc.logger.Printf("📡 Making HTTP request to: %s", websiteURL)
 
-	// Make request with timeout context
-	reqCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
-	defer cancel()
-	req = req.WithContext(reqCtx)
-
+	// Execute request
 	resp, err := client.Do(req)
 	if err != nil {
 		mmc.logger.Printf("❌ HTTP request failed for %s: %v", websiteURL, err)
@@ -1009,9 +1157,10 @@ func (mmc *MultiMethodClassifier) extractKeywordsFromWebsite(ctx context.Context
 		mmc.logger.Printf("⚠️ Unexpected content type for %s: %s", websiteURL, contentType)
 	}
 
-	// Read response body with size limit
-	maxSize := int64(5 * 1024 * 1024) // 5MB limit
-	body, err := io.ReadAll(io.LimitReader(resp.Body, maxSize))
+	// Read response body with size limit (reduced to 1MB for better performance)
+	const maxSize = 1 * 1024 * 1024 // 1MB limit
+	bodyReader := io.LimitReader(resp.Body, maxSize)
+	body, err := io.ReadAll(bodyReader)
 	if err != nil {
 		mmc.logger.Printf("❌ Failed to read response body from %s: %v", websiteURL, err)
 		return []string{}
@@ -1039,8 +1188,11 @@ func (mmc *MultiMethodClassifier) extractKeywordsFromWebsite(ctx context.Context
 	// Extract business-relevant keywords
 	keywords := mmc.extractBusinessKeywords(textContent)
 
+	// Cache result
+	mmc.websiteCache.Set(websiteURL, keywords)
+
 	duration := time.Since(startTime)
-	mmc.logger.Printf("✅ Website scraping completed for %s in %v - extracted %d keywords: %v",
+	mmc.logger.Printf("✅ Website scraping completed for %s in %v - extracted %d keywords: %v (cached)",
 		websiteURL, duration, len(keywords), keywords)
 
 	return keywords
