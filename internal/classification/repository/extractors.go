@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"log"
+	"time"
 )
 
 // PageAnalysisData represents the data needed from page analysis
@@ -26,6 +27,7 @@ type StructuredDataExtractorInterface interface {
 // This breaks the import cycle by not importing classification.SmartWebsiteCrawler directly
 type SmartWebsiteCrawlerInterface interface {
 	CrawlWebsite(ctx context.Context, websiteURL string) (CrawlResultInterface, error)
+	CrawlWebsiteFast(ctx context.Context, websiteURL string, maxTime time.Duration, maxPages int, maxConcurrent int) (CrawlResultInterface, error)
 }
 
 // CrawlResultInterface defines the interface for crawl results

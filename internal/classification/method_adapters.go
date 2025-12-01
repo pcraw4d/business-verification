@@ -5,6 +5,7 @@ import (
 	"log"
 	"regexp"
 	"strings"
+	"time"
 
 	"kyb-platform/internal/classification/methods"
 )
@@ -171,8 +172,30 @@ func (w *websiteScraperAdapter) ScrapeMultiPage(ctx context.Context, websiteURL 
 		w.smartCrawler = NewSmartWebsiteCrawler(w.logger)
 	}
 
-	// Use SmartWebsiteCrawler to crawl multiple pages
-	crawlResult, err := w.smartCrawler.CrawlWebsite(ctx, websiteURL)
+	// Use fast-path mode if context has short timeout (5s or less)
+	// Otherwise use regular crawl
+	timeoutDuration := 5 * time.Second // Default
+	if deadline, ok := ctx.Deadline(); ok {
+		timeoutDuration = time.Until(deadline)
+	}
+	
+	var crawlResult *CrawlResult
+	var err error
+	
+	if timeoutDuration <= 5*time.Second {
+		// Use fast-path mode for short timeouts
+		if w.logger != nil {
+			w.logger.Printf("🚀 [ScrapeMultiPage] Using fast-path mode (timeout: %v, max pages: 8)", timeoutDuration)
+		}
+		crawlResult, err = w.smartCrawler.CrawlWebsiteFast(ctx, websiteURL, timeoutDuration, 8, 3)
+	} else {
+		// Use regular crawl for longer timeouts
+		if w.logger != nil {
+			w.logger.Printf("🔍 [ScrapeMultiPage] Using regular crawl mode (timeout: %v)", timeoutDuration)
+		}
+		crawlResult, err = w.smartCrawler.CrawlWebsite(ctx, websiteURL)
+	}
+	
 	if err != nil {
 		if w.logger != nil {
 			w.logger.Printf("⚠️ Multi-page crawling failed: %v", err)

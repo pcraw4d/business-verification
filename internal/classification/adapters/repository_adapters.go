@@ -2,6 +2,7 @@ package adapters
 
 import (
 	"context"
+	"time"
 
 	"kyb-platform/internal/classification"
 	"kyb-platform/internal/classification/repository"
@@ -190,6 +191,14 @@ type smartWebsiteCrawlerAdapter struct {
 
 func (s *smartWebsiteCrawlerAdapter) CrawlWebsite(ctx context.Context, websiteURL string) (repository.CrawlResultInterface, error) {
 	result, err := s.crawler.CrawlWebsite(ctx, websiteURL)
+	if err != nil {
+		return nil, err
+	}
+	return &crawlResultAdapter{result: result}, nil
+}
+
+func (s *smartWebsiteCrawlerAdapter) CrawlWebsiteFast(ctx context.Context, websiteURL string, maxTime time.Duration, maxPages int, maxConcurrent int) (repository.CrawlResultInterface, error) {
+	result, err := s.crawler.CrawlWebsiteFast(ctx, websiteURL, maxTime, maxPages, maxConcurrent)
 	if err != nil {
 		return nil, err
 	}

@@ -579,8 +579,12 @@ func (mlcm *MLClassificationMethod) extractWebsiteContent(ctx context.Context, w
 		return ""
 	}
 
-	// Step 1: Try single-page scraping first
-	scrapingResult := mlcm.websiteScraper.ScrapeWebsite(ctx, websiteURL)
+	// Step 1: Try single-page scraping first with timeout (non-blocking)
+	// Create 5s timeout context for website scraping
+	scrapingCtx, scrapingCancel := context.WithTimeout(ctx, 5*time.Second)
+	defer scrapingCancel()
+	
+	scrapingResult := mlcm.websiteScraper.ScrapeWebsite(scrapingCtx, websiteURL)
 	
 	// Cache the result for this request
 	cachedContent := &cache.CachedContent{
@@ -592,7 +596,9 @@ func (mlcm *MLClassificationMethod) extractWebsiteContent(ctx context.Context, w
 	cache.SetInContext(ctx, websiteURL, cachedContent)
 	
 	if !scrapingResult.Success {
-		mlcm.logger.Printf("⚠️ Website scraping failed for %s: %s", websiteURL, scrapingResult.Error)
+		// Don't fail entire request - log warning but continue
+		mlcm.logger.Printf("⚠️ Website scraping failed for %s: %s (continuing with available data)", websiteURL, scrapingResult.Error)
+		// Return empty content but don't fail - allow ML service to work with business name + description
 		return ""
 	}
 
@@ -609,12 +615,14 @@ func (mlcm *MLClassificationMethod) extractWebsiteContent(ctx context.Context, w
 	quality := mlcm.assessContentQuality(contentLength)
 	mlcm.logger.Printf("📊 Content quality: %s (%d chars)", quality, contentLength)
 
-	// Step 4: If content is insufficient, try multi-page scraping
+	// Step 4: If content is insufficient, try multi-page scraping (with timeout)
 	if contentLength < MinContentForMultiPage {
 		mlcm.logger.Printf("⚠️ Single-page content is minimal (%d chars < %d), attempting multi-page scraping", contentLength, MinContentForMultiPage)
 		
-		// Try to get multi-page content if available
-		multiPageContent := mlcm.extractMultiPageContent(ctx, websiteURL)
+		// Try to get multi-page content if available (with 5s timeout)
+		multiPageCtx, multiPageCancel := context.WithTimeout(ctx, 5*time.Second)
+		defer multiPageCancel()
+		multiPageContent := mlcm.extractMultiPageContent(multiPageCtx, websiteURL)
 		if len(multiPageContent) > contentLength {
 			// Multi-page provided more content, use it
 			mlcm.logger.Printf("✅ Multi-page scraping provided %d additional characters (total: %d)", len(multiPageContent)-contentLength, len(multiPageContent))

@@ -2468,11 +2468,12 @@ func (r *SupabaseKeywordRepository) extractKeywords(businessName, websiteURL str
 		confidenceLevel := "high"
 		
 		// Level 1: Multi-page analysis (15 pages) - requires 5+ keywords for success
-		// Use background context with timeout for keyword extraction
-		ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+		// Use background context with timeout for keyword extraction (non-blocking)
+		// Reduced timeout to 5s for fast-path, but allow up to 10s for regular path
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		
-		r.logger.Printf("📊 [KeywordExtraction] Level 1: Starting multi-page website analysis (max 15 pages)")
+		r.logger.Printf("📊 [KeywordExtraction] Level 1: Starting multi-page website analysis (max 15 pages, timeout: 10s)")
 		level1Start := time.Now()
 		multiPageKeywords := r.extractKeywordsFromMultiPageWebsite(ctx, websiteURL)
 		metrics.level1Time = time.Since(level1Start)
@@ -3508,9 +3509,9 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromMultiPageWebsite(ctx cont
 	startTime := time.Now()
 	r.logger.Printf("🌐 [KeywordExtraction] [MultiPage] Starting multi-page website analysis for: %s", websiteURL)
 
-	// Create overall timeout context (60 seconds for multi-page analysis)
-	analysisCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
-	defer cancel()
+	// Use the parent context timeout (already set to 10s in calling function)
+	// Don't create additional timeout - respect the parent timeout
+	analysisCtx := ctx
 
 	// Create SmartWebsiteCrawler with max 15 pages
 	if NewSmartWebsiteCrawlerAdapter == nil {
@@ -3519,9 +3520,26 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromMultiPageWebsite(ctx cont
 	}
 	crawler := NewSmartWebsiteCrawlerAdapter(r.logger)
 	
-	// Use CrawlWebsite which handles discovery, prioritization, and analysis
-	r.logger.Printf("🔍 [KeywordExtraction] [MultiPage] Discovering and crawling website pages...")
-	crawlResult, err := crawler.CrawlWebsite(analysisCtx, websiteURL)
+	// Use fast-path mode if timeout is short (5s or less), otherwise use regular crawl
+	// Fast-path: 5s timeout, 8 pages max, 3 concurrent
+	// Regular: uses full timeout, 15 pages max
+	timeoutDuration := 10 * time.Second // Default from calling function
+	if deadline, ok := analysisCtx.Deadline(); ok {
+		timeoutDuration = time.Until(deadline)
+	}
+	
+	var crawlResult CrawlResultInterface
+	var err error
+	
+	if timeoutDuration <= 5*time.Second {
+		// Use fast-path mode for short timeouts
+		r.logger.Printf("🚀 [KeywordExtraction] [MultiPage] Using fast-path mode (timeout: %v, max pages: 8)", timeoutDuration)
+		crawlResult, err = crawler.CrawlWebsiteFast(analysisCtx, websiteURL, timeoutDuration, 8, 3)
+	} else {
+		// Use regular crawl for longer timeouts
+		r.logger.Printf("🔍 [KeywordExtraction] [MultiPage] Using regular crawl mode (timeout: %v)", timeoutDuration)
+		crawlResult, err = crawler.CrawlWebsite(analysisCtx, websiteURL)
+	}
 	if err != nil {
 		r.logger.Printf("❌ [KeywordExtraction] [MultiPage] ERROR: Website crawl failed: %v (type: %T) - falling back to single page", err, err)
 		return []string{} // Return empty to trigger fallback

@@ -3,6 +3,7 @@ package classification
 import (
 	"context"
 	"encoding/json"
+	"encoding/xml"
 	"fmt"
 	"io"
 	"log"
@@ -36,6 +37,7 @@ type SmartWebsiteCrawler struct {
 	maxDepth        int
 	respectRobots   bool
 	pageTimeout     time.Duration
+	maxConcurrent   int           // Maximum concurrent page requests (default: 3)
 	entityRecognizer *nlp.EntityRecognizer
 	topicModeler     *nlp.TopicModeler
 	sessionManager  *ScrapingSessionManager
@@ -329,6 +331,7 @@ func NewSmartWebsiteCrawler(logger *log.Logger) *SmartWebsiteCrawler {
 		maxDepth:        3,  // Maximum crawl depth
 		respectRobots:   true,
 		pageTimeout:     15 * time.Second,
+		maxConcurrent:   3,  // Maximum concurrent page requests (default: 3)
 		entityRecognizer: nlp.NewEntityRecognizer(),
 		topicModeler:     nlp.NewTopicModeler(),
 		sessionManager:  NewScrapingSessionManager(),
@@ -391,6 +394,16 @@ func (c *SmartWebsiteCrawler) CrawlWebsite(ctx context.Context, websiteURL strin
 		discoveredPages = []string{baseURL}
 	}
 
+	// Limit discovered pages to top 20 by priority (before analysis)
+	if len(discoveredPages) > 20 {
+		// Prioritize first, then limit
+		tempPrioritized := c.prioritizePages(discoveredPages, baseURL)
+		if len(tempPrioritized) > 20 {
+			discoveredPages = tempPrioritized[:20]
+			c.logger.Printf("📊 [SmartCrawler] Limited discovered pages to top 20 by priority (from %d total)", len(tempPrioritized))
+		}
+	}
+
 	// Prioritize pages based on relevance
 	prioritizedPages := c.prioritizePages(discoveredPages, baseURL)
 	c.logger.Printf("📊 [SmartCrawler] Discovered %d pages, prioritizing %d", len(discoveredPages), len(prioritizedPages))
@@ -410,8 +423,20 @@ func (c *SmartWebsiteCrawler) CrawlWebsite(ctx context.Context, websiteURL strin
 	// Removed initial warm-up delay for faster classification (user preference)
 	// Original delay was 3+ seconds with human-like variation
 
-	// Analyze prioritized pages
-	pageAnalyses := c.analyzePages(ctx, prioritizedPages)
+	// Analyze prioritized pages in parallel with controlled concurrency
+	// Use parallel processing for better performance while maintaining session management
+	maxConcurrent := c.maxConcurrent
+	if maxConcurrent <= 0 {
+		maxConcurrent = 3 // Default to 3 if not set
+	}
+	c.logger.Printf("🔄 [SmartCrawler] Using parallel processing with %d concurrent requests", maxConcurrent)
+	pageAnalyses := c.analyzePagesParallel(ctx, prioritizedPages, maxConcurrent)
+	
+	// Check if we have sufficient content after parallel analysis
+	if len(pageAnalyses) >= 2 && c.hasSufficientContent(pageAnalyses) {
+		c.logger.Printf("✅ [SmartCrawler] Sufficient content gathered in parallel mode")
+	}
+	
 	result.PagesAnalyzed = pageAnalyses
 	result.TotalPages = len(pageAnalyses)
 
@@ -423,6 +448,218 @@ func (c *SmartWebsiteCrawler) CrawlWebsite(ctx context.Context, websiteURL strin
 
 	c.logger.Printf("✅ [SmartCrawler] Smart crawl completed in %v - %d pages analyzed", result.CrawlDuration, result.TotalPages)
 	return result, nil
+}
+
+// CrawlWebsiteFast performs fast-path crawling with time constraints
+// Uses same discovery (robots.txt, sitemap) but with time constraints
+// Limits to top pages by priority, uses parallel processing, reduced delays
+// Early exit on sufficient content or time limit
+func (c *SmartWebsiteCrawler) CrawlWebsiteFast(ctx context.Context, websiteURL string, maxTime time.Duration, maxPages int, maxConcurrent int) (*CrawlResult, error) {
+	startTime := time.Now()
+	c.logger.Printf("🚀 [SmartCrawler] Starting fast-path crawl for: %s (max time: %v, max pages: %d)", websiteURL, maxTime, maxPages)
+
+	// Create timeout context
+	timeoutCtx, cancel := context.WithTimeout(ctx, maxTime)
+	defer cancel()
+
+	result := &CrawlResult{
+		BaseURL:       websiteURL,
+		PagesAnalyzed: []PageAnalysis{},
+		Keywords:      []string{},
+		IndustryScore: make(map[string]float64),
+		BusinessInfo:  BusinessInfo{},
+		SiteStructure: SiteStructure{},
+		Success:       false,
+	}
+
+	// Validate and normalize URL
+	baseURL, err := c.normalizeURL(websiteURL)
+	if err != nil {
+		result.Error = fmt.Sprintf("URL validation failed: %v", err)
+		return result, err
+	}
+
+	// Check robots.txt if enabled (quick check with timeout)
+	if c.respectRobots {
+		robotsCtx, robotsCancel := context.WithTimeout(timeoutCtx, 2*time.Second)
+		blocked, crawlDelay, err := c.checkRobotsTxt(robotsCtx, baseURL, "/")
+		robotsCancel()
+		if err == nil && blocked {
+			result.Error = "Website blocked by robots.txt"
+			return result, fmt.Errorf("website blocked by robots.txt")
+		}
+		// Store crawl delay for this domain
+		if err == nil && crawlDelay > 0 {
+			parsedURL, err := url.Parse(baseURL)
+			if err == nil {
+				domain := parsedURL.Hostname()
+				c.crawlDelaysMutex.Lock()
+				c.crawlDelays[domain] = crawlDelay
+				c.crawlDelaysMutex.Unlock()
+			}
+		}
+	}
+
+	// Discover site structure (with timeout)
+	discoverCtx, discoverCancel := context.WithTimeout(timeoutCtx, 3*time.Second)
+	discoveredPages, err := c.discoverSiteStructure(discoverCtx, baseURL)
+	discoverCancel()
+	if err != nil {
+		c.logger.Printf("⚠️ [SmartCrawler] Site structure discovery failed: %v", err)
+		// Fallback to homepage only
+		discoveredPages = []string{baseURL}
+	}
+
+	// Prioritize pages and limit to maxPages
+	prioritizedPages := c.prioritizePages(discoveredPages, baseURL)
+	if len(prioritizedPages) > maxPages {
+		prioritizedPages = prioritizedPages[:maxPages]
+		c.logger.Printf("📊 [SmartCrawler] Limited to top %d pages for fast-path", maxPages)
+	}
+
+	// Ensure homepage is first
+	homepageFirst := []string{baseURL}
+	seen := make(map[string]bool)
+	seen[baseURL] = true
+	for _, page := range prioritizedPages {
+		if !seen[page] {
+			homepageFirst = append(homepageFirst, page)
+			seen[page] = true
+		}
+	}
+	prioritizedPages = homepageFirst
+
+	// Use parallel processing with reduced delay (500ms)
+	// Check remaining time before starting
+	elapsed := time.Since(startTime)
+	remainingTime := maxTime - elapsed
+	if remainingTime < 1*time.Second {
+		c.logger.Printf("⚠️ [SmartCrawler] Insufficient time remaining (%v), using available pages", remainingTime)
+		// Use only homepage if time is very short
+		if len(prioritizedPages) > 1 {
+			prioritizedPages = []string{baseURL}
+		}
+	}
+
+	// Analyze pages in parallel
+	pageAnalyses := c.analyzePagesParallelWithDelay(timeoutCtx, prioritizedPages, maxConcurrent, 500*time.Millisecond, true, startTime, maxTime)
+	
+	// Check if we have sufficient content after parallel analysis
+	if len(pageAnalyses) >= 2 && c.hasSufficientContent(pageAnalyses) {
+		c.logger.Printf("✅ [SmartCrawler] Fast-path: Sufficient content gathered in parallel mode")
+	}
+
+	result.PagesAnalyzed = pageAnalyses
+	result.TotalPages = len(pageAnalyses)
+
+	// Aggregate results
+	c.aggregateResults(result, pageAnalyses)
+
+	result.CrawlDuration = time.Since(startTime)
+	result.Success = true
+
+	c.logger.Printf("✅ [SmartCrawler] Fast-path crawl completed in %v - %d pages analyzed", result.CrawlDuration, result.TotalPages)
+	return result, nil
+}
+
+// analyzePagesParallelWithDelay processes pages in parallel with configurable delay and time constraints
+func (c *SmartWebsiteCrawler) analyzePagesParallelWithDelay(ctx context.Context, pages []string, maxConcurrent int, minDelay time.Duration, fastPath bool, startTime time.Time, maxTime time.Duration) []PageAnalysis {
+	var analyses []PageAnalysis
+	var mu sync.Mutex
+	var wg sync.WaitGroup
+
+	// Semaphore to limit concurrent requests
+	semaphore := make(chan struct{}, maxConcurrent)
+
+	for i, page := range pages {
+		// Check context cancellation
+		select {
+		case <-ctx.Done():
+			return analyses
+		default:
+		}
+
+		// Check remaining time before starting new page
+		elapsed := time.Since(startTime)
+		remainingTime := maxTime - elapsed
+		if remainingTime < 1*time.Second {
+			c.logger.Printf("⏰ [SmartCrawler] Time limit approaching (%v remaining), skipping remaining pages", remainingTime)
+			break
+		}
+
+		// Check if we already have sufficient content
+		mu.Lock()
+		hasSufficient := len(analyses) >= 2 && c.hasSufficientContent(analyses)
+		mu.Unlock()
+		if hasSufficient {
+			c.logger.Printf("✅ [SmartCrawler] Sufficient content gathered, skipping remaining pages")
+			break
+		}
+
+		wg.Add(1)
+		go func(idx int, pageURL string) {
+			defer wg.Done()
+
+			// Acquire semaphore
+			semaphore <- struct{}{}
+			defer func() { <-semaphore }()
+
+			// Analyze page
+			analysis := c.analyzePage(ctx, pageURL)
+
+			// Store result in correct position
+			mu.Lock()
+			// Extend slice if needed
+			for len(analyses) <= idx {
+				analyses = append(analyses, PageAnalysis{})
+			}
+			analyses[idx] = analysis
+			mu.Unlock()
+
+			// Check for 403 to signal early stop
+			if analysis.StatusCode == 403 {
+				c.logger.Printf("🚫 [SmartCrawler] Received 403 for %s", pageURL)
+			}
+		}(i, page)
+
+		// Apply delay between starting goroutines (except for first page)
+		if i > 0 && minDelay > 0 {
+			select {
+			case <-ctx.Done():
+				return analyses
+			case <-time.After(minDelay):
+				// Delay completed
+			}
+		}
+	}
+
+	wg.Wait()
+
+	// Filter out empty analyses
+	var validAnalyses []PageAnalysis
+	for _, analysis := range analyses {
+		if analysis.URL != "" {
+			validAnalyses = append(validAnalyses, analysis)
+		}
+	}
+
+	// Check for 403 - if found, stop here
+	for _, analysis := range validAnalyses {
+		if analysis.StatusCode == 403 {
+			c.logger.Printf("🚫 [SmartCrawler] Received 403 - stopping crawl to avoid further blocks")
+			// Return only analyses before 403
+			var before403 []PageAnalysis
+			for _, a := range validAnalyses {
+				if a.StatusCode == 403 {
+					break
+				}
+				before403 = append(before403, a)
+			}
+			return before403
+		}
+	}
+
+	return validAnalyses
 }
 
 // discoverSiteStructure discovers the site structure using multiple methods
@@ -466,6 +703,31 @@ func (c *SmartWebsiteCrawler) discoverSiteStructure(ctx context.Context, baseURL
 	return discoveredPages, nil
 }
 
+// SitemapURL represents a URL entry in a sitemap
+type SitemapURL struct {
+	Loc     string  `xml:"loc"`
+	LastMod string  `xml:"lastmod"`
+	ChangeFreq string `xml:"changefreq"`
+	Priority   float64 `xml:"priority"`
+}
+
+// SitemapIndex represents a sitemap index file
+type SitemapIndex struct {
+	XMLName xml.Name      `xml:"sitemapindex"`
+	Sitemaps []SitemapEntry `xml:"sitemap"`
+}
+
+// SitemapEntry represents a sitemap entry in an index
+type SitemapEntry struct {
+	Loc string `xml:"loc"`
+}
+
+// URLSet represents a sitemap with URLs
+type URLSet struct {
+	XMLName xml.Name   `xml:"urlset"`
+	URLs    []SitemapURL `xml:"url"`
+}
+
 // parseSitemap parses sitemap.xml to discover pages
 func (c *SmartWebsiteCrawler) parseSitemap(ctx context.Context, baseURL string) ([]string, error) {
 	parsedURL, err := url.Parse(baseURL)
@@ -480,6 +742,11 @@ func (c *SmartWebsiteCrawler) parseSitemap(ctx context.Context, baseURL string) 
 		return nil, err
 	}
 
+	// Set timeout for sitemap request (shorter than page timeout)
+	sitemapCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+	req = req.WithContext(sitemapCtx)
+
 	resp, err := c.client.Do(req)
 	if err != nil {
 		return nil, err
@@ -490,12 +757,130 @@ func (c *SmartWebsiteCrawler) parseSitemap(ctx context.Context, baseURL string) 
 		return nil, fmt.Errorf("sitemap not found or inaccessible")
 	}
 
-	// Parse XML sitemap (simplified implementation)
-	// In a real implementation, you'd use an XML parser
-	var pages []string
+	// Read the response body
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read sitemap: %w", err)
+	}
 
-	// For now, return common page patterns
-	// TODO: Implement proper XML parsing
+	// Try to parse as sitemap index first
+	var index SitemapIndex
+	if err := xml.Unmarshal(body, &index); err == nil && len(index.Sitemaps) > 0 {
+		// This is a sitemap index, parse each referenced sitemap
+		var allPages []string
+		for _, sitemapEntry := range index.Sitemaps {
+			if sitemapEntry.Loc != "" {
+				// Parse the referenced sitemap
+				sitemapPages, err := c.parseSitemapURL(ctx, sitemapEntry.Loc)
+				if err == nil {
+					allPages = append(allPages, sitemapPages...)
+				}
+			}
+		}
+		if len(allPages) > 0 {
+			c.logger.Printf("🗺️ [SmartCrawler] Found %d pages from sitemap index", len(allPages))
+			return allPages, nil
+		}
+	}
+
+	// Try to parse as regular sitemap (urlset)
+	var urlSet URLSet
+	if err := xml.Unmarshal(body, &urlSet); err == nil && len(urlSet.URLs) > 0 {
+		var pages []string
+		for _, sitemapURL := range urlSet.URLs {
+			if sitemapURL.Loc != "" {
+				// Normalize URL
+				normalizedURL, err := c.normalizeURL(sitemapURL.Loc)
+				if err == nil {
+					// Only include URLs from the same domain
+					parsedSitemapURL, err := url.Parse(normalizedURL)
+					if err == nil && parsedSitemapURL.Hostname() == parsedURL.Hostname() {
+						pages = append(pages, normalizedURL)
+					}
+				}
+			}
+		}
+		if len(pages) > 0 {
+			c.logger.Printf("🗺️ [SmartCrawler] Found %d pages in sitemap", len(pages))
+			return pages, nil
+		}
+	}
+
+	// If XML parsing failed, try to extract URLs from text content
+	// This is a fallback for non-standard sitemaps
+	urlPattern := regexp.MustCompile(`<loc>(.*?)</loc>`)
+	matches := urlPattern.FindAllStringSubmatch(string(body), -1)
+	var pages []string
+	seen := make(map[string]bool)
+	for _, match := range matches {
+		if len(match) > 1 {
+			urlStr := strings.TrimSpace(match[1])
+			if urlStr != "" && !seen[urlStr] {
+				normalizedURL, err := c.normalizeURL(urlStr)
+				if err == nil {
+					parsedSitemapURL, err := url.Parse(normalizedURL)
+					if err == nil && parsedSitemapURL.Hostname() == parsedURL.Hostname() {
+						pages = append(pages, normalizedURL)
+						seen[urlStr] = true
+					}
+				}
+			}
+		}
+	}
+
+	if len(pages) > 0 {
+		c.logger.Printf("🗺️ [SmartCrawler] Found %d pages in sitemap (fallback parsing)", len(pages))
+		return pages, nil
+	}
+
+	return nil, fmt.Errorf("no pages found in sitemap")
+}
+
+// parseSitemapURL parses a specific sitemap URL
+func (c *SmartWebsiteCrawler) parseSitemapURL(ctx context.Context, sitemapURL string) ([]string, error) {
+	req, err := http.NewRequestWithContext(ctx, "GET", sitemapURL, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	sitemapCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+	req = req.WithContext(sitemapCtx)
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("sitemap not accessible")
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read sitemap: %w", err)
+	}
+
+	var urlSet URLSet
+	if err := xml.Unmarshal(body, &urlSet); err != nil {
+		return nil, err
+	}
+
+	var pages []string
+	parsedURL, _ := url.Parse(sitemapURL)
+	for _, sitemapURL := range urlSet.URLs {
+		if sitemapURL.Loc != "" {
+			normalizedURL, err := c.normalizeURL(sitemapURL.Loc)
+			if err == nil {
+				parsedSitemapURL, err := url.Parse(normalizedURL)
+				if err == nil && parsedURL != nil && parsedSitemapURL.Hostname() == parsedURL.Hostname() {
+					pages = append(pages, normalizedURL)
+				}
+			}
+		}
+	}
+
 	return pages, nil
 }
 
@@ -751,8 +1136,12 @@ func (c *SmartWebsiteCrawler) detectPageType(pageURL string) PageType {
 // Enforces robots.txt crawl delays and adaptive delays based on response codes
 // OPTIMIZATION #18: Adaptive Page Limits - Stop crawling when confidence >= 0.95 after 3+ pages
 func (c *SmartWebsiteCrawler) analyzePages(ctx context.Context, pages []string) []PageAnalysis {
+	return c.analyzePagesWithDelay(ctx, pages, 2*time.Second, false)
+}
+
+// analyzePagesWithDelay processes pages with configurable delay and fast-path mode
+func (c *SmartWebsiteCrawler) analyzePagesWithDelay(ctx context.Context, pages []string, minDelay time.Duration, fastPath bool) []PageAnalysis {
 	var analyses []PageAnalysis
-	const defaultMinDelay = 2 * time.Second // Minimum delay between requests
 	const highConfidenceThreshold = 0.95     // OPTIMIZATION #18: Stop at 95% confidence (user preference)
 	const minPagesForEarlyStop = 3           // Minimum pages before considering early stop
 
@@ -780,14 +1169,37 @@ func (c *SmartWebsiteCrawler) analyzePages(ctx context.Context, pages []string) 
 				}
 				c.crawlDelaysMutex.RUnlock()
 				
-				// Use maximum of robots.txt delay and default minimum delay
+				// Use maximum of robots.txt delay and configured minimum delay
 				delay := crawlDelay
-				if delay < defaultMinDelay {
-					delay = defaultMinDelay
+				if delay < minDelay {
+					delay = minDelay
+				}
+				
+				// Skip delay if we have sufficient content and are in fast-path mode
+				if fastPath && len(analyses) >= 2 {
+					if c.hasSufficientContent(analyses) {
+						c.logger.Printf("⏩ [SmartCrawler] Skipping delay - sufficient content already gathered")
+						// Still respect robots.txt if it's longer
+						if crawlDelay > 0 && crawlDelay > delay {
+							delay = crawlDelay
+						} else {
+							// Skip delay entirely if we have sufficient content
+							delay = 0
+						}
+					}
+				}
+				
+				// Skip delay if previous page failed quickly (< 1s) - indicates timeout
+				if len(analyses) > 0 {
+					lastAnalysis := analyses[len(analyses)-1]
+					if lastAnalysis.ResponseTime > 0 && lastAnalysis.ResponseTime < 1*time.Second && lastAnalysis.StatusCode != 200 {
+						c.logger.Printf("⏩ [SmartCrawler] Skipping delay - previous page failed quickly (timeout)")
+						delay = 0
+					}
 				}
 				
 				// Apply adaptive delay based on previous response (if available)
-				if len(analyses) > 0 {
+				if len(analyses) > 0 && delay > 0 {
 					lastAnalysis := analyses[len(analyses)-1]
 					if lastAnalysis.StatusCode == 429 {
 						// Rate limited - use exponential backoff
@@ -831,7 +1243,35 @@ func (c *SmartWebsiteCrawler) analyzePages(ctx context.Context, pages []string) 
 			break
 		}
 
-		// OPTIMIZATION #18: Adaptive Page Limits
+		// Content-quality-based early exit (minimum 2 pages before checking)
+		if len(analyses) >= 2 {
+			if c.hasSufficientContent(analyses) {
+				// Calculate metrics for logging
+				var totalContentLength int
+				uniqueKeywords := make(map[string]bool)
+				var totalRelevance float64
+				successfulPages := 0
+				for _, a := range analyses {
+					if a.StatusCode >= 200 && a.StatusCode < 400 {
+						successfulPages++
+						totalContentLength += a.ContentLength
+						totalRelevance += a.RelevanceScore
+						for _, keyword := range a.Keywords {
+							uniqueKeywords[keyword] = true
+						}
+					}
+				}
+				avgRelevance := totalRelevance / float64(successfulPages)
+				
+				c.logger.Printf("✅ [SmartCrawler] Sufficient content gathered after %d pages - stopping early",
+					len(analyses))
+				c.logger.Printf("📊 [SmartCrawler] Early exit metrics: %d chars, %d keywords, %.2f relevance, %d pages",
+					totalContentLength, len(uniqueKeywords), avgRelevance, successfulPages)
+				break
+			}
+		}
+
+		// OPTIMIZATION #18: Adaptive Page Limits (fallback to confidence-based)
 		// Check confidence after each page and stop early if threshold is met
 		if len(analyses) >= minPagesForEarlyStop {
 			currentConfidence := c.calculateConfidenceFromAnalyses(analyses)
@@ -863,6 +1303,207 @@ func (c *SmartWebsiteCrawler) analyzePages(ctx context.Context, pages []string) 
 	}
 
 	return analyses
+}
+
+// hasSufficientContent checks if we have gathered sufficient content for classification
+// Returns true if multiple criteria are met:
+// 1. Total content length >= 500 characters (optimal threshold)
+// 2. At least 10 unique keywords extracted
+// 3. Average relevance score >= 0.7
+// 4. At least 2 successful pages with content
+func (c *SmartWebsiteCrawler) hasSufficientContent(analyses []PageAnalysis) bool {
+	if len(analyses) == 0 {
+		return false
+	}
+
+	var totalContentLength int
+	var totalKeywords int
+	uniqueKeywords := make(map[string]bool)
+	var totalRelevance float64
+	successfulPages := 0
+
+	for _, analysis := range analyses {
+		if analysis.StatusCode >= 200 && analysis.StatusCode < 400 {
+			successfulPages++
+			totalContentLength += analysis.ContentLength
+			totalRelevance += analysis.RelevanceScore
+
+			// Collect unique keywords
+			for _, keyword := range analysis.Keywords {
+				uniqueKeywords[keyword] = true
+			}
+		}
+	}
+
+	totalKeywords = len(uniqueKeywords)
+
+	// Check criteria:
+	// 1. At least 2 successful pages
+	if successfulPages < 2 {
+		return false
+	}
+
+	// 2. Total content length >= 500 characters
+	if totalContentLength < 500 {
+		return false
+	}
+
+	// 3. At least 10 unique keywords
+	if totalKeywords < 10 {
+		return false
+	}
+
+	// 4. Average relevance score >= 0.7
+	avgRelevance := totalRelevance / float64(successfulPages)
+	if avgRelevance < 0.7 {
+		return false
+	}
+
+	return true
+}
+
+// analyzePagesParallel processes pages in parallel with controlled concurrency
+// Maintains session management across parallel requests
+func (c *SmartWebsiteCrawler) analyzePagesParallel(ctx context.Context, pages []string, maxConcurrent int) []PageAnalysis {
+	var analyses []PageAnalysis
+	var mu sync.Mutex
+	var wg sync.WaitGroup
+
+	// Semaphore to limit concurrent requests
+	semaphore := make(chan struct{}, maxConcurrent)
+	
+	// Track if we should stop early due to sufficient content or 403
+	var shouldStop bool
+	var stopMutex sync.Mutex
+
+	for i, page := range pages {
+		// Check context cancellation
+		select {
+		case <-ctx.Done():
+			return analyses
+		default:
+		}
+		
+		// Check if we should stop early
+		stopMutex.Lock()
+		if shouldStop {
+			stopMutex.Unlock()
+			break
+		}
+		stopMutex.Unlock()
+
+		wg.Add(1)
+		go func(idx int, pageURL string) {
+			defer wg.Done()
+
+			// Acquire semaphore
+			semaphore <- struct{}{}
+			defer func() { <-semaphore }()
+
+			// Analyze page (session management is handled by analyzePage internally)
+			analysis := c.analyzePage(ctx, pageURL)
+
+			// Store result in correct position
+			mu.Lock()
+			// Extend slice if needed
+			for len(analyses) <= idx {
+				analyses = append(analyses, PageAnalysis{})
+			}
+			analyses[idx] = analysis
+			
+			// Check for sufficient content after each page (minimum 2 pages)
+			validCount := 0
+			for _, a := range analyses {
+				if a.URL != "" {
+					validCount++
+				}
+			}
+			
+			// Check for early exit conditions
+			if validCount >= 2 {
+				// Check for sufficient content
+				var validAnalyses []PageAnalysis
+				for _, a := range analyses {
+					if a.URL != "" {
+						validAnalyses = append(validAnalyses, a)
+					}
+				}
+				if c.hasSufficientContent(validAnalyses) {
+					stopMutex.Lock()
+					shouldStop = true
+					stopMutex.Unlock()
+					c.logger.Printf("✅ [SmartCrawler] Sufficient content gathered after %d pages - stopping parallel crawl early", validCount)
+				}
+			}
+			
+			// Check for 403
+			if analysis.StatusCode == 403 {
+				stopMutex.Lock()
+				shouldStop = true
+				stopMutex.Unlock()
+				c.logger.Printf("🚫 [SmartCrawler] Received 403 for %s - stopping parallel crawl", pageURL)
+			}
+			
+			mu.Unlock()
+		}(i, page)
+		
+		// Apply small delay between starting goroutines to avoid overwhelming the server
+		// This respects robots.txt delays while still allowing parallel processing
+		if i > 0 {
+			// Get domain for crawl delay check
+			parsedURL, err := url.Parse(page)
+			if err == nil {
+				currentDomain := parsedURL.Hostname()
+				var crawlDelay time.Duration
+				c.crawlDelaysMutex.RLock()
+				if delay, exists := c.crawlDelays[currentDomain]; exists {
+					crawlDelay = delay
+				}
+				c.crawlDelaysMutex.RUnlock()
+				
+				// Use smaller delay for parallel mode (divide by maxConcurrent since we're processing in parallel)
+				// But respect robots.txt if it's longer
+				delay := 500 * time.Millisecond // Base delay between starting goroutines
+				if crawlDelay > 0 {
+					// Use robots.txt delay divided by concurrency (but minimum 200ms)
+					parallelDelay := crawlDelay / time.Duration(maxConcurrent)
+					if parallelDelay < 200*time.Millisecond {
+						parallelDelay = 200 * time.Millisecond
+					}
+					if parallelDelay > delay {
+						delay = parallelDelay
+					}
+				}
+				
+				select {
+				case <-ctx.Done():
+					return analyses
+				case <-time.After(delay):
+					// Delay completed
+				}
+			}
+		}
+	}
+
+	wg.Wait()
+
+	// Filter out empty analyses
+	var validAnalyses []PageAnalysis
+	for _, analysis := range analyses {
+		if analysis.URL != "" {
+			validAnalyses = append(validAnalyses, analysis)
+		}
+	}
+
+	// Check for 403 - if found, return only analyses before 403
+	for i, analysis := range validAnalyses {
+		if analysis.StatusCode == 403 {
+			c.logger.Printf("🚫 [SmartCrawler] Received 403 - stopping crawl to avoid further blocks")
+			return validAnalyses[:i]
+		}
+	}
+
+	return validAnalyses
 }
 
 // calculateConfidenceFromAnalyses calculates overall confidence from page analyses

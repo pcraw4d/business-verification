@@ -198,6 +198,19 @@ func (s *testSmartWebsiteCrawlerAdapter) CrawlWebsite(ctx context.Context, websi
 	return &testCrawlResultAdapter{result: result}, nil
 }
 
+func (s *testSmartWebsiteCrawlerAdapter) CrawlWebsiteFast(ctx context.Context, websiteURL string, maxTime time.Duration, maxPages int, maxConcurrent int) (repository.CrawlResultInterface, error) {
+	result, err := s.crawler.CrawlWebsiteFast(ctx, websiteURL, maxTime, maxPages, maxConcurrent)
+	if err != nil {
+		return nil, err
+	}
+	return &testCrawlResultAdapter{result: result}, nil
+	result, err := s.crawler.CrawlWebsite(ctx, websiteURL)
+	if err != nil {
+		return nil, err
+	}
+	return &testCrawlResultAdapter{result: result}, nil
+}
+
 // TestServiceWithRealDatabase tests the service with a real Supabase database
 func TestServiceWithRealDatabase(t *testing.T) {
 	if testing.Short() {

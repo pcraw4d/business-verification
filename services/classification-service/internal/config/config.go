@@ -54,6 +54,12 @@ type ClassificationConfig struct {
 	// Feature flags
 	MultiPageAnalysisEnabled      bool
 	StructuredDataExtractionEnabled bool
+	// Fast-path scraping configuration
+	FastPathScrapingEnabled  bool
+	MaxConcurrentPages       int
+	CrawlDelayMs             int
+	FastPathMaxPages         int
+	WebsiteScrapingTimeout   time.Duration
 }
 
 // LoggingConfig holds logging configurations
@@ -98,6 +104,12 @@ func Load() (*Config, error) {
 			// Feature flags
 			MultiPageAnalysisEnabled:      getEnvAsBool("ENABLE_MULTI_PAGE_ANALYSIS", true),
 			StructuredDataExtractionEnabled: getEnvAsBool("ENABLE_STRUCTURED_DATA_EXTRACTION", true),
+			// Fast-path scraping configuration
+			FastPathScrapingEnabled:  getEnvAsBool("ENABLE_FAST_PATH_SCRAPING", true),
+			MaxConcurrentPages:       getEnvAsInt("CLASSIFICATION_MAX_CONCURRENT_PAGES", 3),
+			CrawlDelayMs:             getEnvAsInt("CLASSIFICATION_CRAWL_DELAY_MS", 500),
+			FastPathMaxPages:         getEnvAsInt("CLASSIFICATION_FAST_PATH_MAX_PAGES", 8),
+			WebsiteScrapingTimeout:   getEnvAsDuration("CLASSIFICATION_WEBSITE_SCRAPING_TIMEOUT", 5*time.Second),
 		},
 		Logging: LoggingConfig{
 			Level:  getEnvAsString("LOG_LEVEL", "info"),
