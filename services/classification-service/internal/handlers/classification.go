@@ -2622,6 +2622,55 @@ func (h *ClassificationHandler) HandleHealth(w http.ResponseWriter, r *http.Requ
 		h.logger.Warn("Failed to get classification data", zap.Error(err))
 	}
 
+	// Check Python ML service circuit breaker status if available
+	var mlServiceStatus map[string]interface{}
+	if h.pythonMLService != nil {
+		// Type assert to get PythonMLService
+		if pms, ok := h.pythonMLService.(*infrastructure.PythonMLService); ok {
+			// Get circuit breaker state and metrics
+			cbState := pms.GetCircuitBreakerState()
+			cbMetrics := pms.GetCircuitBreakerMetrics()
+			
+			// Try to get health with circuit breaker info (with timeout)
+			healthCtx, healthCancel := context.WithTimeout(ctx, 3*time.Second)
+			defer healthCancel()
+			
+			cbHealth, err := pms.HealthCheckWithCircuitBreaker(healthCtx)
+			mlServiceStatus = map[string]interface{}{
+				"available": true,
+				"circuit_breaker_state": cbState.String(),
+				"circuit_breaker_metrics": map[string]interface{}{
+					"state":              cbMetrics.State,
+					"failure_count":      cbMetrics.FailureCount,
+					"success_count":      cbMetrics.SuccessCount,
+					"state_change_time":  cbMetrics.StateChangeTime,
+					"last_failure_time":  cbMetrics.LastFailureTime,
+					"total_requests":    cbMetrics.TotalRequests,
+					"rejected_requests": cbMetrics.RejectedRequests,
+				},
+			}
+			if err == nil && cbHealth != nil {
+				if healthStatus, ok := cbHealth.(*infrastructure.HealthStatus); ok {
+					mlServiceStatus["health_status"] = healthStatus.Status
+					mlServiceStatus["health_checks"] = healthStatus.Checks
+				}
+			} else if err != nil {
+				mlServiceStatus["health_check_error"] = err.Error()
+			}
+		} else {
+			mlServiceStatus = map[string]interface{}{
+				"available": true,
+				"status":    "initialized",
+				"note":      "circuit_breaker_status_unavailable",
+			}
+		}
+	} else {
+		mlServiceStatus = map[string]interface{}{
+			"available": false,
+			"status":    "not_configured",
+		}
+	}
+
 	// Create health response
 	health := map[string]interface{}{
 		"status":    "healthy",
@@ -2634,6 +2683,7 @@ func (h *ClassificationHandler) HandleHealth(w http.ResponseWriter, r *http.Requ
 			"url":       h.config.Supabase.URL,
 			"error":     supabaseError,
 		},
+		"ml_service_status": mlServiceStatus,
 		"classification_data": classificationData,
 		"features": map[string]interface{}{
 			"ml_enabled":             h.config.Classification.MLEnabled,
