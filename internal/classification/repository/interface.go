@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"time"
 )
 
 // Industry represents a business industry with classification metadata
@@ -158,4 +159,38 @@ type KeywordRepository interface {
 	Ping(ctx context.Context) error
 	GetDatabaseStats(ctx context.Context) (map[string]interface{}, error)
 	CleanupInactiveData(ctx context.Context) error
+
+	// Accuracy Tracking and Calibration (OPTIMIZATION #5.2)
+	SaveClassificationAccuracy(ctx context.Context, tracking *ClassificationAccuracyTracking) error
+	UpdateClassificationAccuracy(ctx context.Context, requestID string, actualIndustry string, validatedBy string) error
+	GetCalibrationStatistics(ctx context.Context, startDate, endDate time.Time) ([]*CalibrationBinStatistics, error)
+}
+
+// ClassificationAccuracyTracking represents a classification accuracy tracking record
+type ClassificationAccuracyTracking struct {
+	RequestID            string    `json:"request_id"`
+	BusinessName         string    `json:"business_name"`
+	WebsiteURL           string    `json:"website_url"`
+	PredictedIndustry    string    `json:"predicted_industry"`
+	ActualIndustry       string    `json:"actual_industry,omitempty"` // NULL until validated
+	PredictedConfidence  float64   `json:"predicted_confidence"`
+	ActualConfidence     float64   `json:"actual_confidence,omitempty"` // NULL until validated
+	IsCorrect            *bool     `json:"is_correct,omitempty"`       // NULL until validated
+	ConfidenceBin        int       `json:"confidence_bin"`
+	ClassificationMethod string    `json:"classification_method"`
+	KeywordsCount        int       `json:"keywords_count"`
+	ProcessingTimeMs     int       `json:"processing_time_ms"`
+	CreatedAt            time.Time `json:"created_at"`
+	ValidatedAt          *time.Time `json:"validated_at,omitempty"`
+	ValidatedBy          string    `json:"validated_by,omitempty"`
+}
+
+// CalibrationBinStatistics represents calibration statistics for a confidence bin
+type CalibrationBinStatistics struct {
+	ConfidenceBin        int     `json:"confidence_bin"`
+	TotalClassifications int64   `json:"total_classifications"`
+	CorrectClassifications int64 `json:"correct_classifications"`
+	PredictedAccuracy    float64 `json:"predicted_accuracy"`
+	ActualAccuracy       float64 `json:"actual_accuracy"`
+	CalibrationError     float64 `json:"calibration_error"`
 }

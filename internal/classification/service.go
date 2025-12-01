@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"kyb-platform/internal/classification/repository"
+	"kyb-platform/internal/machine_learning"
 )
 
 // IndustryDetectionService provides database-driven industry classification
@@ -16,6 +17,8 @@ type IndustryDetectionService struct {
 	logger               *log.Logger
 	monitor              *ClassificationAccuracyMonitoring
 	multiStrategyClassifier *MultiStrategyClassifier
+	multiMethodClassifier   *MultiMethodClassifier  // Optional: for ML support
+	useML                  bool                    // Flag to enable ML
 }
 
 // NewIndustryDetectionService creates a new industry detection service
@@ -29,6 +32,38 @@ func NewIndustryDetectionService(repo repository.KeywordRepository, logger *log.
 		logger:               logger,
 		monitor:              nil, // Will be set separately if monitoring is needed
 		multiStrategyClassifier: NewMultiStrategyClassifier(repo, logger),
+		multiMethodClassifier:   nil,
+		useML:                  false,
+	}
+}
+
+// NewIndustryDetectionServiceWithML creates a new industry detection service with ML support
+func NewIndustryDetectionServiceWithML(
+	repo repository.KeywordRepository,
+	mlClassifier *machine_learning.ContentClassifier,
+	pythonMLService interface{}, // *infrastructure.PythonMLService - using interface to avoid import cycle
+	logger *log.Logger,
+) *IndustryDetectionService {
+	if logger == nil {
+		logger = log.Default()
+	}
+
+	// Create MultiMethodClassifier with Python ML service support
+	multiMethodClassifier := NewMultiMethodClassifier(repo, mlClassifier, logger)
+	if pythonMLService != nil {
+		multiMethodClassifier.SetPythonMLService(pythonMLService)
+		logger.Printf("✅ IndustryDetectionService initialized with ML support (Python ML service enabled)")
+	} else {
+		logger.Printf("✅ IndustryDetectionService initialized with ML support (Go ML classifier only)")
+	}
+
+	return &IndustryDetectionService{
+		repo:                 repo,
+		logger:               logger,
+		monitor:              nil,
+		multiStrategyClassifier: NewMultiStrategyClassifier(repo, logger), // Keep for fallback
+		multiMethodClassifier:   multiMethodClassifier,
+		useML:                  true,
 	}
 }
 
@@ -57,25 +92,32 @@ type IndustryDetectionResult struct {
 	CreatedAt      time.Time     `json:"created_at"`
 }
 
-// DetectIndustry performs database-driven industry detection using multi-strategy classification
+// DetectIndustry performs database-driven industry detection using multi-strategy or multi-method classification
 func (s *IndustryDetectionService) DetectIndustry(ctx context.Context, businessName, description, websiteURL string) (*IndustryDetectionResult, error) {
 	startTime := time.Now()
 	requestID := s.generateRequestID()
 
 	s.logger.Printf("🔍 Starting industry detection for: %s (request: %s)", businessName, requestID)
 
-	// Use multi-strategy classifier for improved accuracy
+	// Use MultiMethodClassifier with ML if available, otherwise use MultiStrategyClassifier
+	if s.useML && s.multiMethodClassifier != nil {
+		s.logger.Printf("🤖 Using MultiMethodClassifier with ML support (request: %s)", requestID)
+		return s.detectIndustryWithML(ctx, businessName, description, websiteURL, startTime, requestID)
+	}
+
+	// Use multi-strategy classifier for improved accuracy (keyword-based)
+	s.logger.Printf("📝 Using MultiStrategyClassifier (keyword-based) (request: %s)", requestID)
 	multiResult, err := s.multiStrategyClassifier.ClassifyWithMultiStrategy(
 		ctx, businessName, description, websiteURL)
 	if err != nil {
 		// Fallback to keyword-based classification if multi-strategy fails
 		s.logger.Printf("⚠️ Multi-strategy classification failed, falling back to keyword-based: %v", err)
-		return s.fallbackToKeywordClassification(ctx, businessName, websiteURL, startTime, requestID)
+		return s.fallbackToKeywordClassification(ctx, businessName, description, websiteURL, startTime, requestID)
 	}
 
 	if multiResult == nil {
 		s.logger.Printf("⚠️ Multi-strategy returned nil, falling back to keyword-based")
-		return s.fallbackToKeywordClassification(ctx, businessName, websiteURL, startTime, requestID)
+		return s.fallbackToKeywordClassification(ctx, businessName, description, websiteURL, startTime, requestID)
 	}
 
 	// Convert MultiStrategyResult to IndustryDetectionResult
@@ -103,18 +145,68 @@ func (s *IndustryDetectionService) DetectIndustry(ctx context.Context, businessN
 	return result, nil
 }
 
-// fallbackToKeywordClassification provides fallback when multi-strategy fails
-func (s *IndustryDetectionService) fallbackToKeywordClassification(
+// detectIndustryWithML performs industry detection using MultiMethodClassifier with ML support
+func (s *IndustryDetectionService) detectIndustryWithML(
 	ctx context.Context,
-	businessName, websiteURL string,
+	businessName, description, websiteURL string,
 	startTime time.Time,
 	requestID string,
 ) (*IndustryDetectionResult, error) {
-	// Extract keywords using database-driven approach
-	keywords, err := s.extractKeywordsFromDatabase(ctx, businessName, websiteURL)
+	// Use MultiMethodClassifier which combines keyword + ML + description methods
+	multiMethodResult, err := s.multiMethodClassifier.ClassifyWithMultipleMethods(
+		ctx, businessName, description, websiteURL)
+	if err != nil {
+		s.logger.Printf("⚠️ Multi-method classification failed, falling back to keyword-based: %v (request: %s)", err, requestID)
+		return s.fallbackToKeywordClassification(ctx, businessName, description, websiteURL, startTime, requestID)
+	}
+
+	if multiMethodResult == nil || multiMethodResult.PrimaryClassification == nil {
+		s.logger.Printf("⚠️ Multi-method returned nil, falling back to keyword-based (request: %s)", requestID)
+		return s.fallbackToKeywordClassification(ctx, businessName, description, websiteURL, startTime, requestID)
+	}
+
+	// Convert MultiMethodClassificationResult to IndustryDetectionResult
+	primary := multiMethodResult.PrimaryClassification
+	result := &IndustryDetectionResult{
+		IndustryName:   primary.IndustryName,
+		Confidence:     primary.ConfidenceScore,
+		Keywords:       primary.Keywords,
+		ProcessingTime: multiMethodResult.ProcessingTime,
+		Method:         primary.ClassificationMethod, // Will be "ml_distilbart" or "ml" or "keyword"
+		Reasoning:      multiMethodResult.ClassificationReasoning,
+		CreatedAt:      time.Now(),
+	}
+
+	// Log which methods were used
+	var methodNames []string
+	for _, methodResult := range multiMethodResult.MethodResults {
+		if methodResult.Success {
+			methodNames = append(methodNames, methodResult.MethodName)
+		}
+	}
+	s.logger.Printf("✅ Multi-method classification completed: %s (confidence: %.2f%%) using methods: %v (request: %s)",
+		result.IndustryName, result.Confidence*100, methodNames, requestID)
+
+	return result, nil
+}
+
+// fallbackToKeywordClassification provides fallback when multi-strategy fails
+func (s *IndustryDetectionService) fallbackToKeywordClassification(
+	ctx context.Context,
+	businessName, description, websiteURL string,
+	startTime time.Time,
+	requestID string,
+) (*IndustryDetectionResult, error) {
+	// Extract keywords using database-driven approach (with description fallback)
+	keywords, err := s.extractKeywordsFromDatabase(ctx, businessName, description, websiteURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to extract keywords: %w", err)
 	}
+
+	if len(keywords) == 0 {
+		// Enhanced fallback: Extract keywords from business name and description
+		s.logger.Printf("⚠️ No keywords extracted from website for: %s, trying fallback extraction", businessName)
+		keywords = s.extractKeywordsFromNameAndDescription(businessName, description)
 
 	if len(keywords) == 0 {
 		s.logger.Printf("⚠️ No keywords extracted for: %s", businessName)
@@ -124,9 +216,11 @@ func (s *IndustryDetectionService) fallbackToKeywordClassification(
 			Keywords:       []string{},
 			ProcessingTime: time.Since(startTime),
 			Method:         "database_driven",
-			Reasoning:      "No relevant keywords found in database",
+				Reasoning:      "No relevant keywords found in database or fallback extraction",
 			CreatedAt:      time.Now(),
 		}, nil
+		}
+		s.logger.Printf("✅ Fallback extraction found %d keywords from name/description", len(keywords))
 	}
 
 	// Classify using database-driven keyword matching
@@ -146,7 +240,8 @@ func (s *IndustryDetectionService) fallbackToKeywordClassification(
 }
 
 // extractKeywordsFromDatabase extracts keywords using database-driven approach
-func (s *IndustryDetectionService) extractKeywordsFromDatabase(ctx context.Context, businessName, websiteURL string) ([]string, error) {
+// Now includes description for enhanced fallback keyword extraction
+func (s *IndustryDetectionService) extractKeywordsFromDatabase(ctx context.Context, businessName, description, websiteURL string) ([]string, error) {
 	// Use the repository's classification method to get keywords
 	// Note: ClassifyBusiness may return "General Business" if only URL keywords are available,
 	// but it will still return the expanded keywords from the fallback chain.
@@ -160,11 +255,108 @@ func (s *IndustryDetectionService) extractKeywordsFromDatabase(ctx context.Conte
 		return []string{}, nil
 	}
 
+	keywords := result.Keywords
+
+	// Enhanced: Always supplement with description keywords if available
+	// This ensures we use description even when website keywords exist
+	if description != "" {
+		descKeywords := s.extractKeywordsFromNameAndDescription(businessName, description)
+		// Merge keywords, avoiding duplicates
+		keywordSet := make(map[string]bool)
+		for _, kw := range keywords {
+			keywordSet[kw] = true
+		}
+		for _, kw := range descKeywords {
+			if !keywordSet[kw] {
+				keywords = append(keywords, kw)
+				keywordSet[kw] = true
+			}
+		}
+		if len(descKeywords) > 0 {
+			s.logger.Printf("✅ Supplemented with %d keywords from description (total: %d)", len(descKeywords), len(keywords))
+		}
+	}
+
+	// If still no keywords, try description-only extraction
+	if len(keywords) == 0 && description != "" {
+		s.logger.Printf("⚠️ No keywords from website, extracting from description for: %s", businessName)
+		fallbackKeywords := s.extractKeywordsFromNameAndDescription(businessName, description)
+		if len(fallbackKeywords) > 0 {
+			keywords = fallbackKeywords
+			s.logger.Printf("✅ Extracted %d keywords from description fallback", len(keywords))
+		}
+	}
+
 	// Return the keywords - these should be the expanded keywords from extractKeywords
 	// The industry from ClassifyBusiness may be "General Business" if only 4 URL keywords were found,
 	// but classifyByKeywords will use these keywords (which may be expanded by keyword index matching)
 	// to correctly identify the industry (e.g., "Wineries")
-	return result.Keywords, nil
+	return keywords, nil
+}
+
+// extractKeywordsFromNameAndDescription extracts keywords from business name and description
+// This is a fallback when website scraping fails
+func (s *IndustryDetectionService) extractKeywordsFromNameAndDescription(businessName, description string) []string {
+	var keywords []string
+	seen := make(map[string]bool)
+
+	// Combine business name and description
+	text := strings.ToLower(businessName)
+	if description != "" {
+		text += " " + strings.ToLower(description)
+	}
+
+	// Extract meaningful words (3+ characters, not stop words)
+	words := strings.Fields(text)
+	stopWords := map[string]bool{
+		"the": true, "a": true, "an": true, "and": true, "or": true,
+		"but": true, "in": true, "on": true, "at": true, "to": true,
+		"for": true, "of": true, "with": true, "by": true, "from": true,
+		"is": true, "was": true, "are": true, "were": true, "be": true,
+		"been": true, "being": true, "have": true, "has": true, "had": true,
+		"do": true, "does": true, "did": true, "will": true, "would": true,
+		"should": true, "could": true, "may": true, "might": true, "must": true,
+		"can": true, "this": true, "that": true, "these": true, "those": true,
+		"it": true, "its": true, "they": true, "them": true, "their": true,
+		"our": true, "your": true, "my": true, "his": true, "her": true,
+		"he": true, "she": true, "we": true, "you": true, "i": true, "me": true, "us": true,
+		"inc": true, "llc": true, "ltd": true, "corp": true, "corporation": true,
+		"company": true, "co": true, "com": true, "www": true, "http": true, "https": true,
+		"services": true, "service": true, // Remove generic service words to focus on industry-specific terms
+	}
+
+	for _, word := range words {
+		// Remove punctuation
+		word = strings.Trim(word, ".,!?;:()[]{}\"'")
+		if len(word) >= 3 && !stopWords[word] && !seen[word] {
+			seen[word] = true
+			keywords = append(keywords, word)
+		}
+	}
+
+	// Also extract industry-specific terms from common patterns
+	industryPatterns := map[string][]string{
+		"technology":     {"software", "tech", "digital", "computer", "internet", "web", "app", "platform", "system", "data", "cloud", "ai", "ml", "api"},
+		"healthcare":     {"health", "medical", "hospital", "clinic", "doctor", "patient", "care", "treatment", "pharmacy", "diagnostic", "therapy"},
+		"financial":      {"finance", "financial", "bank", "investment", "credit", "loan", "insurance", "trading", "accounting", "tax", "money"},
+		"retail":         {"retail", "store", "shop", "merchandise", "product", "sale", "customer", "shopping", "boutique", "outlet"},
+		"manufacturing": {"manufacturing", "production", "factory", "industrial", "machinery", "equipment", "assembly", "fabrication"},
+		"construction":  {"construction", "contractor", "building", "construction", "architect", "engineering", "renovation", "development"},
+		"transportation": {"transport", "transportation", "logistics", "shipping", "delivery", "freight", "trucking", "airline", "railway"},
+		"professional":  {"consulting", "professional", "service", "advisory", "legal", "accounting", "management", "consultant"},
+	}
+
+	textLower := strings.ToLower(text)
+	for _, terms := range industryPatterns {
+		for _, term := range terms {
+			if strings.Contains(textLower, term) && !seen[term] {
+				seen[term] = true
+				keywords = append(keywords, term)
+			}
+		}
+	}
+
+	return keywords
 }
 
 // classifyByKeywords performs classification using database-driven keyword matching

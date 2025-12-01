@@ -8,6 +8,9 @@ import (
 // This interface allows methods package to use website scraping without importing classification package
 type WebsiteScraper interface {
 	ScrapeWebsite(ctx context.Context, websiteURL string) *ScrapingResult
+	// ScrapeMultiPage attempts to scrape multiple pages from a website
+	// Returns combined text content from all pages, or empty string if not available
+	ScrapeMultiPage(ctx context.Context, websiteURL string) string
 }
 
 // CodeGenerator defines the interface for classification code generation functionality

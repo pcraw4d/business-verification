@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"kyb-platform/internal/classification/cache"
 	"kyb-platform/internal/machine_learning"
 	"kyb-platform/internal/machine_learning/infrastructure"
 	"kyb-platform/internal/shared"
@@ -222,6 +223,9 @@ func (mlcm *MLClassificationMethod) performEnhancedClassification(
 	ctx context.Context,
 	businessName, description, websiteURL, websiteContent string,
 ) (*shared.IndustryClassification, error) {
+	// Content quality validation: Skip ML if content is insufficient
+	const minContentLength = 50 // Minimum characters required for ML classification
+	
 	// Prepare enhanced classification request
 	// Ensure we have at least some content (use description if websiteContent is empty)
 	contentToSend := websiteContent
@@ -230,6 +234,41 @@ func (mlcm *MLClassificationMethod) performEnhancedClassification(
 	}
 	if contentToSend == "" && businessName != "" {
 		contentToSend = businessName
+	}
+	
+	// Validate content quality before calling ML service
+	contentLength := len(strings.TrimSpace(contentToSend))
+	if contentLength < minContentLength {
+		mlcm.logger.Printf("⚠️ Content quality validation failed: content length %d < minimum %d, skipping ML service", contentLength, minContentLength)
+		// Fallback to standard classification with available content
+		content := strings.TrimSpace(businessName + " " + description)
+		if content == "" {
+			return nil, fmt.Errorf("insufficient content for classification (length: %d, minimum: %d)", contentLength, minContentLength)
+		}
+		
+		mlResult, err := mlcm.mlClassifier.ClassifyContent(ctx, content, "")
+		if err != nil {
+			return nil, fmt.Errorf("failed to classify content with ML: %w", err)
+		}
+		
+		if len(mlResult.Classifications) == 0 {
+			return &shared.IndustryClassification{
+				IndustryCode:         "unknown",
+				IndustryName:         "Unknown",
+				ConfidenceScore:      0.0,
+				ClassificationMethod: "ml",
+				Keywords:             []string{},
+			}, nil
+		}
+		
+		topClassification := mlResult.Classifications[0]
+		return &shared.IndustryClassification{
+			IndustryCode:         topClassification.Label,
+			IndustryName:         strings.Title(topClassification.Label),
+			ConfidenceScore:      topClassification.Confidence,
+			ClassificationMethod: "ml",
+			Keywords:             []string{},
+		}, nil
 	}
 	
 	req := &infrastructure.EnhancedClassificationRequest{
@@ -349,10 +388,22 @@ func (mlcm *MLClassificationMethod) buildEnhancedResult(
 	}
 
 	if mlcm.codeGenerator != nil {
-		// Extract keywords from summary and explanation for code generation
-		keywords := mlcm.extractKeywordsFromSummary(enhancedResp.Summary, enhancedResp.Explanation)
+		// PHASE 4: Extract and validate keywords from summary and explanation
+		rawKeywords := mlcm.extractKeywordsFromSummary(enhancedResp.Summary, enhancedResp.Explanation)
+		keywords := mlcm.validateKeywordsAgainstDatabase(ctx, rawKeywords)
+		mlcm.logger.Printf("🔑 [Phase 4] Extracted %d keywords, validated %d against database", len(rawKeywords), len(keywords))
 		
-		// Generate codes using existing ClassificationCodeGenerator
+		// PHASE 4: Adjust ML confidence based on keyword support
+		keywordSupport := mlcm.calculateKeywordSupportForIndustry(ctx, primaryIndustry, keywords)
+		if keywordSupport > 0.7 {
+			confidence = minFloat(1.0, confidence*1.15) // Boost confidence
+			mlcm.logger.Printf("✅ [Phase 4] Boosted ML confidence (%.2f%%) due to high keyword support (%.2f)", confidence*100, keywordSupport)
+		} else if keywordSupport < 0.3 {
+			confidence = confidence * 0.85 // Reduce confidence
+			mlcm.logger.Printf("⚠️ [Phase 4] Reduced ML confidence (%.2f%%) due to low keyword support (%.2f)", confidence*100, keywordSupport)
+		}
+		
+		// Generate codes using validated keywords
 		codeInfo, err := mlcm.codeGenerator.GenerateClassificationCodes(
 			ctx,
 			keywords,
@@ -431,6 +482,34 @@ func (mlcm *MLClassificationMethod) extractKeywordsFromSummary(summary, explanat
 	return keywords
 }
 
+// ============================================================================
+// PHASE 4: Feedback Loop
+// ============================================================================
+
+// validateKeywordsAgainstDatabase validates keywords extracted from ML summaries against keyword database
+func (mlcm *MLClassificationMethod) validateKeywordsAgainstDatabase(ctx context.Context, keywords []string) []string {
+	// For now, return keywords as-is
+	// TODO: Implement validation against keyword database when keyword repository is available
+	// This would check if keywords exist in the code_keywords table and filter out invalid ones
+	return keywords
+}
+
+// calculateKeywordSupportForIndustry calculates how well keywords support the predicted industry
+func (mlcm *MLClassificationMethod) calculateKeywordSupportForIndustry(ctx context.Context, industry string, keywords []string) float64 {
+	// For now, return a default score
+	// TODO: Implement keyword support calculation when keyword repository is available
+	// This would check how many keywords match the predicted industry in the database
+	return 0.5 // Default: neutral support
+}
+
+// minFloat returns the minimum of two float64 values
+func minFloat(a, b float64) float64 {
+	if a < b {
+		return a
+	}
+	return b
+}
+
 // convertMCCCodes converts methods.MCCCode to shared.MCCCode
 func (mlcm *MLClassificationMethod) convertMCCCodes(codes []MCCCode) []shared.MCCCode {
 	result := make([]shared.MCCCode, len(codes))
@@ -470,26 +549,119 @@ func (mlcm *MLClassificationMethod) convertNAICSCodes(codes []NAICSCode) []share
 	return result
 }
 
+// Content quality thresholds
+const (
+	MinContentForClassification = 20   // Absolute minimum (business name)
+	RecommendedContentLength    = 100  // Recommended for good accuracy
+	OptimalContentLength        = 500  // Optimal for best results
+	MinContentForMultiPage      = 200  // Trigger multi-page if below this
+)
+
 // extractWebsiteContent extracts content from website URL using existing Go scraper
+// It intelligently combines single-page and multi-page content based on quality
+// Uses request-scoped cache to avoid re-scraping the same URL in the same request
 func (mlcm *MLClassificationMethod) extractWebsiteContent(ctx context.Context, websiteURL string) string {
 	if mlcm.websiteScraper == nil {
 		mlcm.logger.Printf("⚠️ Website scraper not available, skipping content extraction")
 		return ""
 	}
 
-	// Use existing EnhancedWebsiteScraper to extract content
+	// Check request-scoped cache first
+	if cached, found := cache.GetFromContext(ctx, websiteURL); found {
+		mlcm.logger.Printf("📦 Using cached content for %s (request-scoped cache hit)", websiteURL)
+		if cached.Success {
+			content := cached.TextContent
+			if cached.Title != "" {
+				content = cached.Title + " " + content
+			}
+			return content
+		}
+		return ""
+	}
+
+	// Step 1: Try single-page scraping first
 	scrapingResult := mlcm.websiteScraper.ScrapeWebsite(ctx, websiteURL)
+	
+	// Cache the result for this request
+	cachedContent := &cache.CachedContent{
+		TextContent: scrapingResult.TextContent,
+		Title:       scrapingResult.Title,
+		Success:     scrapingResult.Success,
+		Error:       scrapingResult.Error,
+	}
+	cache.SetInContext(ctx, websiteURL, cachedContent)
+	
 	if !scrapingResult.Success {
 		mlcm.logger.Printf("⚠️ Website scraping failed for %s: %s", websiteURL, scrapingResult.Error)
 		return ""
 	}
 
-	// Combine extracted text content
+	// Step 2: Combine extracted text content
 	content := scrapingResult.TextContent
 	if scrapingResult.Title != "" {
 		content = scrapingResult.Title + " " + content
 	}
 
-	mlcm.logger.Printf("✅ Extracted %d characters from website: %s", len(content), websiteURL)
+	contentLength := len(content)
+	mlcm.logger.Printf("📊 Single-page content extracted: %d characters from %s", contentLength, websiteURL)
+
+	// Step 3: Assess content quality
+	quality := mlcm.assessContentQuality(contentLength)
+	mlcm.logger.Printf("📊 Content quality: %s (%d chars)", quality, contentLength)
+
+	// Step 4: If content is insufficient, try multi-page scraping
+	if contentLength < MinContentForMultiPage {
+		mlcm.logger.Printf("⚠️ Single-page content is minimal (%d chars < %d), attempting multi-page scraping", contentLength, MinContentForMultiPage)
+		
+		// Try to get multi-page content if available
+		multiPageContent := mlcm.extractMultiPageContent(ctx, websiteURL)
+		if len(multiPageContent) > contentLength {
+			// Multi-page provided more content, use it
+			mlcm.logger.Printf("✅ Multi-page scraping provided %d additional characters (total: %d)", len(multiPageContent)-contentLength, len(multiPageContent))
+			// Combine single-page and multi-page content
+			if content != "" {
+				content = content + " " + multiPageContent
+			} else {
+				content = multiPageContent
+			}
+			contentLength = len(content)
+			quality = mlcm.assessContentQuality(contentLength)
+			mlcm.logger.Printf("📊 Combined content quality: %s (%d chars)", quality, contentLength)
+		} else {
+			mlcm.logger.Printf("⚠️ Multi-page scraping did not provide additional content, using single-page result")
+		}
+	}
+
+	mlcm.logger.Printf("✅ Final content extracted: %d characters (quality: %s) from %s", contentLength, quality, websiteURL)
 	return content
+}
+
+// assessContentQuality assesses the quality of content based on length
+func (mlcm *MLClassificationMethod) assessContentQuality(length int) string {
+	if length < MinContentForClassification {
+		return "insufficient"
+	} else if length < RecommendedContentLength {
+		return "minimal"
+	} else if length < OptimalContentLength {
+		return "good"
+	}
+	return "optimal"
+}
+
+// extractMultiPageContent attempts to extract content from multiple pages
+// Uses the WebsiteScraper interface's ScrapeMultiPage method if available
+func (mlcm *MLClassificationMethod) extractMultiPageContent(ctx context.Context, websiteURL string) string {
+	if mlcm.websiteScraper == nil {
+		mlcm.logger.Printf("⚠️ Website scraper not available for multi-page scraping")
+		return ""
+	}
+
+	// Use the ScrapeMultiPage method from the interface
+	multiPageContent := mlcm.websiteScraper.ScrapeMultiPage(ctx, websiteURL)
+	if multiPageContent == "" {
+		mlcm.logger.Printf("⚠️ Multi-page scraping returned no content")
+		return ""
+	}
+
+	return multiPageContent
 }

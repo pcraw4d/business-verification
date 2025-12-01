@@ -177,6 +177,11 @@ type scrapingSession struct {
 	mu           sync.RWMutex
 }
 
+// GetSupabaseClient returns the Supabase client for use by other repositories
+func (r *SupabaseKeywordRepository) GetSupabaseClient() *database.SupabaseClient {
+	return r.client
+}
+
 // newScrapingSessionManager creates a new session manager
 func newScrapingSessionManager() *scrapingSessionManager {
 	enabled := os.Getenv("SCRAPING_SESSION_MANAGEMENT_ENABLED")
@@ -1997,10 +2002,11 @@ func (r *SupabaseKeywordRepository) ClassifyBusinessByKeywords(ctx context.Conte
 		}
 	}
 
-	// Phase 7.2: Industry confidence thresholds
+	// Phase 7.2: Industry confidence thresholds (adaptive)
+	// Lower thresholds for better industry detection
 	const (
-		MinKeywordCount    = 3  // Minimum keywords required for high confidence
-		MinConfidenceScore = 0.6 // Minimum confidence threshold
+		MinKeywordCount    = 2  // Minimum keywords required for high confidence (reduced from 3)
+		MinConfidenceScore = 0.35 // Minimum confidence threshold (reduced from 0.6 for better detection)
 	)
 
 	// Calculate enhanced confidence score with dynamic factors
@@ -4021,12 +4027,127 @@ func (r *SupabaseKeywordRepository) extractBusinessKeywords(textContent string) 
 		r.logger.Printf("✅ [KeywordExtraction] Extracted %d keywords from %d characters of text", len(keywords), len(textContent))
 	}
 
+	// Post-processing filter: Remove isolated gibberish words
+	keywords = r.filterGibberishKeywords(keywords)
+
 	// Limit to top 50 keywords to avoid noise (increased from 20 for better coverage)
 	if len(keywords) > 50 {
 		keywords = keywords[:50]
 	}
 
 	return keywords
+}
+
+// filterGibberishKeywords removes isolated gibberish words from keyword list
+// Uses pattern detection and n-gram validation similar to smart_website_crawler
+func (r *SupabaseKeywordRepository) filterGibberishKeywords(keywords []string) []string {
+	var filtered []string
+	
+	// Common English bigrams for validation
+	commonBigrams := map[string]bool{
+		"th": true, "in": true, "er": true, "ed": true, "an": true, "re": true,
+		"he": true, "on": true, "en": true, "at": true, "it": true, "is": true,
+		"or": true, "ti": true, "as": true, "to": true, "of": true, "al": true,
+		"ar": true, "st": true, "ng": true, "le": true, "ou": true, "nt": true,
+		"ea": true, "nd": true, "te": true, "es": true, "hi": true,
+		"ri": true, "ve": true, "co": true, "de": true, "ra": true, "li": true,
+		"se": true, "ne": true, "me": true, "be": true, "we": true, "wa": true,
+		"ma": true, "ha": true, "ca": true, "la": true, "pa": true, "ta": true,
+		"sa": true, "na": true, "ga": true, "fa": true, "da": true, "ba": true,
+	}
+	
+	// Suspicious bigrams that rarely appear in English
+	suspiciousBigrams := map[string]bool{
+		"iv": true, "di": true, "xa": true, "gu": true, "oi": true,
+		"je": true, "yl": true, "lb": true, "io": true,
+		"fv": true, "yz": true, "zx": true, "qw": true, "xc": true, "vb": true,
+		"uk": true,
+	}
+	
+	for _, keyword := range keywords {
+		// Skip multi-word phrases (they're likely valid)
+		if strings.Contains(keyword, " ") {
+			filtered = append(filtered, keyword)
+			continue
+		}
+		
+		// Skip if too short
+		if len(keyword) < 4 {
+			continue
+		}
+		
+		// Check for suspicious patterns
+		if r.hasSuspiciousPattern(keyword) {
+			continue
+		}
+		
+		// Check n-gram patterns
+		if !r.hasValidNgramPattern(keyword, commonBigrams, suspiciousBigrams) {
+			continue
+		}
+		
+		// Passed all checks
+		filtered = append(filtered, keyword)
+	}
+	
+	return filtered
+}
+
+// hasSuspiciousPattern checks for patterns that rarely appear in English words
+func (r *SupabaseKeywordRepository) hasSuspiciousPattern(word string) bool {
+	// Check for repeated letters (more than 2 consecutive)
+	for i := 0; i < len(word)-2; i++ {
+		if word[i] == word[i+1] && word[i] == word[i+2] {
+			return true
+		}
+	}
+	
+	// Check for unusual consonant clusters
+	suspiciousClusters := []string{
+		"ivd", "fay", "yil", "dio", "ukx", "guo", "jey", "mii",
+		"xzv", "qwx", "jkl", "zxc", "vbn", "qwe", "asd",
+	}
+	for _, cluster := range suspiciousClusters {
+		if strings.Contains(word, cluster) {
+			return true
+		}
+	}
+	
+	// Check for too many rare letters
+	rareLetters := map[rune]bool{'q': true, 'x': true, 'z': true, 'j': true}
+	rareCount := 0
+	for _, char := range word {
+		if rareLetters[char] {
+			rareCount++
+		}
+	}
+	if float64(rareCount)/float64(len(word)) > 0.3 {
+		return true
+	}
+	
+	return false
+}
+
+// hasValidNgramPattern checks if letter combinations are common in English
+func (r *SupabaseKeywordRepository) hasValidNgramPattern(word string, commonBigrams, suspiciousBigrams map[string]bool) bool {
+	hasCommonBigram := false
+	for i := 0; i < len(word)-1; i++ {
+		bigram := word[i : i+2]
+		if suspiciousBigrams[bigram] && !commonBigrams[bigram] {
+			if !hasCommonBigram {
+				return false
+			}
+		}
+		if commonBigrams[bigram] {
+			hasCommonBigram = true
+		}
+	}
+	
+	if !hasCommonBigram && len(word) >= 4 {
+		return false
+	}
+	
+	return true
 }
 
 // containsKeyword checks if a keyword already exists in the slice

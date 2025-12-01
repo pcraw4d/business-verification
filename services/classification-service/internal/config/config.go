@@ -39,6 +39,8 @@ type ClassificationConfig struct {
 	RequestTimeout        time.Duration
 	CacheEnabled          bool
 	CacheTTL              time.Duration
+	RedisURL              string // Redis URL for distributed caching (optional)
+	RedisEnabled          bool   // Whether to use Redis cache
 	MLEnabled             bool
 	KeywordMethodEnabled  bool
 	EnsembleEnabled       bool
@@ -81,6 +83,8 @@ func Load() (*Config, error) {
 			RequestTimeout:        getEnvAsDuration("REQUEST_TIMEOUT", 10*time.Second),
 			CacheEnabled:          getEnvAsBool("CACHE_ENABLED", true),
 			CacheTTL:              getEnvAsDuration("CACHE_TTL", 5*time.Minute),
+			RedisURL:              getEnvAsString("REDIS_URL", ""),
+			RedisEnabled:          getEnvAsBool("REDIS_ENABLED", false),
 			MLEnabled:             getEnvAsBool("ML_ENABLED", true),
 			KeywordMethodEnabled:  getEnvAsBool("KEYWORD_METHOD_ENABLED", true),
 			EnsembleEnabled:       getEnvAsBool("ENSEMBLE_ENABLED", true),

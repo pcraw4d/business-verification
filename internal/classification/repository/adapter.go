@@ -70,6 +70,16 @@ func (r *RealPostgrestQuery) Select(columns, count string, head bool) PostgrestQ
 	return r
 }
 
+func (r *RealPostgrestQuery) Insert(data interface{}, upsert bool, onConflict, returning, count string) PostgrestQueryInterface {
+	r.query = r.client.From(r.table).Insert(data, upsert, onConflict, returning, count)
+	return r
+}
+
+func (r *RealPostgrestQuery) Update(data interface{}, returning, count string) PostgrestQueryInterface {
+	r.query = r.client.From(r.table).Update(data, returning, count)
+	return r
+}
+
 func (r *RealPostgrestQuery) Eq(column, value string) PostgrestQueryInterface {
 	if r.query != nil {
 		// Use reflection to call the method on the chained query
@@ -154,6 +164,12 @@ func (r *RealPostgrestQuery) Execute() ([]byte, string, error) {
 type BasicPostgrestQuery struct{}
 
 func (b *BasicPostgrestQuery) Select(columns, count string, head bool) PostgrestQueryInterface {
+	return b
+}
+func (b *BasicPostgrestQuery) Insert(data interface{}, upsert bool, onConflict, returning, count string) PostgrestQueryInterface {
+	return b
+}
+func (b *BasicPostgrestQuery) Update(data interface{}, returning, count string) PostgrestQueryInterface {
 	return b
 }
 func (b *BasicPostgrestQuery) Eq(column, value string) PostgrestQueryInterface            { return b }

@@ -178,11 +178,90 @@ class DistilBARTBusinessClassifier:
         except Exception as e:
             logger.warning(f"⚠️ Failed to save quantized models metadata: {e}")
     
+    def _validate_content_quality(self, content: str, business_name: str) -> Dict[str, Any]:
+        """
+        Validate content quality and provide recommendations
+        
+        Returns:
+            Dictionary with quality assessment and recommendations
+        """
+        MIN_CONTENT_FOR_CLASSIFICATION = 20  # Absolute minimum (business name)
+        RECOMMENDED_CONTENT_LENGTH = 100     # Recommended for good accuracy
+        OPTIMAL_CONTENT_LENGTH = 500        # Optimal for best results
+        
+        combined = self._combine_content(content, business_name)
+        length = len(combined)
+        
+        quality = "optimal"
+        recommendation = ""
+        if length < MIN_CONTENT_FOR_CLASSIFICATION:
+            quality = "insufficient"
+            recommendation = "Content is too short. Please provide business description or website content."
+        elif length < RECOMMENDED_CONTENT_LENGTH:
+            quality = "minimal"
+            recommendation = "Content is minimal. Classification accuracy may be reduced. Consider providing more details."
+        elif length < OPTIMAL_CONTENT_LENGTH:
+            quality = "good"
+            recommendation = "Content is sufficient for classification."
+        else:
+            quality = "optimal"
+            recommendation = "Content is optimal for best classification accuracy."
+        
+        return {
+            "quality": quality,
+            "length": length,
+            "recommendation": recommendation,
+            "min_threshold": MIN_CONTENT_FOR_CLASSIFICATION,
+            "recommended_threshold": RECOMMENDED_CONTENT_LENGTH,
+            "optimal_threshold": OPTIMAL_CONTENT_LENGTH
+        }
+    
+    def _combine_content(self, content: str, business_name: str, description: str = "") -> str:
+        """
+        Intelligently combine all available content sources
+        
+        Args:
+            content: Website content or primary content
+            business_name: Business name
+            description: Business description (optional)
+            
+        Returns:
+            Combined content string
+        """
+        parts = []
+        
+        # 1. Business name (always include first)
+        if business_name and business_name.strip():
+            parts.append(f"Business: {business_name}")
+        
+        # 2. Description (if provided and meaningful)
+        if description and len(description.strip()) > 10:
+            parts.append(f"Description: {description}")
+        
+        # 3. Website content (if provided and meaningful)
+        if content and len(content.strip()) > 20:
+            # Remove business name if already in content to avoid duplication
+            content_lower = content.lower()
+            if business_name and business_name.lower() in content_lower:
+                # Business name is already in content, use content as-is
+                parts.append(f"Website: {content}")
+            else:
+                parts.append(f"Website: {content}")
+        
+        combined = ". ".join(parts)
+        
+        # Ensure minimum length by including business name if combined is too short
+        if len(combined) < 20 and business_name:
+            combined = f"{business_name}. {combined}".strip()
+        
+        return combined.strip()
+    
     def classify_with_enhancement(
         self,
         content: str,
         business_name: str,
-        max_length: int = 1024
+        max_length: int = 1024,
+        description: str = ""
     ) -> Dict[str, Any]:
         """
         Classify business with full enhancement (classification + summarization + explanation)
@@ -192,33 +271,38 @@ class DistilBARTBusinessClassifier:
             content: Website content or business description
             business_name: Business name
             max_length: Maximum content length for processing
+            description: Business description (optional, for better context)
             
         Returns:
             Dictionary with classification, summarization, and explanation
         """
         start_time = time.time()
         
-        # Truncate content if needed
-        if len(content) > max_length:
-            content = content[:max_length]
-            logger.info(f"📝 Content truncated to {max_length} characters")
+        # Step 1: Combine all available content sources intelligently
+        combined_content = self._combine_content(content, business_name, description)
+        
+        # Step 2: Validate content quality
+        quality_assessment = self._validate_content_quality(content, business_name)
+        logger.info(f"📊 Content quality: {quality_assessment['quality']} ({quality_assessment['length']} chars)")
+        
+        if quality_assessment['quality'] == "insufficient":
+            logger.warning(f"⚠️ {quality_assessment['recommendation']}")
+        elif quality_assessment['quality'] == "minimal":
+            logger.warning(f"⚠️ {quality_assessment['recommendation']}")
+        else:
+            logger.info(f"✅ {quality_assessment['recommendation']}")
+        
+        # Step 3: Truncate content if needed (after combination)
+        if len(combined_content) > max_length:
+            logger.info(f"📝 Combined content truncated to {max_length} characters (from {len(combined_content)})")
+            combined_content = combined_content[:max_length]
         
         # Use quantized models if available
-        # Note: quantized_classifier is not set separately as the pipeline handles quantization internally
-        # The classifier pipeline is already optimized (DistilBERT-MNLI), so we use it directly
         classifier = self.classifier
         summarizer = self.quantized_summarizer if self.use_quantization and self.quantized_summarizer else self.summarizer
         
-        # Step 1: Zero-shot classification
+        # Step 4: Zero-shot classification
         logger.info(f"🔍 Classifying business: {business_name}")
-        
-        # Combine business_name with content for better context
-        # This ensures we always have meaningful content even if website_content is minimal
-        combined_content = content
-        if business_name and business_name.strip():
-            # Prepend business name if not already in content
-            if business_name.lower() not in content.lower():
-                combined_content = f"{business_name}. {content}".strip()
         
         # Validate inputs
         if not combined_content or not combined_content.strip():
@@ -242,15 +326,18 @@ class DistilBARTBusinessClassifier:
             logger.error(f"   Combined content length: {len(combined_content) if combined_content else 0}")
             logger.error(f"   Original content length: {len(content) if content else 0}")
             logger.error(f"   Business name: {business_name}")
+            logger.error(f"   Description length: {len(description) if description else 0}")
             logger.error(f"   Industry labels count: {len(self.industry_labels)}")
+            logger.error(f"   Content quality: {quality_assessment['quality']}")
             logger.error(f"   Content preview: {combined_content[:500] if combined_content else 'EMPTY'}")
             raise
         
-        # Step 2: Summarize content (use combined_content for consistency)
+        # Step 5: Summarize content (use combined_content for consistency)
         logger.info("📝 Summarizing website content...")
         summary = ""
         try:
-            if combined_content and len(combined_content.strip()) > 50:  # Only summarize if enough content
+            # Only summarize if we have enough content (50+ chars)
+            if combined_content and len(combined_content.strip()) > 50:
                 summary_result = summarizer(
                     combined_content,
                     max_length=150,
@@ -258,13 +345,14 @@ class DistilBARTBusinessClassifier:
                     do_sample=False
                 )
                 summary = summary_result[0]['summary_text']
+                logger.info(f"✅ Summary generated ({len(summary)} chars)")
             else:
-                logger.info("ℹ️ Content too short for summarization, skipping")
+                logger.info("ℹ️ Content too short for summarization, skipping (minimum 50 chars required)")
         except Exception as e:
             logger.warning(f"⚠️ Summarization failed: {e}")
             summary = ""
         
-        # Step 3: Generate explanation
+        # Step 6: Generate explanation
         logger.info("💡 Generating classification explanation...")
         explanation = self._generate_explanation(
             business_name,
@@ -272,7 +360,8 @@ class DistilBARTBusinessClassifier:
             classification_result['scores'][0],
             summary,
             classification_result,
-            combined_content  # Pass combined content for better explanation
+            content=combined_content,  # Pass combined content for better explanation
+            quality_assessment=quality_assessment  # Include quality info
         )
         
         processing_time = time.time() - start_time
@@ -345,7 +434,8 @@ class DistilBARTBusinessClassifier:
         confidence: float,
         summary: str,
         classification_result: Dict[str, Any],
-        content: str = ""
+        content: str = "",
+        quality_assessment: Optional[Dict[str, Any]] = None
     ) -> str:
         """
         Generate human-readable explanation for classification
@@ -380,6 +470,15 @@ class DistilBARTBusinessClassifier:
             explanation_parts.append("This is a moderate-confidence classification.")
         else:
             explanation_parts.append("This classification has lower confidence and may require review.")
+        
+        # Add content quality context if available
+        if quality_assessment:
+            quality = quality_assessment.get('quality', 'unknown')
+            if quality == "insufficient" or quality == "minimal":
+                explanation_parts.append(
+                    f"Note: Classification was based on limited content ({quality_assessment.get('length', 0)} characters). "
+                    "More detailed information may improve accuracy."
+                )
         
         # Add alternative industries if significant
         if len(top_industries) > 1 and top_industries[1][1] > 0.3:

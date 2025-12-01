@@ -2,6 +2,7 @@ package classification
 
 import (
 	"context"
+	"log"
 	"regexp"
 	"strings"
 
@@ -33,8 +34,11 @@ func extractTitleFromHTML(htmlContent string) string {
 }
 
 // websiteScraperAdapter adapts EnhancedWebsiteScraper to methods.WebsiteScraper interface
+// It also integrates SmartWebsiteCrawler for multi-page scraping
 type websiteScraperAdapter struct {
-	scraper *EnhancedWebsiteScraper
+	scraper      *EnhancedWebsiteScraper
+	smartCrawler *SmartWebsiteCrawler
+	logger       *log.Logger
 }
 
 // ScrapeWebsite implements methods.WebsiteScraper interface
@@ -154,9 +158,81 @@ func convertNAICSCodesToMethods(codes []NAICSCode) []methods.NAICSCode {
 	return result
 }
 
-// NewWebsiteScraperAdapter creates an adapter for EnhancedWebsiteScraper
+// ScrapeMultiPage implements methods.WebsiteScraper interface for multi-page scraping
+func (w *websiteScraperAdapter) ScrapeMultiPage(ctx context.Context, websiteURL string) string {
+	if w.smartCrawler == nil {
+		// Create SmartWebsiteCrawler if not already created
+		if w.logger != nil {
+			w.logger.Printf("🕷️ Creating SmartWebsiteCrawler for multi-page scraping")
+		} else {
+			// Fallback: create a default logger
+			w.logger = log.Default()
+		}
+		w.smartCrawler = NewSmartWebsiteCrawler(w.logger)
+	}
+
+	// Use SmartWebsiteCrawler to crawl multiple pages
+	crawlResult, err := w.smartCrawler.CrawlWebsite(ctx, websiteURL)
+	if err != nil {
+		if w.logger != nil {
+			w.logger.Printf("⚠️ Multi-page crawling failed: %v", err)
+		}
+		return ""
+	}
+
+	if crawlResult == nil || len(crawlResult.PagesAnalyzed) == 0 {
+		if w.logger != nil {
+			w.logger.Printf("⚠️ Multi-page crawling returned no pages")
+		}
+		return ""
+	}
+
+	// Extract text content from all pages
+	var combinedText []string
+	for _, page := range crawlResult.PagesAnalyzed {
+		// Combine title and keywords as text content
+		pageText := ""
+		if page.Title != "" {
+			pageText = page.Title
+		}
+		if len(page.Keywords) > 0 {
+			keywordsText := strings.Join(page.Keywords, " ")
+			if pageText != "" {
+				pageText = pageText + " " + keywordsText
+			} else {
+				pageText = keywordsText
+			}
+		}
+		// Add business info if available
+		if page.BusinessInfo.BusinessName != "" {
+			pageText = pageText + " " + page.BusinessInfo.BusinessName
+		}
+		if page.BusinessInfo.Description != "" {
+			pageText = pageText + " " + page.BusinessInfo.Description
+		}
+		if pageText != "" {
+			combinedText = append(combinedText, pageText)
+		}
+	}
+
+	result := strings.Join(combinedText, " ")
+	if w.logger != nil {
+		w.logger.Printf("✅ Multi-page scraping extracted %d characters from %d pages", len(result), len(crawlResult.PagesAnalyzed))
+	}
+	return result
+}
+
+// NewWebsiteScraperAdapter creates an adapter for EnhancedWebsiteScraper with multi-page support
+// It accepts an optional logger parameter for SmartWebsiteCrawler initialization
 func NewWebsiteScraperAdapter(scraper *EnhancedWebsiteScraper) methods.WebsiteScraper {
-	return &websiteScraperAdapter{scraper: scraper}
+	// Create a default logger (we can't access scraper's logger directly due to package structure)
+	logger := log.Default()
+	
+	return &websiteScraperAdapter{
+		scraper:      scraper,
+		smartCrawler: nil, // Lazy initialization
+		logger:       logger,
+	}
 }
 
 // NewCodeGeneratorAdapter creates an adapter for ClassificationCodeGenerator

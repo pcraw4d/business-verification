@@ -11,6 +11,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"kyb-platform/internal/resilience"
 )
 
 // PythonMLService represents the Python ML service for all ML models
@@ -40,6 +42,9 @@ type PythonMLService struct {
 	// Control
 	ctx    context.Context
 	cancel context.CancelFunc
+
+	// Circuit breaker for resilience
+	circuitBreaker *resilience.CircuitBreaker
 }
 
 // PythonMLServiceConfig holds configuration for the Python ML service
@@ -91,6 +96,14 @@ func NewPythonMLService(endpoint string, logger *log.Logger) *PythonMLService {
 		Timeout: 30 * time.Second,
 	}
 
+	// Initialize circuit breaker with default config
+	// Opens after 5 consecutive failures, stays open for 30s, needs 2 successes to close
+	circuitBreakerConfig := resilience.DefaultCircuitBreakerConfig()
+	circuitBreakerConfig.FailureThreshold = 5  // Open after 5 failures
+	circuitBreakerConfig.Timeout = 30 * time.Second // Stay open for 30s
+	circuitBreakerConfig.SuccessThreshold = 2 // Need 2 successes to close
+	circuitBreaker := resilience.NewCircuitBreaker(circuitBreakerConfig)
+
 	return &PythonMLService{
 		endpoint: normalizedEndpoint,
 		config: PythonMLServiceConfig{
@@ -109,11 +122,12 @@ func NewPythonMLService(endpoint string, logger *log.Logger) *PythonMLService {
 			PerformanceTracking: true,
 			ModelVersioning:     true,
 		},
-		models:     make(map[string]*MLModel),
-		httpClient: httpClient,
-		logger:     logger,
-		ctx:        ctx,
-		cancel:     cancel,
+		models:         make(map[string]*MLModel),
+		httpClient:      httpClient,
+		logger:         logger,
+		ctx:            ctx,
+		cancel:         cancel,
+		circuitBreaker: circuitBreaker,
 	}
 }
 
@@ -326,6 +340,7 @@ func (pms *PythonMLService) DetectRisk(ctx context.Context, req *RiskDetectionRe
 }
 
 // ClassifyEnhanced performs enhanced classification with summarization and explanation
+// Protected by circuit breaker to prevent cascading failures
 func (pms *PythonMLService) ClassifyEnhanced(
 	ctx context.Context,
 	req *EnhancedClassificationRequest,
@@ -339,62 +354,80 @@ func (pms *PythonMLService) ClassifyEnhanced(
 	pms.metrics.RequestCount++
 	pms.mu.Unlock()
 
-	// Prepare request
-	requestBody, err := json.Marshal(req)
+	// Check circuit breaker state before making request
+	cbState := pms.circuitBreaker.GetState()
+	if cbState == resilience.CircuitOpen {
+		pms.logger.Printf("⚠️ [CircuitBreaker] Circuit is OPEN - failing fast for Python ML service")
+		pms.mu.Lock()
+		pms.metrics.ErrorCount++
+		pms.mu.Unlock()
+		return nil, fmt.Errorf("circuit breaker is open: Python ML service unavailable")
+	}
+
+	// Execute through circuit breaker
+	var enhancedResp *EnhancedClassificationResponse
+	var err error
+
+	err = pms.circuitBreaker.Execute(ctx, func() error {
+		// Prepare request
+		requestBody, marshalErr := json.Marshal(req)
+		if marshalErr != nil {
+			return fmt.Errorf("failed to marshal request: %w", marshalErr)
+		}
+
+		// Make HTTP request
+		httpReq, createErr := http.NewRequestWithContext(
+			ctx,
+			"POST",
+			pms.endpoint+"/classify-enhanced",
+			bytes.NewBuffer(requestBody),
+		)
+		if createErr != nil {
+			return fmt.Errorf("failed to create request: %w", createErr)
+		}
+
+		httpReq.Header.Set("Content-Type", "application/json")
+
+		// Execute request
+		resp, doErr := pms.httpClient.Do(httpReq)
+		if doErr != nil {
+			return fmt.Errorf("failed to execute request: %w", doErr)
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			// Read error response body for better error messages
+			body, _ := io.ReadAll(resp.Body)
+			if len(body) > 0 {
+				return fmt.Errorf("Python service returned status %d: %s", resp.StatusCode, string(body))
+			}
+			return fmt.Errorf("Python service returned status %d", resp.StatusCode)
+		}
+
+		// Parse response
+		var respData EnhancedClassificationResponse
+		if decodeErr := json.NewDecoder(resp.Body).Decode(&respData); decodeErr != nil {
+			return fmt.Errorf("failed to decode response: %w", decodeErr)
+		}
+
+		enhancedResp = &respData
+		return nil
+	})
+
+	// Handle circuit breaker errors
 	if err != nil {
 		pms.mu.Lock()
 		pms.metrics.ErrorCount++
 		pms.mu.Unlock()
-		return nil, fmt.Errorf("failed to marshal request: %w", err)
-	}
-
-	// Make HTTP request
-	httpReq, err := http.NewRequestWithContext(
-		ctx,
-		"POST",
-		pms.endpoint+"/classify-enhanced",
-		bytes.NewBuffer(requestBody),
-	)
-	if err != nil {
-		pms.mu.Lock()
-		pms.metrics.ErrorCount++
-		pms.mu.Unlock()
-		return nil, fmt.Errorf("failed to create request: %w", err)
-	}
-
-	httpReq.Header.Set("Content-Type", "application/json")
-
-	// Execute request
-	resp, err := pms.httpClient.Do(httpReq)
-	if err != nil {
-		pms.mu.Lock()
-		pms.metrics.ErrorCount++
-		pms.mu.Unlock()
-		return nil, fmt.Errorf("failed to execute request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		// Read error response body for better error messages
-		body, _ := io.ReadAll(resp.Body)
-		errorMsg := fmt.Sprintf("Python service returned status %d", resp.StatusCode)
-		if len(body) > 0 {
-			errorMsg += fmt.Sprintf(": %s", string(body))
+		
+		// Log circuit breaker state changes
+		newState := pms.circuitBreaker.GetState()
+		if newState != cbState {
+			pms.logger.Printf("🔄 [CircuitBreaker] State changed from %s to %s", 
+				cbState.String(), newState.String())
 		}
 		
-		pms.mu.Lock()
-		pms.metrics.ErrorCount++
-		pms.mu.Unlock()
-		return nil, fmt.Errorf(errorMsg)
-	}
-
-	// Parse response
-	var enhancedResp EnhancedClassificationResponse
-	if err := json.NewDecoder(resp.Body).Decode(&enhancedResp); err != nil {
-		pms.mu.Lock()
-		pms.metrics.ErrorCount++
-		pms.mu.Unlock()
-		return nil, fmt.Errorf("failed to decode response: %w", err)
+		return nil, err
 	}
 
 	// Update metrics
@@ -404,6 +437,12 @@ func (pms *PythonMLService) ClassifyEnhanced(
 		pms.metrics.SuccessCount++
 	} else {
 		pms.metrics.ErrorCount++
+		// Treat unsuccessful response as error for circuit breaker
+		pms.mu.Unlock()
+		_ = pms.circuitBreaker.Execute(ctx, func() error {
+			return fmt.Errorf("classification unsuccessful: success=false")
+		})
+		pms.mu.Lock()
 	}
 	pms.updateLatencyMetrics(processingTime)
 	pms.mu.Unlock()
@@ -412,7 +451,7 @@ func (pms *PythonMLService) ClassifyEnhanced(
 	// (The response already has processing_time as float64, so we keep it)
 	enhancedResp.ProcessingTime = float64(processingTime.Seconds())
 
-	return &enhancedResp, nil
+	return enhancedResp, nil
 }
 
 // GetAvailableModels returns available models in the Python service

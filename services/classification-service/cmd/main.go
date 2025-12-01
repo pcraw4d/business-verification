@@ -113,6 +113,7 @@ func main() {
 		cfg,
 		industryDetector,
 		codeGenerator,
+		keywordRepo, // OPTIMIZATION #5.2: Pass repository for accuracy tracking
 		pythonMLService, // Pass Python ML service (can be nil)
 	)
 
@@ -129,6 +130,9 @@ func main() {
 	router.HandleFunc("/health", classificationHandler.HandleHealth).Methods("GET")
 	router.HandleFunc("/v1/classify", classificationHandler.HandleClassification).Methods("POST")
 	router.HandleFunc("/classify", classificationHandler.HandleClassification).Methods("POST") // Alias for backward compatibility
+	// OPTIMIZATION #5.2: Validation API endpoint
+	router.HandleFunc("/v1/classify/validate", classificationHandler.HandleValidation).Methods("POST")
+	router.HandleFunc("/classify/validate", classificationHandler.HandleValidation).Methods("POST") // Alias for backward compatibility
 
 	// Create HTTP server
 	httpServer := &http.Server{

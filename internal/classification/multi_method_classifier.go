@@ -14,6 +14,7 @@ import (
 
 	"kyb-platform/internal/classification/repository"
 	"kyb-platform/internal/machine_learning"
+	"kyb-platform/internal/machine_learning/infrastructure"
 	"kyb-platform/internal/shared"
 )
 
@@ -21,6 +22,7 @@ import (
 type MultiMethodClassifier struct {
 	keywordRepo              repository.KeywordRepository
 	mlClassifier             *machine_learning.ContentClassifier
+	pythonMLService          interface{} // *infrastructure.PythonMLService - using interface to avoid import cycle
 	weightedConfidenceScorer *WeightedConfidenceScorer
 	reasoningEngine          *ReasoningEngine
 	qualityMetricsService    *QualityMetricsService
@@ -42,6 +44,7 @@ func NewMultiMethodClassifier(
 	return &MultiMethodClassifier{
 		keywordRepo:              keywordRepo,
 		mlClassifier:             mlClassifier,
+		pythonMLService:          nil, // Can be set via SetPythonMLService
 		weightedConfidenceScorer: NewWeightedConfidenceScorer(logger),
 		reasoningEngine:          NewReasoningEngine(logger),
 		qualityMetricsService:    NewQualityMetricsService(logger),
@@ -49,6 +52,23 @@ func NewMultiMethodClassifier(
 		logger:                   logger,
 		monitor:                  nil, // Will be set separately if monitoring is needed
 	}
+}
+
+// NewMultiMethodClassifierWithPythonML creates a new multi-method classifier with Python ML service support
+func NewMultiMethodClassifierWithPythonML(
+	keywordRepo repository.KeywordRepository,
+	mlClassifier *machine_learning.ContentClassifier,
+	pythonMLService interface{}, // *infrastructure.PythonMLService - using interface to avoid import cycle
+	logger *log.Logger,
+) *MultiMethodClassifier {
+	classifier := NewMultiMethodClassifier(keywordRepo, mlClassifier, logger)
+	classifier.pythonMLService = pythonMLService
+	return classifier
+}
+
+// SetPythonMLService sets the Python ML service for enhanced classification
+func (mmc *MultiMethodClassifier) SetPythonMLService(pythonMLService interface{}) {
+	mmc.pythonMLService = pythonMLService
 }
 
 // NewMultiMethodClassifierWithMonitoring creates a new multi-method classifier with monitoring
@@ -340,14 +360,24 @@ func (mmc *MultiMethodClassifier) performKeywordClassification(
 }
 
 // performMLClassification performs ML-based classification
+// Uses Python ML service (DistilBART) if available, otherwise falls back to Go ML classifier
 func (mmc *MultiMethodClassifier) performMLClassification(
 	ctx context.Context,
 	businessName, description, websiteURL string,
 ) (*shared.IndustryClassification, error) {
+	// Try Python ML service (DistilBART) first if available
+	if mmc.pythonMLService != nil {
+		mmc.logger.Printf("🤖 Using Python ML service (DistilBART) for classification")
+		return mmc.performPythonMLClassification(ctx, businessName, description, websiteURL)
+	}
+
+	// Fallback to Go ML classifier
 	if mmc.mlClassifier == nil {
 		return nil, fmt.Errorf("ML classifier not available")
 	}
 
+	mmc.logger.Printf("📝 Using Go ML classifier (fallback)")
+	
 	// Combine business information for ML analysis (using trusted content only)
 	content := mmc.extractTrustedContent(ctx, businessName, description, websiteURL)
 
@@ -375,6 +405,156 @@ func (mmc *MultiMethodClassifier) performMLClassification(
 	if bestClassification.Label != "unknown" {
 		// Try to get classification codes based on the ML-detected industry
 		// For now, we'll use a simple mapping - in production this should be more sophisticated
+		classificationCodes = mmc.getClassificationCodesForIndustry(ctx, bestClassification.Label)
+	}
+
+	// Convert to shared format
+	result := &shared.IndustryClassification{
+		IndustryCode:         bestClassification.Label,
+		IndustryName:         bestClassification.Label,
+		ConfidenceScore:      bestClassification.Confidence,
+		ClassificationMethod: "ml",
+		Description:          fmt.Sprintf("ML-based classification using %s model", mlResult.ModelID),
+		Evidence:             fmt.Sprintf("ML model prediction with confidence %.2f%%", bestClassification.Confidence*100),
+		ProcessingTime:       mlResult.ProcessingTime,
+		Metadata: map[string]interface{}{
+			"model_id":             mlResult.ModelID,
+			"model_version":        mlResult.ModelVersion,
+			"all_predictions":      mlResult.Classifications,
+			"quality_score":        mlResult.QualityScore,
+			"classification_codes": classificationCodes,
+		},
+	}
+
+	return result, nil
+}
+
+// performPythonMLClassification performs ML classification using Python ML service (DistilBART)
+// Phase 1 Enhancement: Extracts keywords first and enhances ML input with keyword context
+func (mmc *MultiMethodClassifier) performPythonMLClassification(
+	ctx context.Context,
+	businessName, description, websiteURL string,
+) (*shared.IndustryClassification, error) {
+	// PHASE 1: Extract keywords from database FIRST (before ML classification)
+	keywords := mmc.extractKeywords(businessName, websiteURL)
+	mmc.logger.Printf("🔑 [Phase 1] Extracted %d keywords before ML classification", len(keywords))
+
+	// Extract website content if URL is provided
+	var websiteContent string
+	if websiteURL != "" {
+		scrapingResult := mmc.enhancedScraper.ScrapeWebsite(ctx, websiteURL)
+		if scrapingResult.Success {
+			websiteContent = scrapingResult.TextContent
+		}
+	}
+
+	// Prepare content - use description if website content is empty
+	contentToSend := websiteContent
+	if contentToSend == "" && description != "" {
+		contentToSend = description
+	}
+	if contentToSend == "" && businessName != "" {
+		contentToSend = businessName
+	}
+
+	// PHASE 1: Enhance ML input with keywords
+	enhancedContent := mmc.enhanceMLInputWithKeywords(contentToSend, keywords)
+	mmc.logger.Printf("📝 [Phase 1] Enhanced ML input with %d keywords", len(keywords))
+
+	// Minimum content length check
+	const minContentLength = 20
+	if len(strings.TrimSpace(enhancedContent)) < minContentLength {
+		mmc.logger.Printf("⚠️ Content too short (%d chars < %d), falling back to Go ML classifier", len(enhancedContent), minContentLength)
+		// Fallback to Go ML classifier
+		return mmc.performGoMLClassification(ctx, businessName, description, websiteURL)
+	}
+
+	// Create enhanced classification request with keyword-enhanced content
+	req := &infrastructure.EnhancedClassificationRequest{
+		BusinessName:     businessName,
+		Description:      description,
+		WebsiteURL:       websiteURL,
+		WebsiteContent:   enhancedContent, // Use enhanced content with keywords
+		MaxResults:       5,
+		MaxContentLength: 1024,
+	}
+
+	// Type assert to get the actual PythonMLService
+	pms, ok := mmc.pythonMLService.(interface {
+		ClassifyEnhanced(ctx context.Context, req *infrastructure.EnhancedClassificationRequest) (*infrastructure.EnhancedClassificationResponse, error)
+	})
+	if !ok {
+		mmc.logger.Printf("⚠️ Python ML service type assertion failed, falling back to Go ML classifier")
+		return mmc.performGoMLClassification(ctx, businessName, description, websiteURL)
+	}
+
+	// Call Python ML service
+	enhancedResp, err := pms.ClassifyEnhanced(ctx, req)
+	if err != nil {
+		mmc.logger.Printf("⚠️ Python ML service classification failed: %v, falling back to Go ML classifier", err)
+		return mmc.performGoMLClassification(ctx, businessName, description, websiteURL)
+	}
+
+	// Build result from enhanced response
+	if len(enhancedResp.Classifications) == 0 {
+		mmc.logger.Printf("⚠️ No classifications from Python ML service, falling back to Go ML classifier")
+		return mmc.performGoMLClassification(ctx, businessName, description, websiteURL)
+	}
+
+	// Get primary industry and confidence
+	primaryIndustry := enhancedResp.Classifications[0].Label
+	confidence := enhancedResp.Classifications[0].Confidence
+
+	// Build all industry scores map
+	allScores := make(map[string]float64)
+	for _, classification := range enhancedResp.Classifications {
+		allScores[classification.Label] = classification.Confidence
+	}
+
+	// Get classification codes for the detected industry
+	classificationCodes := mmc.getClassificationCodesForIndustry(ctx, primaryIndustry)
+
+	// PHASE 1: Validate ML results against keywords
+	validatedResult := mmc.validateMLAgainstKeywords(ctx, businessName, description, websiteURL, primaryIndustry, confidence, keywords, classificationCodes, enhancedResp)
+
+	mmc.logger.Printf("✅ Python ML service classification: %s (confidence: %.2f%%)", validatedResult.IndustryName, validatedResult.ConfidenceScore*100)
+	return validatedResult, nil
+}
+
+// performGoMLClassification performs ML classification using Go ML classifier (fallback)
+func (mmc *MultiMethodClassifier) performGoMLClassification(
+	ctx context.Context,
+	businessName, description, websiteURL string,
+) (*shared.IndustryClassification, error) {
+	if mmc.mlClassifier == nil {
+		return nil, fmt.Errorf("ML classifier not available")
+	}
+
+	// Combine business information for ML analysis
+	content := mmc.extractTrustedContent(ctx, businessName, description, websiteURL)
+
+	// Perform ML classification
+	mlResult, err := mmc.mlClassifier.ClassifyContent(ctx, content, "")
+	if err != nil {
+		return nil, fmt.Errorf("ML classification failed: %w", err)
+	}
+
+	// Find the best classification from ML result
+	if len(mlResult.Classifications) == 0 {
+		return nil, fmt.Errorf("no classifications returned from ML model")
+	}
+
+	// Get the highest confidence classification
+	bestClassification := mlResult.Classifications[0]
+	for _, classification := range mlResult.Classifications {
+		if classification.Confidence > bestClassification.Confidence {
+			bestClassification = classification
+		}
+	}
+
+	// Get classification codes for the ML-detected industry
+	var classificationCodes shared.ClassificationCodes
+	if bestClassification.Label != "unknown" {
 		classificationCodes = mmc.getClassificationCodesForIndustry(ctx, bestClassification.Label)
 	}
 
@@ -480,6 +660,21 @@ func (mmc *MultiMethodClassifier) calculateEnsembleResult(
 	for _, method := range successfulResults {
 		// Weight based on method type and confidence
 		weight := mmc.calculateMethodWeight(method)
+		
+		// PHASE 3: Adjust weight based on crosswalk consistency
+		if method.Result != nil && method.Result.Metadata != nil {
+			if codes, ok := method.Result.Metadata["classification_codes"].(shared.ClassificationCodes); ok {
+				crosswalkScore := mmc.validateCodesAgainstCrosswalks(context.Background(), codes)
+				if crosswalkScore > 0.8 {
+					weight *= 1.15 // Boost weight for consistent codes
+					mmc.logger.Printf("✅ [Phase 3] Boosted method weight for %s (crosswalk consistency: %.2f)", method.MethodType, crosswalkScore)
+				} else if crosswalkScore < 0.5 {
+					weight *= 0.85 // Reduce weight for inconsistent codes
+					mmc.logger.Printf("⚠️ [Phase 3] Reduced method weight for %s (crosswalk consistency: %.2f)", method.MethodType, crosswalkScore)
+				}
+			}
+		}
+		
 		totalWeight += weight
 
 		industryName := method.Result.IndustryName
@@ -1351,3 +1546,290 @@ func (mmc *MultiMethodClassifier) recordMultiMethodMetrics(
 		// }
 	}()
 }
+
+// ============================================================================
+// PHASE 1: Keyword-Enhanced ML Input
+// ============================================================================
+
+// enhanceMLInputWithKeywords enhances ML input content with keyword context
+// This helps ML models understand the business better by providing relevant keywords
+func (mmc *MultiMethodClassifier) enhanceMLInputWithKeywords(content string, keywords []string) string {
+	if len(keywords) == 0 {
+		return content
+	}
+
+	// Append keywords as context to help ML understand the business
+	keywordContext := fmt.Sprintf("\n\nRelevant Keywords: %s", strings.Join(keywords, ", "))
+	
+	// Limit keyword context to avoid overwhelming the ML model
+	const maxKeywordContextLength = 200
+	if len(keywordContext) > maxKeywordContextLength {
+		// Take first N keywords that fit
+		maxKeywords := 10
+		if len(keywords) < maxKeywords {
+			maxKeywords = len(keywords)
+		}
+		keywordList := strings.Join(keywords[:maxKeywords], ", ")
+		keywordContext = fmt.Sprintf("\n\nRelevant Keywords: %s", keywordList)
+		if len(keywordContext) > maxKeywordContextLength {
+			keywordContext = keywordContext[:maxKeywordContextLength] + "..."
+		}
+	}
+
+	return content + keywordContext
+}
+
+// validateMLAgainstKeywords validates ML classification results against keyword-based classification
+// This improves accuracy by comparing ML predictions with keyword matches
+func (mmc *MultiMethodClassifier) validateMLAgainstKeywords(
+	ctx context.Context,
+	businessName, description, websiteURL string,
+	mlIndustry string,
+	mlConfidence float64,
+	keywords []string,
+	classificationCodes shared.ClassificationCodes,
+	enhancedResp *infrastructure.EnhancedClassificationResponse,
+) *shared.IndustryClassification {
+	// Get keyword-based classification for comparison
+	keywordResult, err := mmc.performKeywordClassification(ctx, businessName, description, websiteURL)
+	if err != nil {
+		mmc.logger.Printf("⚠️ [Phase 1] Keyword classification failed for validation: %v, using ML result as-is", err)
+		// Return ML result without validation if keyword classification fails
+		return mmc.buildMLResult(mlIndustry, mlConfidence, classificationCodes, enhancedResp)
+	}
+
+	// Compare ML and keyword results
+	mlIndustryLower := strings.ToLower(mlIndustry)
+	keywordIndustryLower := strings.ToLower(keywordResult.IndustryName)
+
+	// Check if industries match (case-insensitive)
+	industriesMatch := mlIndustryLower == keywordIndustryLower ||
+		strings.Contains(mlIndustryLower, keywordIndustryLower) ||
+		strings.Contains(keywordIndustryLower, mlIndustryLower)
+
+	adjustedConfidence := mlConfidence
+	adjustedIndustry := mlIndustry
+	validationDetails := make(map[string]interface{})
+
+	if industriesMatch {
+		// Both methods agree - boost confidence
+		confidenceBoost := 0.2 // 20% boost
+		newConfidence := mlConfidence * (1.0 + confidenceBoost)
+		if newConfidence > 1.0 {
+			adjustedConfidence = 1.0
+		} else {
+			adjustedConfidence = newConfidence
+		}
+		mmc.logger.Printf("✅ [Phase 1] ML and keywords agree on '%s' - boosting confidence: %.2f%% -> %.2f%%",
+			mlIndustry, mlConfidence*100, adjustedConfidence*100)
+		validationDetails["validation_status"] = "agreement"
+		validationDetails["confidence_boost"] = confidenceBoost
+		validationDetails["keyword_industry"] = keywordResult.IndustryName
+		validationDetails["keyword_confidence"] = keywordResult.ConfidenceScore
+	} else {
+		// Methods disagree - adjust based on confidence levels
+		if mlConfidence < 0.6 && keywordResult.ConfidenceScore > 0.7 {
+			// ML has low confidence, keywords have high confidence - prefer keywords
+			adjustedIndustry = keywordResult.IndustryName
+			adjustedConfidence = keywordResult.ConfidenceScore * 0.9 // Slight reduction for method disagreement
+			mmc.logger.Printf("🔄 [Phase 1] ML confidence low (%.2f%%) but keywords confident (%.2f%%) - using keyword result: %s",
+				mlConfidence*100, keywordResult.ConfidenceScore*100, adjustedIndustry)
+			validationDetails["validation_status"] = "prefer_keywords"
+			validationDetails["reason"] = "ml_low_confidence_keywords_high"
+		} else if mlConfidence > 0.8 && keywordResult.ConfidenceScore < 0.5 {
+			// ML has high confidence, keywords have low confidence - keep ML result but reduce confidence slightly
+			adjustedConfidence = mlConfidence * 0.95 // Slight reduction for disagreement
+			mmc.logger.Printf("⚠️ [Phase 1] ML confident (%.2f%%) but keywords disagree (%.2f%%) - keeping ML result with slight reduction",
+				mlConfidence*100, keywordResult.ConfidenceScore*100)
+			validationDetails["validation_status"] = "prefer_ml"
+			validationDetails["reason"] = "ml_high_confidence_keywords_low"
+		} else {
+			// Both have medium confidence - keep ML result but note disagreement
+			adjustedConfidence = mlConfidence * 0.9 // Moderate reduction for disagreement
+			mmc.logger.Printf("⚠️ [Phase 1] ML and keywords disagree - ML: %s (%.2f%%), Keywords: %s (%.2f%%) - keeping ML with reduced confidence",
+				mlIndustry, mlConfidence*100, keywordResult.IndustryName, keywordResult.ConfidenceScore*100)
+			validationDetails["validation_status"] = "disagreement"
+			validationDetails["keyword_industry"] = keywordResult.IndustryName
+			validationDetails["keyword_confidence"] = keywordResult.ConfidenceScore
+		}
+	}
+
+	// Build result with validation metadata
+	result := mmc.buildMLResult(adjustedIndustry, adjustedConfidence, classificationCodes, enhancedResp)
+	
+	// Add validation details to metadata
+	if result.Metadata == nil {
+		result.Metadata = make(map[string]interface{})
+	}
+	result.Metadata["keyword_validation"] = validationDetails
+	result.Metadata["original_ml_confidence"] = mlConfidence
+	result.Metadata["original_ml_industry"] = mlIndustry
+	result.Metadata["keywords_used"] = keywords
+
+	return result
+}
+
+// buildMLResult builds IndustryClassification from ML response with validation adjustments
+func (mmc *MultiMethodClassifier) buildMLResult(
+	industry string,
+	confidence float64,
+	classificationCodes shared.ClassificationCodes,
+	enhancedResp *infrastructure.EnhancedClassificationResponse,
+) *shared.IndustryClassification {
+	// Build all industry scores map
+	allScores := make(map[string]float64)
+	for _, classification := range enhancedResp.Classifications {
+		allScores[classification.Label] = classification.Confidence
+	}
+
+	return &shared.IndustryClassification{
+		IndustryCode:         industry,
+		IndustryName:         industry,
+		PrimaryIndustry:     industry,
+		ConfidenceScore:      confidence,
+		ClassificationMethod: "ml_distilbart",
+		ContentSummary:       enhancedResp.Summary,
+		Explanation:          enhancedResp.Explanation,
+		AllIndustryScores:    allScores,
+		ProcessingTime:       time.Duration(0), // Will be set by caller
+		Metadata: map[string]interface{}{
+			"model_version":        enhancedResp.ModelVersion,
+			"quantization_enabled":  enhancedResp.QuantizationEnabled,
+			"all_classifications":  enhancedResp.Classifications,
+			"classification_codes":  classificationCodes,
+		},
+	}
+}
+
+// ============================================================================
+// PHASE 3: Ensemble Enhancement with Crosswalks
+// ============================================================================
+
+// validateCodesAgainstCrosswalks validates codes against crosswalk relationships
+// Returns a consistency score (0.0-1.0) indicating how well codes match crosswalks
+func (mmc *MultiMethodClassifier) validateCodesAgainstCrosswalks(
+	ctx context.Context,
+	codes shared.ClassificationCodes,
+) float64 {
+	// Get code metadata repository from keyword repo if available
+	codeMetadataRepo := mmc.getCodeMetadataRepository()
+	if codeMetadataRepo == nil {
+		return 0.0 // No metadata repo available
+	}
+
+	totalChecks := 0
+	consistentChecks := 0
+
+	// Check MCC codes
+	for _, mcc := range codes.MCC {
+		crosswalks, err := codeMetadataRepo.GetCrosswalkCodes(ctx, "MCC", mcc.Code)
+		if err == nil && len(crosswalks) > 0 {
+			for _, cw := range crosswalks {
+				totalChecks++
+				if mmc.codeExistsInResults(cw.Code, cw.CodeType, codes) {
+					consistentChecks++
+				}
+			}
+		}
+	}
+
+	// Check NAICS codes
+	for _, naics := range codes.NAICS {
+		crosswalks, err := codeMetadataRepo.GetCrosswalkCodes(ctx, "NAICS", naics.Code)
+		if err == nil && len(crosswalks) > 0 {
+			for _, cw := range crosswalks {
+				totalChecks++
+				if mmc.codeExistsInResults(cw.Code, cw.CodeType, codes) {
+					consistentChecks++
+				}
+			}
+		}
+	}
+
+	// Check SIC codes
+	for _, sic := range codes.SIC {
+		crosswalks, err := codeMetadataRepo.GetCrosswalkCodes(ctx, "SIC", sic.Code)
+		if err == nil && len(crosswalks) > 0 {
+			for _, cw := range crosswalks {
+				totalChecks++
+				if mmc.codeExistsInResults(cw.Code, cw.CodeType, codes) {
+					consistentChecks++
+				}
+			}
+		}
+	}
+
+	if totalChecks == 0 {
+		return 0.0 // No crosswalks to check
+	}
+
+	return float64(consistentChecks) / float64(totalChecks)
+}
+
+// codeExistsInResults checks if a code exists in the classification results
+func (mmc *MultiMethodClassifier) codeExistsInResults(code, codeType string, codes shared.ClassificationCodes) bool {
+	switch codeType {
+	case "MCC":
+		for _, mcc := range codes.MCC {
+			if mcc.Code == code {
+				return true
+			}
+		}
+	case "SIC":
+		for _, sic := range codes.SIC {
+			if sic.Code == code {
+				return true
+			}
+		}
+	case "NAICS":
+		for _, naics := range codes.NAICS {
+			if naics.Code == code {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// getCodeMetadataRepository gets code metadata repository from keyword repo
+func (mmc *MultiMethodClassifier) getCodeMetadataRepository() *repository.CodeMetadataRepository {
+	// Try to get from SupabaseKeywordRepository
+	if supabaseRepo, ok := mmc.keywordRepo.(*repository.SupabaseKeywordRepository); ok {
+		client := supabaseRepo.GetSupabaseClient()
+		if client != nil {
+			return repository.NewCodeMetadataRepository(client, mmc.logger)
+		}
+	}
+	return nil
+}
+
+// selectCodesWithCrosswalkConsistency selects codes that have crosswalk relationships
+// This ensures consistency across code types when methods disagree
+func (mmc *MultiMethodClassifier) selectCodesWithCrosswalkConsistency(
+	ctx context.Context,
+	mlCodes, keywordCodes, descriptionCodes shared.ClassificationCodes,
+) shared.ClassificationCodes {
+	codeMetadataRepo := mmc.getCodeMetadataRepository()
+	if codeMetadataRepo == nil {
+		// No metadata repo - return ML codes as default
+		return mlCodes
+	}
+
+	// Score each method's codes by crosswalk consistency
+	mlScore := mmc.validateCodesAgainstCrosswalks(ctx, mlCodes)
+	keywordScore := mmc.validateCodesAgainstCrosswalks(ctx, keywordCodes)
+	descriptionScore := mmc.validateCodesAgainstCrosswalks(ctx, descriptionCodes)
+
+	// Prefer codes with highest crosswalk consistency
+	if mlScore >= keywordScore && mlScore >= descriptionScore {
+		mmc.logger.Printf("📊 [Phase 3] Selected ML codes (crosswalk consistency: %.2f)", mlScore)
+		return mlCodes
+	} else if keywordScore >= descriptionScore {
+		mmc.logger.Printf("📊 [Phase 3] Selected keyword codes (crosswalk consistency: %.2f)", keywordScore)
+		return keywordCodes
+	} else {
+		mmc.logger.Printf("📊 [Phase 3] Selected description codes (crosswalk consistency: %.2f)", descriptionScore)
+		return descriptionCodes
+	}
+}
+

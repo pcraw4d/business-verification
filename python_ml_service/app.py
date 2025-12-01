@@ -1133,7 +1133,8 @@ async def classify_enhanced(request: EnhancedClassificationRequest):
         result = distilbart_classifier.classify_with_enhancement(
             content=content,
             business_name=request.business_name,
-            max_length=request.max_content_length or 1024
+            max_length=request.max_content_length or 1024,
+            description=request.description or ""  # Pass description for better content combination
         )
         
         # Convert to response format

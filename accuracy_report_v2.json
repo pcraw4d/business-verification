@@ -1,0 +1,6516 @@
+{
+  "generated_at": "2025-11-30T16:02:08.748153-05:00",
+  "metrics": {
+    "total_test_cases": 184,
+    "passed_test_cases": 184,
+    "failed_test_cases": 0,
+    "industry_accuracy": 0.08695652173913043,
+    "industry_exact_matches": 16,
+    "industry_partial_matches": 0,
+    "mcc_accuracy": 0,
+    "naics_accuracy": 0,
+    "sic_accuracy": 0,
+    "code_accuracy": 0,
+    "overall_accuracy": 0.03478260869565218,
+    "accuracy_by_category": {
+      "Construction": 0,
+      "Edge Cases": 0.04,
+      "Financial Services": 0.012903225806451613,
+      "Healthcare": 0.025531914893617023,
+      "Manufacturing": 0,
+      "Professional Services": 0,
+      "Retail": 0.09999999999999999,
+      "Technology": 0.047619047619047616,
+      "Transportation": 0
+    },
+    "accuracy_by_industry": {
+      "Construction": 0,
+      "Financial Services": 0.012121212121212121,
+      "Gambling": 0,
+      "Healthcare": 0.025531914893617023,
+      "Manufacturing": 0,
+      "Professional Services": 0,
+      "Retail": 0.096,
+      "Technology": 0.05454545454545454,
+      "Transportation": 0
+    },
+    "edge_case_accuracy": 0,
+    "high_confidence_accuracy": 0,
+    "average_processing_time": 29320676392,
+    "total_processing_time": 599485258900,
+    "test_results": [
+      {
+        "test_case_id": 155,
+        "business_name": "Bechtel Corporation",
+        "test_category": "Construction",
+        "expected_industry": "Construction",
+        "expected_industry_confidence": 0.98,
+        "expected_mcc_codes": [
+          "1771",
+          "1799"
+        ],
+        "expected_naics_codes": [
+          "237110",
+          "541330"
+        ],
+        "expected_sic_codes": [
+          "1629",
+          "8711"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.3,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 5064015567,
+        "timestamp": "2025-11-30T15:52:09.417752-05:00"
+      },
+      {
+        "test_case_id": 159,
+        "business_name": "Electrical Contractor Inc.",
+        "test_category": "Construction",
+        "expected_industry": "Construction",
+        "expected_industry_confidence": 0.92,
+        "expected_mcc_codes": [
+          "1731",
+          "1799"
+        ],
+        "expected_naics_codes": [
+          "238210",
+          "238110"
+        ],
+        "expected_sic_codes": [
+          "1731",
+          "1799"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.4105,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 34088156941,
+        "timestamp": "2025-11-30T15:52:09.417876-05:00"
+      },
+      {
+        "test_case_id": 156,
+        "business_name": "Fluor Corporation",
+        "test_category": "Construction",
+        "expected_industry": "Construction",
+        "expected_industry_confidence": 0.98,
+        "expected_mcc_codes": [
+          "1771",
+          "1799"
+        ],
+        "expected_naics_codes": [
+          "237110",
+          "541330"
+        ],
+        "expected_sic_codes": [
+          "1629",
+          "8711"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.3,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 32734852467,
+        "timestamp": "2025-11-30T15:54:39.436988-05:00"
+      },
+      {
+        "test_case_id": 158,
+        "business_name": "Local General Contractor",
+        "test_category": "Construction",
+        "expected_industry": "Construction",
+        "expected_industry_confidence": 0.9,
+        "expected_mcc_codes": [
+          "1799",
+          "1771"
+        ],
+        "expected_naics_codes": [
+          "236115",
+          "236116"
+        ],
+        "expected_sic_codes": [
+          "1521",
+          "1522"
+        ],
+        "actual_industry": "Food \u0026 Beverage",
+        "actual_industry_confidence": 0.535,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 69506879167,
+        "timestamp": "2025-11-30T15:54:39.417006-05:00"
+      },
+      {
+        "test_case_id": 157,
+        "business_name": "Turner Construction Company",
+        "test_category": "Construction",
+        "expected_industry": "Construction",
+        "expected_industry_confidence": 0.97,
+        "expected_mcc_codes": [
+          "1799",
+          "1771"
+        ],
+        "expected_naics_codes": [
+          "236220",
+          "236210"
+        ],
+        "expected_sic_codes": [
+          "1541",
+          "1542"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.4105,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 11498606790,
+        "timestamp": "2025-11-30T15:54:44.529444-05:00"
+      },
+      {
+        "test_case_id": 176,
+        "business_name": "ABC Corporation",
+        "test_category": "Edge Cases",
+        "expected_industry": "Professional Services",
+        "expected_industry_confidence": 0.7,
+        "expected_mcc_codes": [
+          "7399",
+          "8742"
+        ],
+        "expected_naics_codes": [
+          "541611",
+          "541990"
+        ],
+        "expected_sic_codes": [
+          "8742",
+          "7389"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.3,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 40257768554,
+        "timestamp": "2025-11-30T15:52:09.418181-05:00"
+      },
+      {
+        "test_case_id": 182,
+        "business_name": "Crypto Exchange Pro",
+        "test_category": "Edge Cases",
+        "expected_industry": "Financial Services",
+        "expected_industry_confidence": 0.85,
+        "expected_mcc_codes": [
+          "6012",
+          "5999"
+        ],
+        "expected_naics_codes": [
+          "523130",
+          "522320"
+        ],
+        "expected_sic_codes": [
+          "7389",
+          "6099"
+        ],
+        "actual_industry": "Breweries",
+        "actual_industry_confidence": 0.785,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 5580201667,
+        "timestamp": "2025-11-30T15:52:09.418058-05:00"
+      },
+      {
+        "test_case_id": 179,
+        "business_name": "FinTech Innovations",
+        "test_category": "Edge Cases",
+        "expected_industry": "Financial Services",
+        "expected_industry_confidence": 0.8,
+        "expected_mcc_codes": [
+          "6012",
+          "5734"
+        ],
+        "expected_naics_codes": [
+          "522320",
+          "541511"
+        ],
+        "expected_sic_codes": [
+          "6099",
+          "7372"
+        ],
+        "actual_industry": "Food \u0026 Beverage",
+        "actual_industry_confidence": 0.535,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 4316402178,
+        "timestamp": "2025-11-30T15:53:21.595766-05:00"
+      },
+      {
+        "test_case_id": 185,
+        "business_name": "Generic Business LLC",
+        "test_category": "Edge Cases",
+        "expected_industry": "Professional Services",
+        "expected_industry_confidence": 0.45,
+        "expected_mcc_codes": [
+          "7399"
+        ],
+        "expected_naics_codes": [
+          "541611",
+          "541990"
+        ],
+        "expected_sic_codes": [
+          "8742",
+          "7389"
+        ],
+        "actual_industry": "Wineries",
+        "actual_industry_confidence": 0.535,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 33993641963,
+        "timestamp": "2025-11-30T15:52:09.418554-05:00"
+      },
+      {
+        "test_case_id": 181,
+        "business_name": "Gig Economy Platform",
+        "test_category": "Edge Cases",
+        "expected_industry": "Technology",
+        "expected_industry_confidence": 0.75,
+        "expected_mcc_codes": [
+          "7399",
+          "5734"
+        ],
+        "expected_naics_codes": [
+          "518210",
+          "541611"
+        ],
+        "expected_sic_codes": [
+          "7372",
+          "8742"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.3,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 54305831060,
+        "timestamp": "2025-11-30T15:53:24.844565-05:00"
+      },
+      {
+        "test_case_id": 177,
+        "business_name": "Global Solutions Inc.",
+        "test_category": "Edge Cases",
+        "expected_industry": "Professional Services",
+        "expected_industry_confidence": 0.65,
+        "expected_mcc_codes": [
+          "7399",
+          "8742"
+        ],
+        "expected_naics_codes": [
+          "541611",
+          "541990"
+        ],
+        "expected_sic_codes": [
+          "8742",
+          "7389"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.3,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 4922876148,
+        "timestamp": "2025-11-30T15:52:09.418035-05:00"
+      },
+      {
+        "test_case_id": 184,
+        "business_name": "Multi-Services Inc.",
+        "test_category": "Edge Cases",
+        "expected_industry": "Professional Services",
+        "expected_industry_confidence": 0.5,
+        "expected_mcc_codes": [
+          "7399"
+        ],
+        "expected_naics_codes": [
+          "541611",
+          "541990"
+        ],
+        "expected_sic_codes": [
+          "8742",
+          "7389"
+        ],
+        "actual_industry": "Food \u0026 Beverage",
+        "actual_industry_confidence": 0.535,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 7599502557,
+        "timestamp": "2025-11-30T15:53:28.664735-05:00"
+      },
+      {
+        "test_case_id": 183,
+        "business_name": "Online Casino Platform",
+        "test_category": "Edge Cases",
+        "expected_industry": "Gambling",
+        "expected_industry_confidence": 0.95,
+        "expected_mcc_codes": [
+          "7995"
+        ],
+        "expected_naics_codes": [
+          "713290"
+        ],
+        "expected_sic_codes": [
+          "7999"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.3,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 8535275200,
+        "timestamp": "2025-11-30T15:53:32.095745-05:00"
+      },
+      {
+        "test_case_id": 180,
+        "business_name": "Subscription Box Co.",
+        "test_category": "Edge Cases",
+        "expected_industry": "Retail",
+        "expected_industry_confidence": 0.85,
+        "expected_mcc_codes": [
+          "5969",
+          "5310"
+        ],
+        "expected_naics_codes": [
+          "454110",
+          "452111"
+        ],
+        "expected_sic_codes": [
+          "5961",
+          "5311"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.1605,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 14534911057,
+        "timestamp": "2025-11-30T15:53:32.629394-05:00"
+      },
+      {
+        "test_case_id": 178,
+        "business_name": "TechMed Solutions",
+        "test_category": "Edge Cases",
+        "expected_industry": "Technology",
+        "expected_industry_confidence": 0.75,
+        "expected_mcc_codes": [
+          "5733",
+          "5045",
+          "8011"
+        ],
+        "expected_naics_codes": [
+          "541511",
+          "621111"
+        ],
+        "expected_sic_codes": [
+          "7372",
+          "8011"
+        ],
+        "actual_industry": "Technology",
+        "actual_industry_confidence": 0.5303382016,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": true,
+        "industry_accuracy": 1,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0.4,
+        "processing_time": 63153217680,
+        "timestamp": "2025-11-30T15:53:36.264194-05:00"
+      },
+      {
+        "test_case_id": 109,
+        "business_name": "Allstate Corporation",
+        "test_category": "Financial Services",
+        "expected_industry": "Financial Services",
+        "expected_industry_confidence": 0.97,
+        "expected_mcc_codes": [
+          "6300",
+          "6012"
+        ],
+        "expected_naics_codes": [
+          "524126",
+          "524113"
+        ],
+        "expected_sic_codes": [
+          "6331",
+          "6311"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.3,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 94943245497,
+        "timestamp": "2025-11-30T15:53:25.912148-05:00"
+      },
+      {
+        "test_case_id": 100,
+        "business_name": "American Express Company",
+        "test_category": "Financial Services",
+        "expected_industry": "Financial Services",
+        "expected_industry_confidence": 0.98,
+        "expected_mcc_codes": [
+          "6012",
+          "6011"
+        ],
+        "expected_naics_codes": [
+          "522210",
+          "522110"
+        ],
+        "expected_sic_codes": [
+          "6141",
+          "6021"
+        ],
+        "actual_industry": "Financial Services",
+        "actual_industry_confidence": 0.4,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": true,
+        "industry_accuracy": 1,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0.4,
+        "processing_time": 4194322312,
+        "timestamp": "2025-11-30T15:54:41.475941-05:00"
+      },
+      {
+        "test_case_id": 91,
+        "business_name": "Bank of America Corporation",
+        "test_category": "Financial Services",
+        "expected_industry": "Financial Services",
+        "expected_industry_confidence": 0.99,
+        "expected_mcc_codes": [
+          "6012",
+          "6011"
+        ],
+        "expected_naics_codes": [
+          "522110",
+          "523110"
+        ],
+        "expected_sic_codes": [
+          "6021",
+          "6211"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.4105,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 48259371741,
+        "timestamp": "2025-11-30T15:54:41.549637-05:00"
+      },
+      {
+        "test_case_id": 107,
+        "business_name": "Berkshire Hathaway Inc.",
+        "test_category": "Financial Services",
+        "expected_industry": "Financial Services",
+        "expected_industry_confidence": 0.97,
+        "expected_mcc_codes": [
+          "6300",
+          "6012"
+        ],
+        "expected_naics_codes": [
+          "524113",
+          "524126"
+        ],
+        "expected_sic_codes": [
+          "6331",
+          "6311"
+        ],
+        "actual_industry": "Catering",
+        "actual_industry_confidence": 0.535,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 3097915484,
+        "timestamp": "2025-11-30T15:54:41.431543-05:00"
+      },
+      {
+        "test_case_id": 98,
+        "business_name": "BlackRock Inc.",
+        "test_category": "Financial Services",
+        "expected_industry": "Financial Services",
+        "expected_industry_confidence": 0.98,
+        "expected_mcc_codes": [
+          "6012",
+          "6011"
+        ],
+        "expected_naics_codes": [
+          "523920",
+          "523110"
+        ],
+        "expected_sic_codes": [
+          "6282",
+          "6211"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.3,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 40483247791,
+        "timestamp": "2025-11-30T15:52:09.417968-05:00"
+      },
+      {
+        "test_case_id": 102,
+        "business_name": "Capital One Financial Corporation",
+        "test_category": "Financial Services",
+        "expected_industry": "Financial Services",
+        "expected_industry_confidence": 0.98,
+        "expected_mcc_codes": [
+          "6012",
+          "6011"
+        ],
+        "expected_naics_codes": [
+          "522210",
+          "522110"
+        ],
+        "expected_sic_codes": [
+          "6141",
+          "6021"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.4105,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 2118648402,
+        "timestamp": "2025-11-30T15:52:09.418523-05:00"
+      },
+      {
+        "test_case_id": 96,
+        "business_name": "Charles Schwab Corporation",
+        "test_category": "Financial Services",
+        "expected_industry": "Financial Services",
+        "expected_industry_confidence": 0.98,
+        "expected_mcc_codes": [
+          "6012",
+          "6011"
+        ],
+        "expected_naics_codes": [
+          "523120",
+          "522110"
+        ],
+        "expected_sic_codes": [
+          "6211",
+          "6021"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.3,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 60919064266,
+        "timestamp": "2025-11-30T15:53:40.630969-05:00"
+      },
+      {
+        "test_case_id": 93,
+        "business_name": "Citigroup Inc.",
+        "test_category": "Financial Services",
+        "expected_industry": "Financial Services",
+        "expected_industry_confidence": 0.99,
+        "expected_mcc_codes": [
+          "6012",
+          "6011"
+        ],
+        "expected_naics_codes": [
+          "522110",
+          "523110"
+        ],
+        "expected_sic_codes": [
+          "6021",
+          "6211"
+        ],
+        "actual_industry": "Casual Dining",
+        "actual_industry_confidence": 0.535,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 11542659147,
+        "timestamp": "2025-11-30T15:53:45.579306-05:00"
+      },
+      {
+        "test_case_id": 115,
+        "business_name": "Coinbase Global Inc.",
+        "test_category": "Financial Services",
+        "expected_industry": "Financial Services",
+        "expected_industry_confidence": 0.94,
+        "expected_mcc_codes": [
+          "6012",
+          "6011"
+        ],
+        "expected_naics_codes": [
+          "523130",
+          "522320"
+        ],
+        "expected_sic_codes": [
+          "7389",
+          "6099"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.3,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 9258060937,
+        "timestamp": "2025-11-30T15:53:47.164221-05:00"
+      },
+      {
+        "test_case_id": 101,
+        "business_name": "Discover Financial Services",
+        "test_category": "Financial Services",
+        "expected_industry": "Financial Services",
+        "expected_industry_confidence": 0.98,
+        "expected_mcc_codes": [
+          "6012",
+          "6011"
+        ],
+        "expected_naics_codes": [
+          "522210",
+          "522110"
+        ],
+        "expected_sic_codes": [
+          "6141",
+          "6021"
+        ],
+        "actual_industry": "Food \u0026 Beverage",
+        "actual_industry_confidence": 0.535,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 7940317647,
+        "timestamp": "2025-11-30T15:53:56.422236-05:00"
+      },
+      {
+        "test_case_id": 97,
+        "business_name": "Fidelity Investments",
+        "test_category": "Financial Services",
+        "expected_industry": "Financial Services",
+        "expected_industry_confidence": 0.98,
+        "expected_mcc_codes": [
+          "6012",
+          "6011"
+        ],
+        "expected_naics_codes": [
+          "523120",
+          "523920"
+        ],
+        "expected_sic_codes": [
+          "6211",
+          "6282"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.4105,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 26685453723,
+        "timestamp": "2025-11-30T15:53:56.780607-05:00"
+      },
+      {
+        "test_case_id": 111,
+        "business_name": "Geico Corporation",
+        "test_category": "Financial Services",
+        "expected_industry": "Financial Services",
+        "expected_industry_confidence": 0.97,
+        "expected_mcc_codes": [
+          "6300",
+          "6012"
+        ],
+        "expected_naics_codes": [
+          "524126",
+          "524113"
+        ],
+        "expected_sic_codes": [
+          "6331",
+          "6311"
+        ],
+        "actual_industry": "Food \u0026 Beverage",
+        "actual_industry_confidence": 0.535,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 7251704038,
+        "timestamp": "2025-11-30T15:53:57.121913-05:00"
+      },
+      {
+        "test_case_id": 94,
+        "business_name": "Goldman Sachs Group Inc.",
+        "test_category": "Financial Services",
+        "expected_industry": "Financial Services",
+        "expected_industry_confidence": 0.99,
+        "expected_mcc_codes": [
+          "6012",
+          "6011"
+        ],
+        "expected_naics_codes": [
+          "523110",
+          "523120"
+        ],
+        "expected_sic_codes": [
+          "6211",
+          "6221"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.3,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 6886797078,
+        "timestamp": "2025-11-30T15:53:59.536419-05:00"
+      },
+      {
+        "test_case_id": 119,
+        "business_name": "Independent Insurance Agency",
+        "test_category": "Financial Services",
+        "expected_industry": "Financial Services",
+        "expected_industry_confidence": 0.88,
+        "expected_mcc_codes": [
+          "6300",
+          "6012"
+        ],
+        "expected_naics_codes": [
+          "524210",
+          "524126"
+        ],
+        "expected_sic_codes": [
+          "6411",
+          "6331"
+        ],
+        "actual_industry": "Food \u0026 Beverage",
+        "actual_industry_confidence": 0.535,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 78613029526,
+        "timestamp": "2025-11-30T15:54:04.362514-05:00"
+      },
+      {
+        "test_case_id": 90,
+        "business_name": "JPMorgan Chase \u0026 Co.",
+        "test_category": "Financial Services",
+        "expected_industry": "Financial Services",
+        "expected_industry_confidence": 0.99,
+        "expected_mcc_codes": [
+          "6012",
+          "6011"
+        ],
+        "expected_naics_codes": [
+          "522110",
+          "523110"
+        ],
+        "expected_sic_codes": [
+          "6021",
+          "6211"
+        ],
+        "actual_industry": "Technology",
+        "actual_industry_confidence": 0.33798124800000007,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 2864909447,
+        "timestamp": "2025-11-30T15:54:04.373583-05:00"
+      },
+      {
+        "test_case_id": 114,
+        "business_name": "LoanDepot Inc.",
+        "test_category": "Financial Services",
+        "expected_industry": "Financial Services",
+        "expected_industry_confidence": 0.95,
+        "expected_mcc_codes": [
+          "6012",
+          "6011"
+        ],
+        "expected_naics_codes": [
+          "522310",
+          "531390"
+        ],
+        "expected_sic_codes": [
+          "6162",
+          "6531"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.1605,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 16332278545,
+        "timestamp": "2025-11-30T15:54:06.423183-05:00"
+      },
+      {
+        "test_case_id": 118,
+        "business_name": "Local Credit Union",
+        "test_category": "Financial Services",
+        "expected_industry": "Financial Services",
+        "expected_industry_confidence": 0.9,
+        "expected_mcc_codes": [
+          "6012",
+          "6011"
+        ],
+        "expected_naics_codes": [
+          "522130",
+          "522110"
+        ],
+        "expected_sic_codes": [
+          "6061",
+          "6021"
+        ],
+        "actual_industry": "Food \u0026 Beverage",
+        "actual_industry_confidence": 0.4,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 54326211275,
+        "timestamp": "2025-11-30T15:54:06.498854-05:00"
+      },
+      {
+        "test_case_id": 106,
+        "business_name": "Mastercard Incorporated",
+        "test_category": "Financial Services",
+        "expected_industry": "Financial Services",
+        "expected_industry_confidence": 0.98,
+        "expected_mcc_codes": [
+          "6012",
+          "6011"
+        ],
+        "expected_naics_codes": [
+          "522320",
+          "522110"
+        ],
+        "expected_sic_codes": [
+          "6099",
+          "6021"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.3,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 15156252912,
+        "timestamp": "2025-11-30T15:54:07.238482-05:00"
+      },
+      {
+        "test_case_id": 95,
+        "business_name": "Morgan Stanley",
+        "test_category": "Financial Services",
+        "expected_industry": "Financial Services",
+        "expected_industry_confidence": 0.99,
+        "expected_mcc_codes": [
+          "6012",
+          "6011"
+        ],
+        "expected_naics_codes": [
+          "523110",
+          "523120"
+        ],
+        "expected_sic_codes": [
+          "6211",
+          "6221"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.3,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 81323682786,
+        "timestamp": "2025-11-30T15:54:19.150036-05:00"
+      },
+      {
+        "test_case_id": 103,
+        "business_name": "PayPal Holdings Inc.",
+        "test_category": "Financial Services",
+        "expected_industry": "Financial Services",
+        "expected_industry_confidence": 0.97,
+        "expected_mcc_codes": [
+          "6012",
+          "6011"
+        ],
+        "expected_naics_codes": [
+          "522320",
+          "518210"
+        ],
+        "expected_sic_codes": [
+          "6099",
+          "7372"
+        ],
+        "actual_industry": "Technology",
+        "actual_industry_confidence": 0.25,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 66877527979,
+        "timestamp": "2025-11-30T15:53:40.630842-05:00"
+      },
+      {
+        "test_case_id": 108,
+        "business_name": "Progressive Corporation",
+        "test_category": "Financial Services",
+        "expected_industry": "Financial Services",
+        "expected_industry_confidence": 0.97,
+        "expected_mcc_codes": [
+          "6300",
+          "6012"
+        ],
+        "expected_naics_codes": [
+          "524126",
+          "524113"
+        ],
+        "expected_sic_codes": [
+          "6331",
+          "6311"
+        ],
+        "actual_industry": "Food Trucks",
+        "actual_industry_confidence": 0.535,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 3436617798,
+        "timestamp": "2025-11-30T15:54:22.755359-05:00"
+      },
+      {
+        "test_case_id": 113,
+        "business_name": "Quicken Loans",
+        "test_category": "Financial Services",
+        "expected_industry": "Financial Services",
+        "expected_industry_confidence": 0.96,
+        "expected_mcc_codes": [
+          "6012",
+          "6011"
+        ],
+        "expected_naics_codes": [
+          "522310",
+          "531390"
+        ],
+        "expected_sic_codes": [
+          "6162",
+          "6531"
+        ],
+        "actual_industry": "Fast Food",
+        "actual_industry_confidence": 0.535,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 5537163023,
+        "timestamp": "2025-11-30T15:54:23.465892-05:00"
+      },
+      {
+        "test_case_id": 116,
+        "business_name": "Robinhood Markets Inc.",
+        "test_category": "Financial Services",
+        "expected_industry": "Financial Services",
+        "expected_industry_confidence": 0.95,
+        "expected_mcc_codes": [
+          "6012",
+          "6011"
+        ],
+        "expected_naics_codes": [
+          "523120",
+          "523110"
+        ],
+        "expected_sic_codes": [
+          "6211",
+          "6221"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.4105,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 2958870842,
+        "timestamp": "2025-11-30T15:54:26.041446-05:00"
+      },
+      {
+        "test_case_id": 112,
+        "business_name": "Rocket Companies Inc.",
+        "test_category": "Financial Services",
+        "expected_industry": "Financial Services",
+        "expected_industry_confidence": 0.96,
+        "expected_mcc_codes": [
+          "6012",
+          "6011"
+        ],
+        "expected_naics_codes": [
+          "522310",
+          "531390"
+        ],
+        "expected_sic_codes": [
+          "6162",
+          "6531"
+        ],
+        "actual_industry": "Fast Food",
+        "actual_industry_confidence": 0.4,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 13245099063,
+        "timestamp": "2025-11-30T15:54:26.191959-05:00"
+      },
+      {
+        "test_case_id": 117,
+        "business_name": "SoFi Technologies Inc.",
+        "test_category": "Financial Services",
+        "expected_industry": "Financial Services",
+        "expected_industry_confidence": 0.94,
+        "expected_mcc_codes": [
+          "6012",
+          "6011"
+        ],
+        "expected_naics_codes": [
+          "522110",
+          "523120"
+        ],
+        "expected_sic_codes": [
+          "6021",
+          "6211"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.3,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 12475712319,
+        "timestamp": "2025-11-30T15:54:29.000304-05:00"
+      },
+      {
+        "test_case_id": 104,
+        "business_name": "Square Inc.",
+        "test_category": "Financial Services",
+        "expected_industry": "Financial Services",
+        "expected_industry_confidence": 0.96,
+        "expected_mcc_codes": [
+          "6012",
+          "6011"
+        ],
+        "expected_naics_codes": [
+          "522320",
+          "518210"
+        ],
+        "expected_sic_codes": [
+          "6099",
+          "7372"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.3,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 12428581288,
+        "timestamp": "2025-11-30T15:54:29.003024-05:00"
+      },
+      {
+        "test_case_id": 110,
+        "business_name": "State Farm Mutual Automobile Insurance",
+        "test_category": "Financial Services",
+        "expected_industry": "Financial Services",
+        "expected_industry_confidence": 0.97,
+        "expected_mcc_codes": [
+          "6300",
+          "6012"
+        ],
+        "expected_naics_codes": [
+          "524126",
+          "524113"
+        ],
+        "expected_sic_codes": [
+          "6331",
+          "6311"
+        ],
+        "actual_industry": "Food \u0026 Beverage",
+        "actual_industry_confidence": 0.535,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 3646819063,
+        "timestamp": "2025-11-30T15:54:22.39464-05:00"
+      },
+      {
+        "test_case_id": 120,
+        "business_name": "Tax Preparation Services",
+        "test_category": "Financial Services",
+        "expected_industry": "Financial Services",
+        "expected_industry_confidence": 0.85,
+        "expected_mcc_codes": [
+          "8931",
+          "6012"
+        ],
+        "expected_naics_codes": [
+          "541211",
+          "541213"
+        ],
+        "expected_sic_codes": [
+          "8721",
+          "8931"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.3,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 47952505318,
+        "timestamp": "2025-11-30T15:54:47.507929-05:00"
+      },
+      {
+        "test_case_id": 99,
+        "business_name": "Vanguard Group",
+        "test_category": "Financial Services",
+        "expected_industry": "Financial Services",
+        "expected_industry_confidence": 0.98,
+        "expected_mcc_codes": [
+          "6012",
+          "6011"
+        ],
+        "expected_naics_codes": [
+          "523920",
+          "523120"
+        ],
+        "expected_sic_codes": [
+          "6282",
+          "6211"
+        ],
+        "actual_industry": "Food \u0026 Beverage",
+        "actual_industry_confidence": 0.535,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 3481912849,
+        "timestamp": "2025-11-30T15:54:56.02798-05:00"
+      },
+      {
+        "test_case_id": 105,
+        "business_name": "Visa Inc.",
+        "test_category": "Financial Services",
+        "expected_industry": "Financial Services",
+        "expected_industry_confidence": 0.98,
+        "expected_mcc_codes": [
+          "6012",
+          "6011"
+        ],
+        "expected_naics_codes": [
+          "522320",
+          "522110"
+        ],
+        "expected_sic_codes": [
+          "6099",
+          "6021"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.3,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 9551671693,
+        "timestamp": "2025-11-30T15:54:57.824198-05:00"
+      },
+      {
+        "test_case_id": 92,
+        "business_name": "Wells Fargo \u0026 Company",
+        "test_category": "Financial Services",
+        "expected_industry": "Financial Services",
+        "expected_industry_confidence": 0.99,
+        "expected_mcc_codes": [
+          "6012",
+          "6011"
+        ],
+        "expected_naics_codes": [
+          "522110",
+          "522310"
+        ],
+        "expected_sic_codes": [
+          "6021",
+          "6162"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.3,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 12154027295,
+        "timestamp": "2025-11-30T15:54:45.670246-05:00"
+      },
+      {
+        "test_case_id": 59,
+        "business_name": "Abbott Laboratories",
+        "test_category": "Healthcare",
+        "expected_industry": "Healthcare",
+        "expected_industry_confidence": 0.97,
+        "expected_mcc_codes": [
+          "5047",
+          "5122"
+        ],
+        "expected_naics_codes": [
+          "339112",
+          "325412"
+        ],
+        "expected_sic_codes": [
+          "5047",
+          "2834"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.3,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 12540099388,
+        "timestamp": "2025-11-30T15:55:00.824704-05:00"
+      },
+      {
+        "test_case_id": 51,
+        "business_name": "AbbVie Inc.",
+        "test_category": "Healthcare",
+        "expected_industry": "Healthcare",
+        "expected_industry_confidence": 0.97,
+        "expected_mcc_codes": [
+          "5122",
+          "5047"
+        ],
+        "expected_naics_codes": [
+          "325412",
+          "541714"
+        ],
+        "expected_sic_codes": [
+          "2834",
+          "2836"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.3,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 6884098626,
+        "timestamp": "2025-11-30T15:54:59.509878-05:00"
+      },
+      {
+        "test_case_id": 74,
+        "business_name": "Addiction Treatment Center",
+        "test_category": "Healthcare",
+        "expected_industry": "Healthcare",
+        "expected_industry_confidence": 0.92,
+        "expected_mcc_codes": [
+          "8011",
+          "8049"
+        ],
+        "expected_naics_codes": [
+          "621420",
+          "622210"
+        ],
+        "expected_sic_codes": [
+          "8011",
+          "8063"
+        ],
+        "actual_industry": "Wineries",
+        "actual_industry_confidence": 0.785,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 98582869354,
+        "timestamp": "2025-11-30T15:55:00.854769-05:00"
+      },
+      {
+        "test_case_id": 55,
+        "business_name": "Aetna Inc.",
+        "test_category": "Healthcare",
+        "expected_industry": "Healthcare",
+        "expected_industry_confidence": 0.97,
+        "expected_mcc_codes": [
+          "6300",
+          "8011"
+        ],
+        "expected_naics_codes": [
+          "524114",
+          "621111"
+        ],
+        "expected_sic_codes": [
+          "6321",
+          "8011"
+        ],
+        "actual_industry": "Healthcare",
+        "actual_industry_confidence": 0.46783656000000007,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": true,
+        "industry_accuracy": 1,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0.4,
+        "processing_time": 2030247165,
+        "timestamp": "2025-11-30T15:52:09.418524-05:00"
+      },
+      {
+        "test_case_id": 81,
+        "business_name": "Amgen Inc.",
+        "test_category": "Healthcare",
+        "expected_industry": "Healthcare",
+        "expected_industry_confidence": 0.97,
+        "expected_mcc_codes": [
+          "5122",
+          "5047"
+        ],
+        "expected_naics_codes": [
+          "325412",
+          "541714"
+        ],
+        "expected_sic_codes": [
+          "2834",
+          "2836"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.1605,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 42013471584,
+        "timestamp": "2025-11-30T15:52:11.448765-05:00"
+      },
+      {
+        "test_case_id": 54,
+        "business_name": "Anthem Inc.",
+        "test_category": "Healthcare",
+        "expected_industry": "Healthcare",
+        "expected_industry_confidence": 0.97,
+        "expected_mcc_codes": [
+          "6300",
+          "8011"
+        ],
+        "expected_naics_codes": [
+          "524114",
+          "621111"
+        ],
+        "expected_sic_codes": [
+          "6321",
+          "8011"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.3,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 94042771730,
+        "timestamp": "2025-11-30T15:52:11.537163-05:00"
+      },
+      {
+        "test_case_id": 62,
+        "business_name": "Baxter International Inc.",
+        "test_category": "Healthcare",
+        "expected_industry": "Healthcare",
+        "expected_industry_confidence": 0.96,
+        "expected_mcc_codes": [
+          "5047",
+          "5122"
+        ],
+        "expected_naics_codes": [
+          "339112",
+          "325412"
+        ],
+        "expected_sic_codes": [
+          "5047",
+          "2834"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.3,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 6432406527,
+        "timestamp": "2025-11-30T15:52:14.340889-05:00"
+      },
+      {
+        "test_case_id": 82,
+        "business_name": "Biogen Inc.",
+        "test_category": "Healthcare",
+        "expected_industry": "Healthcare",
+        "expected_industry_confidence": 0.96,
+        "expected_mcc_codes": [
+          "5122",
+          "5047"
+        ],
+        "expected_naics_codes": [
+          "325412",
+          "541714"
+        ],
+        "expected_sic_codes": [
+          "2834",
+          "2836"
+        ],
+        "actual_industry": "Catering",
+        "actual_industry_confidence": 0.535,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 3789097776,
+        "timestamp": "2025-11-30T15:52:14.481744-05:00"
+      },
+      {
+        "test_case_id": 70,
+        "business_name": "BioReference Laboratories",
+        "test_category": "Healthcare",
+        "expected_industry": "Healthcare",
+        "expected_industry_confidence": 0.95,
+        "expected_mcc_codes": [
+          "8071",
+          "8011"
+        ],
+        "expected_naics_codes": [
+          "621511",
+          "621512"
+        ],
+        "expected_sic_codes": [
+          "8071",
+          "8011"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.1605,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 38086905544,
+        "timestamp": "2025-11-30T15:52:14.998232-05:00"
+      },
+      {
+        "test_case_id": 60,
+        "business_name": "Boston Scientific Corporation",
+        "test_category": "Healthcare",
+        "expected_industry": "Healthcare",
+        "expected_industry_confidence": 0.96,
+        "expected_mcc_codes": [
+          "5047",
+          "5122"
+        ],
+        "expected_naics_codes": [
+          "339112",
+          "325412"
+        ],
+        "expected_sic_codes": [
+          "5047",
+          "2834"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.4105,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 16128027483,
+        "timestamp": "2025-11-30T15:52:18.270824-05:00"
+      },
+      {
+        "test_case_id": 52,
+        "business_name": "Bristol-Myers Squibb",
+        "test_category": "Healthcare",
+        "expected_industry": "Healthcare",
+        "expected_industry_confidence": 0.98,
+        "expected_mcc_codes": [
+          "5122",
+          "5047"
+        ],
+        "expected_naics_codes": [
+          "325412",
+          "541714"
+        ],
+        "expected_sic_codes": [
+          "2834",
+          "2836"
+        ],
+        "actual_industry": "Food Trucks",
+        "actual_industry_confidence": 0.535,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 3965357400,
+        "timestamp": "2025-11-30T15:52:20.773274-05:00"
+      },
+      {
+        "test_case_id": 67,
+        "business_name": "Cardiology Associates",
+        "test_category": "Healthcare",
+        "expected_industry": "Healthcare",
+        "expected_industry_confidence": 0.95,
+        "expected_mcc_codes": [
+          "8011",
+          "8049"
+        ],
+        "expected_naics_codes": [
+          "621111",
+          "621112"
+        ],
+        "expected_sic_codes": [
+          "8011",
+          "8049"
+        ],
+        "actual_industry": "Casual Dining",
+        "actual_industry_confidence": 0.535,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 7679788868,
+        "timestamp": "2025-11-30T15:52:23.314108-05:00"
+      },
+      {
+        "test_case_id": 56,
+        "business_name": "Cigna Corporation",
+        "test_category": "Healthcare",
+        "expected_industry": "Healthcare",
+        "expected_industry_confidence": 0.97,
+        "expected_mcc_codes": [
+          "6300",
+          "8011"
+        ],
+        "expected_naics_codes": [
+          "524114",
+          "621111"
+        ],
+        "expected_sic_codes": [
+          "6321",
+          "8011"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.3,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 50007355840,
+        "timestamp": "2025-11-30T15:52:24.738615-05:00"
+      },
+      {
+        "test_case_id": 71,
+        "business_name": "CityMD Urgent Care",
+        "test_category": "Healthcare",
+        "expected_industry": "Healthcare",
+        "expected_industry_confidence": 0.94,
+        "expected_mcc_codes": [
+          "8011",
+          "8049"
+        ],
+        "expected_naics_codes": [
+          "621498",
+          "621111"
+        ],
+        "expected_sic_codes": [
+          "8011",
+          "8049"
+        ],
+        "actual_industry": "Food \u0026 Beverage",
+        "actual_industry_confidence": 0.535,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 3906839761,
+        "timestamp": "2025-11-30T15:52:30.993855-05:00"
+      },
+      {
+        "test_case_id": 44,
+        "business_name": "Cleveland Clinic",
+        "test_category": "Healthcare",
+        "expected_industry": "Healthcare",
+        "expected_industry_confidence": 0.99,
+        "expected_mcc_codes": [
+          "8062",
+          "8011"
+        ],
+        "expected_naics_codes": [
+          "622110",
+          "621111"
+        ],
+        "expected_sic_codes": [
+          "8062",
+          "8011"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.0405,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 5750525732,
+        "timestamp": "2025-11-30T15:52:34.39875-05:00"
+      },
+      {
+        "test_case_id": 88,
+        "business_name": "Community Health Systems",
+        "test_category": "Healthcare",
+        "expected_industry": "Healthcare",
+        "expected_industry_confidence": 0.97,
+        "expected_mcc_codes": [
+          "8062",
+          "8011"
+        ],
+        "expected_naics_codes": [
+          "622110",
+          "621111"
+        ],
+        "expected_sic_codes": [
+          "8062",
+          "8011"
+        ],
+        "actual_industry": "Food \u0026 Beverage",
+        "actual_industry_confidence": 0.535,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 3569506809,
+        "timestamp": "2025-11-30T15:52:34.900711-05:00"
+      },
+      {
+        "test_case_id": 77,
+        "business_name": "CVS Health Corporation",
+        "test_category": "Healthcare",
+        "expected_industry": "Healthcare",
+        "expected_industry_confidence": 0.98,
+        "expected_mcc_codes": [
+          "5912",
+          "5122"
+        ],
+        "expected_naics_codes": [
+          "446191",
+          "621111"
+        ],
+        "expected_sic_codes": [
+          "5912",
+          "8011"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.3,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 46374668634,
+        "timestamp": "2025-11-30T15:52:38.470204-05:00"
+      },
+      {
+        "test_case_id": 64,
+        "business_name": "Dental Care Associates",
+        "test_category": "Healthcare",
+        "expected_industry": "Healthcare",
+        "expected_industry_confidence": 0.96,
+        "expected_mcc_codes": [
+          "8021",
+          "8011"
+        ],
+        "expected_naics_codes": [
+          "621210",
+          "621111"
+        ],
+        "expected_sic_codes": [
+          "8021",
+          "8011"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.1605,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 52480494866,
+        "timestamp": "2025-11-30T15:52:40.149244-05:00"
+      },
+      {
+        "test_case_id": 63,
+        "business_name": "Family Medical Practice",
+        "test_category": "Healthcare",
+        "expected_industry": "Healthcare",
+        "expected_industry_confidence": 0.95,
+        "expected_mcc_codes": [
+          "8011",
+          "8049"
+        ],
+        "expected_naics_codes": [
+          "621111",
+          "621112"
+        ],
+        "expected_sic_codes": [
+          "8011",
+          "8049"
+        ],
+        "actual_industry": "Casual Dining",
+        "actual_industry_confidence": 0.375,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 48684091777,
+        "timestamp": "2025-11-30T15:52:43.411977-05:00"
+      },
+      {
+        "test_case_id": 80,
+        "business_name": "Gilead Sciences Inc.",
+        "test_category": "Healthcare",
+        "expected_industry": "Healthcare",
+        "expected_industry_confidence": 0.97,
+        "expected_mcc_codes": [
+          "5122",
+          "5047"
+        ],
+        "expected_naics_codes": [
+          "325412",
+          "541714"
+        ],
+        "expected_sic_codes": [
+          "2834",
+          "2836"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.3,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 9737484567,
+        "timestamp": "2025-11-30T15:52:43.505819-05:00"
+      },
+      {
+        "test_case_id": 86,
+        "business_name": "HCA Healthcare",
+        "test_category": "Healthcare",
+        "expected_industry": "Healthcare",
+        "expected_industry_confidence": 0.98,
+        "expected_mcc_codes": [
+          "8062",
+          "8011"
+        ],
+        "expected_naics_codes": [
+          "622110",
+          "621111"
+        ],
+        "expected_sic_codes": [
+          "8062",
+          "8011"
+        ],
+        "actual_industry": "Catering",
+        "actual_industry_confidence": 0.535,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 4272656746,
+        "timestamp": "2025-11-30T15:52:49.675701-05:00"
+      },
+      {
+        "test_case_id": 75,
+        "business_name": "Home Health Care Services",
+        "test_category": "Healthcare",
+        "expected_industry": "Healthcare",
+        "expected_industry_confidence": 0.94,
+        "expected_mcc_codes": [
+          "8011",
+          "8049"
+        ],
+        "expected_naics_codes": [
+          "621610",
+          "621111"
+        ],
+        "expected_sic_codes": [
+          "8011",
+          "8049"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.1605,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 69635900483,
+        "timestamp": "2025-11-30T15:52:49.900958-05:00"
+      },
+      {
+        "test_case_id": 57,
+        "business_name": "Humana Inc.",
+        "test_category": "Healthcare",
+        "expected_industry": "Healthcare",
+        "expected_industry_confidence": 0.97,
+        "expected_mcc_codes": [
+          "6300",
+          "8011"
+        ],
+        "expected_naics_codes": [
+          "524114",
+          "621111"
+        ],
+        "expected_sic_codes": [
+          "6321",
+          "8011"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.3,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 47546267331,
+        "timestamp": "2025-11-30T15:52:53.08489-05:00"
+      },
+      {
+        "test_case_id": 45,
+        "business_name": "Johns Hopkins Hospital",
+        "test_category": "Healthcare",
+        "expected_industry": "Healthcare",
+        "expected_industry_confidence": 0.99,
+        "expected_mcc_codes": [
+          "8062",
+          "8011"
+        ],
+        "expected_naics_codes": [
+          "622110",
+          "621111"
+        ],
+        "expected_sic_codes": [
+          "8062",
+          "8011"
+        ],
+        "actual_industry": "Healthcare",
+        "actual_industry_confidence": 0.75,
+        "actual_mcc_codes": [
+          "742",
+          "8734",
+          "8743"
+        ],
+        "actual_naics_codes": [
+          "524114",
+          "524128",
+          "525120"
+        ],
+        "actual_sic_codes": [
+          "6324",
+          "6371",
+          "3841"
+        ],
+        "industry_match": true,
+        "industry_accuracy": 1,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0.4,
+        "processing_time": 6056325941,
+        "timestamp": "2025-11-30T15:52:53.243245-05:00"
+      },
+      {
+        "test_case_id": 49,
+        "business_name": "Johnson \u0026 Johnson",
+        "test_category": "Healthcare",
+        "expected_industry": "Healthcare",
+        "expected_industry_confidence": 0.98,
+        "expected_mcc_codes": [
+          "5122",
+          "5047",
+          "5912"
+        ],
+        "expected_naics_codes": [
+          "325412",
+          "339112",
+          "446191"
+        ],
+        "expected_sic_codes": [
+          "2834",
+          "5047",
+          "5912"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.3,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 18171056587,
+        "timestamp": "2025-11-30T15:52:53.461959-05:00"
+      },
+      {
+        "test_case_id": 85,
+        "business_name": "Kaiser Permanente",
+        "test_category": "Healthcare",
+        "expected_industry": "Healthcare",
+        "expected_industry_confidence": 0.98,
+        "expected_mcc_codes": [
+          "6300",
+          "8011",
+          "8062"
+        ],
+        "expected_naics_codes": [
+          "524114",
+          "621111",
+          "622110"
+        ],
+        "expected_sic_codes": [
+          "6321",
+          "8011",
+          "8062"
+        ],
+        "actual_industry": "Casual Dining",
+        "actual_industry_confidence": 0.535,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 27588348146,
+        "timestamp": "2025-11-30T15:52:53.948358-05:00"
+      },
+      {
+        "test_case_id": 69,
+        "business_name": "LabCorp",
+        "test_category": "Healthcare",
+        "expected_industry": "Healthcare",
+        "expected_industry_confidence": 0.97,
+        "expected_mcc_codes": [
+          "8071",
+          "8011"
+        ],
+        "expected_naics_codes": [
+          "621511",
+          "621512"
+        ],
+        "expected_sic_codes": [
+          "8071",
+          "8011"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.3,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 15378766005,
+        "timestamp": "2025-11-30T15:52:59.299546-05:00"
+      },
+      {
+        "test_case_id": 46,
+        "business_name": "Massachusetts General Hospital",
+        "test_category": "Healthcare",
+        "expected_industry": "Healthcare",
+        "expected_industry_confidence": 0.99,
+        "expected_mcc_codes": [
+          "8062",
+          "8011"
+        ],
+        "expected_naics_codes": [
+          "622110",
+          "621111"
+        ],
+        "expected_sic_codes": [
+          "8062",
+          "8011"
+        ],
+        "actual_industry": "Healthcare",
+        "actual_industry_confidence": 0.76290752,
+        "actual_mcc_codes": [
+          "742",
+          "8734",
+          "8743"
+        ],
+        "actual_naics_codes": [
+          "524114",
+          "524128",
+          "525120"
+        ],
+        "actual_sic_codes": [
+          "6324",
+          "6371",
+          "3841"
+        ],
+        "industry_match": true,
+        "industry_accuracy": 1,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0.4,
+        "processing_time": 4731109217,
+        "timestamp": "2025-11-30T15:53:11.632919-05:00"
+      },
+      {
+        "test_case_id": 43,
+        "business_name": "Mayo Clinic",
+        "test_category": "Healthcare",
+        "expected_industry": "Healthcare",
+        "expected_industry_confidence": 0.99,
+        "expected_mcc_codes": [
+          "8062",
+          "8011"
+        ],
+        "expected_naics_codes": [
+          "622110",
+          "621111"
+        ],
+        "expected_sic_codes": [
+          "8062",
+          "8011"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.0405,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 42102667901,
+        "timestamp": "2025-11-30T15:53:14.678215-05:00"
+      },
+      {
+        "test_case_id": 72,
+        "business_name": "MedExpress Urgent Care",
+        "test_category": "Healthcare",
+        "expected_industry": "Healthcare",
+        "expected_industry_confidence": 0.94,
+        "expected_mcc_codes": [
+          "8011",
+          "8049"
+        ],
+        "expected_naics_codes": [
+          "621498",
+          "621111"
+        ],
+        "expected_sic_codes": [
+          "8011",
+          "8049"
+        ],
+        "actual_industry": "Food \u0026 Beverage",
+        "actual_industry_confidence": 0.785,
+        "actual_mcc_codes": [
+          "4214"
+        ],
+        "actual_naics_codes": [
+          "445310",
+          "721110",
+          "721120"
+        ],
+        "actual_sic_codes": [
+          "5814",
+          "5819"
+        ],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 4824590356,
+        "timestamp": "2025-11-30T15:53:14.74564-05:00"
+      },
+      {
+        "test_case_id": 58,
+        "business_name": "Medtronic plc",
+        "test_category": "Healthcare",
+        "expected_industry": "Healthcare",
+        "expected_industry_confidence": 0.97,
+        "expected_mcc_codes": [
+          "5047",
+          "5122"
+        ],
+        "expected_naics_codes": [
+          "339112",
+          "325412"
+        ],
+        "expected_sic_codes": [
+          "5047",
+          "2834"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.4105,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 5231774413,
+        "timestamp": "2025-11-30T15:53:16.364015-05:00"
+      },
+      {
+        "test_case_id": 73,
+        "business_name": "Mental Health Services Inc.",
+        "test_category": "Healthcare",
+        "expected_industry": "Healthcare",
+        "expected_industry_confidence": 0.93,
+        "expected_mcc_codes": [
+          "8011",
+          "8049"
+        ],
+        "expected_naics_codes": [
+          "621112",
+          "621420"
+        ],
+        "expected_sic_codes": [
+          "8011",
+          "8049"
+        ],
+        "actual_industry": "Food \u0026 Beverage",
+        "actual_industry_confidence": 0.535,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 9094579874,
+        "timestamp": "2025-11-30T15:53:19.570206-05:00"
+      },
+      {
+        "test_case_id": 50,
+        "business_name": "Merck \u0026 Co. Inc.",
+        "test_category": "Healthcare",
+        "expected_industry": "Healthcare",
+        "expected_industry_confidence": 0.98,
+        "expected_mcc_codes": [
+          "5122",
+          "5047"
+        ],
+        "expected_naics_codes": [
+          "325412",
+          "541714"
+        ],
+        "expected_sic_codes": [
+          "2834",
+          "2836"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.3,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 44962609017,
+        "timestamp": "2025-11-30T15:53:21.536532-05:00"
+      },
+      {
+        "test_case_id": 84,
+        "business_name": "Moderna Inc.",
+        "test_category": "Healthcare",
+        "expected_industry": "Healthcare",
+        "expected_industry_confidence": 0.96,
+        "expected_mcc_codes": [
+          "5122",
+          "5047"
+        ],
+        "expected_naics_codes": [
+          "325412",
+          "541714"
+        ],
+        "expected_sic_codes": [
+          "2834",
+          "2836"
+        ],
+        "actual_industry": "Casual Dining",
+        "actual_industry_confidence": 0.535,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 13895931989,
+        "timestamp": "2025-11-30T15:52:09.418264-05:00"
+      },
+      {
+        "test_case_id": 65,
+        "business_name": "Orthopedic Specialists",
+        "test_category": "Healthcare",
+        "expected_industry": "Healthcare",
+        "expected_industry_confidence": 0.95,
+        "expected_mcc_codes": [
+          "8011",
+          "8049"
+        ],
+        "expected_naics_codes": [
+          "621111",
+          "621112"
+        ],
+        "expected_sic_codes": [
+          "8011",
+          "8049"
+        ],
+        "actual_industry": "Casual Dining",
+        "actual_industry_confidence": 0.535,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 92053847757,
+        "timestamp": "2025-11-30T15:55:07.375813-05:00"
+      },
+      {
+        "test_case_id": 66,
+        "business_name": "Pediatric Care Center",
+        "test_category": "Healthcare",
+        "expected_industry": "Healthcare",
+        "expected_industry_confidence": 0.95,
+        "expected_mcc_codes": [
+          "8011",
+          "8049"
+        ],
+        "expected_naics_codes": [
+          "621111",
+          "621112"
+        ],
+        "expected_sic_codes": [
+          "8011",
+          "8049"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.4105,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 55690090875,
+        "timestamp": "2025-11-30T15:55:12.171628-05:00"
+      },
+      {
+        "test_case_id": 48,
+        "business_name": "Pfizer Inc.",
+        "test_category": "Healthcare",
+        "expected_industry": "Healthcare",
+        "expected_industry_confidence": 0.99,
+        "expected_mcc_codes": [
+          "5122",
+          "5047"
+        ],
+        "expected_naics_codes": [
+          "325412",
+          "541714"
+        ],
+        "expected_sic_codes": [
+          "2834",
+          "2836"
+        ],
+        "actual_industry": "Restaurants",
+        "actual_industry_confidence": 0.4378440000000001,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 16994953491,
+        "timestamp": "2025-11-30T15:55:12.475839-05:00"
+      },
+      {
+        "test_case_id": 68,
+        "business_name": "Quest Diagnostics",
+        "test_category": "Healthcare",
+        "expected_industry": "Healthcare",
+        "expected_industry_confidence": 0.97,
+        "expected_mcc_codes": [
+          "8071",
+          "8011"
+        ],
+        "expected_naics_codes": [
+          "621511",
+          "621512"
+        ],
+        "expected_sic_codes": [
+          "8071",
+          "8011"
+        ],
+        "actual_industry": "Food \u0026 Beverage",
+        "actual_industry_confidence": 0.785,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [
+          "445310",
+          "721110",
+          "721120"
+        ],
+        "actual_sic_codes": [
+          "5814",
+          "5819"
+        ],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 3314047040,
+        "timestamp": "2025-11-30T15:55:13.364739-05:00"
+      },
+      {
+        "test_case_id": 83,
+        "business_name": "Regeneron Pharmaceuticals",
+        "test_category": "Healthcare",
+        "expected_industry": "Healthcare",
+        "expected_industry_confidence": 0.96,
+        "expected_mcc_codes": [
+          "5122",
+          "5047"
+        ],
+        "expected_naics_codes": [
+          "325412",
+          "541714"
+        ],
+        "expected_sic_codes": [
+          "2834",
+          "2836"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.1605,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 15942320644,
+        "timestamp": "2025-11-30T15:55:16.67878-05:00"
+      },
+      {
+        "test_case_id": 79,
+        "business_name": "Rite Aid Corporation",
+        "test_category": "Healthcare",
+        "expected_industry": "Healthcare",
+        "expected_industry_confidence": 0.97,
+        "expected_mcc_codes": [
+          "5912",
+          "5122"
+        ],
+        "expected_naics_codes": [
+          "446191",
+          "621111"
+        ],
+        "expected_sic_codes": [
+          "5912",
+          "8011"
+        ],
+        "actual_industry": "Food \u0026 Beverage",
+        "actual_industry_confidence": 0.535,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 6948794540,
+        "timestamp": "2025-11-30T15:55:22.975019-05:00"
+      },
+      {
+        "test_case_id": 61,
+        "business_name": "Stryker Corporation",
+        "test_category": "Healthcare",
+        "expected_industry": "Healthcare",
+        "expected_industry_confidence": 0.96,
+        "expected_mcc_codes": [
+          "5047",
+          "5122"
+        ],
+        "expected_naics_codes": [
+          "339112",
+          "325412"
+        ],
+        "expected_sic_codes": [
+          "5047",
+          "2834"
+        ],
+        "actual_industry": "Technology",
+        "actual_industry_confidence": 0.385,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 19655711853,
+        "timestamp": "2025-11-30T15:55:29.47069-05:00"
+      },
+      {
+        "test_case_id": 87,
+        "business_name": "Tenet Healthcare",
+        "test_category": "Healthcare",
+        "expected_industry": "Healthcare",
+        "expected_industry_confidence": 0.97,
+        "expected_mcc_codes": [
+          "8062",
+          "8011"
+        ],
+        "expected_naics_codes": [
+          "622110",
+          "621111"
+        ],
+        "expected_sic_codes": [
+          "8062",
+          "8011"
+        ],
+        "actual_industry": "Food \u0026 Beverage",
+        "actual_industry_confidence": 0.535,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 5743780592,
+        "timestamp": "2025-11-30T15:55:29.808689-05:00"
+      },
+      {
+        "test_case_id": 47,
+        "business_name": "UCLA Medical Center",
+        "test_category": "Healthcare",
+        "expected_industry": "Healthcare",
+        "expected_industry_confidence": 0.99,
+        "expected_mcc_codes": [
+          "8062",
+          "8011"
+        ],
+        "expected_naics_codes": [
+          "622110",
+          "621111"
+        ],
+        "expected_sic_codes": [
+          "8062",
+          "8011"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.0405,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 5918920642,
+        "timestamp": "2025-11-30T15:55:29.923775-05:00"
+      },
+      {
+        "test_case_id": 53,
+        "business_name": "UnitedHealth Group Inc.",
+        "test_category": "Healthcare",
+        "expected_industry": "Healthcare",
+        "expected_industry_confidence": 0.98,
+        "expected_mcc_codes": [
+          "6300",
+          "8011"
+        ],
+        "expected_naics_codes": [
+          "524114",
+          "621111"
+        ],
+        "expected_sic_codes": [
+          "6321",
+          "8011"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.1605,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 9176113323,
+        "timestamp": "2025-11-30T15:55:32.621002-05:00"
+      },
+      {
+        "test_case_id": 89,
+        "business_name": "Universal Health Services",
+        "test_category": "Healthcare",
+        "expected_industry": "Healthcare",
+        "expected_industry_confidence": 0.97,
+        "expected_mcc_codes": [
+          "8062",
+          "8011"
+        ],
+        "expected_naics_codes": [
+          "622110",
+          "621111",
+          "622210"
+        ],
+        "expected_sic_codes": [
+          "8062",
+          "8011",
+          "8063"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.3,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 13432346998,
+        "timestamp": "2025-11-30T15:55:35.460122-05:00"
+      },
+      {
+        "test_case_id": 76,
+        "business_name": "Visiting Nurse Association",
+        "test_category": "Healthcare",
+        "expected_industry": "Healthcare",
+        "expected_industry_confidence": 0.93,
+        "expected_mcc_codes": [
+          "8011",
+          "8049"
+        ],
+        "expected_naics_codes": [
+          "621610",
+          "621111"
+        ],
+        "expected_sic_codes": [
+          "8011",
+          "8049"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.3,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 54240758490,
+        "timestamp": "2025-11-30T15:55:35.552455-05:00"
+      },
+      {
+        "test_case_id": 78,
+        "business_name": "Walgreens Boots Alliance",
+        "test_category": "Healthcare",
+        "expected_industry": "Healthcare",
+        "expected_industry_confidence": 0.98,
+        "expected_mcc_codes": [
+          "5912",
+          "5122"
+        ],
+        "expected_naics_codes": [
+          "446191",
+          "621111"
+        ],
+        "expected_sic_codes": [
+          "5912",
+          "8011"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.3,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 56880018336,
+        "timestamp": "2025-11-30T15:55:35.842668-05:00"
+      },
+      {
+        "test_case_id": 148,
+        "business_name": "3M Company",
+        "test_category": "Manufacturing",
+        "expected_industry": "Manufacturing",
+        "expected_industry_confidence": 0.98,
+        "expected_mcc_codes": [
+          "5045",
+          "5046"
+        ],
+        "expected_naics_codes": [
+          "325211",
+          "339991"
+        ],
+        "expected_sic_codes": [
+          "2671",
+          "3999"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.3,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 92812436300,
+        "timestamp": "2025-11-30T15:55:40.473176-05:00"
+      },
+      {
+        "test_case_id": 147,
+        "business_name": "Boeing Company",
+        "test_category": "Manufacturing",
+        "expected_industry": "Manufacturing",
+        "expected_industry_confidence": 0.99,
+        "expected_mcc_codes": [
+          "3720",
+          "3761"
+        ],
+        "expected_naics_codes": [
+          "336411",
+          "336412"
+        ],
+        "expected_sic_codes": [
+          "3721",
+          "3761"
+        ],
+        "actual_industry": "Food \u0026 Beverage",
+        "actual_industry_confidence": 0.535,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 7494714134,
+        "timestamp": "2025-11-30T15:55:41.797073-05:00"
+      },
+      {
+        "test_case_id": 149,
+        "business_name": "Caterpillar Inc.",
+        "test_category": "Manufacturing",
+        "expected_industry": "Manufacturing",
+        "expected_industry_confidence": 0.98,
+        "expected_mcc_codes": [
+          "5085",
+          "5045"
+        ],
+        "expected_naics_codes": [
+          "333120",
+          "333131"
+        ],
+        "expected_sic_codes": [
+          "3531",
+          "3537"
+        ],
+        "actual_industry": "Catering",
+        "actual_industry_confidence": 0.535,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 95983958322,
+        "timestamp": "2025-11-30T15:55:48.892387-05:00"
+      },
+      {
+        "test_case_id": 153,
+        "business_name": "Coca-Cola Company",
+        "test_category": "Manufacturing",
+        "expected_industry": "Manufacturing",
+        "expected_industry_confidence": 0.99,
+        "expected_mcc_codes": [
+          "5441",
+          "5499"
+        ],
+        "expected_naics_codes": [
+          "312111",
+          "312112"
+        ],
+        "expected_sic_codes": [
+          "2086",
+          "2087"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.3,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 46816787361,
+        "timestamp": "2025-11-30T15:55:48.92343-05:00"
+      },
+      {
+        "test_case_id": 145,
+        "business_name": "Ford Motor Company",
+        "test_category": "Manufacturing",
+        "expected_industry": "Manufacturing",
+        "expected_industry_confidence": 0.99,
+        "expected_mcc_codes": [
+          "5511",
+          "5521"
+        ],
+        "expected_naics_codes": [
+          "336111",
+          "336112"
+        ],
+        "expected_sic_codes": [
+          "3711",
+          "3714"
+        ],
+        "actual_industry": "Food \u0026 Beverage",
+        "actual_industry_confidence": 0.535,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 73865980167,
+        "timestamp": "2025-11-30T15:55:49.126277-05:00"
+      },
+      {
+        "test_case_id": 150,
+        "business_name": "General Electric Company",
+        "test_category": "Manufacturing",
+        "expected_industry": "Manufacturing",
+        "expected_industry_confidence": 0.98,
+        "expected_mcc_codes": [
+          "5045",
+          "5046"
+        ],
+        "expected_naics_codes": [
+          "333611",
+          "335311"
+        ],
+        "expected_sic_codes": [
+          "3621",
+          "3612"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.3,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 45851741368,
+        "timestamp": "2025-11-30T15:55:49.291747-05:00"
+      },
+      {
+        "test_case_id": 146,
+        "business_name": "General Motors Company",
+        "test_category": "Manufacturing",
+        "expected_industry": "Manufacturing",
+        "expected_industry_confidence": 0.99,
+        "expected_mcc_codes": [
+          "5511",
+          "5521"
+        ],
+        "expected_naics_codes": [
+          "336111",
+          "336112"
+        ],
+        "expected_sic_codes": [
+          "3711",
+          "3714"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.3,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 44485317146,
+        "timestamp": "2025-11-30T15:56:07.861348-05:00"
+      },
+      {
+        "test_case_id": 154,
+        "business_name": "PepsiCo Inc.",
+        "test_category": "Manufacturing",
+        "expected_industry": "Manufacturing",
+        "expected_industry_confidence": 0.99,
+        "expected_mcc_codes": [
+          "5441",
+          "5499"
+        ],
+        "expected_naics_codes": [
+          "312111",
+          "311919"
+        ],
+        "expected_sic_codes": [
+          "2086",
+          "2095"
+        ],
+        "actual_industry": "Catering",
+        "actual_industry_confidence": 0.4,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 3361165543,
+        "timestamp": "2025-11-30T15:56:29.792881-05:00"
+      },
+      {
+        "test_case_id": 151,
+        "business_name": "Procter \u0026 Gamble Company",
+        "test_category": "Manufacturing",
+        "expected_industry": "Manufacturing",
+        "expected_industry_confidence": 0.98,
+        "expected_mcc_codes": [
+          "5122",
+          "5045"
+        ],
+        "expected_naics_codes": [
+          "325611",
+          "325612"
+        ],
+        "expected_sic_codes": [
+          "2841",
+          "2844"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.3,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 41391207974,
+        "timestamp": "2025-11-30T15:56:32.72231-05:00"
+      },
+      {
+        "test_case_id": 173,
+        "business_name": "Accenture plc",
+        "test_category": "Professional Services",
+        "expected_industry": "Professional Services",
+        "expected_industry_confidence": 0.97,
+        "expected_mcc_codes": [
+          "8742",
+          "7372"
+        ],
+        "expected_naics_codes": [
+          "541611",
+          "541511"
+        ],
+        "expected_sic_codes": [
+          "8742",
+          "7372"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.3,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 22843184532,
+        "timestamp": "2025-11-30T15:56:33.154034-05:00"
+      },
+      {
+        "test_case_id": 172,
+        "business_name": "Bain \u0026 Company",
+        "test_category": "Professional Services",
+        "expected_industry": "Professional Services",
+        "expected_industry_confidence": 0.97,
+        "expected_mcc_codes": [
+          "8742",
+          "8931"
+        ],
+        "expected_naics_codes": [
+          "541611",
+          "541211"
+        ],
+        "expected_sic_codes": [
+          "8742",
+          "8721"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.4105,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 4538669661,
+        "timestamp": "2025-11-30T15:56:35.14319-05:00"
+      },
+      {
+        "test_case_id": 171,
+        "business_name": "Boston Consulting Group",
+        "test_category": "Professional Services",
+        "expected_industry": "Professional Services",
+        "expected_industry_confidence": 0.97,
+        "expected_mcc_codes": [
+          "8742",
+          "8931"
+        ],
+        "expected_naics_codes": [
+          "541611",
+          "541211"
+        ],
+        "expected_sic_codes": [
+          "8742",
+          "8721"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.3,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 27555077667,
+        "timestamp": "2025-11-30T15:56:35.739909-05:00"
+      },
+      {
+        "test_case_id": 166,
+        "business_name": "Deloitte Touche Tohmatsu Limited",
+        "test_category": "Professional Services",
+        "expected_industry": "Professional Services",
+        "expected_industry_confidence": 0.98,
+        "expected_mcc_codes": [
+          "8931",
+          "8742"
+        ],
+        "expected_naics_codes": [
+          "541211",
+          "541611"
+        ],
+        "expected_sic_codes": [
+          "8721",
+          "8742"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.1605,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 42589990318,
+        "timestamp": "2025-11-30T15:56:39.429047-05:00"
+      },
+      {
+        "test_case_id": 168,
+        "business_name": "Ernst \u0026 Young Global Limited",
+        "test_category": "Professional Services",
+        "expected_industry": "Professional Services",
+        "expected_industry_confidence": 0.98,
+        "expected_mcc_codes": [
+          "8931",
+          "8742"
+        ],
+        "expected_naics_codes": [
+          "541211",
+          "541611"
+        ],
+        "expected_sic_codes": [
+          "8721",
+          "8742"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.3,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 37287639082,
+        "timestamp": "2025-11-30T15:56:39.436992-05:00"
+      },
+      {
+        "test_case_id": 169,
+        "business_name": "KPMG International",
+        "test_category": "Professional Services",
+        "expected_industry": "Professional Services",
+        "expected_industry_confidence": 0.98,
+        "expected_mcc_codes": [
+          "8931",
+          "8742"
+        ],
+        "expected_naics_codes": [
+          "541211",
+          "541611"
+        ],
+        "expected_sic_codes": [
+          "8721",
+          "8742"
+        ],
+        "actual_industry": "Food \u0026 Beverage",
+        "actual_industry_confidence": 0.535,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 3124561871,
+        "timestamp": "2025-11-30T15:56:39.681837-05:00"
+      },
+      {
+        "test_case_id": 175,
+        "business_name": "Local Accounting Firm",
+        "test_category": "Professional Services",
+        "expected_industry": "Professional Services",
+        "expected_industry_confidence": 0.9,
+        "expected_mcc_codes": [
+          "8931"
+        ],
+        "expected_naics_codes": [
+          "541211",
+          "541213"
+        ],
+        "expected_sic_codes": [
+          "8721",
+          "8931"
+        ],
+        "actual_industry": "Food \u0026 Beverage",
+        "actual_industry_confidence": 0.5114155277714286,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 10077744966,
+        "timestamp": "2025-11-30T15:56:42.80639-05:00"
+      },
+      {
+        "test_case_id": 174,
+        "business_name": "Local Law Firm",
+        "test_category": "Professional Services",
+        "expected_industry": "Professional Services",
+        "expected_industry_confidence": 0.92,
+        "expected_mcc_codes": [
+          "8111"
+        ],
+        "expected_naics_codes": [
+          "541110",
+          "541199"
+        ],
+        "expected_sic_codes": [
+          "8111",
+          "8111"
+        ],
+        "actual_industry": "Food \u0026 Beverage",
+        "actual_industry_confidence": 0.4904873124571429,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 38873972075,
+        "timestamp": "2025-11-30T15:56:52.346373-05:00"
+      },
+      {
+        "test_case_id": 170,
+        "business_name": "McKinsey \u0026 Company",
+        "test_category": "Professional Services",
+        "expected_industry": "Professional Services",
+        "expected_industry_confidence": 0.97,
+        "expected_mcc_codes": [
+          "8742",
+          "8931"
+        ],
+        "expected_naics_codes": [
+          "541611",
+          "541211"
+        ],
+        "expected_sic_codes": [
+          "8742",
+          "8721"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.3,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 95326084779,
+        "timestamp": "2025-11-30T15:56:52.884076-05:00"
+      },
+      {
+        "test_case_id": 167,
+        "business_name": "PricewaterhouseCoopers LLP",
+        "test_category": "Professional Services",
+        "expected_industry": "Professional Services",
+        "expected_industry_confidence": 0.98,
+        "expected_mcc_codes": [
+          "8931",
+          "8742"
+        ],
+        "expected_naics_codes": [
+          "541211",
+          "541611"
+        ],
+        "expected_sic_codes": [
+          "8721",
+          "8742"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.3,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 7077967517,
+        "timestamp": "2025-11-30T15:56:55.997076-05:00"
+      },
+      {
+        "test_case_id": 135,
+        "business_name": "Adidas AG",
+        "test_category": "Retail",
+        "expected_industry": "Retail",
+        "expected_industry_confidence": 0.98,
+        "expected_mcc_codes": [
+          "5661",
+          "5310"
+        ],
+        "expected_naics_codes": [
+          "448210",
+          "315220"
+        ],
+        "expected_sic_codes": [
+          "5661",
+          "2253"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.4105,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 103570242460,
+        "timestamp": "2025-11-30T15:57:02.991764-05:00"
+      },
+      {
+        "test_case_id": 139,
+        "business_name": "Advance Auto Parts Inc.",
+        "test_category": "Retail",
+        "expected_industry": "Retail",
+        "expected_industry_confidence": 0.98,
+        "expected_mcc_codes": [
+          "5533",
+          "5310"
+        ],
+        "expected_naics_codes": [
+          "441310",
+          "452111"
+        ],
+        "expected_sic_codes": [
+          "5531",
+          "5311"
+        ],
+        "actual_industry": "Bars \u0026 Pubs",
+        "actual_industry_confidence": 0.535,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 47246190809,
+        "timestamp": "2025-11-30T15:57:03.07514-05:00"
+      },
+      {
+        "test_case_id": 127,
+        "business_name": "Amazon.com Inc.",
+        "test_category": "Retail",
+        "expected_industry": "Retail",
+        "expected_industry_confidence": 0.99,
+        "expected_mcc_codes": [
+          "5969",
+          "5310"
+        ],
+        "expected_naics_codes": [
+          "454110",
+          "452111"
+        ],
+        "expected_sic_codes": [
+          "5961",
+          "5311"
+        ],
+        "actual_industry": "Retail",
+        "actual_industry_confidence": 0.75,
+        "actual_mcc_codes": [
+          "5734",
+          "1799",
+          "3601"
+        ],
+        "actual_naics_codes": [
+          "238990",
+          "424350",
+          "425120"
+        ],
+        "actual_sic_codes": [
+          "5734",
+          "1799",
+          "5251"
+        ],
+        "industry_match": true,
+        "industry_accuracy": 1,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0.4,
+        "processing_time": 4225312401,
+        "timestamp": "2025-11-30T15:57:03.294816-05:00"
+      },
+      {
+        "test_case_id": 137,
+        "business_name": "AutoZone Inc.",
+        "test_category": "Retail",
+        "expected_industry": "Retail",
+        "expected_industry_confidence": 0.98,
+        "expected_mcc_codes": [
+          "5533",
+          "5310"
+        ],
+        "expected_naics_codes": [
+          "441310",
+          "452111"
+        ],
+        "expected_sic_codes": [
+          "5531",
+          "5311"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.3,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 6587521868,
+        "timestamp": "2025-11-30T15:57:07.520128-05:00"
+      },
+      {
+        "test_case_id": 130,
+        "business_name": "Best Buy Co. Inc.",
+        "test_category": "Retail",
+        "expected_industry": "Retail",
+        "expected_industry_confidence": 0.98,
+        "expected_mcc_codes": [
+          "5732",
+          "5310"
+        ],
+        "expected_naics_codes": [
+          "443142",
+          "452111"
+        ],
+        "expected_sic_codes": [
+          "5731",
+          "5311"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.3,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 82036987752,
+        "timestamp": "2025-11-30T15:57:13.284991-05:00"
+      },
+      {
+        "test_case_id": 144,
+        "business_name": "Boutique Clothing Store",
+        "test_category": "Retail",
+        "expected_industry": "Retail",
+        "expected_industry_confidence": 0.85,
+        "expected_mcc_codes": [
+          "5651",
+          "5310"
+        ],
+        "expected_naics_codes": [
+          "448110",
+          "452111"
+        ],
+        "expected_sic_codes": [
+          "5651",
+          "5311"
+        ],
+        "actual_industry": "Retail",
+        "actual_industry_confidence": 0.6324639999999999,
+        "actual_mcc_codes": [
+          "5962",
+          "5966",
+          "5968"
+        ],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": true,
+        "industry_accuracy": 1,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0.4,
+        "processing_time": 39829535507,
+        "timestamp": "2025-11-30T15:57:14.107615-05:00"
+      },
+      {
+        "test_case_id": 123,
+        "business_name": "Costco Wholesale Corporation",
+        "test_category": "Retail",
+        "expected_industry": "Retail",
+        "expected_industry_confidence": 0.99,
+        "expected_mcc_codes": [
+          "5310",
+          "5411"
+        ],
+        "expected_naics_codes": [
+          "452910",
+          "445110"
+        ],
+        "expected_sic_codes": [
+          "5311",
+          "5411"
+        ],
+        "actual_industry": "Retail",
+        "actual_industry_confidence": 0.75,
+        "actual_mcc_codes": [
+          "5200",
+          "5541",
+          "5932"
+        ],
+        "actual_naics_codes": [
+          "238990",
+          "424350",
+          "425120"
+        ],
+        "actual_sic_codes": [
+          "1799",
+          "5251",
+          "5261"
+        ],
+        "industry_match": true,
+        "industry_accuracy": 1,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0.4,
+        "processing_time": 95617757687,
+        "timestamp": "2025-11-30T15:57:14.113245-05:00"
+      },
+      {
+        "test_case_id": 140,
+        "business_name": "CVS Pharmacy",
+        "test_category": "Retail",
+        "expected_industry": "Retail",
+        "expected_industry_confidence": 0.98,
+        "expected_mcc_codes": [
+          "5912",
+          "5122"
+        ],
+        "expected_naics_codes": [
+          "446191",
+          "621111"
+        ],
+        "expected_sic_codes": [
+          "5912",
+          "8011"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.3,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 24013798133,
+        "timestamp": "2025-11-30T15:57:16.724386-05:00"
+      },
+      {
+        "test_case_id": 128,
+        "business_name": "eBay Inc.",
+        "test_category": "Retail",
+        "expected_industry": "Retail",
+        "expected_industry_confidence": 0.98,
+        "expected_mcc_codes": [
+          "5969",
+          "5310"
+        ],
+        "expected_naics_codes": [
+          "454110",
+          "452111"
+        ],
+        "expected_sic_codes": [
+          "5961",
+          "5311"
+        ],
+        "actual_industry": "Food Trucks",
+        "actual_industry_confidence": 0.535,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 3790576237,
+        "timestamp": "2025-11-30T15:57:22.018759-05:00"
+      },
+      {
+        "test_case_id": 129,
+        "business_name": "Etsy Inc.",
+        "test_category": "Retail",
+        "expected_industry": "Retail",
+        "expected_industry_confidence": 0.96,
+        "expected_mcc_codes": [
+          "5969",
+          "5310"
+        ],
+        "expected_naics_codes": [
+          "454110",
+          "452111"
+        ],
+        "expected_sic_codes": [
+          "5961",
+          "5311"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.3,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 8591836992,
+        "timestamp": "2025-11-30T15:57:25.809317-05:00"
+      },
+      {
+        "test_case_id": 136,
+        "business_name": "Gap Inc.",
+        "test_category": "Retail",
+        "expected_industry": "Retail",
+        "expected_industry_confidence": 0.97,
+        "expected_mcc_codes": [
+          "5651",
+          "5310"
+        ],
+        "expected_naics_codes": [
+          "448110",
+          "315220"
+        ],
+        "expected_sic_codes": [
+          "5651",
+          "2253"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.3,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 36345613594,
+        "timestamp": "2025-11-30T15:57:31.220092-05:00"
+      },
+      {
+        "test_case_id": 125,
+        "business_name": "Home Depot Inc.",
+        "test_category": "Retail",
+        "expected_industry": "Retail",
+        "expected_industry_confidence": 0.99,
+        "expected_mcc_codes": [
+          "5200",
+          "5310"
+        ],
+        "expected_naics_codes": [
+          "444110",
+          "452111"
+        ],
+        "expected_sic_codes": [
+          "5211",
+          "5311"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.1605,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 9130379710,
+        "timestamp": "2025-11-30T15:57:34.401129-05:00"
+      },
+      {
+        "test_case_id": 124,
+        "business_name": "Kroger Company",
+        "test_category": "Retail",
+        "expected_industry": "Retail",
+        "expected_industry_confidence": 0.99,
+        "expected_mcc_codes": [
+          "5411",
+          "5310"
+        ],
+        "expected_naics_codes": [
+          "445110",
+          "452111"
+        ],
+        "expected_sic_codes": [
+          "5411",
+          "5311"
+        ],
+        "actual_industry": "Fast Food",
+        "actual_industry_confidence": 0.4853520000000001,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 103647356869,
+        "timestamp": "2025-11-30T15:57:40.73803-05:00"
+      },
+      {
+        "test_case_id": 142,
+        "business_name": "Local Bookstore",
+        "test_category": "Retail",
+        "expected_industry": "Retail",
+        "expected_industry_confidence": 0.9,
+        "expected_mcc_codes": [
+          "5942",
+          "5310"
+        ],
+        "expected_naics_codes": [
+          "451211",
+          "452111"
+        ],
+        "expected_sic_codes": [
+          "5942",
+          "5311"
+        ],
+        "actual_industry": "Retail",
+        "actual_industry_confidence": 0.7804424000000001,
+        "actual_mcc_codes": [
+          "5974",
+          "5999",
+          "5961"
+        ],
+        "actual_naics_codes": [
+          "238990",
+          "424350",
+          "425120"
+        ],
+        "actual_sic_codes": [
+          "1799",
+          "5251",
+          "5261"
+        ],
+        "industry_match": true,
+        "industry_accuracy": 1,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0.4,
+        "processing_time": 5890192445,
+        "timestamp": "2025-11-30T15:57:43.531463-05:00"
+      },
+      {
+        "test_case_id": 126,
+        "business_name": "Lowe's Companies Inc.",
+        "test_category": "Retail",
+        "expected_industry": "Retail",
+        "expected_industry_confidence": 0.99,
+        "expected_mcc_codes": [
+          "5200",
+          "5310"
+        ],
+        "expected_naics_codes": [
+          "444110",
+          "452111"
+        ],
+        "expected_sic_codes": [
+          "5211",
+          "5311"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.3,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 35244754597,
+        "timestamp": "2025-11-30T15:57:49.421622-05:00"
+      },
+      {
+        "test_case_id": 131,
+        "business_name": "Macy's Inc.",
+        "test_category": "Retail",
+        "expected_industry": "Retail",
+        "expected_industry_confidence": 0.98,
+        "expected_mcc_codes": [
+          "5310",
+          "5311"
+        ],
+        "expected_naics_codes": [
+          "452111",
+          "448110"
+        ],
+        "expected_sic_codes": [
+          "5311",
+          "5621"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.4105,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 6848783700,
+        "timestamp": "2025-11-30T15:57:50.321022-05:00"
+      },
+      {
+        "test_case_id": 143,
+        "business_name": "Neighborhood Grocery Store",
+        "test_category": "Retail",
+        "expected_industry": "Retail",
+        "expected_industry_confidence": 0.88,
+        "expected_mcc_codes": [
+          "5411",
+          "5310"
+        ],
+        "expected_naics_codes": [
+          "445110",
+          "452111"
+        ],
+        "expected_sic_codes": [
+          "5411",
+          "5311"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.3,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 37329753835,
+        "timestamp": "2025-11-30T15:57:53.936893-05:00"
+      },
+      {
+        "test_case_id": 134,
+        "business_name": "Nike Inc.",
+        "test_category": "Retail",
+        "expected_industry": "Retail",
+        "expected_industry_confidence": 0.98,
+        "expected_mcc_codes": [
+          "5661",
+          "5310"
+        ],
+        "expected_naics_codes": [
+          "448210",
+          "315220"
+        ],
+        "expected_sic_codes": [
+          "5661",
+          "2253"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.3,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 10325320434,
+        "timestamp": "2025-11-30T15:57:57.169766-05:00"
+      },
+      {
+        "test_case_id": 132,
+        "business_name": "Nordstrom Inc.",
+        "test_category": "Retail",
+        "expected_industry": "Retail",
+        "expected_industry_confidence": 0.98,
+        "expected_mcc_codes": [
+          "5310",
+          "5311"
+        ],
+        "expected_naics_codes": [
+          "452111",
+          "448110"
+        ],
+        "expected_sic_codes": [
+          "5311",
+          "5621"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.3,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 6018178975,
+        "timestamp": "2025-11-30T15:58:04.850251-05:00"
+      },
+      {
+        "test_case_id": 138,
+        "business_name": "O'Reilly Automotive Inc.",
+        "test_category": "Retail",
+        "expected_industry": "Retail",
+        "expected_industry_confidence": 0.98,
+        "expected_mcc_codes": [
+          "5533",
+          "5310"
+        ],
+        "expected_naics_codes": [
+          "441310",
+          "452111"
+        ],
+        "expected_sic_codes": [
+          "5531",
+          "5311"
+        ],
+        "actual_industry": "Quick Service",
+        "actual_industry_confidence": 0.535,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 6077317131,
+        "timestamp": "2025-11-30T15:58:07.495026-05:00"
+      },
+      {
+        "test_case_id": 122,
+        "business_name": "Target Corporation",
+        "test_category": "Retail",
+        "expected_industry": "Retail",
+        "expected_industry_confidence": 0.99,
+        "expected_mcc_codes": [
+          "5310",
+          "5411"
+        ],
+        "expected_naics_codes": [
+          "452111",
+          "445110"
+        ],
+        "expected_sic_codes": [
+          "5311",
+          "5411"
+        ],
+        "actual_industry": "Retail",
+        "actual_industry_confidence": 0.75,
+        "actual_mcc_codes": [
+          "5200",
+          "5611",
+          "5621"
+        ],
+        "actual_naics_codes": [
+          "238990",
+          "424350",
+          "425120"
+        ],
+        "actual_sic_codes": [
+          "1799",
+          "5251",
+          "5261"
+        ],
+        "industry_match": true,
+        "industry_accuracy": 1,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0.4,
+        "processing_time": 54041819971,
+        "timestamp": "2025-11-30T15:58:07.565467-05:00"
+      },
+      {
+        "test_case_id": 133,
+        "business_name": "TJX Companies Inc.",
+        "test_category": "Retail",
+        "expected_industry": "Retail",
+        "expected_industry_confidence": 0.97,
+        "expected_mcc_codes": [
+          "5310",
+          "5311"
+        ],
+        "expected_naics_codes": [
+          "452111",
+          "448110"
+        ],
+        "expected_sic_codes": [
+          "5311",
+          "5621"
+        ],
+        "actual_industry": "Food \u0026 Beverage",
+        "actual_industry_confidence": 0.535,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 3170044550,
+        "timestamp": "2025-11-30T15:58:10.8684-05:00"
+      },
+      {
+        "test_case_id": 141,
+        "business_name": "Walgreens",
+        "test_category": "Retail",
+        "expected_industry": "Retail",
+        "expected_industry_confidence": 0.98,
+        "expected_mcc_codes": [
+          "5912",
+          "5122"
+        ],
+        "expected_naics_codes": [
+          "446191",
+          "621111"
+        ],
+        "expected_sic_codes": [
+          "5912",
+          "8011"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.3,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 52295737918,
+        "timestamp": "2025-11-30T15:58:13.572308-05:00"
+      },
+      {
+        "test_case_id": 121,
+        "business_name": "Walmart Inc.",
+        "test_category": "Retail",
+        "expected_industry": "Retail",
+        "expected_industry_confidence": 0.99,
+        "expected_mcc_codes": [
+          "5310",
+          "5411"
+        ],
+        "expected_naics_codes": [
+          "452111",
+          "445110"
+        ],
+        "expected_sic_codes": [
+          "5311",
+          "5411"
+        ],
+        "actual_industry": "Retail",
+        "actual_industry_confidence": 0.75,
+        "actual_mcc_codes": [
+          "5200",
+          "5211",
+          "5251"
+        ],
+        "actual_naics_codes": [
+          "238990",
+          "424350",
+          "425120"
+        ],
+        "actual_sic_codes": [
+          "1799",
+          "5251",
+          "5261"
+        ],
+        "industry_match": true,
+        "industry_accuracy": 1,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0.4,
+        "processing_time": 46134820294,
+        "timestamp": "2025-11-30T15:58:14.03843-05:00"
+      },
+      {
+        "test_case_id": 28,
+        "business_name": "Activision Blizzard",
+        "test_category": "Technology",
+        "expected_industry": "Technology",
+        "expected_industry_confidence": 0.96,
+        "expected_mcc_codes": [
+          "5734",
+          "5045"
+        ],
+        "expected_naics_codes": [
+          "541511",
+          "512110"
+        ],
+        "expected_sic_codes": [
+          "7372",
+          "7812"
+        ],
+        "actual_industry": "Fast Food",
+        "actual_industry_confidence": 0.4789962,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 95362415699,
+        "timestamp": "2025-11-30T15:58:24.666158-05:00"
+      },
+      {
+        "test_case_id": 7,
+        "business_name": "Adobe Systems Inc.",
+        "test_category": "Technology",
+        "expected_industry": "Technology",
+        "expected_industry_confidence": 0.97,
+        "expected_mcc_codes": [
+          "5734",
+          "5045"
+        ],
+        "expected_naics_codes": [
+          "541511",
+          "541512"
+        ],
+        "expected_sic_codes": [
+          "7372",
+          "7371"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.4105,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 70358633015,
+        "timestamp": "2025-11-30T15:58:28.209521-05:00"
+      },
+      {
+        "test_case_id": 4,
+        "business_name": "Amazon Web Services",
+        "test_category": "Technology",
+        "expected_industry": "Technology",
+        "expected_industry_confidence": 0.98,
+        "expected_mcc_codes": [
+          "5734",
+          "5045"
+        ],
+        "expected_naics_codes": [
+          "518210",
+          "541511"
+        ],
+        "expected_sic_codes": [
+          "7372",
+          "7371"
+        ],
+        "actual_industry": "Food \u0026 Beverage",
+        "actual_industry_confidence": 0.375,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 15658363041,
+        "timestamp": "2025-11-30T15:58:31.266406-05:00"
+      },
+      {
+        "test_case_id": 20,
+        "business_name": "AMD Inc.",
+        "test_category": "Technology",
+        "expected_industry": "Technology",
+        "expected_industry_confidence": 0.96,
+        "expected_mcc_codes": [
+          "5045",
+          "5734"
+        ],
+        "expected_naics_codes": [
+          "334413",
+          "541511"
+        ],
+        "expected_sic_codes": [
+          "3674",
+          "7372"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.3,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 101110460923,
+        "timestamp": "2025-11-30T15:58:35.32143-05:00"
+      },
+      {
+        "test_case_id": 25,
+        "business_name": "Anthropic PBC",
+        "test_category": "Technology",
+        "expected_industry": "Technology",
+        "expected_industry_confidence": 0.93,
+        "expected_mcc_codes": [
+          "5734",
+          "5045"
+        ],
+        "expected_naics_codes": [
+          "541511",
+          "541715"
+        ],
+        "expected_sic_codes": [
+          "7372",
+          "8731"
+        ],
+        "actual_industry": "Quick Service",
+        "actual_industry_confidence": 0.535,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 6081898106,
+        "timestamp": "2025-11-30T15:55:06.393964-05:00"
+      },
+      {
+        "test_case_id": 2,
+        "business_name": "Apple Inc.",
+        "test_category": "Technology",
+        "expected_industry": "Technology",
+        "expected_industry_confidence": 0.99,
+        "expected_mcc_codes": [
+          "5734",
+          "5045",
+          "5733"
+        ],
+        "expected_naics_codes": [
+          "541511",
+          "334111",
+          "541512"
+        ],
+        "expected_sic_codes": [
+          "7372",
+          "3571",
+          "7371"
+        ],
+        "actual_industry": "Technology",
+        "actual_industry_confidence": 0.6192115232,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": true,
+        "industry_accuracy": 1,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0.4,
+        "processing_time": 3342326413,
+        "timestamp": "2025-11-30T15:58:46.56132-05:00"
+      },
+      {
+        "test_case_id": 31,
+        "business_name": "Atlassian Corporation",
+        "test_category": "Technology",
+        "expected_industry": "Technology",
+        "expected_industry_confidence": 0.95,
+        "expected_mcc_codes": [
+          "5734",
+          "5045"
+        ],
+        "expected_naics_codes": [
+          "541511",
+          "518210"
+        ],
+        "expected_sic_codes": [
+          "7372",
+          "7371"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.4105,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 39974810866,
+        "timestamp": "2025-11-30T15:57:24.875701-05:00"
+      },
+      {
+        "test_case_id": 21,
+        "business_name": "CrowdStrike Holdings",
+        "test_category": "Technology",
+        "expected_industry": "Technology",
+        "expected_industry_confidence": 0.95,
+        "expected_mcc_codes": [
+          "5734",
+          "5045"
+        ],
+        "expected_naics_codes": [
+          "541511",
+          "541512"
+        ],
+        "expected_sic_codes": [
+          "7372",
+          "7371"
+        ],
+        "actual_industry": "Breweries",
+        "actual_industry_confidence": 0.4,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 5959897925,
+        "timestamp": "2025-11-30T15:58:49.730418-05:00"
+      },
+      {
+        "test_case_id": 15,
+        "business_name": "Datadog Inc.",
+        "test_category": "Technology",
+        "expected_industry": "Technology",
+        "expected_industry_confidence": 0.94,
+        "expected_mcc_codes": [
+          "5734",
+          "5045"
+        ],
+        "expected_naics_codes": [
+          "541511",
+          "518210"
+        ],
+        "expected_sic_codes": [
+          "7372",
+          "7371"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.3,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 63164369957,
+        "timestamp": "2025-11-30T15:58:49.903633-05:00"
+      },
+      {
+        "test_case_id": 16,
+        "business_name": "Dell Technologies",
+        "test_category": "Technology",
+        "expected_industry": "Technology",
+        "expected_industry_confidence": 0.97,
+        "expected_mcc_codes": [
+          "5045",
+          "5734"
+        ],
+        "expected_naics_codes": [
+          "334111",
+          "541511"
+        ],
+        "expected_sic_codes": [
+          "3571",
+          "7372"
+        ],
+        "actual_industry": "Food \u0026 Beverage",
+        "actual_industry_confidence": 0.5110453300000001,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 70930597079,
+        "timestamp": "2025-11-30T15:58:55.69028-05:00"
+      },
+      {
+        "test_case_id": 27,
+        "business_name": "Electronic Arts Inc.",
+        "test_category": "Technology",
+        "expected_industry": "Technology",
+        "expected_industry_confidence": 0.96,
+        "expected_mcc_codes": [
+          "5734",
+          "5045"
+        ],
+        "expected_naics_codes": [
+          "541511",
+          "512110"
+        ],
+        "expected_sic_codes": [
+          "7372",
+          "7812"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.3,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 47021821910,
+        "timestamp": "2025-11-30T15:59:00.172951-05:00"
+      },
+      {
+        "test_case_id": 29,
+        "business_name": "Epic Games Inc.",
+        "test_category": "Technology",
+        "expected_industry": "Technology",
+        "expected_industry_confidence": 0.95,
+        "expected_mcc_codes": [
+          "5734",
+          "5045"
+        ],
+        "expected_naics_codes": [
+          "541511",
+          "512110"
+        ],
+        "expected_sic_codes": [
+          "7372",
+          "7812"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.3,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 8999093532,
+        "timestamp": "2025-11-30T15:59:01.606938-05:00"
+      },
+      {
+        "test_case_id": 23,
+        "business_name": "Fortinet Inc.",
+        "test_category": "Technology",
+        "expected_industry": "Technology",
+        "expected_industry_confidence": 0.95,
+        "expected_mcc_codes": [
+          "5734",
+          "5045"
+        ],
+        "expected_naics_codes": [
+          "541511",
+          "541512"
+        ],
+        "expected_sic_codes": [
+          "7372",
+          "7371"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.3,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 64787759900,
+        "timestamp": "2025-11-30T15:59:05.867698-05:00"
+      },
+      {
+        "test_case_id": 30,
+        "business_name": "GitHub Inc.",
+        "test_category": "Technology",
+        "expected_industry": "Technology",
+        "expected_industry_confidence": 0.95,
+        "expected_mcc_codes": [
+          "5734",
+          "5045"
+        ],
+        "expected_naics_codes": [
+          "541511",
+          "518210"
+        ],
+        "expected_sic_codes": [
+          "7372",
+          "7371"
+        ],
+        "actual_industry": "Technology",
+        "actual_industry_confidence": 0.2375,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": true,
+        "industry_accuracy": 1,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0.4,
+        "processing_time": 9535828551,
+        "timestamp": "2025-11-30T15:59:29.212115-05:00"
+      },
+      {
+        "test_case_id": 3,
+        "business_name": "Google LLC",
+        "test_category": "Technology",
+        "expected_industry": "Technology",
+        "expected_industry_confidence": 0.99,
+        "expected_mcc_codes": [
+          "5734",
+          "5045",
+          "5733"
+        ],
+        "expected_naics_codes": [
+          "518210",
+          "541511",
+          "519130"
+        ],
+        "expected_sic_codes": [
+          "7372",
+          "7371",
+          "7375"
+        ],
+        "actual_industry": "Technology",
+        "actual_industry_confidence": 0.75,
+        "actual_mcc_codes": [
+          "4761",
+          "4814",
+          "4816"
+        ],
+        "actual_naics_codes": [
+          "115114",
+          "115210",
+          "115310"
+        ],
+        "actual_sic_codes": [
+          "1711",
+          "1721",
+          "1743"
+        ],
+        "industry_match": true,
+        "industry_accuracy": 1,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0.4,
+        "processing_time": 15117595349,
+        "timestamp": "2025-11-30T15:59:24.384691-05:00"
+      },
+      {
+        "test_case_id": 17,
+        "business_name": "HP Inc.",
+        "test_category": "Technology",
+        "expected_industry": "Technology",
+        "expected_industry_confidence": 0.97,
+        "expected_mcc_codes": [
+          "5045",
+          "5734"
+        ],
+        "expected_naics_codes": [
+          "334111",
+          "541511"
+        ],
+        "expected_sic_codes": [
+          "3571",
+          "7372"
+        ],
+        "actual_industry": "Food \u0026 Beverage",
+        "actual_industry_confidence": 0.535,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 18606251429,
+        "timestamp": "2025-11-30T15:59:10.605978-05:00"
+      },
+      {
+        "test_case_id": 26,
+        "business_name": "Hugging Face Inc.",
+        "test_category": "Technology",
+        "expected_industry": "Technology",
+        "expected_industry_confidence": 0.92,
+        "expected_mcc_codes": [
+          "5734",
+          "5045"
+        ],
+        "expected_naics_codes": [
+          "541511",
+          "518210"
+        ],
+        "expected_sic_codes": [
+          "7372",
+          "7371"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.3,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 63027091054,
+        "timestamp": "2025-11-30T15:58:46.924673-05:00"
+      },
+      {
+        "test_case_id": 8,
+        "business_name": "IBM Corporation",
+        "test_category": "Technology",
+        "expected_industry": "Technology",
+        "expected_industry_confidence": 0.98,
+        "expected_mcc_codes": [
+          "5734",
+          "5045",
+          "7372"
+        ],
+        "expected_naics_codes": [
+          "541511",
+          "541512",
+          "541611"
+        ],
+        "expected_sic_codes": [
+          "7372",
+          "7371",
+          "8742"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.3,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 42460659564,
+        "timestamp": "2025-11-30T15:59:47.194465-05:00"
+      },
+      {
+        "test_case_id": 18,
+        "business_name": "Intel Corporation",
+        "test_category": "Technology",
+        "expected_industry": "Technology",
+        "expected_industry_confidence": 0.98,
+        "expected_mcc_codes": [
+          "5045",
+          "5734"
+        ],
+        "expected_naics_codes": [
+          "334413",
+          "541511"
+        ],
+        "expected_sic_codes": [
+          "3674",
+          "7372"
+        ],
+        "actual_industry": "Food \u0026 Beverage",
+        "actual_industry_confidence": 0.535,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 3134589969,
+        "timestamp": "2025-11-30T15:59:47.730996-05:00"
+      },
+      {
+        "test_case_id": 41,
+        "business_name": "IT Consulting Services",
+        "test_category": "Technology",
+        "expected_industry": "Technology",
+        "expected_industry_confidence": 0.8,
+        "expected_mcc_codes": [
+          "7372",
+          "5045"
+        ],
+        "expected_naics_codes": [
+          "541511",
+          "541611"
+        ],
+        "expected_sic_codes": [
+          "7371",
+          "8742"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.3,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 42920556890,
+        "timestamp": "2025-11-30T15:59:49.951344-05:00"
+      },
+      {
+        "test_case_id": 40,
+        "business_name": "Local Web Design Agency",
+        "test_category": "Technology",
+        "expected_industry": "Technology",
+        "expected_industry_confidence": 0.85,
+        "expected_mcc_codes": [
+          "7372",
+          "5045"
+        ],
+        "expected_naics_codes": [
+          "541511",
+          "541512"
+        ],
+        "expected_sic_codes": [
+          "7371",
+          "7372"
+        ],
+        "actual_industry": "Food \u0026 Beverage",
+        "actual_industry_confidence": 0.5299847824,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 9569913412,
+        "timestamp": "2025-11-30T15:59:50.865575-05:00"
+      },
+      {
+        "test_case_id": 9,
+        "business_name": "Meta Platforms Inc.",
+        "test_category": "Technology",
+        "expected_industry": "Technology",
+        "expected_industry_confidence": 0.98,
+        "expected_mcc_codes": [
+          "5734",
+          "5045"
+        ],
+        "expected_naics_codes": [
+          "518210",
+          "519130"
+        ],
+        "expected_sic_codes": [
+          "7372",
+          "7371"
+        ],
+        "actual_industry": "Technology",
+        "actual_industry_confidence": 0.75,
+        "actual_mcc_codes": [
+          "5817",
+          "4761",
+          "4814"
+        ],
+        "actual_naics_codes": [
+          "115114",
+          "115210",
+          "115310"
+        ],
+        "actual_sic_codes": [
+          "1711",
+          "1721",
+          "1743"
+        ],
+        "industry_match": true,
+        "industry_accuracy": 1,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0.4,
+        "processing_time": 52460432621,
+        "timestamp": "2025-11-30T15:59:39.502265-05:00"
+      },
+      {
+        "test_case_id": 1,
+        "business_name": "Microsoft Corporation",
+        "test_category": "Technology",
+        "expected_industry": "Technology",
+        "expected_industry_confidence": 0.98,
+        "expected_mcc_codes": [
+          "5734",
+          "5045",
+          "5733"
+        ],
+        "expected_naics_codes": [
+          "541511",
+          "541512",
+          "541519"
+        ],
+        "expected_sic_codes": [
+          "7371",
+          "7372",
+          "7373"
+        ],
+        "actual_industry": "Food \u0026 Beverage",
+        "actual_industry_confidence": 0.375,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 8983159191,
+        "timestamp": "2025-11-30T15:59:38.747889-05:00"
+      },
+      {
+        "test_case_id": 42,
+        "business_name": "Mobile App Development Studio",
+        "test_category": "Technology",
+        "expected_industry": "Technology",
+        "expected_industry_confidence": 0.85,
+        "expected_mcc_codes": [
+          "5734",
+          "5045"
+        ],
+        "expected_naics_codes": [
+          "541511",
+          "541512"
+        ],
+        "expected_sic_codes": [
+          "7371",
+          "7372"
+        ],
+        "actual_industry": "Technology",
+        "actual_industry_confidence": 0.535,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": true,
+        "industry_accuracy": 1,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0.4,
+        "processing_time": 52186302622,
+        "timestamp": "2025-11-30T15:59:47.832659-05:00"
+      },
+      {
+        "test_case_id": 32,
+        "business_name": "MongoDB Inc.",
+        "test_category": "Technology",
+        "expected_industry": "Technology",
+        "expected_industry_confidence": 0.94,
+        "expected_mcc_codes": [
+          "5734",
+          "5045"
+        ],
+        "expected_naics_codes": [
+          "541511",
+          "518210"
+        ],
+        "expected_sic_codes": [
+          "7372",
+          "7371"
+        ],
+        "actual_industry": "Food \u0026 Beverage",
+        "actual_industry_confidence": 0.535,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 9265006432,
+        "timestamp": "2025-11-30T15:59:38.567706-05:00"
+      },
+      {
+        "test_case_id": 10,
+        "business_name": "Netflix Inc.",
+        "test_category": "Technology",
+        "expected_industry": "Technology",
+        "expected_industry_confidence": 0.95,
+        "expected_mcc_codes": [
+          "5734",
+          "5045"
+        ],
+        "expected_naics_codes": [
+          "518210",
+          "512110"
+        ],
+        "expected_sic_codes": [
+          "7372",
+          "7812"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.3,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 27651757793,
+        "timestamp": "2025-11-30T15:59:53.067583-05:00"
+      },
+      {
+        "test_case_id": 19,
+        "business_name": "NVIDIA Corporation",
+        "test_category": "Technology",
+        "expected_industry": "Technology",
+        "expected_industry_confidence": 0.97,
+        "expected_mcc_codes": [
+          "5045",
+          "5734"
+        ],
+        "expected_naics_codes": [
+          "334413",
+          "541511"
+        ],
+        "expected_sic_codes": [
+          "3674",
+          "7372"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.1605,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 9643513359,
+        "timestamp": "2025-11-30T16:00:00.027939-05:00"
+      },
+      {
+        "test_case_id": 36,
+        "business_name": "Okta Inc.",
+        "test_category": "Technology",
+        "expected_industry": "Technology",
+        "expected_industry_confidence": 0.94,
+        "expected_mcc_codes": [
+          "5734",
+          "5045"
+        ],
+        "expected_naics_codes": [
+          "541511",
+          "541512"
+        ],
+        "expected_sic_codes": [
+          "7372",
+          "7371"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.3,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 6104706973,
+        "timestamp": "2025-11-30T16:00:06.620409-05:00"
+      },
+      {
+        "test_case_id": 24,
+        "business_name": "OpenAI LP",
+        "test_category": "Technology",
+        "expected_industry": "Technology",
+        "expected_industry_confidence": 0.94,
+        "expected_mcc_codes": [
+          "5734",
+          "5045"
+        ],
+        "expected_naics_codes": [
+          "541511",
+          "541715"
+        ],
+        "expected_sic_codes": [
+          "7372",
+          "8731"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.3,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 6828972138,
+        "timestamp": "2025-11-30T16:00:09.6714-05:00"
+      },
+      {
+        "test_case_id": 6,
+        "business_name": "Oracle Corporation",
+        "test_category": "Technology",
+        "expected_industry": "Technology",
+        "expected_industry_confidence": 0.98,
+        "expected_mcc_codes": [
+          "5734",
+          "5045"
+        ],
+        "expected_naics_codes": [
+          "541511",
+          "541512"
+        ],
+        "expected_sic_codes": [
+          "7372",
+          "7371"
+        ],
+        "actual_industry": "Catering",
+        "actual_industry_confidence": 0.535,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 6550859574,
+        "timestamp": "2025-11-30T16:00:10.655031-05:00"
+      },
+      {
+        "test_case_id": 34,
+        "business_name": "Palantir Technologies",
+        "test_category": "Technology",
+        "expected_industry": "Technology",
+        "expected_industry_confidence": 0.94,
+        "expected_mcc_codes": [
+          "5734",
+          "5045"
+        ],
+        "expected_naics_codes": [
+          "541511",
+          "541512"
+        ],
+        "expected_sic_codes": [
+          "7372",
+          "7371"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.1605,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 29397470109,
+        "timestamp": "2025-11-30T16:00:12.725092-05:00"
+      },
+      {
+        "test_case_id": 22,
+        "business_name": "Palo Alto Networks",
+        "test_category": "Technology",
+        "expected_industry": "Technology",
+        "expected_industry_confidence": 0.96,
+        "expected_mcc_codes": [
+          "5734",
+          "5045"
+        ],
+        "expected_naics_codes": [
+          "541511",
+          "541512"
+        ],
+        "expected_sic_codes": [
+          "7372",
+          "7371"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.3,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 13575666037,
+        "timestamp": "2025-11-30T16:00:16.431212-05:00"
+      },
+      {
+        "test_case_id": 5,
+        "business_name": "Salesforce.com Inc.",
+        "test_category": "Technology",
+        "expected_industry": "Technology",
+        "expected_industry_confidence": 0.97,
+        "expected_mcc_codes": [
+          "5734",
+          "5045"
+        ],
+        "expected_naics_codes": [
+          "541511",
+          "518210"
+        ],
+        "expected_sic_codes": [
+          "7372",
+          "7371"
+        ],
+        "actual_industry": "Food \u0026 Beverage",
+        "actual_industry_confidence": 0.785,
+        "actual_mcc_codes": [
+          "4214"
+        ],
+        "actual_naics_codes": [
+          "445310",
+          "721110",
+          "721120"
+        ],
+        "actual_sic_codes": [
+          "5814",
+          "5819"
+        ],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 5841044267,
+        "timestamp": "2025-11-30T16:00:16.500334-05:00"
+      },
+      {
+        "test_case_id": 38,
+        "business_name": "ServiceNow Inc.",
+        "test_category": "Technology",
+        "expected_industry": "Technology",
+        "expected_industry_confidence": 0.95,
+        "expected_mcc_codes": [
+          "5734",
+          "5045"
+        ],
+        "expected_naics_codes": [
+          "541511",
+          "518210"
+        ],
+        "expected_sic_codes": [
+          "7372",
+          "7371"
+        ],
+        "actual_industry": "Food \u0026 Beverage",
+        "actual_industry_confidence": 0.535,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 6769787843,
+        "timestamp": "2025-11-30T16:00:17.205853-05:00"
+      },
+      {
+        "test_case_id": 12,
+        "business_name": "Shopify Inc.",
+        "test_category": "Technology",
+        "expected_industry": "Technology",
+        "expected_industry_confidence": 0.96,
+        "expected_mcc_codes": [
+          "5734",
+          "5045"
+        ],
+        "expected_naics_codes": [
+          "541511",
+          "518210"
+        ],
+        "expected_sic_codes": [
+          "7372",
+          "7371"
+        ],
+        "actual_industry": "Retail",
+        "actual_industry_confidence": 0.370944,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 9514244412,
+        "timestamp": "2025-11-30T16:00:20.719159-05:00"
+      },
+      {
+        "test_case_id": 13,
+        "business_name": "Slack Technologies",
+        "test_category": "Technology",
+        "expected_industry": "Technology",
+        "expected_industry_confidence": 0.95,
+        "expected_mcc_codes": [
+          "5734",
+          "5045"
+        ],
+        "expected_naics_codes": [
+          "541511",
+          "518210"
+        ],
+        "expected_sic_codes": [
+          "7372",
+          "7371"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.3,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 37578943279,
+        "timestamp": "2025-11-30T16:00:22.341349-05:00"
+      },
+      {
+        "test_case_id": 33,
+        "business_name": "Snowflake Inc.",
+        "test_category": "Technology",
+        "expected_industry": "Technology",
+        "expected_industry_confidence": 0.95,
+        "expected_mcc_codes": [
+          "5734",
+          "5045"
+        ],
+        "expected_naics_codes": [
+          "518210",
+          "541511"
+        ],
+        "expected_sic_codes": [
+          "7372",
+          "7371"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.3,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 9167041988,
+        "timestamp": "2025-11-30T16:00:23.975611-05:00"
+      },
+      {
+        "test_case_id": 37,
+        "business_name": "Splunk Inc.",
+        "test_category": "Technology",
+        "expected_industry": "Technology",
+        "expected_industry_confidence": 0.94,
+        "expected_mcc_codes": [
+          "5734",
+          "5045"
+        ],
+        "expected_naics_codes": [
+          "541511",
+          "518210"
+        ],
+        "expected_sic_codes": [
+          "7372",
+          "7371"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.3,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 39879231109,
+        "timestamp": "2025-11-30T16:00:29.654855-05:00"
+      },
+      {
+        "test_case_id": 11,
+        "business_name": "Stripe Inc.",
+        "test_category": "Technology",
+        "expected_industry": "Technology",
+        "expected_industry_confidence": 0.96,
+        "expected_mcc_codes": [
+          "5734",
+          "6012"
+        ],
+        "expected_naics_codes": [
+          "541511",
+          "522320"
+        ],
+        "expected_sic_codes": [
+          "7372",
+          "6099"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.4105,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 3711572387,
+        "timestamp": "2025-11-30T16:00:30.006796-05:00"
+      },
+      {
+        "test_case_id": 35,
+        "business_name": "Twilio Inc.",
+        "test_category": "Technology",
+        "expected_industry": "Technology",
+        "expected_industry_confidence": 0.94,
+        "expected_mcc_codes": [
+          "5734",
+          "5045"
+        ],
+        "expected_naics_codes": [
+          "518210",
+          "541511"
+        ],
+        "expected_sic_codes": [
+          "7372",
+          "4813"
+        ],
+        "actual_industry": "Food \u0026 Beverage",
+        "actual_industry_confidence": 0.535,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 3606684696,
+        "timestamp": "2025-11-30T16:00:30.233358-05:00"
+      },
+      {
+        "test_case_id": 39,
+        "business_name": "Workday Inc.",
+        "test_category": "Technology",
+        "expected_industry": "Technology",
+        "expected_industry_confidence": 0.94,
+        "expected_mcc_codes": [
+          "5734",
+          "5045"
+        ],
+        "expected_naics_codes": [
+          "541511",
+          "518210"
+        ],
+        "expected_sic_codes": [
+          "7372",
+          "7371"
+        ],
+        "actual_industry": "Food \u0026 Beverage",
+        "actual_industry_confidence": 0.535,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 1981846286,
+        "timestamp": "2025-11-30T16:00:31.962354-05:00"
+      },
+      {
+        "test_case_id": 14,
+        "business_name": "Zoom Video Communications",
+        "test_category": "Technology",
+        "expected_industry": "Technology",
+        "expected_industry_confidence": 0.96,
+        "expected_mcc_codes": [
+          "5734",
+          "5045"
+        ],
+        "expected_naics_codes": [
+          "541511",
+          "518210"
+        ],
+        "expected_sic_codes": [
+          "7372",
+          "7371"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.3,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 9042820127,
+        "timestamp": "2025-11-30T16:00:32.871621-05:00"
+      },
+      {
+        "test_case_id": 163,
+        "business_name": "American Airlines Group Inc.",
+        "test_category": "Transportation",
+        "expected_industry": "Transportation",
+        "expected_industry_confidence": 0.99,
+        "expected_mcc_codes": [
+          "4511",
+          "4582"
+        ],
+        "expected_naics_codes": [
+          "481111",
+          "481112"
+        ],
+        "expected_sic_codes": [
+          "4512",
+          "4513"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.3,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 95603997140,
+        "timestamp": "2025-11-30T16:00:33.142625-05:00"
+      },
+      {
+        "test_case_id": 162,
+        "business_name": "Delta Air Lines Inc.",
+        "test_category": "Transportation",
+        "expected_industry": "Transportation",
+        "expected_industry_confidence": 0.99,
+        "expected_mcc_codes": [
+          "4511",
+          "4582"
+        ],
+        "expected_naics_codes": [
+          "481111",
+          "481112"
+        ],
+        "expected_sic_codes": [
+          "4512",
+          "4513"
+        ],
+        "actual_industry": "Wineries",
+        "actual_industry_confidence": 0.785,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 38580322345,
+        "timestamp": "2025-11-30T16:00:33.718352-05:00"
+      },
+      {
+        "test_case_id": 160,
+        "business_name": "FedEx Corporation",
+        "test_category": "Transportation",
+        "expected_industry": "Transportation",
+        "expected_industry_confidence": 0.99,
+        "expected_mcc_codes": [
+          "4214",
+          "4511"
+        ],
+        "expected_naics_codes": [
+          "492110",
+          "481111"
+        ],
+        "expected_sic_codes": [
+          "4513",
+          "4512"
+        ],
+        "actual_industry": "Food \u0026 Beverage",
+        "actual_industry_confidence": 0.7725,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [
+          "445310",
+          "721110",
+          "721120"
+        ],
+        "actual_sic_codes": [
+          "5814",
+          "5819"
+        ],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 24783692586,
+        "timestamp": "2025-11-30T16:00:33.84003-05:00"
+      },
+      {
+        "test_case_id": 165,
+        "business_name": "Lyft Inc.",
+        "test_category": "Transportation",
+        "expected_industry": "Transportation",
+        "expected_industry_confidence": 0.95,
+        "expected_mcc_codes": [
+          "4121"
+        ],
+        "expected_naics_codes": [
+          "485310",
+          "485320"
+        ],
+        "expected_sic_codes": [
+          "4121",
+          "4119"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.3,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 38352935545,
+        "timestamp": "2025-11-30T16:00:33.944195-05:00"
+      },
+      {
+        "test_case_id": 164,
+        "business_name": "Uber Technologies Inc.",
+        "test_category": "Transportation",
+        "expected_industry": "Transportation",
+        "expected_industry_confidence": 0.96,
+        "expected_mcc_codes": [
+          "4121",
+          "5812"
+        ],
+        "expected_naics_codes": [
+          "485310",
+          "722513"
+        ],
+        "expected_sic_codes": [
+          "4121",
+          "5812"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.3,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 6866623434,
+        "timestamp": "2025-11-30T16:00:40.018617-05:00"
+      },
+      {
+        "test_case_id": 161,
+        "business_name": "United Parcel Service Inc.",
+        "test_category": "Transportation",
+        "expected_industry": "Transportation",
+        "expected_industry_confidence": 0.99,
+        "expected_mcc_codes": [
+          "4214",
+          "4511"
+        ],
+        "expected_naics_codes": [
+          "492110",
+          "481111"
+        ],
+        "expected_sic_codes": [
+          "4513",
+          "4512"
+        ],
+        "actual_industry": "General Business",
+        "actual_industry_confidence": 0.1605,
+        "actual_mcc_codes": [],
+        "actual_naics_codes": [],
+        "actual_sic_codes": [],
+        "industry_match": false,
+        "industry_accuracy": 0,
+        "mcc_accuracy": 0,
+        "naics_accuracy": 0,
+        "sic_accuracy": 0,
+        "overall_accuracy": 0,
+        "processing_time": 96376634515,
+        "timestamp": "2025-11-30T16:00:00.435432-05:00"
+      }
+    ],
+    "generated_at": "2025-11-30T16:02:08.745978-05:00"
+  },
+  "summary": {
+    "overall_accuracy": 0.03478260869565218,
+    "industry_accuracy": 0.08695652173913043,
+    "code_accuracy": 0,
+    "total_test_cases": 184,
+    "passed_test_cases": 184,
+    "failed_test_cases": 0,
+    "pass_rate": 1,
+    "meets_target": false,
+    "average_processing_time": "29.320676392s"
+  },
+  "category_breakdown": {
+    "Construction": {
+      "category_name": "Construction",
+      "test_count": 5,
+      "overall_accuracy": 0,
+      "industry_accuracy": 0,
+      "mcc_accuracy": 0,
+      "naics_accuracy": 0,
+      "sic_accuracy": 0,
+      "pass_rate": 0
+    },
+    "Edge Cases": {
+      "category_name": "Edge Cases",
+      "test_count": 10,
+      "overall_accuracy": 0.04,
+      "industry_accuracy": 0.1,
+      "mcc_accuracy": 0,
+      "naics_accuracy": 0,
+      "sic_accuracy": 0,
+      "pass_rate": 0
+    },
+    "Financial Services": {
+      "category_name": "Financial Services",
+      "test_count": 31,
+      "overall_accuracy": 0.012903225806451613,
+      "industry_accuracy": 0.03225806451612903,
+      "mcc_accuracy": 0,
+      "naics_accuracy": 0,
+      "sic_accuracy": 0,
+      "pass_rate": 0
+    },
+    "Healthcare": {
+      "category_name": "Healthcare",
+      "test_count": 47,
+      "overall_accuracy": 0.025531914893617023,
+      "industry_accuracy": 0.06382978723404255,
+      "mcc_accuracy": 0,
+      "naics_accuracy": 0,
+      "sic_accuracy": 0,
+      "pass_rate": 0
+    },
+    "Manufacturing": {
+      "category_name": "Manufacturing",
+      "test_count": 9,
+      "overall_accuracy": 0,
+      "industry_accuracy": 0,
+      "mcc_accuracy": 0,
+      "naics_accuracy": 0,
+      "sic_accuracy": 0,
+      "pass_rate": 0
+    },
+    "Professional Services": {
+      "category_name": "Professional Services",
+      "test_count": 10,
+      "overall_accuracy": 0,
+      "industry_accuracy": 0,
+      "mcc_accuracy": 0,
+      "naics_accuracy": 0,
+      "sic_accuracy": 0,
+      "pass_rate": 0
+    },
+    "Retail": {
+      "category_name": "Retail",
+      "test_count": 24,
+      "overall_accuracy": 0.09999999999999999,
+      "industry_accuracy": 0.25,
+      "mcc_accuracy": 0,
+      "naics_accuracy": 0,
+      "sic_accuracy": 0,
+      "pass_rate": 0
+    },
+    "Technology": {
+      "category_name": "Technology",
+      "test_count": 42,
+      "overall_accuracy": 0.047619047619047616,
+      "industry_accuracy": 0.11904761904761904,
+      "mcc_accuracy": 0,
+      "naics_accuracy": 0,
+      "sic_accuracy": 0,
+      "pass_rate": 0
+    },
+    "Transportation": {
+      "category_name": "Transportation",
+      "test_count": 6,
+      "overall_accuracy": 0,
+      "industry_accuracy": 0,
+      "mcc_accuracy": 0,
+      "naics_accuracy": 0,
+      "sic_accuracy": 0,
+      "pass_rate": 0
+    }
+  },
+  "industry_breakdown": {
+    "Construction": {
+      "industry_name": "Construction",
+      "test_count": 5,
+      "overall_accuracy": 0,
+      "industry_accuracy": 0,
+      "mcc_accuracy": 0,
+      "naics_accuracy": 0,
+      "sic_accuracy": 0,
+      "pass_rate": 0
+    },
+    "Financial Services": {
+      "industry_name": "Financial Services",
+      "test_count": 33,
+      "overall_accuracy": 0.012121212121212121,
+      "industry_accuracy": 0.030303030303030304,
+      "mcc_accuracy": 0,
+      "naics_accuracy": 0,
+      "sic_accuracy": 0,
+      "pass_rate": 0
+    },
+    "Gambling": {
+      "industry_name": "Gambling",
+      "test_count": 1,
+      "overall_accuracy": 0,
+      "industry_accuracy": 0,
+      "mcc_accuracy": 0,
+      "naics_accuracy": 0,
+      "sic_accuracy": 0,
+      "pass_rate": 0
+    },
+    "Healthcare": {
+      "industry_name": "Healthcare",
+      "test_count": 47,
+      "overall_accuracy": 0.025531914893617023,
+      "industry_accuracy": 0.06382978723404255,
+      "mcc_accuracy": 0,
+      "naics_accuracy": 0,
+      "sic_accuracy": 0,
+      "pass_rate": 0
+    },
+    "Manufacturing": {
+      "industry_name": "Manufacturing",
+      "test_count": 9,
+      "overall_accuracy": 0,
+      "industry_accuracy": 0,
+      "mcc_accuracy": 0,
+      "naics_accuracy": 0,
+      "sic_accuracy": 0,
+      "pass_rate": 0
+    },
+    "Professional Services": {
+      "industry_name": "Professional Services",
+      "test_count": 14,
+      "overall_accuracy": 0,
+      "industry_accuracy": 0,
+      "mcc_accuracy": 0,
+      "naics_accuracy": 0,
+      "sic_accuracy": 0,
+      "pass_rate": 0
+    },
+    "Retail": {
+      "industry_name": "Retail",
+      "test_count": 25,
+      "overall_accuracy": 0.096,
+      "industry_accuracy": 0.24,
+      "mcc_accuracy": 0,
+      "naics_accuracy": 0,
+      "sic_accuracy": 0,
+      "pass_rate": 0
+    },
+    "Technology": {
+      "industry_name": "Technology",
+      "test_count": 44,
+      "overall_accuracy": 0.05454545454545454,
+      "industry_accuracy": 0.13636363636363635,
+      "mcc_accuracy": 0,
+      "naics_accuracy": 0,
+      "sic_accuracy": 0,
+      "pass_rate": 0
+    },
+    "Transportation": {
+      "industry_name": "Transportation",
+      "test_count": 6,
+      "overall_accuracy": 0,
+      "industry_accuracy": 0,
+      "mcc_accuracy": 0,
+      "naics_accuracy": 0,
+      "sic_accuracy": 0,
+      "pass_rate": 0
+    }
+  },
+  "failure_analysis": {
+    "total_failures": 0,
+    "failure_rate": 0,
+    "common_failure_reasons": {},
+    "industry_failure_patterns": {},
+    "code_type_failure_rates": {
+      "MCC": 1,
+      "NAICS": 1,
+      "SIC": 1
+    },
+    "sample_failures": [
+      {
+        "business_name": "Bechtel Corporation",
+        "expected_industry": "Construction",
+        "actual_industry": "General Business",
+        "expected_mcc_codes": [
+          "1771",
+          "1799"
+        ],
+        "actual_mcc_codes": [],
+        "expected_naics_codes": [
+          "237110",
+          "541330"
+        ],
+        "actual_naics_codes": [],
+        "expected_sic_codes": [
+          "1629",
+          "8711"
+        ],
+        "actual_sic_codes": [],
+        "failure_reason": "Industry mismatch"
+      },
+      {
+        "business_name": "Electrical Contractor Inc.",
+        "expected_industry": "Construction",
+        "actual_industry": "General Business",
+        "expected_mcc_codes": [
+          "1731",
+          "1799"
+        ],
+        "actual_mcc_codes": [],
+        "expected_naics_codes": [
+          "238210",
+          "238110"
+        ],
+        "actual_naics_codes": [],
+        "expected_sic_codes": [
+          "1731",
+          "1799"
+        ],
+        "actual_sic_codes": [],
+        "failure_reason": "Industry mismatch"
+      },
+      {
+        "business_name": "Fluor Corporation",
+        "expected_industry": "Construction",
+        "actual_industry": "General Business",
+        "expected_mcc_codes": [
+          "1771",
+          "1799"
+        ],
+        "actual_mcc_codes": [],
+        "expected_naics_codes": [
+          "237110",
+          "541330"
+        ],
+        "actual_naics_codes": [],
+        "expected_sic_codes": [
+          "1629",
+          "8711"
+        ],
+        "actual_sic_codes": [],
+        "failure_reason": "Industry mismatch"
+      },
+      {
+        "business_name": "Local General Contractor",
+        "expected_industry": "Construction",
+        "actual_industry": "Food \u0026 Beverage",
+        "expected_mcc_codes": [
+          "1799",
+          "1771"
+        ],
+        "actual_mcc_codes": [],
+        "expected_naics_codes": [
+          "236115",
+          "236116"
+        ],
+        "actual_naics_codes": [],
+        "expected_sic_codes": [
+          "1521",
+          "1522"
+        ],
+        "actual_sic_codes": [],
+        "failure_reason": "Industry mismatch"
+      },
+      {
+        "business_name": "Turner Construction Company",
+        "expected_industry": "Construction",
+        "actual_industry": "General Business",
+        "expected_mcc_codes": [
+          "1799",
+          "1771"
+        ],
+        "actual_mcc_codes": [],
+        "expected_naics_codes": [
+          "236220",
+          "236210"
+        ],
+        "actual_naics_codes": [],
+        "expected_sic_codes": [
+          "1541",
+          "1542"
+        ],
+        "actual_sic_codes": [],
+        "failure_reason": "Industry mismatch"
+      },
+      {
+        "business_name": "ABC Corporation",
+        "expected_industry": "Professional Services",
+        "actual_industry": "General Business",
+        "expected_mcc_codes": [
+          "7399",
+          "8742"
+        ],
+        "actual_mcc_codes": [],
+        "expected_naics_codes": [
+          "541611",
+          "541990"
+        ],
+        "actual_naics_codes": [],
+        "expected_sic_codes": [
+          "8742",
+          "7389"
+        ],
+        "actual_sic_codes": [],
+        "failure_reason": "Industry mismatch"
+      },
+      {
+        "business_name": "Crypto Exchange Pro",
+        "expected_industry": "Financial Services",
+        "actual_industry": "Breweries",
+        "expected_mcc_codes": [
+          "6012",
+          "5999"
+        ],
+        "actual_mcc_codes": [],
+        "expected_naics_codes": [
+          "523130",
+          "522320"
+        ],
+        "actual_naics_codes": [],
+        "expected_sic_codes": [
+          "7389",
+          "6099"
+        ],
+        "actual_sic_codes": [],
+        "failure_reason": "Industry mismatch"
+      },
+      {
+        "business_name": "FinTech Innovations",
+        "expected_industry": "Financial Services",
+        "actual_industry": "Food \u0026 Beverage",
+        "expected_mcc_codes": [
+          "6012",
+          "5734"
+        ],
+        "actual_mcc_codes": [],
+        "expected_naics_codes": [
+          "522320",
+          "541511"
+        ],
+        "actual_naics_codes": [],
+        "expected_sic_codes": [
+          "6099",
+          "7372"
+        ],
+        "actual_sic_codes": [],
+        "failure_reason": "Industry mismatch"
+      },
+      {
+        "business_name": "Generic Business LLC",
+        "expected_industry": "Professional Services",
+        "actual_industry": "Wineries",
+        "expected_mcc_codes": [
+          "7399"
+        ],
+        "actual_mcc_codes": [],
+        "expected_naics_codes": [
+          "541611",
+          "541990"
+        ],
+        "actual_naics_codes": [],
+        "expected_sic_codes": [
+          "8742",
+          "7389"
+        ],
+        "actual_sic_codes": [],
+        "failure_reason": "Industry mismatch"
+      },
+      {
+        "business_name": "Gig Economy Platform",
+        "expected_industry": "Technology",
+        "actual_industry": "General Business",
+        "expected_mcc_codes": [
+          "7399",
+          "5734"
+        ],
+        "actual_mcc_codes": [],
+        "expected_naics_codes": [
+          "518210",
+          "541611"
+        ],
+        "actual_naics_codes": [],
+        "expected_sic_codes": [
+          "7372",
+          "8742"
+        ],
+        "actual_sic_codes": [],
+        "failure_reason": "Industry mismatch"
+      }
+    ]
+  },
+  "recommendations": [
+    "Industry accuracy (8.70%) is below target (95%). Consider improving keyword matching and industry detection algorithms.",
+    "Code accuracy (0.00%) is below target (90%). Review code generation logic and keyword-to-code mappings.",
+    "MCC code accuracy (0.00%) needs improvement. Enhance MCC keyword matching and crosswalk data.",
+    "NAICS code accuracy (0.00%) needs improvement. Review NAICS hierarchy and keyword mappings.",
+    "SIC code accuracy (0.00%) needs improvement. Enhance SIC keyword matching and crosswalk data.",
+    "Average processing time (29.32s) is high. Consider optimizing classification algorithms and database queries.",
+    "Category 'Professional Services' has low accuracy (0.00%). Review test cases and improve classification for this category."
+  ]
+}
