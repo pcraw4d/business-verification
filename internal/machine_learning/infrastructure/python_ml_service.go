@@ -133,12 +133,10 @@ func NewPythonMLService(endpoint string, logger *log.Logger) *PythonMLService {
 
 // Initialize initializes the Python ML service
 func (pms *PythonMLService) Initialize(ctx context.Context) error {
-	pms.mu.Lock()
-	defer pms.mu.Unlock()
-
 	pms.logger.Printf("🐍 Initializing Python ML Service at %s", pms.endpoint)
 
-	// Initialize metrics
+	// Initialize metrics and health status (need lock for these)
+	pms.mu.Lock()
 	pms.metrics = &ServiceMetrics{
 		RequestCount:   0,
 		SuccessCount:   0,
@@ -157,13 +155,14 @@ func (pms *PythonMLService) Initialize(ctx context.Context) error {
 		LastCheck: time.Now(),
 		Checks:    make(map[string]HealthCheck),
 	}
+	pms.mu.Unlock()
 
-	// Test connection to Python service
+	// Test connection to Python service (no lock needed)
 	if err := pms.testConnection(ctx); err != nil {
 		return fmt.Errorf("failed to connect to Python ML service: %w", err)
 	}
 
-	// Load available models
+	// Load available models (this will acquire its own lock)
 	if err := pms.loadAvailableModels(ctx); err != nil {
 		pms.logger.Printf("⚠️ Warning: failed to load available models: %v", err)
 	}
