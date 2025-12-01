@@ -964,9 +964,9 @@ async def health():
 @app.get("/models", response_model=List[ModelInfo])
 async def get_models():
     """Get available models"""
+    global model_manager
     # Initialize model_manager if somehow it's None (shouldn't happen, but defensive)
     if model_manager is None:
-        global model_manager
         model_manager = ModelManager(load_models=False)
     
     # Return available models (empty list if models haven't been loaded yet)
@@ -992,9 +992,9 @@ async def get_model_info():
 @app.get("/models/{model_id}/metrics", response_model=ModelMetrics)
 async def get_model_metrics(model_id: str):
     """Get model metrics"""
+    global model_manager
     # Initialize model_manager if somehow it's None (shouldn't happen, but defensive)
     if model_manager is None:
-        global model_manager
         model_manager = ModelManager(load_models=False)
     
     if model_id not in model_manager.models:
