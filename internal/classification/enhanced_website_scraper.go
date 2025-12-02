@@ -13,13 +13,18 @@ import (
 	"time"
 
 	"github.com/andybalholm/brotli"
+	"go.uber.org/zap"
+	"kyb-platform/internal/external"
 )
 
 // EnhancedWebsiteScraper provides advanced website scraping capabilities
+// Now uses the enhanced external.WebsiteScraper with Phase 1 features (multi-tier strategies, structured content)
 type EnhancedWebsiteScraper struct {
-	logger       *log.Logger
-	client       *http.Client
-	contentCache WebsiteContentCacher // Optional cache for website content
+	logger         *log.Logger
+	client         *http.Client
+	contentCache   WebsiteContentCacher // Optional cache for website content
+	externalScraper *external.WebsiteScraper // Enhanced scraper with Phase 1 features
+	zapLogger      *zap.Logger // For external scraper
 }
 
 // WebsiteContentCacher interface for caching website content
@@ -60,9 +65,25 @@ type ScrapingResult struct {
 }
 
 // NewEnhancedWebsiteScraper creates a new enhanced website scraper
+// Now uses external.WebsiteScraper with Phase 1 features (multi-tier strategies, structured content extraction)
 func NewEnhancedWebsiteScraper(logger *log.Logger) *EnhancedWebsiteScraper {
+	// Create zap logger for external scraper (convert std logger to zap)
+	zapLogger := zap.NewNop() // Default to no-op logger
+	if logger != nil {
+		// Try to create a production zap logger
+		if zapLog, err := zap.NewProduction(); err == nil {
+			zapLogger = zapLog
+		}
+	}
+
+	// Create enhanced external scraper with Phase 1 features
+	// This automatically reads PLAYWRIGHT_SERVICE_URL from environment
+	config := external.DefaultScrapingConfig()
+	config.Timeout = 20 * time.Second
+	externalScraper := external.NewWebsiteScraper(config, zapLogger)
+
 	return &EnhancedWebsiteScraper{
-		logger: logger,
+		logger:          logger,
 		client: &http.Client{
 			Timeout: 20 * time.Second,
 			Transport: &http.Transport{
@@ -72,6 +93,8 @@ func NewEnhancedWebsiteScraper(logger *log.Logger) *EnhancedWebsiteScraper {
 				MaxIdleConnsPerHost: 2,
 			},
 		},
+		externalScraper: externalScraper,
+		zapLogger:      zapLogger,
 	}
 }
 
@@ -81,6 +104,7 @@ func (ews *EnhancedWebsiteScraper) SetContentCache(cache WebsiteContentCacher) {
 }
 
 // ScrapeWebsite performs enhanced website scraping with comprehensive error handling
+// Now uses external.WebsiteScraper with Phase 1 features (multi-tier strategies, structured content)
 func (ews *EnhancedWebsiteScraper) ScrapeWebsite(ctx context.Context, websiteURL string) *ScrapingResult {
 	startTime := time.Now()
 	result := &ScrapingResult{
@@ -103,7 +127,68 @@ func (ews *EnhancedWebsiteScraper) ScrapeWebsite(ctx context.Context, websiteURL
 		}
 	}
 
-	ews.logger.Printf("🌐 [Enhanced] Starting enhanced website scraping for: %s", websiteURL)
+	// Use enhanced external scraper with Phase 1 features
+	// This will use multi-tier strategies (SimpleHTTP → BrowserHeaders → Playwright)
+	// and extract structured content with quality scoring
+	if ews.externalScraper != nil {
+		ews.logger.Printf("🌐 [Enhanced] Using Phase 1 enhanced scraper for: %s", websiteURL)
+		
+		// Use ScrapeWebsite which now automatically uses ScrapeWithStructuredContent when strategies are available
+		scrapingResult, err := ews.externalScraper.ScrapeWebsite(ctx, websiteURL)
+		if err == nil && scrapingResult != nil {
+			// Convert external.ScrapingResult to internal.ScrapingResult
+			result.URL = scrapingResult.URL
+			result.StatusCode = scrapingResult.StatusCode
+			result.Content = scrapingResult.Content
+			result.ContentType = scrapingResult.ContentType
+			result.ContentLength = scrapingResult.ContentLength
+			result.Headers = scrapingResult.Headers
+			result.FinalURL = scrapingResult.FinalURL
+			result.ScrapedAt = scrapingResult.ScrapedAt
+			result.Duration = scrapingResult.Duration
+			result.Success = scrapingResult.StatusCode >= 200 && scrapingResult.StatusCode < 300
+
+			// Extract text content from HTML if structured content is available
+			if scrapingResult.StructuredContent != nil {
+				// Use the weighted combined text from structured content
+				result.TextContent = scrapingResult.StructuredContent.PlainText
+				result.Keywords = ews.extractBusinessKeywords(result.TextContent)
+				
+				ews.logger.Printf("✅ [Enhanced] Phase 1 scraper succeeded - Quality: %.2f, Words: %d", 
+					scrapingResult.StructuredContent.QualityScore,
+					scrapingResult.StructuredContent.WordCount)
+			} else {
+				// Fallback to extracting text from HTML
+				result.TextContent = ews.extractTextFromHTML(scrapingResult.Content)
+				result.Keywords = ews.extractBusinessKeywords(result.TextContent)
+			}
+
+			// Cache the result if successful
+			if result.Success && ews.contentCache != nil && ews.contentCache.IsEnabled() {
+				cached := &CachedWebsiteContent{
+					TextContent:    result.TextContent,
+					Title:          ews.extractTitle(scrapingResult.Content),
+					Keywords:       result.Keywords,
+					StructuredData: make(map[string]interface{}),
+					ScrapedAt:      time.Now(),
+					Success:        true,
+					StatusCode:     result.StatusCode,
+					ContentType:    result.ContentType,
+				}
+				ews.contentCache.Set(ctx, websiteURL, cached)
+			}
+
+			return result
+		}
+		
+		// If external scraper failed, log and fall through to legacy method
+		if err != nil {
+			ews.logger.Printf("⚠️ [Enhanced] Phase 1 scraper failed, falling back to legacy method: %v", err)
+		}
+	}
+
+	// Legacy scraping method (fallback if external scraper not available or failed)
+	ews.logger.Printf("🌐 [Enhanced] Starting legacy website scraping for: %s", websiteURL)
 
 	// Validate and normalize URL
 	normalizedURL, err := ews.normalizeURL(websiteURL)
