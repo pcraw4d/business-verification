@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"os"
 	"regexp"
 	"strings"
 	"time"
@@ -68,11 +69,23 @@ type ScrapingResult struct {
 // Now uses external.WebsiteScraper with Phase 1 features (multi-tier strategies, structured content extraction)
 func NewEnhancedWebsiteScraper(logger *log.Logger) *EnhancedWebsiteScraper {
 	// Create zap logger for external scraper (convert std logger to zap)
-	zapLogger := zap.NewNop() // Default to no-op logger
+	// Use production logger that outputs to stdout (Railway will capture this)
+	zapLogger, err := zap.NewProduction()
+	if err != nil {
+		// Fallback to no-op if production logger fails
+		zapLogger = zap.NewNop()
+		if logger != nil {
+			logger.Printf("⚠️ Failed to create zap logger for external scraper, using no-op logger")
+		}
+	}
+
+	// Log initialization with Phase 1 features
 	if logger != nil {
-		// Try to create a production zap logger
-		if zapLog, err := zap.NewProduction(); err == nil {
-			zapLogger = zapLog
+		playwrightURL := os.Getenv("PLAYWRIGHT_SERVICE_URL")
+		if playwrightURL != "" {
+			logger.Printf("✅ [Phase1] Initializing enhanced scraper with Playwright service: %s", playwrightURL)
+		} else {
+			logger.Printf("ℹ️ [Phase1] Initializing enhanced scraper without Playwright (PLAYWRIGHT_SERVICE_URL not set)")
 		}
 	}
 
@@ -132,6 +145,7 @@ func (ews *EnhancedWebsiteScraper) ScrapeWebsite(ctx context.Context, websiteURL
 	// and extract structured content with quality scoring
 	if ews.externalScraper != nil {
 		ews.logger.Printf("🌐 [Enhanced] Using Phase 1 enhanced scraper for: %s", websiteURL)
+		ews.logger.Printf("🔍 [Phase1] Starting scrape with structured content extraction for: %s", websiteURL)
 		
 		// Use ScrapeWebsite which now automatically uses ScrapeWithStructuredContent when strategies are available
 		scrapingResult, err := ews.externalScraper.ScrapeWebsite(ctx, websiteURL)
@@ -154,6 +168,9 @@ func (ews *EnhancedWebsiteScraper) ScrapeWebsite(ctx context.Context, websiteURL
 				result.TextContent = scrapingResult.StructuredContent.PlainText
 				result.Keywords = ews.extractBusinessKeywords(result.TextContent)
 				
+				ews.logger.Printf("✅ [Phase1] Strategy succeeded - Quality: %.2f, Words: %d", 
+					scrapingResult.StructuredContent.QualityScore,
+					scrapingResult.StructuredContent.WordCount)
 				ews.logger.Printf("✅ [Enhanced] Phase 1 scraper succeeded - Quality: %.2f, Words: %d", 
 					scrapingResult.StructuredContent.QualityScore,
 					scrapingResult.StructuredContent.WordCount)
@@ -161,6 +178,7 @@ func (ews *EnhancedWebsiteScraper) ScrapeWebsite(ctx context.Context, websiteURL
 				// Fallback to extracting text from HTML
 				result.TextContent = ews.extractTextFromHTML(scrapingResult.Content)
 				result.Keywords = ews.extractBusinessKeywords(result.TextContent)
+				ews.logger.Printf("⚠️ [Phase1] No structured content available, using HTML extraction")
 			}
 
 			// Cache the result if successful
@@ -183,6 +201,7 @@ func (ews *EnhancedWebsiteScraper) ScrapeWebsite(ctx context.Context, websiteURL
 		
 		// If external scraper failed, log and fall through to legacy method
 		if err != nil {
+			ews.logger.Printf("❌ [Phase1] All scraping strategies failed: %v", err)
 			ews.logger.Printf("⚠️ [Enhanced] Phase 1 scraper failed, falling back to legacy method: %v", err)
 		}
 	}
