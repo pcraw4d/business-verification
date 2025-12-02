@@ -602,3 +602,86 @@ func (m *MockKeywordRepository) UpdateClassificationAccuracy(ctx context.Context
 	return nil
 }
 
+// ClassifyBusinessByKeywordsTrigram performs classification using trigram similarity
+func (m *MockKeywordRepository) ClassifyBusinessByKeywordsTrigram(ctx context.Context, keywords []string, businessName string) (*repository.ClassificationResult, error) {
+	if err := m.errorMap["ClassifyBusinessByKeywordsTrigram"]; err != nil {
+		return nil, err
+	}
+	// Mock implementation - delegate to regular classification
+	return m.ClassifyBusinessByKeywords(ctx, keywords)
+}
+
+// GetIndustryTopicsByKeywords retrieves industry-topic mappings for given keywords
+func (m *MockKeywordRepository) GetIndustryTopicsByKeywords(ctx context.Context, keywords []string) (map[int]float64, error) {
+	if err := m.errorMap["GetIndustryTopicsByKeywords"]; err != nil {
+		return nil, err
+	}
+	// Mock implementation - return empty map (industry_id -> relevance_score)
+	return make(map[int]float64), nil
+}
+
+// GetTopicAccuracy retrieves accuracy score for a topic-industry pair
+func (m *MockKeywordRepository) GetTopicAccuracy(ctx context.Context, industryID int, topic string) (float64, error) {
+	if err := m.errorMap["GetTopicAccuracy"]; err != nil {
+		return 0, err
+	}
+	// Mock implementation - return default accuracy
+	return 0.75, nil
+}
+
+// FindIndustriesByPatterns finds industries matching keyword patterns
+func (m *MockKeywordRepository) FindIndustriesByPatterns(ctx context.Context, patterns []string) ([]*repository.PatternMatchResult, error) {
+	if err := m.errorMap["FindIndustriesByPatterns"]; err != nil {
+		return nil, err
+	}
+	// Mock implementation - return empty slice
+	return []*repository.PatternMatchResult{}, nil
+}
+
+// GetPatternMatches retrieves specific keyword patterns
+func (m *MockKeywordRepository) GetPatternMatches(ctx context.Context, industryID int, patterns []string) ([]*repository.KeywordPattern, error) {
+	if err := m.errorMap["GetPatternMatches"]; err != nil {
+		return nil, err
+	}
+	// Mock implementation - return empty slice
+	return []*repository.KeywordPattern{}, nil
+}
+
+// BatchFindKeywords performs batch keyword lookup (Phase 2.2)
+func (m *MockKeywordRepository) BatchFindKeywords(ctx context.Context, keywords []string) (map[string][]repository.IndustryMatch, error) {
+	if err := m.errorMap["BatchFindKeywords"]; err != nil {
+		return nil, err
+	}
+	// Mock implementation - return empty map
+	result := make(map[string][]repository.IndustryMatch)
+	for _, keyword := range keywords {
+		result[keyword] = []repository.IndustryMatch{}
+	}
+	return result, nil
+}
+
+// BatchFindIndustryTopics performs batch topic lookup (Phase 2.2)
+func (m *MockKeywordRepository) BatchFindIndustryTopics(ctx context.Context, keywords []string) (map[string][]repository.TopicMatch, error) {
+	if err := m.errorMap["BatchFindIndustryTopics"]; err != nil {
+		return nil, err
+	}
+	// Mock implementation - return empty map
+	result := make(map[string][]repository.TopicMatch)
+	for _, keyword := range keywords {
+		result[keyword] = []repository.TopicMatch{}
+	}
+	return result, nil
+}
+
+// FindCodesByFullTextSearch performs full-text search for classification codes (Phase 4.2)
+func (m *MockKeywordRepository) FindCodesByFullTextSearch(ctx context.Context, searchText string, codeType string) ([]*repository.ClassificationCode, error) {
+	if err := m.errorMap["FindCodesByFullTextSearch"]; err != nil {
+		return nil, err
+	}
+	// Mock implementation - return codes matching the type
+	if codes, ok := m.codesByType[codeType]; ok {
+		return codes, nil
+	}
+	return []*repository.ClassificationCode{}, nil
+}
+

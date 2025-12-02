@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"kyb-platform/internal/classification"
 	"kyb-platform/internal/observability"
 	"kyb-platform/internal/routing"
 	"kyb-platform/internal/shared"
@@ -17,26 +18,29 @@ import (
 
 // IntelligentRoutingHandler provides HTTP handlers for the intelligent routing system
 type IntelligentRoutingHandler struct {
-	router       *routing.IntelligentRouter
-	logger       *observability.Logger
-	metrics      *observability.Metrics
-	tracer       trace.Tracer
-	requestIDGen func() string
+	router          *routing.IntelligentRouter
+	detectionService *classification.IndustryDetectionService
+	logger          *observability.Logger
+	metrics         *observability.Metrics
+	tracer          trace.Tracer
+	requestIDGen    func() string
 }
 
 // NewIntelligentRoutingHandler creates a new intelligent routing handler
 func NewIntelligentRoutingHandler(
 	router *routing.IntelligentRouter,
+	detectionService *classification.IndustryDetectionService,
 	logger *observability.Logger,
 	metrics *observability.Metrics,
 	tracer trace.Tracer,
 ) *IntelligentRoutingHandler {
 	return &IntelligentRoutingHandler{
-		router:       router,
-		logger:       logger,
-		metrics:      metrics,
-		tracer:       tracer,
-		requestIDGen: generateRequestID,
+		router:          router,
+		detectionService: detectionService,
+		logger:          logger,
+		metrics:         metrics,
+		tracer:          tracer,
+		requestIDGen:    generateRequestID,
 	}
 }
 
@@ -75,11 +79,53 @@ func (h *IntelligentRoutingHandler) ClassifyBusiness(w http.ResponseWriter, r *h
 		"user_agent":    r.UserAgent(),
 	})
 
-	// Route request through intelligent routing system
-	response, err := h.router.RouteRequest(ctx, req)
+	// FIX: Actually perform classification using detection service
+	if h.detectionService == nil {
+		h.handleError(w, fmt.Errorf("classification service not available"), http.StatusInternalServerError, "service_unavailable", requestID)
+		return
+	}
+
+	classificationResult, err := h.detectionService.DetectIndustry(
+		ctx,
+		req.BusinessName,
+		req.Description,
+		req.WebsiteURL,
+	)
 	if err != nil {
 		h.handleError(w, err, http.StatusInternalServerError, "classification_failed", requestID)
 		return
+	}
+
+	// Convert to API response format
+	response := &shared.BusinessClassificationResponse{
+		ID:                    requestID,
+		BusinessName:          req.BusinessName,
+		DetectedIndustry:      classificationResult.IndustryName,
+		Confidence:            classificationResult.Confidence,
+		ClassificationMethod:  classificationResult.Method,
+		ProcessingTime:        classificationResult.ProcessingTime,
+		CreatedAt:             classificationResult.CreatedAt,
+		Timestamp:             time.Now(),
+		Classifications: []shared.IndustryClassification{
+			{
+				IndustryName:         classificationResult.IndustryName,
+				ConfidenceScore:      classificationResult.Confidence,
+				ClassificationMethod: classificationResult.Method,
+				Keywords:             classificationResult.Keywords,
+			},
+		},
+		PrimaryClassification: &shared.IndustryClassification{
+			IndustryName:         classificationResult.IndustryName,
+			ConfidenceScore:      classificationResult.Confidence,
+			ClassificationMethod: classificationResult.Method,
+			Keywords:             classificationResult.Keywords,
+		},
+		OverallConfidence:     classificationResult.Confidence,
+		ClassificationReasoning: classificationResult.Reasoning,
+		Metadata: map[string]interface{}{
+			"method":     classificationResult.Method,
+			"request_id": requestID,
+		},
 	}
 
 	// Record metrics
@@ -89,6 +135,8 @@ func (h *IntelligentRoutingHandler) ClassifyBusiness(w http.ResponseWriter, r *h
 	h.logger.WithComponent("intelligent_routing_handler").Info("classification_request_completed", map[string]interface{}{
 		"request_id":         requestID,
 		"business_name":      req.BusinessName,
+		"detected_industry":   classificationResult.IndustryName,
+		"confidence":         classificationResult.Confidence,
 		"processing_time_ms": time.Since(startTime).Milliseconds(),
 		"response_status":    "success",
 	})
@@ -148,12 +196,22 @@ func (h *IntelligentRoutingHandler) ClassifyBusinessesBatch(w http.ResponseWrite
 	responses := make([]shared.BusinessClassificationResponse, 0, len(batchReq.Requests))
 	errors := make([]shared.BatchError, 0)
 
+	if h.detectionService == nil {
+		h.handleError(w, fmt.Errorf("classification service not available"), http.StatusInternalServerError, "service_unavailable", requestID)
+		return
+	}
+
 	for i, businessReq := range batchReq.Requests {
 		// Set request ID for each business
 		businessReq.ID = fmt.Sprintf("%s_%d", requestID, i)
 
-		// Route individual business request
-		response, err := h.router.RouteRequest(ctx, &businessReq)
+		// FIX: Actually perform classification using detection service
+		classificationResult, err := h.detectionService.DetectIndustry(
+			ctx,
+			businessReq.BusinessName,
+			businessReq.Description,
+			businessReq.WebsiteURL,
+		)
 		if err != nil {
 			batchError := shared.BatchError{
 				Index:        i,
@@ -170,7 +228,39 @@ func (h *IntelligentRoutingHandler) ClassifyBusinessesBatch(w http.ResponseWrite
 			continue
 		}
 
-		responses = append(responses, *response)
+		// Convert to API response format
+		response := shared.BusinessClassificationResponse{
+			ID:                    businessReq.ID,
+			BusinessName:          businessReq.BusinessName,
+			DetectedIndustry:      classificationResult.IndustryName,
+			Confidence:            classificationResult.Confidence,
+			ClassificationMethod:  classificationResult.Method,
+			ProcessingTime:        classificationResult.ProcessingTime,
+			CreatedAt:             classificationResult.CreatedAt,
+			Timestamp:             time.Now(),
+			Classifications: []shared.IndustryClassification{
+				{
+					IndustryName:         classificationResult.IndustryName,
+					ConfidenceScore:      classificationResult.Confidence,
+					ClassificationMethod: classificationResult.Method,
+					Keywords:             classificationResult.Keywords,
+				},
+			},
+			PrimaryClassification: &shared.IndustryClassification{
+				IndustryName:         classificationResult.IndustryName,
+				ConfidenceScore:      classificationResult.Confidence,
+				ClassificationMethod: classificationResult.Method,
+				Keywords:             classificationResult.Keywords,
+			},
+			OverallConfidence:     classificationResult.Confidence,
+			ClassificationReasoning: classificationResult.Reasoning,
+			Metadata: map[string]interface{}{
+				"method":     classificationResult.Method,
+				"request_id": businessReq.ID,
+			},
+		}
+
+		responses = append(responses, response)
 	}
 
 	// Create batch response
@@ -313,7 +403,18 @@ func (h *IntelligentRoutingHandler) handleError(w http.ResponseWriter, err error
 // writeResponse writes a JSON response with proper headers
 func (h *IntelligentRoutingHandler) writeResponse(w http.ResponseWriter, data interface{}, statusCode int) {
 	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("X-Request-ID", fmt.Sprintf("%v", data.(map[string]interface{})["request_id"]))
+	
+	// Extract request ID from response if available
+	if resp, ok := data.(*shared.BusinessClassificationResponse); ok {
+		w.Header().Set("X-Request-ID", resp.ID)
+	} else if resp, ok := data.(*shared.BatchClassificationResponse); ok {
+		w.Header().Set("X-Request-ID", resp.ID)
+	} else if respMap, ok := data.(map[string]interface{}); ok {
+		if reqID, exists := respMap["request_id"]; exists {
+			w.Header().Set("X-Request-ID", fmt.Sprintf("%v", reqID))
+		}
+	}
+	
 	w.WriteHeader(statusCode)
 
 	if err := json.NewEncoder(w).Encode(data); err != nil {

@@ -5,6 +5,7 @@ import (
 
 	"kyb-platform/internal/api/handlers"
 	"kyb-platform/internal/api/middleware"
+	"kyb-platform/internal/classification"
 	"kyb-platform/internal/observability"
 	"kyb-platform/internal/routing"
 
@@ -24,22 +25,32 @@ type RouteConfig struct {
 
 // RegisterRoutes registers all API routes with the given mux
 func RegisterRoutes(mux *http.ServeMux, config *RouteConfig) {
-	// Register intelligent routing endpoints
-	registerIntelligentRoutingRoutes(mux, config)
+	// Register intelligent routing endpoints (only if handler is provided)
+	if config.IntelligentRoutingHandler != nil {
+		registerIntelligentRoutingRoutes(mux, config)
+	}
 
 	// Register enhanced business intelligence endpoints
 	if config.EnableEnhancedFeatures {
 		registerEnhancedBusinessIntelligenceRoutes(mux, config)
 	}
 
-	// Register backward compatibility endpoints
-	if config.EnableBackwardCompatibility {
+	// Register backward compatibility endpoints (only if handler is provided)
+	if config.EnableBackwardCompatibility && config.IntelligentRoutingHandler != nil {
 		registerBackwardCompatibilityRoutes(mux, config)
 	}
 }
 
 // registerIntelligentRoutingRoutes registers the intelligent routing system endpoints
 func registerIntelligentRoutingRoutes(mux *http.ServeMux, config *RouteConfig) {
+	// Skip registration if handler is not provided
+	if config.IntelligentRoutingHandler == nil {
+		if config.Logger != nil {
+			config.Logger.Info("Intelligent routing handler not provided, skipping route registration", map[string]interface{}{})
+		}
+		return
+	}
+
 	// Enhanced classification endpoints using intelligent routing
 	mux.HandleFunc("POST /v2/classify", config.IntelligentRoutingHandler.ClassifyBusiness)
 	mux.HandleFunc("POST /v2/classify/batch", config.IntelligentRoutingHandler.ClassifyBusinessBatch)
@@ -48,15 +59,17 @@ func registerIntelligentRoutingRoutes(mux *http.ServeMux, config *RouteConfig) {
 	mux.HandleFunc("GET /v2/routing/health", config.IntelligentRoutingHandler.GetRoutingHealth)
 	mux.HandleFunc("GET /v2/routing/metrics", config.IntelligentRoutingHandler.GetRoutingMetrics)
 
-	config.Logger.Info("Intelligent routing routes registered", map[string]interface{}{
-		"version": "v2",
-		"endpoints": []string{
-			"POST /v2/classify",
-			"POST /v2/classify/batch",
-			"GET /v2/routing/health",
-			"GET /v2/routing/metrics",
-		},
-	})
+	if config.Logger != nil {
+		config.Logger.Info("Intelligent routing routes registered", map[string]interface{}{
+			"version": "v2",
+			"endpoints": []string{
+				"POST /v2/classify",
+				"POST /v2/classify/batch",
+				"GET /v2/routing/health",
+				"GET /v2/routing/metrics",
+			},
+		})
+	}
 }
 
 // registerEnhancedBusinessIntelligenceRoutes registers enhanced business intelligence endpoints
@@ -94,8 +107,11 @@ func registerEnhancedBusinessIntelligenceRoutes(mux *http.ServeMux, config *Rout
 	mux.HandleFunc("GET /v2/business-intelligence/aggregation/jobs/list", config.BusinessIntelligenceHandler.ListBusinessIntelligenceAggregationJobs)
 
 	// Enhanced business intelligence endpoints (legacy compatibility)
-	mux.HandleFunc("POST /v2/business-intelligence/enhanced-classify", config.IntelligentRoutingHandler.ClassifyBusiness)
-	mux.HandleFunc("POST /v2/business-intelligence/batch-enhanced", config.IntelligentRoutingHandler.ClassifyBusinessBatch)
+	// Only register if intelligent routing handler is provided
+	if config.IntelligentRoutingHandler != nil {
+		mux.HandleFunc("POST /v2/business-intelligence/enhanced-classify", config.IntelligentRoutingHandler.ClassifyBusiness)
+		mux.HandleFunc("POST /v2/business-intelligence/batch-enhanced", config.IntelligentRoutingHandler.ClassifyBusinessBatch)
+	}
 
 	// Business intelligence analytics endpoints
 	mux.HandleFunc("GET /v2/business-intelligence/analytics", func(w http.ResponseWriter, r *http.Request) {
@@ -167,6 +183,14 @@ func registerEnhancedBusinessIntelligenceRoutes(mux *http.ServeMux, config *Rout
 
 // registerBackwardCompatibilityRoutes registers backward compatibility endpoints
 func registerBackwardCompatibilityRoutes(mux *http.ServeMux, config *RouteConfig) {
+	// Skip registration if handler is not provided
+	if config.IntelligentRoutingHandler == nil {
+		if config.Logger != nil {
+			config.Logger.Info("Intelligent routing handler not provided, skipping backward compatibility routes", map[string]interface{}{})
+		}
+		return
+	}
+
 	// Legacy v1 endpoints that route through intelligent routing system
 	mux.HandleFunc("POST /v1/classify", config.IntelligentRoutingHandler.ClassifyBusiness)
 	mux.HandleFunc("POST /v1/classify/batch", config.IntelligentRoutingHandler.ClassifyBusinessBatch)
@@ -196,11 +220,12 @@ func registerBackwardCompatibilityRoutes(mux *http.ServeMux, config *RouteConfig
 // CreateIntelligentRoutingHandler creates and configures the intelligent routing handler
 func CreateIntelligentRoutingHandler(
 	router *routing.IntelligentRouter,
+	detectionService *classification.IndustryDetectionService,
 	logger *observability.Logger,
 	metrics *observability.Metrics,
 	tracer trace.Tracer,
 ) *handlers.IntelligentRoutingHandler {
-	return handlers.NewIntelligentRoutingHandler(router, logger, metrics, tracer)
+	return handlers.NewIntelligentRoutingHandler(router, detectionService, logger, metrics, tracer)
 }
 
 // CreateBusinessIntelligenceHandler creates and configures the business intelligence handler

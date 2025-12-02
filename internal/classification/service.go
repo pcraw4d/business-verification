@@ -40,6 +40,14 @@ func NewClassificationMetrics() *ClassificationMetrics {
 	}
 }
 
+// inFlightRequest tracks an in-flight classification request for deduplication
+type inFlightRequest struct {
+	resultChan chan *IndustryDetectionResult
+	errChan    chan error
+	done       bool
+	mu         sync.Mutex
+}
+
 // IndustryDetectionService provides database-driven industry classification
 type IndustryDetectionService struct {
 	repo                 repository.KeywordRepository
@@ -50,6 +58,7 @@ type IndustryDetectionService struct {
 	pythonMLService        interface{}                          // Optional: *infrastructure.PythonMLService - using interface to avoid import cycle
 	useML                  bool                                 // Flag to enable ML
 	metrics                *ClassificationMetrics               // Classification accuracy metrics
+	inFlightRequests       sync.Map                             // map[string]*inFlightRequest - for request deduplication
 }
 
 // NewIndustryDetectionService creates a new industry detection service
@@ -227,9 +236,78 @@ type IndustryDetectionResult struct {
 	CreatedAt      time.Time     `json:"created_at"`
 }
 
+// normalizeString normalizes a string for cache key generation
+func normalizeString(s string) string {
+	return strings.ToLower(strings.TrimSpace(s))
+}
+
 // DetectIndustry performs database-driven industry detection using multi-strategy classification
 // Phase 3.1: Enhanced with three-tier confidence-based ML strategy
+// Fix: Added request deduplication to prevent duplicate processing
 func (s *IndustryDetectionService) DetectIndustry(ctx context.Context, businessName, description, websiteURL string) (*IndustryDetectionResult, error) {
+	// Generate cache key for deduplication
+	cacheKey := fmt.Sprintf("%s|%s|%s", normalizeString(businessName), normalizeString(description), normalizeString(websiteURL))
+	
+	// Check for in-flight request
+	if existing, found := s.inFlightRequests.Load(cacheKey); found {
+		req := existing.(*inFlightRequest)
+		req.mu.Lock()
+		if !req.done {
+			req.mu.Unlock()
+			// Wait for existing request
+			s.logger.Printf("♻️ [Deduplication] Reusing in-flight request for: %s", businessName)
+			select {
+			case result := <-req.resultChan:
+				return result, nil
+			case err := <-req.errChan:
+				return nil, err
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			}
+		}
+		req.mu.Unlock()
+	}
+	
+	// Create new in-flight request
+	resultChan := make(chan *IndustryDetectionResult, 1)
+	errChan := make(chan error, 1)
+	inFlight := &inFlightRequest{
+		resultChan: resultChan,
+		errChan:    errChan,
+		done:       false,
+	}
+	s.inFlightRequests.Store(cacheKey, inFlight)
+	
+	// Perform classification in goroutine
+	go func() {
+		result, err := s.performClassification(ctx, businessName, description, websiteURL)
+		inFlight.mu.Lock()
+		inFlight.done = true
+		inFlight.mu.Unlock()
+		if err != nil {
+			errChan <- err
+		} else {
+			resultChan <- result
+		}
+		// Clean up after a delay to allow concurrent requests to read
+		time.AfterFunc(5*time.Second, func() {
+			s.inFlightRequests.Delete(cacheKey)
+		})
+	}()
+	
+	// Wait for result
+	select {
+	case result := <-resultChan:
+		return result, nil
+	case err := <-errChan:
+		return nil, err
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
+}
+
+// performClassification performs the actual classification (moved from DetectIndustry)
+func (s *IndustryDetectionService) performClassification(ctx context.Context, businessName, description, websiteURL string) (*IndustryDetectionResult, error) {
 	startTime := time.Now()
 	requestID := s.generateRequestID()
 

@@ -293,10 +293,36 @@ func (pc *PredictiveCache) classifyAndCache(
 	return result, nil
 }
 
+// normalizeBusinessName normalizes a business name for cache key generation
+func normalizeBusinessName(name string) string {
+	// Trim whitespace
+	name = strings.TrimSpace(name)
+	
+	// Remove common prefixes
+	name = strings.TrimPrefix(name, "The ")
+	name = strings.TrimPrefix(name, "A ")
+	
+	// Remove common suffixes (case-insensitive)
+	suffixes := []string{" Inc", " LLC", " Corp", " Ltd", " Co", " Inc.", " LLC.", " Corp.", " Ltd.", " Co.",
+		" inc", " llc", " corp", " ltd", " co", " inc.", " llc.", " corp.", " ltd.", " co."}
+	for _, suffix := range suffixes {
+		if strings.HasSuffix(name, suffix) {
+			name = strings.TrimSuffix(name, suffix)
+		}
+	}
+	
+	// Lowercase and trim again
+	return strings.ToLower(strings.TrimSpace(name))
+}
+
 // generateCacheKey generates a cache key from business information
+// Fix: Normalizes business name to improve cache hit rate
 func (pc *PredictiveCache) generateCacheKey(businessName, description, websiteURL string) string {
+	// Normalize business name for better cache matching
+	normalizedName := normalizeBusinessName(businessName)
+	
 	data := fmt.Sprintf("%s|%s|%s", 
-		strings.ToLower(strings.TrimSpace(businessName)),
+		normalizedName,
 		strings.ToLower(strings.TrimSpace(description)),
 		strings.ToLower(strings.TrimSpace(websiteURL)))
 	

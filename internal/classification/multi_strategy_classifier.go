@@ -192,6 +192,7 @@ func (msc *MultiStrategyClassifier) ClassifyWithMultiStrategy(
 	// Get results
 	keywords := <-keywordsChan
 	if err := <-keywordsErrChan; err != nil {
+		msc.logger.Printf("❌ [MultiStrategy] Failed to extract keywords: %v", err)
 		return nil, fmt.Errorf("failed to extract keywords: %w", err)
 	}
 
@@ -212,12 +213,16 @@ func (msc *MultiStrategyClassifier) ClassifyWithMultiStrategy(
 		}
 		
 		msc.logger.Printf("⚠️ [MultiStrategy] No keywords extracted")
-		return &MultiStrategyResult{
+		result := &MultiStrategyResult{
 			PrimaryIndustry: "General Business",
 			Confidence:      0.30,
 			ProcessingTime:  time.Since(startTime),
 			Keywords:        []string{},
-		}, nil
+			Reasoning:       "No keywords extracted from business name or website",
+		}
+		msc.logger.Printf("✅ [MultiStrategy] Classification completed (early return): %s (confidence: %.2f%%)",
+			result.PrimaryIndustry, result.Confidence*100)
+		return result, nil
 	}
 
 	msc.logger.Printf("📊 [MultiStrategy] Extracted %d keywords and %d entities", len(keywords), len(entities))

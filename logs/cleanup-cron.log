@@ -348,3 +348,6 @@ Please install the missing dependencies before running.
 [0;34mℹ[0m Checking dependencies...
 Please install the missing dependencies before running.
 [0;34mℹ[0m Cleanup runner terminated
+Tue Dec  2 06:00:24 EST 2025: Starting cleanup health check
+ALERT: Disk usage is 94% - cleanup may be needed
+Tue Dec  2 06:00:24 EST 2025: Cleanup health check failed
