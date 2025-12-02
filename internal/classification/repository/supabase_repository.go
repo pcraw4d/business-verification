@@ -552,70 +552,7 @@ type WebsiteScraperInterface interface {
 
 // NewSupabaseKeywordRepository creates a new Supabase-based keyword repository
 func NewSupabaseKeywordRepository(client *database.SupabaseClient, logger *log.Logger) *SupabaseKeywordRepository {
-	if logger == nil {
-		logger = log.Default()
-	}
-
-	// Initialize adapters if not already initialized (lazy initialization)
-	// This will be called from adapters.Init() in production, but we ensure it's available
-	if NewStructuredDataExtractorAdapter == nil || NewSmartWebsiteCrawlerAdapter == nil {
-		logger.Printf("⚠️ [Repository] Adapters not initialized - some features may not work. Call adapters.Init() before using repository.")
-	}
-
-	// Default cache configuration
-	cacheConfig := &IndustryCodeCacheConfig{
-		Enabled:         true,
-		TTL:             30 * time.Minute, // Cache industry codes for 30 minutes
-		MaxSize:         1000,             // Cache up to 1000 industry code sets
-		WarmingEnabled:  true,
-		WarmingInterval: 5 * time.Minute, // Warm cache every 5 minutes
-		InvalidationRules: []string{
-			"industry_codes:*",       // Invalidate all industry codes
-			"classification_codes:*", // Invalidate all classification codes
-		},
-	}
-
-	// Initialize intelligent cache for industry codes
-	// Note: We'll implement the full IntelligentCache integration later
-	// For now, we'll use a nil cache and implement basic caching logic
-	var intelligentCache *cache.IntelligentCache
-
-	return &SupabaseKeywordRepository{
-		client:          client,
-		clientInterface: nil, // Not needed for concrete client
-		logger:          logger,
-		keywordIndex: &KeywordIndex{
-			KeywordToIndustries: make(map[string][]IndustryKeywordMatch),
-			IndustryToKeywords:  make(map[int][]*KeywordWeight),
-			LastUpdated:         0,
-		},
-		industryCodeCache: intelligentCache,
-		cacheConfig:       cacheConfig,
-		cacheStats:        &IndustryCodeCacheStats{},
-		brandMatcher:      NewBrandMatcher(logger),
-		// Phase 9.1: Initialize regex cache and content size limit
-		regexCache:     make(map[string]*regexp.Regexp),
-		regexMutex:     sync.RWMutex{},
-		maxContentSize: 50 * 1024, // 50KB limit
-		// Phase 9.2: Initialize DNS cache
-		dnsCache: make(map[string]dnsCacheEntry),
-		dnsMutex: sync.RWMutex{},
-		// Phase 9.3: Initialize rate limiter
-		rateLimiter: make(map[string]time.Time),
-		rateMutex:   sync.Mutex{},
-		minDelay:    getRateLimitDelay(), // Configurable delay (default: 3s, min: 2s, max: 10s)
-		// Session management for cookies and referer tracking
-		sessionManager: newScrapingSessionManager(),
-		// Word segmentation for compound domain names
-		segmenter: word_segmentation.NewSegmenter(),
-		// NLP components for enhanced keyword extraction
-		entityRecognizer: nlp.NewEntityRecognizer(),
-		topicModeler:     nlp.NewTopicModeler(),
-		// Enhanced keyword matching
-		keywordMatcher: NewKeywordMatcher(),
-		// Phase 1: Enhanced website scraper with multi-tier strategies
-		websiteScraper: websiteScraper,
-	}
+	return NewSupabaseKeywordRepositoryWithScraper(client, logger, nil)
 }
 
 // NewSupabaseKeywordRepositoryWithScraper creates a new Supabase-based keyword repository with Phase 1 enhanced scraper
@@ -670,7 +607,7 @@ func NewSupabaseKeywordRepositoryWithScraper(client *database.SupabaseClient, lo
 		entityRecognizer:  nlp.NewEntityRecognizer(),
 		topicModeler:      nlp.NewTopicModeler(),
 		keywordMatcher:    NewKeywordMatcher(),
-		websiteScraper:    websiteScraper,
+		websiteScraper:    websiteScraper, // Phase 1: Enhanced scraper with multi-tier strategies
 	}
 }
 
