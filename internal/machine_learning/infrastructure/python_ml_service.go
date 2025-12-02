@@ -61,9 +61,10 @@ type PythonMLServiceConfig struct {
 	ModelUpdateInterval time.Duration `json:"model_update_interval"`
 
 	// Performance configuration
-	MaxBatchSize        int           `json:"max_batch_size"`
-	InferenceTimeout    time.Duration `json:"inference_timeout"`
-	ModelLoadingTimeout time.Duration `json:"model_loading_timeout"`
+	MaxBatchSize            int           `json:"max_batch_size"`
+	InferenceTimeout        time.Duration `json:"inference_timeout"`
+	ModelLoadingTimeout     time.Duration `json:"model_loading_timeout"`
+	LightweightModelTimeout time.Duration `json:"lightweight_model_timeout"` // Timeout for lightweight model fast-path
 
 	// Resource limits
 	MaxMemoryUsage      int64 `json:"max_memory_usage"` // in MB
@@ -105,24 +106,25 @@ func NewPythonMLService(endpoint string, logger *log.Logger) *PythonMLService {
 	circuitBreakerConfig.ResetTimeout = 120 * time.Second // Increased from 60s
 	circuitBreaker := resilience.NewCircuitBreaker(circuitBreakerConfig)
 
-	return &PythonMLService{
-		endpoint: normalizedEndpoint,
-		config: PythonMLServiceConfig{
-			DefaultModelType:    "bert",
-			SupportedModelTypes: []string{"bert", "distilbert", "custom"},
-			ModelCacheEnabled:   true,
-			ModelCacheSize:      10,
-			ModelUpdateInterval: 24 * time.Hour,
-			MaxBatchSize:        32,
-			InferenceTimeout:    5 * time.Second,
-			ModelLoadingTimeout: 30 * time.Second,
-			MaxMemoryUsage:      4096, // 4GB
-			MaxCPUUsage:         80,   // 80%
-			MaxConcurrentModels: 5,
-			MetricsEnabled:      true,
-			PerformanceTracking: true,
-			ModelVersioning:     true,
-		},
+		return &PythonMLService{
+			endpoint: normalizedEndpoint,
+			config: PythonMLServiceConfig{
+				DefaultModelType:        "bert",
+				SupportedModelTypes:     []string{"bert", "distilbert", "custom"},
+				ModelCacheEnabled:       true,
+				ModelCacheSize:          10,
+				ModelUpdateInterval:      24 * time.Hour,
+				MaxBatchSize:            32,
+				InferenceTimeout:        5 * time.Second,
+				ModelLoadingTimeout:      30 * time.Second,
+				LightweightModelTimeout:  5 * time.Second, // Default 5s for fast-path
+				MaxMemoryUsage:           4096, // 4GB
+				MaxCPUUsage:              80,   // 80%
+				MaxConcurrentModels:      5,
+				MetricsEnabled:           true,
+				PerformanceTracking:      true,
+				ModelVersioning:          true,
+			},
 		models:         make(map[string]*MLModel),
 		httpClient:      httpClient,
 		logger:         logger,
@@ -438,8 +440,13 @@ func (pms *PythonMLService) ClassifyFast(
 
 		httpReq.Header.Set("Content-Type", "application/json")
 
-		// Execute request with shorter timeout for fast path
-		fastCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+		// Execute request with timeout for fast path
+		// Use configurable timeout with default fallback
+		lightweightTimeout := pms.config.LightweightModelTimeout
+		if lightweightTimeout == 0 {
+			lightweightTimeout = 5 * time.Second // Default fallback
+		}
+		fastCtx, cancel := context.WithTimeout(ctx, lightweightTimeout)
 		defer cancel()
 		httpReq = httpReq.WithContext(fastCtx)
 

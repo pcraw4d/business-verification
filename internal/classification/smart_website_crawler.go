@@ -436,10 +436,11 @@ func (c *SmartWebsiteCrawler) CrawlWebsite(ctx context.Context, websiteURL strin
 	c.logger.Printf("🔄 [SmartCrawler] [PARALLEL] Parallel analysis completed in %v - %d pages analyzed", parallelDuration, len(pageAnalyses))
 	
 	// Check if we have sufficient content after parallel analysis
-	if len(pageAnalyses) >= 2 && c.hasSufficientContent(pageAnalyses) {
+	// Regular crawl mode (not fast-path)
+	if len(pageAnalyses) >= 2 && c.hasSufficientContent(pageAnalyses, false) {
 		c.logger.Printf("✅ [SmartCrawler] [PARALLEL] Sufficient content gathered (pages: %d, duration: %v)", len(pageAnalyses), parallelDuration)
 	} else {
-		c.logger.Printf("⚠️ [SmartCrawler] [PARALLEL] Content quality check: pages=%d, sufficient=%v", len(pageAnalyses), len(pageAnalyses) >= 2 && c.hasSufficientContent(pageAnalyses))
+		c.logger.Printf("⚠️ [SmartCrawler] [PARALLEL] Content quality check: pages=%d, sufficient=%v", len(pageAnalyses), len(pageAnalyses) >= 2 && c.hasSufficientContent(pageAnalyses, false))
 	}
 	
 	result.PagesAnalyzed = pageAnalyses
@@ -559,10 +560,11 @@ func (c *SmartWebsiteCrawler) CrawlWebsiteFast(ctx context.Context, websiteURL s
 	c.logger.Printf("🚀 [SmartCrawler] [FAST-PATH] Parallel analysis completed in %v - %d pages analyzed", parallelDuration, len(pageAnalyses))
 	
 	// Check if we have sufficient content after parallel analysis
-	if len(pageAnalyses) >= 2 && c.hasSufficientContent(pageAnalyses) {
+	// Fast-path mode (use lenient thresholds)
+	if len(pageAnalyses) >= 2 && c.hasSufficientContent(pageAnalyses, true) {
 		c.logger.Printf("✅ [SmartCrawler] [FAST-PATH] Sufficient content gathered in parallel mode (pages: %d, duration: %v)", len(pageAnalyses), parallelDuration)
 	} else {
-		c.logger.Printf("⚠️ [SmartCrawler] [FAST-PATH] Content quality check: pages=%d, sufficient=%v", len(pageAnalyses), len(pageAnalyses) >= 2 && c.hasSufficientContent(pageAnalyses))
+		c.logger.Printf("⚠️ [SmartCrawler] [FAST-PATH] Content quality check: pages=%d, sufficient=%v", len(pageAnalyses), len(pageAnalyses) >= 2 && c.hasSufficientContent(pageAnalyses, true))
 	}
 
 	result.PagesAnalyzed = pageAnalyses
@@ -608,6 +610,7 @@ func (c *SmartWebsiteCrawler) analyzePagesParallelWithDelay(ctx context.Context,
 		}
 
 		// Check if we already have sufficient content
+		// Use fastPath parameter to determine thresholds
 		mu.Lock()
 		var validAnalyses []PageAnalysis
 		for _, a := range analyses {
@@ -615,7 +618,7 @@ func (c *SmartWebsiteCrawler) analyzePagesParallelWithDelay(ctx context.Context,
 				validAnalyses = append(validAnalyses, a)
 			}
 		}
-		hasSufficient := len(validAnalyses) >= 2 && c.hasSufficientContent(validAnalyses)
+		hasSufficient := len(validAnalyses) >= 2 && c.hasSufficientContent(validAnalyses, fastPath)
 		mu.Unlock()
 		if hasSufficient {
 			c.logger.Printf("✅ [SmartCrawler] [FAST-PATH] Sufficient content gathered after %d pages, skipping remaining pages", len(validAnalyses))
@@ -1207,7 +1210,7 @@ func (c *SmartWebsiteCrawler) analyzePagesWithDelay(ctx context.Context, pages [
 				
 				// Skip delay if we have sufficient content and are in fast-path mode
 				if fastPath && len(analyses) >= 2 {
-					if c.hasSufficientContent(analyses) {
+					if c.hasSufficientContent(analyses, fastPath) {
 						c.logger.Printf("⏩ [SmartCrawler] Skipping delay - sufficient content already gathered")
 						// Still respect robots.txt if it's longer
 						if crawlDelay > 0 && crawlDelay > delay {
@@ -1274,8 +1277,9 @@ func (c *SmartWebsiteCrawler) analyzePagesWithDelay(ctx context.Context, pages [
 		}
 
 		// Content-quality-based early exit (minimum 2 pages before checking)
+		// Regular crawl mode (not fast-path)
 		if len(analyses) >= 2 {
-			if c.hasSufficientContent(analyses) {
+			if c.hasSufficientContent(analyses, false) {
 				// Calculate metrics for logging
 				var totalContentLength int
 				uniqueKeywords := make(map[string]bool)
@@ -1337,11 +1341,17 @@ func (c *SmartWebsiteCrawler) analyzePagesWithDelay(ctx context.Context, pages [
 
 // hasSufficientContent checks if we have gathered sufficient content for classification
 // Returns true if multiple criteria are met:
-// 1. Total content length >= 500 characters (optimal threshold)
-// 2. At least 10 unique keywords extracted
-// 3. Average relevance score >= 0.7
-// 4. At least 2 successful pages with content
-func (c *SmartWebsiteCrawler) hasSufficientContent(analyses []PageAnalysis) bool {
+// For regular mode:
+//   - Total content length >= 500 characters
+//   - At least 10 unique keywords extracted
+//   - Average relevance score >= 0.7
+//   - At least 2 successful pages with content
+// For fast-path mode (more lenient):
+//   - Total content length >= 300 characters
+//   - At least 5 unique keywords extracted
+//   - Average relevance score >= 0.5
+//   - At least 2 successful pages with content
+func (c *SmartWebsiteCrawler) hasSufficientContent(analyses []PageAnalysis, useFastPath bool) bool {
 	if len(analyses) == 0 {
 		return false
 	}
@@ -1367,6 +1377,16 @@ func (c *SmartWebsiteCrawler) hasSufficientContent(analyses []PageAnalysis) bool
 
 	totalKeywords = len(uniqueKeywords)
 
+	// Determine thresholds based on fast-path mode
+	minContentLength := 500
+	minKeywords := 10
+	minRelevance := 0.7
+	if useFastPath {
+		minContentLength = 300  // Lower threshold for fast-path
+		minKeywords = 5         // Lower threshold for fast-path
+		minRelevance = 0.5      // Lower threshold for fast-path
+	}
+
 	// Check criteria:
 	// 1. At least 2 successful pages
 	if successfulPages < 2 {
@@ -1374,27 +1394,31 @@ func (c *SmartWebsiteCrawler) hasSufficientContent(analyses []PageAnalysis) bool
 		return false
 	}
 
-	// 2. Total content length >= 500 characters
-	if totalContentLength < 500 {
-		c.logger.Printf("📊 [SmartCrawler] [ContentCheck] Insufficient content length: %d < 500 chars", totalContentLength)
+	// 2. Total content length >= threshold
+	if totalContentLength < minContentLength {
+		c.logger.Printf("📊 [SmartCrawler] [ContentCheck] Insufficient content length: %d < %d chars", totalContentLength, minContentLength)
 		return false
 	}
 
-	// 3. At least 10 unique keywords
-	if totalKeywords < 10 {
-		c.logger.Printf("📊 [SmartCrawler] [ContentCheck] Insufficient keywords: %d < 10 unique", totalKeywords)
+	// 3. At least N unique keywords
+	if totalKeywords < minKeywords {
+		c.logger.Printf("📊 [SmartCrawler] [ContentCheck] Insufficient keywords: %d < %d unique", totalKeywords, minKeywords)
 		return false
 	}
 
-	// 4. Average relevance score >= 0.7
+	// 4. Average relevance score >= threshold
 	avgRelevance := totalRelevance / float64(successfulPages)
-	if avgRelevance < 0.7 {
-		c.logger.Printf("📊 [SmartCrawler] [ContentCheck] Insufficient relevance: %.2f < 0.7", avgRelevance)
+	if avgRelevance < minRelevance {
+		c.logger.Printf("📊 [SmartCrawler] [ContentCheck] Insufficient relevance: %.2f < %.2f", avgRelevance, minRelevance)
 		return false
 	}
 
-	c.logger.Printf("✅ [SmartCrawler] [ContentCheck] Sufficient content: pages=%d, length=%d, keywords=%d, relevance=%.2f", 
-		successfulPages, totalContentLength, totalKeywords, avgRelevance)
+	modeLabel := "REGULAR"
+	if useFastPath {
+		modeLabel = "FAST-PATH"
+	}
+	c.logger.Printf("✅ [SmartCrawler] [ContentCheck] [%s] Sufficient content: pages=%d, length=%d, keywords=%d, relevance=%.2f", 
+		modeLabel, successfulPages, totalContentLength, totalKeywords, avgRelevance)
 	return true
 }
 
@@ -1468,7 +1492,8 @@ func (c *SmartWebsiteCrawler) analyzePagesParallel(ctx context.Context, pages []
 						validAnalyses = append(validAnalyses, a)
 					}
 				}
-				if c.hasSufficientContent(validAnalyses) {
+				// Regular crawl mode (not fast-path)
+				if c.hasSufficientContent(validAnalyses, false) {
 					stopMutex.Lock()
 					shouldStop = true
 					stopMutex.Unlock()

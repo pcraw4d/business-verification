@@ -161,7 +161,8 @@ func (wcs *WebsiteContentService) ExtractWebsiteContent(
 			result.ContentType = scrapingResult.ContentType
 			
 			// Early termination: Check if content is sufficient (Task 1.5)
-			if wcs.isContentSufficient(result.TextContent, result.Keywords) {
+			// Use fast-path mode flag for threshold selection
+			if wcs.isContentSufficient(result.TextContent, result.Keywords, useFastPath) {
 				wcs.logger.Printf("✅ [WebsiteContentService] Content sufficient, skipping full crawl (early termination)")
 				result.Duration = time.Since(startTime)
 				// Cache and store in context (same as below)
@@ -318,20 +319,31 @@ func (wcs *WebsiteContentService) extractStructuredDataFromCrawl(crawlResult *Cr
 }
 
 // isContentSufficient checks if content is sufficient to skip full crawl (Task 1.5: Early Termination)
-func (wcs *WebsiteContentService) isContentSufficient(textContent string, keywords []string) bool {
-	const minContentLength = 500
-	const minKeywordCount = 10
+// For fast-path mode, uses more lenient thresholds (300 chars, 5 keywords)
+// For regular mode, uses standard thresholds (500 chars, 10 keywords)
+func (wcs *WebsiteContentService) isContentSufficient(textContent string, keywords []string, useFastPath bool) bool {
+	minContentLength := 500
+	minKeywordCount := 10
+	if useFastPath {
+		minContentLength = 300  // Lower threshold for fast-path
+		minKeywordCount = 5     // Lower threshold for fast-path
+	}
 	
 	contentLength := len(strings.TrimSpace(textContent))
 	keywordCount := len(keywords)
 	
 	sufficient := contentLength >= minContentLength && keywordCount >= minKeywordCount
 	
+	modeLabel := "REGULAR"
+	if useFastPath {
+		modeLabel = "FAST-PATH"
+	}
+	
 	if sufficient {
-		wcs.logger.Printf("📊 [WebsiteContentService] Content sufficient: %d chars, %d keywords", contentLength, keywordCount)
+		wcs.logger.Printf("📊 [WebsiteContentService] [%s] Content sufficient: %d chars, %d keywords", modeLabel, contentLength, keywordCount)
 	} else {
-		wcs.logger.Printf("📊 [WebsiteContentService] Content insufficient: %d chars (need %d), %d keywords (need %d)", 
-			contentLength, minContentLength, keywordCount, minKeywordCount)
+		wcs.logger.Printf("📊 [WebsiteContentService] [%s] Content insufficient: %d chars (need %d), %d keywords (need %d)", 
+			modeLabel, contentLength, minContentLength, keywordCount, minKeywordCount)
 	}
 	
 	return sufficient

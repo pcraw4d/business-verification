@@ -25,39 +25,72 @@ func TestIsContentSufficient_Validation(t *testing.T) {
 		name           string
 		textContent    string
 		keywords       []string
+		useFastPath    bool
 		expectedResult bool
 	}{
 		{
-			name:           "sufficient content and keywords",
+			name:           "regular mode - sufficient content and keywords",
 			textContent:    strings.Repeat("content ", 100), // > 500 chars
 			keywords:       []string{"keyword1", "keyword2", "keyword3", "keyword4", "keyword5", "keyword6", "keyword7", "keyword8", "keyword9", "keyword10"},
+			useFastPath:    false,
 			expectedResult: true,
 		},
 		{
-			name:           "insufficient content length",
+			name:           "regular mode - insufficient content length",
 			textContent:    "short",
 			keywords:       []string{"keyword1", "keyword2", "keyword3", "keyword4", "keyword5", "keyword6", "keyword7", "keyword8", "keyword9", "keyword10"},
+			useFastPath:    false,
 			expectedResult: false,
 		},
 		{
-			name:           "insufficient keywords",
+			name:           "regular mode - insufficient keywords",
 			textContent:    strings.Repeat("content ", 100),
 			keywords:       []string{"keyword1", "keyword2"},
+			useFastPath:    false,
 			expectedResult: false,
 		},
 		{
-			name:           "both insufficient",
+			name:           "regular mode - both insufficient",
 			textContent:    "short",
 			keywords:       []string{"keyword1"},
+			useFastPath:    false,
+			expectedResult: false,
+		},
+		{
+			name:           "fast-path mode - sufficient content and keywords (lower thresholds)",
+			textContent:    strings.Repeat("content ", 80), // > 300 chars, < 500
+			keywords:       []string{"keyword1", "keyword2", "keyword3", "keyword4", "keyword5"},
+			useFastPath:    true,
+			expectedResult: true,
+		},
+		{
+			name:           "fast-path mode - insufficient content length",
+			textContent:    "short",
+			keywords:       []string{"keyword1", "keyword2", "keyword3", "keyword4", "keyword5"},
+			useFastPath:    true,
+			expectedResult: false,
+		},
+		{
+			name:           "fast-path mode - insufficient keywords",
+			textContent:    strings.Repeat("content ", 80),
+			keywords:       []string{"keyword1", "keyword2"},
+			useFastPath:    true,
+			expectedResult: false,
+		},
+		{
+			name:           "fast-path mode - both insufficient",
+			textContent:    "short",
+			keywords:       []string{"keyword1"},
+			useFastPath:    true,
 			expectedResult: false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := service.isContentSufficient(tt.textContent, tt.keywords)
+			result := service.isContentSufficient(tt.textContent, tt.keywords, tt.useFastPath)
 			if result != tt.expectedResult {
-				t.Errorf("isContentSufficient() = %v, want %v", result, tt.expectedResult)
+				t.Errorf("isContentSufficient() = %v, want %v (useFastPath=%v)", result, tt.expectedResult, tt.useFastPath)
 			}
 		})
 	}
