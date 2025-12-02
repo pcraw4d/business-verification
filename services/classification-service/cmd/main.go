@@ -92,7 +92,7 @@ func main() {
 	scraperAdapter := &websiteScraperAdapter{scraper: enhancedScraper}
 	
 	// Initialize classification repository with Phase 1 enhanced scraper
-	keywordRepoInstance = keywordRepo.NewSupabaseKeywordRepositoryWithScraper(dbClient, stdLogger, scraperAdapter)
+	keywordRepoInstance := keywordRepo.NewSupabaseKeywordRepositoryWithScraper(dbClient, stdLogger, scraperAdapter)
 	logger.Info("✅ Classification repository initialized with Phase 1 enhanced scraper")
 
 	// Initialize website content cache if enabled
