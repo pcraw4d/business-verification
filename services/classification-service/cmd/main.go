@@ -24,7 +24,18 @@ import (
 	"kyb-platform/services/classification-service/internal/errors"
 	"kyb-platform/services/classification-service/internal/handlers"
 	"kyb-platform/services/classification-service/internal/supabase"
+	"kyb-platform/internal/classification/repository"
 )
+
+// websiteScraperAdapter adapts EnhancedWebsiteScraper to WebsiteScraperInterface
+type websiteScraperAdapter struct {
+	scraper *classification.EnhancedWebsiteScraper
+}
+
+func (w *websiteScraperAdapter) ScrapeWebsite(ctx context.Context, websiteURL string) interface{} {
+	result := w.scraper.ScrapeWebsite(ctx, websiteURL)
+	return result // Return as interface{} to match interface
+}
 
 func main() {
 	// Initialize logger

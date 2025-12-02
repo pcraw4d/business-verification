@@ -160,24 +160,8 @@ type SupabaseKeywordRepository struct {
 	sessionManager *scrapingSessionManager
 
 	// Phase 1: Enhanced website scraper with multi-tier strategies
-	websiteScraper interface {
-		ScrapeWebsite(ctx context.Context, websiteURL string) *struct {
-			URL           string
-			StatusCode    int
-			Content       string
-			TextContent   string
-			Keywords      []string
-			ContentType   string
-			ContentLength int64
-			Headers       map[string]string
-			FinalURL      string
-			ScrapedAt     time.Time
-			Duration      time.Duration
-			Error         string
-			Success       bool
-			Title         string
-		}
-	}
+	// Using interface to avoid import cycle with classification package
+	websiteScraper WebsiteScraperInterface
 }
 
 // scrapingSessionManager manages scraping sessions (duplicate to avoid import cycles)
