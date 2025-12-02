@@ -113,6 +113,7 @@ type KeywordRepository interface {
 	GetClassificationCodesByIndustry(ctx context.Context, industryID int) ([]*ClassificationCode, error)
 	GetClassificationCodesByType(ctx context.Context, codeType string) ([]*ClassificationCode, error)
 	GetClassificationCodesByKeywords(ctx context.Context, keywords []string, codeType string, minRelevance float64) ([]*ClassificationCodeWithMetadata, error)
+	FindCodesByFullTextSearch(ctx context.Context, searchText string, codeType string) ([]*ClassificationCode, error)
 	AddClassificationCode(ctx context.Context, code *ClassificationCode) error
 	UpdateClassificationCode(ctx context.Context, code *ClassificationCode) error
 	DeleteClassificationCode(ctx context.Context, id int) error
@@ -129,11 +130,12 @@ type KeywordRepository interface {
 	GetBatchIndustries(ctx context.Context, industryIDs []int) (map[int]*Industry, error)
 	GetBatchKeywords(ctx context.Context, industryIDs []int) (map[int][]*KeywordWeight, error)
 
-	// Industry Patterns
-	GetPatternsByIndustry(ctx context.Context, industryID int) ([]*IndustryPattern, error)
-	AddPattern(ctx context.Context, pattern *IndustryPattern) error
-	UpdatePattern(ctx context.Context, pattern *IndustryPattern) error
-	DeletePattern(ctx context.Context, id int) error
+	// Industry Patterns (deprecated - not implemented, using keyword-based classification instead)
+	// Phase 5.1: Removed from interface - pattern matching not implemented
+	// GetPatternsByIndustry(ctx context.Context, industryID int) ([]*IndustryPattern, error)
+	// AddPattern(ctx context.Context, pattern *IndustryPattern) error
+	// UpdatePattern(ctx context.Context, pattern *IndustryPattern) error
+	// DeletePattern(ctx context.Context, id int) error
 
 	// Keyword Weights
 	GetKeywordWeights(ctx context.Context, keyword string) ([]*KeywordWeight, error)
@@ -164,6 +166,55 @@ type KeywordRepository interface {
 	SaveClassificationAccuracy(ctx context.Context, tracking *ClassificationAccuracyTracking) error
 	UpdateClassificationAccuracy(ctx context.Context, requestID string, actualIndustry string, validatedBy string) error
 	GetCalibrationStatistics(ctx context.Context, startDate, endDate time.Time) ([]*CalibrationBinStatistics, error)
+
+	// Topic-Industry Mapping (Phase 1.3)
+	GetIndustryTopicsByKeywords(ctx context.Context, keywords []string) (map[int]float64, error) // industry_id -> relevance_score
+	GetTopicAccuracy(ctx context.Context, industryID int, topic string) (float64, error)
+
+	// Keyword Patterns / Co-Occurrence (Phase 1.4)
+	FindIndustriesByPatterns(ctx context.Context, patterns []string) ([]*PatternMatchResult, error)
+	GetPatternMatches(ctx context.Context, industryID int, patterns []string) ([]*KeywordPattern, error)
+
+	// Batch Queries (Phase 2.2)
+	BatchFindKeywords(ctx context.Context, keywords []string) (map[string][]IndustryMatch, error)
+	BatchFindIndustryTopics(ctx context.Context, keywords []string) (map[string][]TopicMatch, error)
+}
+
+// PatternMatchResult represents an industry match from keyword pattern analysis
+type PatternMatchResult struct {
+	IndustryID     int
+	IndustryName   string
+	PatternMatches int
+	AvgScore       float64
+	MatchedPatterns []string
+}
+
+// KeywordPattern represents a keyword co-occurrence pattern
+type KeywordPattern struct {
+	ID               int
+	IndustryID       int
+	KeywordPair      string
+	Keyword1         string
+	Keyword2         string
+	CoOccurrenceScore float64
+	PatternType      string
+	Frequency        int
+}
+
+// IndustryMatch represents a keyword match with industry information
+type IndustryMatch struct {
+	IndustryID     int
+	IndustryName   string
+	Weight         float64
+	Similarity     float64
+}
+
+// TopicMatch represents an industry topic match
+type TopicMatch struct {
+	IndustryID     int
+	IndustryName   string
+	RelevanceScore float64
+	AccuracyScore  float64
 }
 
 // ClassificationAccuracyTracking represents a classification accuracy tracking record

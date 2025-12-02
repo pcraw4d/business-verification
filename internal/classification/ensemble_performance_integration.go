@@ -19,8 +19,9 @@ type EnsemblePerformanceIntegration struct {
 	abTestManager      *ABTestManager
 	weightManager      *WeightConfigurationManager
 
-	// Ensemble system
-	multiMethodClassifier *MultiMethodClassifier
+	// Ensemble system (deprecated - kept for backward compatibility)
+	// Phase 5.1: MultiMethodClassifier removed, using IndustryDetectionService instead
+	detectionService interface{} // *IndustryDetectionService - using interface to avoid import cycle
 
 	// Configuration
 	config EnsemblePerformanceConfig
@@ -63,8 +64,9 @@ type EnsemblePerformanceConfig struct {
 }
 
 // NewEnsemblePerformanceIntegration creates a new ensemble performance integration
+// Phase 5.1: Updated to accept detectionService instead of MultiMethodClassifier
 func NewEnsemblePerformanceIntegration(
-	multiMethodClassifier *MultiMethodClassifier,
+	detectionService interface{}, // *IndustryDetectionService - using interface to avoid import cycle
 	weightManager *WeightConfigurationManager,
 	config EnsemblePerformanceConfig,
 	logger *log.Logger,
@@ -129,7 +131,7 @@ func NewEnsemblePerformanceIntegration(
 		performanceTracker:    performanceTracker,
 		abTestManager:         abTestManager,
 		weightManager:         weightManager,
-		multiMethodClassifier: multiMethodClassifier,
+		detectionService: detectionService,
 		config:                config,
 		logger:                logger,
 		ctx:                   ctx,
@@ -184,14 +186,23 @@ func (epi *EnsemblePerformanceIntegration) Stop() {
 }
 
 // ClassifyWithPerformanceTracking performs classification with performance tracking
+// Phase 5.1: Updated to use IndustryDetectionService instead of MultiMethodClassifier
 func (epi *EnsemblePerformanceIntegration) ClassifyWithPerformanceTracking(
 	ctx context.Context,
 	businessName, description, websiteURL string,
-) (*MultiMethodClassificationResult, error) {
+) (interface{}, error) {
 	startTime := time.Now()
 
-	// Perform classification using the multi-method classifier
-	result, err := epi.multiMethodClassifier.ClassifyWithMultipleMethods(ctx, businessName, description, websiteURL)
+	// Type assert to get IndustryDetectionService
+	detectionService, ok := epi.detectionService.(interface {
+		DetectIndustry(ctx context.Context, businessName, description, websiteURL string) (*IndustryDetectionResult, error)
+	})
+	if !ok {
+		return nil, fmt.Errorf("detection service not available or wrong type")
+	}
+
+	// Perform classification using the detection service
+	result, err := detectionService.DetectIndustry(ctx, businessName, description, websiteURL)
 	if err != nil {
 		epi.logger.Printf("❌ Classification failed: %v", err)
 		return nil, err
@@ -204,27 +215,41 @@ func (epi *EnsemblePerformanceIntegration) ClassifyWithPerformanceTracking(
 		epi.trackClassificationPerformance(result, processingTime, err)
 	}
 
-	return result, nil
+	// Return result in compatible format
+	return map[string]interface{}{
+		"industry_name": result.IndustryName,
+		"confidence":    result.Confidence,
+		"method":        result.Method,
+		"reasoning":     result.Reasoning,
+		"processing_time": processingTime,
+	}, nil
 }
 
 // trackClassificationPerformance tracks the performance of classification results
+// Phase 5.1: Updated to work with IndustryDetectionResult
 func (epi *EnsemblePerformanceIntegration) trackClassificationPerformance(
-	result *MultiMethodClassificationResult,
+	result *IndustryDetectionResult,
 	processingTime time.Duration,
 	err error,
 ) {
-	// Extract method results from ensemble result
-	if result.MethodResults == nil {
-		return
+	// Track performance for the classification method
+	if epi.performanceTracker != nil {
+		// Create a simple method result for tracking
+		methodResult := &shared.ClassificationMethodResult{
+			MethodName:     result.Method,
+			MethodType:     "multi_strategy",
+			Confidence:     result.Confidence,
+			ProcessingTime: processingTime,
+			Success:        err == nil,
+		}
+		if err != nil {
+			methodResult.Error = err.Error()
+		}
+		epi.performanceTracker.RecordResult("multi_strategy", methodResult)
 	}
 
-	// Record performance for each method
-	for _, methodResult := range result.MethodResults {
-		epi.performanceTracker.RecordResult(methodResult.MethodType, &methodResult)
-	}
-
-	epi.logger.Printf("📊 Tracked performance for ensemble classification: processing_time=%v, confidence=%.3f",
-		processingTime, result.PrimaryClassification.ConfidenceScore)
+	epi.logger.Printf("📊 Tracked performance for classification: processing_time=%v, confidence=%.3f",
+		processingTime, result.Confidence)
 }
 
 // performanceTrackingLoop runs the performance tracking loop

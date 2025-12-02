@@ -9,106 +9,126 @@ import (
 	"kyb-platform/internal/shared"
 )
 
-// MultiMethodResponseAdapter adapts multi-method classification results to the standard API response format
+// MultiMethodResponseAdapter adapts classification results to the standard API response format
+// Phase 5.1: Updated to use IndustryDetectionService instead of MultiMethodClassifier
 type MultiMethodResponseAdapter struct {
-	multiMethodClassifier *classification.MultiMethodClassifier
+	detectionService interface{} // *classification.IndustryDetectionService - using interface to avoid import cycle
 }
 
-// NewMultiMethodResponseAdapter creates a new multi-method response adapter
-func NewMultiMethodResponseAdapter(multiMethodClassifier *classification.MultiMethodClassifier) *MultiMethodResponseAdapter {
+// NewMultiMethodResponseAdapter creates a new response adapter
+func NewMultiMethodResponseAdapter(detectionService interface{}) *MultiMethodResponseAdapter {
 	return &MultiMethodResponseAdapter{
-		multiMethodClassifier: multiMethodClassifier,
+		detectionService: detectionService,
 	}
 }
 
-// AdaptMultiMethodResultToResponse converts a multi-method classification result to a standard API response
+// AdaptMultiMethodResultToResponse converts an industry detection result to a standard API response
+// Phase 5.1: Updated to work with IndustryDetectionResult instead of MultiMethodClassificationResult
 func (adapter *MultiMethodResponseAdapter) AdaptMultiMethodResultToResponse(
 	ctx context.Context,
 	request *shared.BusinessClassificationRequest,
-	multiMethodResult *classification.MultiMethodClassificationResult,
+	result interface{}, // *classification.IndustryDetectionResult - using interface for backward compatibility
 ) (*shared.BusinessClassificationResponse, error) {
-	if multiMethodResult == nil {
-		return nil, fmt.Errorf("multi-method result cannot be nil")
+	if result == nil {
+		return nil, fmt.Errorf("result cannot be nil")
 	}
 
-	// Convert method results to shared format
-	var methodBreakdown []shared.ClassificationMethodResult
-	for _, method := range multiMethodResult.MethodResults {
-		methodBreakdown = append(methodBreakdown, shared.ClassificationMethodResult{
-			MethodName:     method.MethodName,
-			MethodType:     method.MethodType,
-			Confidence:     method.Confidence,
-			ProcessingTime: method.ProcessingTime,
-			Result:         method.Result,
-			Evidence:       method.Evidence,
-			Keywords:       method.Keywords,
-			Error:          method.Error,
-			Success:        method.Success,
-		})
+	// Type assert to IndustryDetectionResult
+	detectionResult, ok := result.(*classification.IndustryDetectionResult)
+	if !ok {
+		return nil, fmt.Errorf("invalid result type, expected IndustryDetectionResult")
 	}
 
 	// Create the enhanced response
 	response := &shared.BusinessClassificationResponse{
 		ID:                    request.ID,
 		BusinessName:          request.BusinessName,
-		DetectedIndustry:      multiMethodResult.PrimaryClassification.IndustryName,
-		Confidence:            multiMethodResult.EnsembleConfidence,
-		Classifications:       []shared.IndustryClassification{*multiMethodResult.PrimaryClassification},
-		PrimaryClassification: multiMethodResult.PrimaryClassification,
-		OverallConfidence:     multiMethodResult.EnsembleConfidence,
-		ClassificationMethod:  "multi_method_ensemble",
-		ProcessingTime:        multiMethodResult.ProcessingTime,
-		CreatedAt:             multiMethodResult.CreatedAt,
+		DetectedIndustry:      detectionResult.IndustryName,
+		Confidence:            detectionResult.Confidence,
+		Classifications: []shared.IndustryClassification{
+			{
+				IndustryName:         detectionResult.IndustryName,
+				ConfidenceScore:      detectionResult.Confidence,
+				ClassificationMethod: detectionResult.Method,
+				Keywords:             detectionResult.Keywords,
+			},
+		},
+		PrimaryClassification: &shared.IndustryClassification{
+			IndustryName:         detectionResult.IndustryName,
+			ConfidenceScore:      detectionResult.Confidence,
+			ClassificationMethod: detectionResult.Method,
+			Keywords:             detectionResult.Keywords,
+		},
+		OverallConfidence:     detectionResult.Confidence,
+		ClassificationMethod:  detectionResult.Method,
+		ProcessingTime:        detectionResult.ProcessingTime,
+		CreatedAt:             detectionResult.CreatedAt,
 		Timestamp:             time.Now(),
-
-		// Enhanced multi-method fields
-		MethodBreakdown:         methodBreakdown,
-		EnsembleConfidence:      multiMethodResult.EnsembleConfidence,
-		ClassificationReasoning: multiMethodResult.ClassificationReasoning,
-		QualityMetrics:          multiMethodResult.QualityMetrics,
+		ClassificationReasoning: detectionResult.Reasoning,
 
 		// Metadata
 		Metadata: map[string]interface{}{
-			"multi_method_enabled": true,
-			"method_count":         len(multiMethodResult.MethodResults),
-			"successful_methods":   adapter.countSuccessfulMethods(multiMethodResult.MethodResults),
-			"ensemble_method":      "weighted_average",
-			"quality_score":        multiMethodResult.QualityMetrics.OverallQuality,
+			"method": detectionResult.Method,
 		},
-	}
-
-	// Add classification codes if available
-	if multiMethodResult.PrimaryClassification.Metadata != nil {
-		if codes, exists := multiMethodResult.PrimaryClassification.Metadata["classification_codes"]; exists {
-			if classificationCodes, ok := codes.(shared.ClassificationCodes); ok {
-				response.ClassificationCodes = classificationCodes
-			}
-		}
 	}
 
 	return response, nil
 }
 
-// ClassifyWithMultiMethod performs classification using multiple methods and returns a standard response
+// ClassifyWithMultiMethod performs classification and returns a standard response
+// Phase 5.1: Updated to use IndustryDetectionService
 func (adapter *MultiMethodResponseAdapter) ClassifyWithMultiMethod(
 	ctx context.Context,
 	request *shared.BusinessClassificationRequest,
 ) (*shared.BusinessClassificationResponse, error) {
-	// Perform multi-method classification
-	multiMethodResult, err := adapter.multiMethodClassifier.ClassifyWithMultipleMethods(
+	// Type assert to get IndustryDetectionService
+	detectionService, ok := adapter.detectionService.(interface {
+		DetectIndustry(ctx context.Context, businessName, description, websiteURL string) (*classification.IndustryDetectionResult, error)
+	})
+	if !ok {
+		return nil, fmt.Errorf("detection service not available or wrong type")
+	}
+
+	// Perform classification using detection service
+	result, err := detectionService.DetectIndustry(
 		ctx,
 		request.BusinessName,
 		request.Description,
 		request.WebsiteURL,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("multi-method classification failed: %w", err)
+		return nil, fmt.Errorf("classification failed: %w", err)
 	}
 
-	// Adapt to standard response format
-	response, err := adapter.AdaptMultiMethodResultToResponse(ctx, request, multiMethodResult)
-	if err != nil {
-		return nil, fmt.Errorf("failed to adapt multi-method result: %w", err)
+	// Convert to standard response format
+	response := &shared.BusinessClassificationResponse{
+		ID:                    request.ID,
+		BusinessName:          request.BusinessName,
+		DetectedIndustry:      result.IndustryName,
+		Confidence:            result.Confidence,
+		ClassificationMethod:  result.Method,
+		ProcessingTime:        result.ProcessingTime,
+		CreatedAt:             result.CreatedAt,
+		Timestamp:             time.Now(),
+		Classifications: []shared.IndustryClassification{
+			{
+				IndustryName:         result.IndustryName,
+				ConfidenceScore:      result.Confidence,
+				ClassificationMethod: result.Method,
+				Keywords:             result.Keywords,
+			},
+		},
+		PrimaryClassification: &shared.IndustryClassification{
+			IndustryName:         result.IndustryName,
+			ConfidenceScore:      result.Confidence,
+			ClassificationMethod: result.Method,
+			Keywords:             result.Keywords,
+		},
+		OverallConfidence:     result.Confidence,
+		ClassificationReasoning: result.Reasoning,
+		Metadata: map[string]interface{}{
+			"method": result.Method,
+		},
 	}
 
 	return response, nil

@@ -163,9 +163,9 @@ if [ -z "$PYTHON_ML_SERVICE_URL" ]; then
             echo -e "${GREEN}✅ Found Python ML service: $PYTHON_ML_SERVICE_URL${NC}"
             export PYTHON_ML_SERVICE_URL
         else
-            # Try common Railway URL pattern
-            echo "   Trying common Railway URL pattern..."
-            PYTHON_ML_SERVICE_URL="https://python-ml-service-production.up.railway.app"
+            # Try known production URL (from documentation)
+            echo "   Using known production URL from documentation..."
+            PYTHON_ML_SERVICE_URL="https://python-ml-service-production-a6b8.up.railway.app"
             echo "   Using: $PYTHON_ML_SERVICE_URL"
             export PYTHON_ML_SERVICE_URL
         fi
@@ -209,10 +209,9 @@ else
     echo "   URL: $PYTHON_ML_SERVICE_URL"
     echo "   This may indicate the service is not deployed or not running"
     echo ""
-    read -p "Continue anyway? (y/n): " CONTINUE
-    if [ "$CONTINUE" != "y" ]; then
-        exit 1
-    fi
+    echo -e "${YELLOW}⚠️  Continuing anyway (tests will use fallback classifier)${NC}"
+    # Auto-continue for automated runs
+    CONTINUE="y"
 fi
 
 # Verify health endpoint

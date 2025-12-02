@@ -4,9 +4,12 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math"
 	"strings"
+	"sync"
 	"time"
 
+	"kyb-platform/internal/classification/cache"
 	"kyb-platform/internal/classification/nlp"
 	"kyb-platform/internal/classification/repository"
 )
@@ -18,6 +21,7 @@ type MultiStrategyClassifier struct {
 	topicModeler     *nlp.TopicModeler
 	logger           *log.Logger
 	calibrator       *ConfidenceCalibrator
+	predictiveCache  *cache.PredictiveCache // Phase 2.3: Predictive caching
 }
 
 // NewMultiStrategyClassifier creates a new multi-strategy classifier
@@ -29,13 +33,75 @@ func NewMultiStrategyClassifier(
 		logger = log.Default()
 	}
 
-	return &MultiStrategyClassifier{
+	// Create topic modeler with repository support (if repository implements TopicRepository interface)
+	topicModeler := nlp.NewTopicModeler()
+	// Check if keywordRepo implements TopicRepository methods
+	if topicRepo, ok := keywordRepo.(interface {
+		GetIndustryTopicsByKeywords(ctx context.Context, keywords []string) (map[int]float64, error)
+		GetTopicAccuracy(ctx context.Context, industryID int, topic string) (float64, error)
+	}); ok {
+		// Create adapter to match TopicRepository interface
+		adapter := &topicRepositoryAdapter{repo: topicRepo}
+		topicModeler.SetRepository(adapter)
+	}
+
+	// Create classification result cache (Phase 2.3)
+	resultCache := cache.NewClassificationResultCache(1*time.Hour, logger)
+	
+	// Create classifier instance first
+	classifier := &MultiStrategyClassifier{
 		keywordRepo:      keywordRepo,
 		entityRecognizer: nlp.NewEntityRecognizer(),
-		topicModeler:     nlp.NewTopicModeler(),
+		topicModeler:     topicModeler,
 		logger:           logger,
 		calibrator:       NewConfidenceCalibrator(logger),
 	}
+	
+	// Create predictive cache with classifier adapter (after classifier is created)
+	classifierAdapter := &classificationPredictorAdapter{classifier: classifier}
+	predictiveCache := cache.NewPredictiveCache(resultCache, classifierAdapter, logger)
+	classifier.predictiveCache = predictiveCache
+	
+	return classifier
+}
+
+// classificationPredictorAdapter adapts MultiStrategyClassifier to ClassificationPredictor interface
+type classificationPredictorAdapter struct {
+	classifier *MultiStrategyClassifier
+}
+
+func (a *classificationPredictorAdapter) Classify(ctx context.Context, businessName, description, websiteURL string) (*cache.ClassificationPrediction, error) {
+	if a.classifier == nil {
+		return nil, fmt.Errorf("classifier not initialized")
+	}
+	
+	result, err := a.classifier.ClassifyWithMultiStrategy(ctx, businessName, description, websiteURL)
+	if err != nil {
+		return nil, err
+	}
+	
+	return &cache.ClassificationPrediction{
+		PrimaryIndustry: result.PrimaryIndustry,
+		Confidence:      result.Confidence,
+		Keywords:        result.Keywords,
+		Reasoning:       result.Reasoning,
+	}, nil
+}
+
+// topicRepositoryAdapter adapts repository methods to TopicRepository interface
+type topicRepositoryAdapter struct {
+	repo interface {
+		GetIndustryTopicsByKeywords(ctx context.Context, keywords []string) (map[int]float64, error)
+		GetTopicAccuracy(ctx context.Context, industryID int, topic string) (float64, error)
+	}
+}
+
+func (a *topicRepositoryAdapter) GetIndustryTopicsByKeywords(ctx context.Context, keywords []string) (map[int]float64, error) {
+	return a.repo.GetIndustryTopicsByKeywords(ctx, keywords)
+}
+
+func (a *topicRepositoryAdapter) GetTopicAccuracy(ctx context.Context, industryID int, topic string) (float64, error) {
+	return a.repo.GetTopicAccuracy(ctx, industryID, topic)
 }
 
 // ClassificationStrategy represents a single classification strategy result
@@ -63,6 +129,7 @@ type MultiStrategyResult struct {
 }
 
 // ClassifyWithMultiStrategy performs classification using multiple strategies
+// Enhanced with predictive caching (Phase 2.3)
 func (msc *MultiStrategyClassifier) ClassifyWithMultiStrategy(
 	ctx context.Context,
 	businessName, description, websiteURL string,
@@ -70,11 +137,65 @@ func (msc *MultiStrategyClassifier) ClassifyWithMultiStrategy(
 	startTime := time.Now()
 	msc.logger.Printf("🚀 [MultiStrategy] Starting multi-strategy classification for: %s", businessName)
 
-	// Step 1: Extract keywords (already includes NER and topic modeling from pipeline)
-	keywords, err := msc.extractKeywords(ctx, businessName, websiteURL)
-	if err != nil {
+	// Phase 2.3: Check predictive cache first
+	if msc.predictiveCache != nil {
+		if cached, found := msc.predictiveCache.Get(businessName, description, websiteURL); found {
+			msc.logger.Printf("✅ [MultiStrategy] Cache HIT for: %s", businessName)
+			return &MultiStrategyResult{
+				PrimaryIndustry: cached.PrimaryIndustry,
+				Confidence:      cached.Confidence,
+				Keywords:        cached.Keywords,
+				Reasoning:       cached.Reasoning + " (from cache)",
+				ProcessingTime:  time.Since(startTime),
+			}, nil
+		}
+		msc.logger.Printf("📊 [MultiStrategy] Cache MISS for: %s", businessName)
+		
+		// Trigger predictive preloading in background
+		go msc.predictiveCache.PreloadCache(context.Background(), businessName, description, websiteURL)
+	}
+
+	// Step 1: Extract keywords and entities in parallel
+	keywordsChan := make(chan []string, 1)
+	keywordsErrChan := make(chan error, 1)
+	entitiesChan := make(chan []nlp.Entity, 1)
+	var extractionWg sync.WaitGroup
+
+	// Extract keywords in parallel
+	extractionWg.Add(1)
+	go func() {
+		defer extractionWg.Done()
+		keywords, err := msc.extractKeywords(ctx, businessName, websiteURL)
+		if err != nil {
+			keywordsErrChan <- err
+			keywordsChan <- []string{}
+			return
+		}
+		keywordsChan <- keywords
+	}()
+
+	// Extract entities in parallel (can start before keywords are ready)
+	extractionWg.Add(1)
+	go func() {
+		defer extractionWg.Done()
+		// Use empty keywords initially for entity extraction
+		combinedText := msc.combineTextForAnalysis(businessName, description, []string{})
+		entities := msc.entityRecognizer.ExtractEntities(combinedText)
+		entitiesChan <- entities
+	}()
+
+	extractionWg.Wait()
+	close(keywordsChan)
+	close(keywordsErrChan)
+	close(entitiesChan)
+
+	// Get results
+	keywords := <-keywordsChan
+	if err := <-keywordsErrChan; err != nil {
 		return nil, fmt.Errorf("failed to extract keywords: %w", err)
 	}
+
+	entities := <-entitiesChan
 
 	if len(keywords) == 0 {
 		// Check if this is a known business - use business name to infer industry
@@ -99,41 +220,76 @@ func (msc *MultiStrategyClassifier) ClassifyWithMultiStrategy(
 		}, nil
 	}
 
-	// Step 2: Extract entities from combined text
-	combinedText := msc.combineTextForAnalysis(businessName, description, keywords)
-	entities := msc.entityRecognizer.ExtractEntities(combinedText)
-	msc.logger.Printf("📊 [MultiStrategy] Extracted %d entities", len(entities))
+	msc.logger.Printf("📊 [MultiStrategy] Extracted %d keywords and %d entities", len(keywords), len(entities))
 
-	// Step 3: Identify topics
-	topicScores := msc.topicModeler.IdentifyTopicsWithDetails(keywords)
-	msc.logger.Printf("📊 [MultiStrategy] Identified %d industry topics", len(topicScores))
-
-	// Step 4: Run all classification strategies
-	strategies := []ClassificationStrategy{}
+	// Step 2: Run all classification strategies in parallel
+	strategyChan := make(chan ClassificationStrategy, 4)
+	var strategyWg sync.WaitGroup
 
 	// Strategy 1: Keyword-based classification (40% weight) with business name context
-	keywordStrategy := msc.classifyByKeywords(ctx, keywords, businessName)
-	if keywordStrategy != nil {
-		strategies = append(strategies, *keywordStrategy)
-	}
+	strategyWg.Add(1)
+	go func() {
+		defer strategyWg.Done()
+		strategyCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+		defer cancel()
+		strategy := msc.classifyByKeywords(strategyCtx, keywords, businessName)
+		if strategy != nil {
+			strategyChan <- *strategy
+		}
+	}()
 
 	// Strategy 2: Entity-based classification (25% weight)
-	entityStrategy := msc.classifyByEntities(ctx, entities, keywords)
-	if entityStrategy != nil {
-		strategies = append(strategies, *entityStrategy)
-	}
+	strategyWg.Add(1)
+	go func() {
+		defer strategyWg.Done()
+		strategyCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+		defer cancel()
+		strategy := msc.classifyByEntities(strategyCtx, entities, keywords)
+		if strategy != nil {
+			strategyChan <- *strategy
+		}
+	}()
 
 	// Strategy 3: Topic-based classification (20% weight)
-	topicStrategy := msc.classifyByTopics(ctx, topicScores)
-	if topicStrategy != nil {
-		strategies = append(strategies, *topicStrategy)
-	}
+	strategyWg.Add(1)
+	go func() {
+		defer strategyWg.Done()
+		strategyCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+		defer cancel()
+		// Identify topics (with context for database queries)
+		topicScores := msc.topicModeler.IdentifyTopicsWithDetailsContext(strategyCtx, keywords)
+		strategy := msc.classifyByTopics(strategyCtx, topicScores)
+		if strategy != nil {
+			strategyChan <- *strategy
+		}
+	}()
 
 	// Strategy 4: Co-occurrence-based classification (15% weight)
-	coOccurrenceStrategy := msc.classifyByCoOccurrence(ctx, keywords, entities)
-	if coOccurrenceStrategy != nil {
-		strategies = append(strategies, *coOccurrenceStrategy)
+	strategyWg.Add(1)
+	go func() {
+		defer strategyWg.Done()
+		strategyCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+		defer cancel()
+		strategy := msc.classifyByCoOccurrence(strategyCtx, keywords, entities)
+		if strategy != nil {
+			strategyChan <- *strategy
+		}
+	}()
+
+	// Wait for all strategies to complete
+	strategyWg.Wait()
+	close(strategyChan)
+
+	// Collect strategies
+	strategies := []ClassificationStrategy{}
+	for strategy := range strategyChan {
+		strategies = append(strategies, strategy)
 	}
+
+	msc.logger.Printf("📊 [MultiStrategy] Completed %d strategies in parallel", len(strategies))
+
+	// Get topic scores for result (needed for metadata)
+	topicScores := msc.topicModeler.IdentifyTopicsWithDetailsContext(ctx, keywords)
 
 	// Step 5: Combine strategies with weighted scoring
 	combinedScores, primaryIndustry, confidence, reasoning := msc.combineStrategies(strategies)
@@ -173,7 +329,7 @@ func (msc *MultiStrategyClassifier) ClassifyWithMultiStrategy(
 	msc.logger.Printf("✅ [MultiStrategy] Classification completed: %s (confidence: %.2f%%)",
 		primaryIndustry, confidence*100)
 	
-	return &MultiStrategyResult{
+	result := &MultiStrategyResult{
 		PrimaryIndustry:  primaryIndustry,
 		Confidence:       confidence, // Use calibrated confidence
 		Strategies:       strategies,
@@ -183,7 +339,20 @@ func (msc *MultiStrategyClassifier) ClassifyWithMultiStrategy(
 		Keywords:         keywords,
 		Entities:         entities,
 		TopicScores:      topicScores,
-	}, nil
+	}
+
+	// Phase 2.3: Cache the result for future requests
+	if msc.predictiveCache != nil {
+		cachedResult := &cache.CachedClassificationResult{
+			PrimaryIndustry: result.PrimaryIndustry,
+			Confidence:      result.Confidence,
+			Keywords:        result.Keywords,
+			Reasoning:       result.Reasoning,
+		}
+		msc.predictiveCache.Set(businessName, description, websiteURL, cachedResult)
+	}
+	
+	return result, nil
 }
 
 // extractKeywords extracts keywords using the repository and filters them for relevance
@@ -363,17 +532,28 @@ func (msc *MultiStrategyClassifier) combineTextForAnalysis(businessName, descrip
 }
 
 // classifyByKeywords performs keyword-based classification with business name context
+// Enhanced with database optimizations: trigram indexes, full-text search, context timeout
 func (msc *MultiStrategyClassifier) classifyByKeywords(ctx context.Context, keywords []string, businessName string) *ClassificationStrategy {
-	msc.logger.Printf("🔍 [MultiStrategy] Strategy 1: Keyword-based classification")
+	msc.logger.Printf("🔍 [MultiStrategy] Strategy 1: Keyword-based classification (enhanced)")
 	
 	if len(keywords) == 0 {
 		return nil
 	}
 
-	// Use repository's keyword classification
-	classification, err := msc.keywordRepo.ClassifyBusinessByKeywords(ctx, keywords)
+	// Execute with context timeout (2s as per plan)
+	strategyCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+
+	// Use repository's keyword classification with enhanced trigram similarity support
+	// Note: The repository method will use trigram indexes via database function if available
+	classification, err := msc.keywordRepo.ClassifyBusinessByKeywords(strategyCtx, keywords)
 	if err != nil {
-		msc.logger.Printf("⚠️ [MultiStrategy] Keyword classification failed: %v", err)
+		// Check if error is due to timeout
+		if strategyCtx.Err() == context.DeadlineExceeded {
+			msc.logger.Printf("⚠️ [MultiStrategy] Keyword classification timed out after 2s")
+		} else {
+			msc.logger.Printf("⚠️ [MultiStrategy] Keyword classification failed: %v", err)
+		}
 		return nil
 	}
 
@@ -402,6 +582,7 @@ func (msc *MultiStrategyClassifier) classifyByKeywords(ctx context.Context, keyw
 			"keyword_count": fmt.Sprintf("%d", len(keywords)),
 			"original_confidence": fmt.Sprintf("%.2f", classification.Confidence),
 			"adjusted_confidence": fmt.Sprintf("%.2f", adjustedScore),
+			"timeout_seconds": "2",
 		},
 	}
 }
@@ -559,21 +740,148 @@ func (msc *MultiStrategyClassifier) classifyByTopics(ctx context.Context, topicS
 	}
 }
 
-// classifyByCoOccurrence performs co-occurrence-based classification
+// classifyByCoOccurrence performs co-occurrence-based classification with relationship analysis
+// Enhanced with database-driven pattern matching
 func (msc *MultiStrategyClassifier) classifyByCoOccurrence(ctx context.Context, keywords []string, entities []nlp.Entity) *ClassificationStrategy {
-	msc.logger.Printf("🔍 [MultiStrategy] Strategy 4: Co-occurrence-based classification")
-	
+	msc.logger.Printf("🔍 [MultiStrategy] Strategy 4: Co-occurrence-based classification (enhanced)")
+
+	// Step 1: Analyze co-occurrence patterns
+	patterns := msc.analyzeCoOccurrencePatterns(keywords, entities)
+	if len(patterns) == 0 {
+		msc.logger.Printf("⚠️ [MultiStrategy] No co-occurrence patterns found")
+		return nil
+	}
+
+	msc.logger.Printf("📊 [MultiStrategy] Generated %d co-occurrence patterns", len(patterns))
+
+	// Step 2: Query database for industry patterns
+	patternResults, err := msc.keywordRepo.FindIndustriesByPatterns(ctx, patterns)
+	if err != nil {
+		msc.logger.Printf("⚠️ [MultiStrategy] Pattern query failed: %v, falling back to keyword classification", err)
+		// Fallback to basic keyword classification
+		return msc.classifyByCoOccurrenceFallback(ctx, keywords, entities)
+	}
+
+	if len(patternResults) == 0 {
+		msc.logger.Printf("⚠️ [MultiStrategy] No industries found for patterns, falling back")
+		return msc.classifyByCoOccurrenceFallback(ctx, keywords, entities)
+	}
+
+	// Step 3: Find best industry match based on pattern analysis
+	bestResult := patternResults[0] // Results are already sorted by pattern_matches and avg_score
+
+	// Calculate confidence based on pattern matches and scores
+	// More pattern matches = higher confidence
+	// Higher avg_score = higher confidence
+	patternMatchRatio := float64(bestResult.PatternMatches) / float64(len(patterns))
+	baseConfidence := (patternMatchRatio * 0.6) + (bestResult.AvgScore * 0.4)
+
+	// Boost confidence if multiple patterns match
+	if bestResult.PatternMatches >= 3 {
+		baseConfidence = math.Min(1.0, baseConfidence*1.2) // 20% boost for 3+ matches
+	} else if bestResult.PatternMatches >= 2 {
+		baseConfidence = math.Min(1.0, baseConfidence*1.1) // 10% boost for 2 matches
+	}
+
+	// Ensure minimum confidence threshold
+	if baseConfidence < 0.4 {
+		baseConfidence = 0.4
+	}
+
+	// Get industry details
+	industry, err := msc.keywordRepo.GetIndustryByID(ctx, bestResult.IndustryID)
+	if err != nil {
+		msc.logger.Printf("⚠️ [MultiStrategy] Failed to get industry %d: %v", bestResult.IndustryID, err)
+		return msc.classifyByCoOccurrenceFallback(ctx, keywords, entities)
+	}
+
+	msc.logger.Printf("✅ [MultiStrategy] Co-occurrence classification: %s (confidence: %.2f, patterns: %d)",
+		industry.Name, baseConfidence, bestResult.PatternMatches)
+
+	return &ClassificationStrategy{
+		StrategyName: "co_occurrence",
+		IndustryID:   bestResult.IndustryID,
+		IndustryName: industry.Name,
+		Score:        baseConfidence,
+		Confidence:   baseConfidence,
+		Evidence:     bestResult.MatchedPatterns[:minIntValue(10, len(bestResult.MatchedPatterns))],
+		Metadata: map[string]string{
+			"keyword_count":     fmt.Sprintf("%d", len(keywords)),
+			"entity_count":      fmt.Sprintf("%d", len(entities)),
+			"pattern_count":     fmt.Sprintf("%d", len(patterns)),
+			"pattern_matches":   fmt.Sprintf("%d", bestResult.PatternMatches),
+			"avg_pattern_score": fmt.Sprintf("%.2f", bestResult.AvgScore),
+		},
+	}
+}
+
+// analyzeCoOccurrencePatterns generates keyword pairs and entity-keyword pairs for pattern analysis
+func (msc *MultiStrategyClassifier) analyzeCoOccurrencePatterns(keywords []string, entities []nlp.Entity) []string {
+	patterns := make([]string, 0)
+	seen := make(map[string]bool)
+
+	// Normalize function for consistent pair format
+	normalizePair := func(kw1, kw2 string) string {
+		kw1Lower := strings.ToLower(strings.TrimSpace(kw1))
+		kw2Lower := strings.ToLower(strings.TrimSpace(kw2))
+		if kw1Lower < kw2Lower {
+			return kw1Lower + "|" + kw2Lower
+		}
+		return kw2Lower + "|" + kw1Lower
+	}
+
+	// Generate keyword pairs (keyword-keyword)
+	for i := 0; i < len(keywords)-1; i++ {
+		for j := i + 1; j < len(keywords); j++ {
+			pair := normalizePair(keywords[i], keywords[j])
+			if !seen[pair] {
+				patterns = append(patterns, pair)
+				seen[pair] = true
+			}
+		}
+	}
+
+	// Generate entity-keyword pairs
+	entityKeywords := msc.entityRecognizer.GetEntityKeywords(entities)
+	for _, entityKw := range entityKeywords {
+		for _, keyword := range keywords {
+			pair := normalizePair(entityKw, keyword)
+			if !seen[pair] {
+				patterns = append(patterns, pair)
+				seen[pair] = true
+			}
+		}
+	}
+
+	// Generate entity-entity pairs (if multiple entities)
+	if len(entities) > 1 {
+		for i := 0; i < len(entities)-1; i++ {
+			for j := i + 1; j < len(entities); j++ {
+				pair := normalizePair(entities[i].Text, entities[j].Text)
+				if !seen[pair] {
+					patterns = append(patterns, pair)
+					seen[pair] = true
+				}
+			}
+		}
+	}
+
+	return patterns
+}
+
+// classifyByCoOccurrenceFallback provides fallback classification when pattern matching fails
+func (msc *MultiStrategyClassifier) classifyByCoOccurrenceFallback(ctx context.Context, keywords []string, entities []nlp.Entity) *ClassificationStrategy {
 	// Combine keywords and entity keywords
 	allKeywords := make([]string, 0, len(keywords)+len(entities))
 	allKeywords = append(allKeywords, keywords...)
-	
+
 	entityKeywords := msc.entityRecognizer.GetEntityKeywords(entities)
 	allKeywords = append(allKeywords, entityKeywords...)
 
-	// Use keyword classification with co-occurrence analysis
+	// Use keyword classification as fallback
 	classification, err := msc.keywordRepo.ClassifyBusinessByKeywords(ctx, allKeywords)
 	if err != nil {
-		msc.logger.Printf("⚠️ [MultiStrategy] Co-occurrence classification failed: %v", err)
+		msc.logger.Printf("⚠️ [MultiStrategy] Co-occurrence fallback failed: %v", err)
 		return nil
 	}
 
@@ -582,7 +890,7 @@ func (msc *MultiStrategyClassifier) classifyByCoOccurrence(ctx context.Context, 
 	}
 
 	// Calculate co-occurrence confidence (slightly lower than keyword-only)
-	coOccurrenceConfidence := classification.Confidence * 0.9
+	coOccurrenceConfidence := classification.Confidence * 0.85
 
 	industryID := 0
 	if classification.Industry != nil {
@@ -599,71 +907,130 @@ func (msc *MultiStrategyClassifier) classifyByCoOccurrence(ctx context.Context, 
 		Metadata: map[string]string{
 			"keyword_count": fmt.Sprintf("%d", len(keywords)),
 			"entity_count":  fmt.Sprintf("%d", len(entities)),
+			"fallback":      "true",
 		},
 	}
 }
 
-// combineStrategies combines multiple strategies with weighted scoring
+// combineStrategies combines multiple strategies using simple weighted average
+// Simplified implementation per Phase 1.5 - no complex fallbacks
 func (msc *MultiStrategyClassifier) combineStrategies(strategies []ClassificationStrategy) (map[int]float64, string, float64, string) {
-	// Strategy weights as per plan
+	// Strategy weights (fixed, based on accuracy)
 	weights := map[string]float64{
-		"keyword":       0.40,
-		"entity":         0.25,
-		"topic":          0.20,
-		"co_occurrence":  0.15,
+		"keyword":       0.40, // 40% - highest accuracy
+		"entity":        0.25, // 25% - good accuracy
+		"topic":         0.20, // 20% - moderate accuracy
+		"co_occurrence": 0.15, // 15% - supporting evidence
 	}
 
-	// Combine scores by industry
-	industryScores := make(map[int]float64)
+	// Combine scores using weighted average
+	combinedScores := make(map[int]float64)
 	industryNames := make(map[int]string)
-	industryEvidence := make(map[int][]string)
+	totalWeight := 0.0
+
+	// Track which strategies contributed to each industry
+	strategyContributions := make(map[int][]string)
 
 	for _, strategy := range strategies {
 		weight := weights[strategy.StrategyName]
 		if weight == 0 {
-			weight = 0.1 // Default weight for unknown strategies
+			// Skip unknown strategies (no default weight)
+			continue
 		}
 
-		combinedScore := strategy.Score * weight
-		industryScores[strategy.IndustryID] += combinedScore
-		
+		// Calculate weighted score: strategy score * confidence * weight
+		score := strategy.Score * strategy.Confidence
+		weightedScore := score * weight
+
+		combinedScores[strategy.IndustryID] += weightedScore
+		totalWeight += weight
+
+		// Store industry name
 		if industryNames[strategy.IndustryID] == "" {
 			industryNames[strategy.IndustryID] = strategy.IndustryName
 		}
-		
-		industryEvidence[strategy.IndustryID] = append(industryEvidence[strategy.IndustryID], strategy.Evidence...)
+
+		// Track strategy contributions
+		strategyContributions[strategy.IndustryID] = append(
+			strategyContributions[strategy.IndustryID],
+			fmt.Sprintf("%s(%.2f)", strategy.StrategyName, strategy.Confidence),
+		)
 	}
 
-	// Find primary industry (highest combined score)
+	// Normalize scores by total weight
+	if totalWeight > 0 {
+		for industryID := range combinedScores {
+			combinedScores[industryID] /= totalWeight
+		}
+	}
+
+	// Find primary industry (highest score)
 	var primaryIndustryID int
 	var maxScore float64
-	for industryID, score := range industryScores {
+	for industryID, score := range combinedScores {
 		if score > maxScore {
 			maxScore = score
 			primaryIndustryID = industryID
 		}
 	}
 
+	// Get industry name
 	primaryIndustry := industryNames[primaryIndustryID]
 	if primaryIndustry == "" {
 		primaryIndustry = "General Business"
+		primaryIndustryID = 26 // Default industry ID
 	}
 
-	// Calculate final confidence (normalize to 0.0-1.0)
-	confidence := minFloat(maxScore, 1.0)
+	// Calculate final confidence
+	confidence := maxScore
+	if confidence < 0.35 {
+		confidence = 0.35 // Minimum confidence threshold
+	}
+	if confidence > 1.0 {
+		confidence = 1.0 // Cap at 1.0
+	}
 
-	// Build reasoning
-	var reasoningBuilder strings.Builder
-	reasoningBuilder.WriteString(fmt.Sprintf("Combined %d strategies: ", len(strategies)))
+	// Generate clear reasoning
+	reasoning := msc.generateReasoning(strategies, primaryIndustryID, confidence, strategyContributions)
+
+	return combinedScores, primaryIndustry, confidence, reasoning
+}
+
+// generateReasoning generates clear reasoning for the classification result
+func (msc *MultiStrategyClassifier) generateReasoning(
+	strategies []ClassificationStrategy,
+	primaryIndustryID int,
+	confidence float64,
+	strategyContributions map[int][]string,
+) string {
+	var builder strings.Builder
+
+	builder.WriteString(fmt.Sprintf("Combined %d classification strategies using weighted average. ", len(strategies)))
+
+	// List strategy contributions
+	if contributions, exists := strategyContributions[primaryIndustryID]; exists && len(contributions) > 0 {
+		builder.WriteString("Contributions: ")
+		for i, contrib := range contributions {
+			if i > 0 {
+				builder.WriteString(", ")
+			}
+			builder.WriteString(contrib)
+		}
+		builder.WriteString(". ")
+	}
+
+	// Add strategy details
+	builder.WriteString("Strategies: ")
 	for i, strategy := range strategies {
 		if i > 0 {
-			reasoningBuilder.WriteString(", ")
+			builder.WriteString(", ")
 		}
-		reasoningBuilder.WriteString(fmt.Sprintf("%s (%.2f)", strategy.StrategyName, strategy.Score))
+		builder.WriteString(fmt.Sprintf("%s(%.2f)", strategy.StrategyName, strategy.Confidence))
 	}
-	reasoningBuilder.WriteString(fmt.Sprintf(". Primary: %s (score: %.2f)", primaryIndustry, maxScore))
 
-	return industryScores, primaryIndustry, confidence, reasoningBuilder.String()
+	builder.WriteString(fmt.Sprintf(". Final confidence: %.2f", confidence))
+
+	return builder.String()
 }
 
 // calculateEntityConfidence calculates confidence based on entity relevance

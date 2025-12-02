@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math"
 	"strings"
 	"sync"
 	"time"
@@ -45,9 +46,10 @@ type IndustryDetectionService struct {
 	logger               *log.Logger
 	monitor              *ClassificationAccuracyMonitoring
 	multiStrategyClassifier *MultiStrategyClassifier
-	multiMethodClassifier   *MultiMethodClassifier  // Optional: for ML support
-	useML                  bool                    // Flag to enable ML
-	metrics                *ClassificationMetrics  // Classification accuracy metrics
+	mlClassifier           *machine_learning.ContentClassifier  // Optional: for ML support
+	pythonMLService        interface{}                          // Optional: *infrastructure.PythonMLService - using interface to avoid import cycle
+	useML                  bool                                 // Flag to enable ML
+	metrics                *ClassificationMetrics               // Classification accuracy metrics
 }
 
 // NewIndustryDetectionService creates a new industry detection service
@@ -61,18 +63,17 @@ func NewIndustryDetectionService(repo repository.KeywordRepository, logger *log.
 		logger:               logger,
 		monitor:              nil, // Will be set separately if monitoring is needed
 		multiStrategyClassifier: NewMultiStrategyClassifier(repo, logger),
-		multiMethodClassifier:   nil,
+		mlClassifier:           nil,
+		pythonMLService:        nil,
 		useML:                  false,
 		metrics:                NewClassificationMetrics(),
 	}
 }
 
-// SetContentCache sets the website content cache on the multi-method classifier if available
+// SetContentCache sets the website content cache (deprecated - kept for backward compatibility)
 func (s *IndustryDetectionService) SetContentCache(cache WebsiteContentCacher) {
-	if s.multiMethodClassifier != nil {
-		s.multiMethodClassifier.SetContentCache(cache)
-		s.logger.Printf("✅ Website content cache set on MultiMethodClassifier")
-	}
+	// Cache is now handled by request-scoped cache in methods
+	s.logger.Printf("ℹ️ SetContentCache called (cache now handled by request-scoped cache)")
 }
 
 // NewIndustryDetectionServiceWithML creates a new industry detection service with ML support
@@ -86,10 +87,7 @@ func NewIndustryDetectionServiceWithML(
 		logger = log.Default()
 	}
 
-	// Create MultiMethodClassifier with Python ML service support
-	multiMethodClassifier := NewMultiMethodClassifier(repo, mlClassifier, logger)
 	if pythonMLService != nil {
-		multiMethodClassifier.SetPythonMLService(pythonMLService)
 		logger.Printf("✅ IndustryDetectionService initialized with ML support (Python ML service enabled)")
 	} else {
 		logger.Printf("✅ IndustryDetectionService initialized with ML support (Go ML classifier only)")
@@ -99,8 +97,9 @@ func NewIndustryDetectionServiceWithML(
 		repo:                 repo,
 		logger:               logger,
 		monitor:              nil,
-		multiStrategyClassifier: NewMultiStrategyClassifier(repo, logger), // Keep for fallback
-		multiMethodClassifier:   multiMethodClassifier,
+		multiStrategyClassifier: NewMultiStrategyClassifier(repo, logger),
+		mlClassifier:           mlClassifier,
+		pythonMLService:        pythonMLService,
 		useML:                  true,
 		metrics:                NewClassificationMetrics(),
 	}
@@ -228,21 +227,16 @@ type IndustryDetectionResult struct {
 	CreatedAt      time.Time     `json:"created_at"`
 }
 
-// DetectIndustry performs database-driven industry detection using multi-strategy or multi-method classification
+// DetectIndustry performs database-driven industry detection using multi-strategy classification
+// Phase 3.1: Enhanced with three-tier confidence-based ML strategy
 func (s *IndustryDetectionService) DetectIndustry(ctx context.Context, businessName, description, websiteURL string) (*IndustryDetectionResult, error) {
 	startTime := time.Now()
 	requestID := s.generateRequestID()
 
 	s.logger.Printf("🔍 Starting industry detection for: %s (request: %s)", businessName, requestID)
 
-	// Use MultiMethodClassifier with ML if available, otherwise use MultiStrategyClassifier
-	if s.useML && s.multiMethodClassifier != nil {
-		s.logger.Printf("🤖 Using MultiMethodClassifier with ML support (request: %s)", requestID)
-		return s.detectIndustryWithML(ctx, businessName, description, websiteURL, startTime, requestID)
-	}
-
-	// Use multi-strategy classifier for improved accuracy (keyword-based)
-	s.logger.Printf("📝 Using MultiStrategyClassifier (keyword-based) (request: %s)", requestID)
+	// Step 1: Run multi-strategy classifier (base classification)
+	s.logger.Printf("📝 Running MultiStrategyClassifier (base classification) (request: %s)", requestID)
 	multiResult, err := s.multiStrategyClassifier.ClassifyWithMultiStrategy(
 		ctx, businessName, description, websiteURL)
 	if err != nil {
@@ -256,16 +250,46 @@ func (s *IndustryDetectionService) DetectIndustry(ctx context.Context, businessN
 		return s.fallbackToKeywordClassification(ctx, businessName, description, websiteURL, startTime, requestID)
 	}
 
-	// Convert MultiStrategyResult to IndustryDetectionResult
-	// Use Confidence field which contains the calibrated value
-	result := &IndustryDetectionResult{
-		IndustryName:   multiResult.PrimaryIndustry,
-		Confidence:     multiResult.Confidence, // This is already calibrated
-		Keywords:       multiResult.Keywords,
-		ProcessingTime: multiResult.ProcessingTime,
-		Method:         "multi_strategy",
-		Reasoning:      multiResult.Reasoning,
-		CreatedAt:      time.Now(),
+	// Step 2: Determine ML strategy based on confidence level
+	// Phase 3.1: Three-tier confidence-based ML strategy
+	const (
+		lowConfidenceThreshold  = 0.5
+		highConfidenceThreshold = 0.8
+	)
+
+	var result *IndustryDetectionResult
+
+	if !s.useML || s.mlClassifier == nil {
+		// ML not available - use base result
+		s.logger.Printf("ℹ️ ML not available, using base classification result (request: %s)", requestID)
+		result = s.convertToIndustryDetectionResult(multiResult, "multi_strategy", requestID)
+	} else if multiResult.Confidence < lowConfidenceThreshold {
+		// Low confidence (< 0.5): ML-assisted improvement
+		s.logger.Printf("🔧 Low confidence (%.2f%%) < %.2f%%, using ML-assisted improvement (request: %s)",
+			multiResult.Confidence*100, lowConfidenceThreshold*100, requestID)
+		result, err = s.improveWithML(ctx, multiResult, businessName, description, websiteURL, requestID)
+		if err != nil {
+			s.logger.Printf("⚠️ ML improvement failed (non-fatal): %v, using base result (request: %s)", err, requestID)
+			result = s.convertToIndustryDetectionResult(multiResult, "multi_strategy", requestID)
+		}
+	} else if multiResult.Confidence < highConfidenceThreshold {
+		// Medium confidence (0.5-0.8): Ensemble validation
+		s.logger.Printf("⚖️ Medium confidence (%.2f%%) between %.2f%% and %.2f%%, using ensemble validation (request: %s)",
+			multiResult.Confidence*100, lowConfidenceThreshold*100, highConfidenceThreshold*100, requestID)
+		result, err = s.validateWithEnsemble(ctx, multiResult, businessName, description, websiteURL, requestID)
+		if err != nil {
+			s.logger.Printf("⚠️ Ensemble validation failed (non-fatal): %v, using base result (request: %s)", err, requestID)
+			result = s.convertToIndustryDetectionResult(multiResult, "multi_strategy", requestID)
+		}
+	} else {
+		// High confidence (>= 0.8): ML validation only
+		s.logger.Printf("✅ High confidence (%.2f%%) >= %.2f%%, using ML validation (request: %s)",
+			multiResult.Confidence*100, highConfidenceThreshold*100, requestID)
+		result, err = s.validateWithMLHighConfidence(ctx, multiResult, businessName, description, websiteURL, requestID)
+		if err != nil {
+			s.logger.Printf("⚠️ ML validation failed (non-fatal): %v, using base result (request: %s)", err, requestID)
+			result = s.convertToIndustryDetectionResult(multiResult, "multi_strategy", requestID)
+		}
 	}
 
 	// Record metrics if monitoring is enabled
@@ -275,55 +299,320 @@ func (s *IndustryDetectionService) DetectIndustry(ctx context.Context, businessN
 		// This can be added later when monitoring is fully integrated
 	}
 
-	s.logger.Printf("✅ Industry detection completed: %s (confidence: %.2f%%, calibrated: %.2f%%) (request: %s)",
-		result.IndustryName, multiResult.Confidence*100, result.Confidence*100, requestID)
+	s.logger.Printf("✅ Industry detection completed: %s (confidence: %.2f%%) (request: %s)",
+		result.IndustryName, result.Confidence*100, requestID)
 
 	return result, nil
 }
 
-// detectIndustryWithML performs industry detection using MultiMethodClassifier with ML support
+// convertToIndustryDetectionResult converts MultiStrategyResult to IndustryDetectionResult
+func (s *IndustryDetectionService) convertToIndustryDetectionResult(
+	multiResult *MultiStrategyResult,
+	method string,
+	requestID string,
+) *IndustryDetectionResult {
+	return &IndustryDetectionResult{
+		IndustryName:   multiResult.PrimaryIndustry,
+		Confidence:     multiResult.Confidence,
+		Keywords:       multiResult.Keywords,
+		ProcessingTime: multiResult.ProcessingTime,
+		Method:         method,
+		Reasoning:      multiResult.Reasoning,
+		CreatedAt:      time.Now(),
+	}
+}
+
+// performMLClassification performs ML classification and returns a MultiStrategyResult
+// Phase 5.1: Simplified to use ML classifier directly instead of MultiMethodClassifier
+func (s *IndustryDetectionService) performMLClassification(
+	ctx context.Context,
+	businessName, description, websiteURL string,
+) (*MultiStrategyResult, error) {
+	if s.mlClassifier == nil {
+		return nil, fmt.Errorf("ML classifier not available")
+	}
+
+	// Combine business information for ML analysis
+	content := strings.TrimSpace(businessName + " " + description)
+	if content == "" {
+		return nil, fmt.Errorf("no content to analyze")
+	}
+
+	// Perform ML classification
+	mlResult, err := s.mlClassifier.ClassifyContent(ctx, content, "")
+	if err != nil {
+		return nil, fmt.Errorf("ML classification failed: %w", err)
+	}
+
+	// Find the best classification from ML result
+	if len(mlResult.Classifications) == 0 {
+		return nil, fmt.Errorf("no classifications returned from ML model")
+	}
+
+	// Get the highest confidence classification
+	bestClassification := mlResult.Classifications[0]
+	for _, classification := range mlResult.Classifications {
+		if classification.Confidence > bestClassification.Confidence {
+			bestClassification = classification
+		}
+	}
+
+	// Convert to MultiStrategyResult format
+	result := &MultiStrategyResult{
+		PrimaryIndustry: bestClassification.Label,
+		Confidence:      bestClassification.Confidence,
+		Keywords:        []string{}, // ML doesn't provide specific keywords
+		Reasoning:       fmt.Sprintf("ML classification: %s (confidence: %.2f%%)", bestClassification.Label, bestClassification.Confidence*100),
+	}
+
+	return result, nil
+}
+
+// improveWithML performs ML-assisted improvement for low confidence cases (< 0.5)
+// Phase 3.1: Low confidence strategy - ML-assisted improvement
+// Uses ensemble voting (Base 40% + ML 60%) - favors ML to improve accuracy
+func (s *IndustryDetectionService) improveWithML(
+	ctx context.Context,
+	baseResult *MultiStrategyResult,
+	businessName, description, websiteURL string,
+	requestID string,
+) (*IndustryDetectionResult, error) {
+	// Create timeout context for ML improvement
+	mlCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	// Get ML classification
+	mlResult, err := s.performMLClassification(mlCtx, businessName, description, websiteURL)
+	if err != nil {
+		return nil, fmt.Errorf("ML classification failed: %w", err)
+	}
+
+	// Ensemble voting: Base 40% + ML 60% (favor ML for improvement)
+	const baseWeight = 0.4
+	const mlWeight = 0.6
+
+	var finalIndustry string
+	var finalConfidence float64
+	var finalReasoning string
+
+	// Check if ML confidence is significantly higher than base
+	const mlAdvantageThreshold = 0.2
+	if mlResult.Confidence > baseResult.Confidence+mlAdvantageThreshold {
+		// ML is significantly better - use ML result
+		finalIndustry = mlResult.PrimaryIndustry
+		finalConfidence = mlResult.Confidence
+		finalReasoning = fmt.Sprintf("ML-assisted improvement: ML confidence (%.2f%%) significantly higher than base (%.2f%%)",
+			mlResult.Confidence*100, baseResult.Confidence*100)
+		s.logger.Printf("✅ ML significantly better (%.2f%% vs %.2f%%), using ML result (request: %s)",
+			mlResult.Confidence*100, baseResult.Confidence*100, requestID)
+	} else if mlResult.PrimaryIndustry == baseResult.PrimaryIndustry {
+		// Consensus - boost confidence
+		weightedConfidence := (baseResult.Confidence * baseWeight) + (mlResult.Confidence * mlWeight)
+		consensusBoost := 0.15
+		finalIndustry = baseResult.PrimaryIndustry
+		finalConfidence = math.Min(weightedConfidence+consensusBoost, 1.0)
+		finalReasoning = fmt.Sprintf("ML-assisted improvement with consensus: boosted confidence by %.2f%%",
+			consensusBoost*100)
+		s.logger.Printf("✅ ML consensus: boosted confidence from %.2f%% to %.2f%% (request: %s)",
+			weightedConfidence*100, finalConfidence*100, requestID)
+	} else {
+		// Disagreement - use weighted average, favor ML
+		baseScore := baseResult.Confidence * baseWeight
+		mlScore := mlResult.Confidence * mlWeight
+		
+		if mlScore >= baseScore {
+			finalIndustry = mlResult.PrimaryIndustry
+			finalConfidence = mlResult.Confidence
+			finalReasoning = fmt.Sprintf("ML-assisted improvement: ML selected (weighted score: %.2f%% vs base: %.2f%%)",
+				mlScore*100, baseScore*100)
+			s.logger.Printf("✅ ML selected via weighted voting (ML: %.2f%% vs Base: %.2f%%) (request: %s)",
+				mlScore*100, baseScore*100, requestID)
+		} else {
+			finalIndustry = baseResult.PrimaryIndustry
+			finalConfidence = baseResult.Confidence
+			finalReasoning = fmt.Sprintf("ML-assisted improvement: Base selected (weighted score: %.2f%% vs ML: %.2f%%)",
+				baseScore*100, mlScore*100)
+			s.logger.Printf("✅ Base selected via weighted voting (Base: %.2f%% vs ML: %.2f%%) (request: %s)",
+				baseScore*100, mlScore*100, requestID)
+		}
+	}
+
+	// Merge keywords
+	keywords := append(baseResult.Keywords, mlResult.Keywords...)
+	keywordMap := make(map[string]bool)
+	uniqueKeywords := []string{}
+	for _, kw := range keywords {
+		if !keywordMap[kw] {
+			keywordMap[kw] = true
+			uniqueKeywords = append(uniqueKeywords, kw)
+		}
+	}
+
+	return &IndustryDetectionResult{
+		IndustryName:   finalIndustry,
+		Confidence:     finalConfidence,
+		Keywords:       uniqueKeywords,
+		ProcessingTime: baseResult.ProcessingTime, // Base processing time
+		Method:         "multi_strategy_ml_improved",
+		Reasoning:      finalReasoning,
+		CreatedAt:      time.Now(),
+	}, nil
+}
+
+// validateWithEnsemble performs ensemble validation for medium confidence cases (0.5-0.8)
+// Phase 3.1: Medium confidence strategy - Ensemble validation
+// Uses balanced ensemble (Base 50% + ML 50%)
+func (s *IndustryDetectionService) validateWithEnsemble(
+	ctx context.Context,
+	baseResult *MultiStrategyResult,
+	businessName, description, websiteURL string,
+	requestID string,
+) (*IndustryDetectionResult, error) {
+	// Create timeout context for ML validation
+	mlCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	// Get ML classification
+	mlResult, err := s.performMLClassification(mlCtx, businessName, description, websiteURL)
+	if err != nil {
+		return nil, fmt.Errorf("ML classification failed: %w", err)
+	}
+
+	// Balanced ensemble: Base 50% + ML 50%
+	const baseWeight = 0.5
+	const mlWeight = 0.5
+
+	var finalIndustry string
+	var finalConfidence float64
+	var finalReasoning string
+
+	if mlResult.PrimaryIndustry == baseResult.PrimaryIndustry {
+		// Consensus - boost confidence
+		weightedConfidence := (baseResult.Confidence * baseWeight) + (mlResult.Confidence * mlWeight)
+		consensusBoost := 0.1
+		finalIndustry = baseResult.PrimaryIndustry
+		finalConfidence = math.Min(weightedConfidence+consensusBoost, 1.0)
+		finalReasoning = fmt.Sprintf("Ensemble validation with consensus: boosted confidence by %.2f%%",
+			consensusBoost*100)
+		s.logger.Printf("✅ Ensemble consensus: boosted confidence from %.2f%% to %.2f%% (request: %s)",
+			weightedConfidence*100, finalConfidence*100, requestID)
+	} else {
+		// Disagreement - use weighted average
+		baseScore := baseResult.Confidence * baseWeight
+		mlScore := mlResult.Confidence * mlWeight
+		weightedConfidence := baseScore + mlScore
+		
+		// Select industry based on weighted scores
+		if mlScore >= baseScore {
+			finalIndustry = mlResult.PrimaryIndustry
+		} else {
+			finalIndustry = baseResult.PrimaryIndustry
+		}
+		
+		finalConfidence = weightedConfidence
+		finalReasoning = fmt.Sprintf("Ensemble validation: weighted average (Base: %s %.2f%%, ML: %s %.2f%%)",
+			baseResult.PrimaryIndustry, baseScore*100, mlResult.PrimaryIndustry, mlScore*100)
+		s.logger.Printf("⚠️ Ensemble disagreement: Base '%s' (%.2f%%) vs ML '%s' (%.2f%%), using weighted average (request: %s)",
+			baseResult.PrimaryIndustry, baseScore*100, mlResult.PrimaryIndustry, mlScore*100, requestID)
+	}
+
+	// Merge keywords
+	keywords := append(baseResult.Keywords, mlResult.Keywords...)
+	keywordMap := make(map[string]bool)
+	uniqueKeywords := []string{}
+	for _, kw := range keywords {
+		if !keywordMap[kw] {
+			keywordMap[kw] = true
+			uniqueKeywords = append(uniqueKeywords, kw)
+		}
+	}
+
+	return &IndustryDetectionResult{
+		IndustryName:   finalIndustry,
+		Confidence:     finalConfidence,
+		Keywords:       uniqueKeywords,
+		ProcessingTime: baseResult.ProcessingTime, // Base processing time
+		Method:         "multi_strategy_ml_ensemble",
+		Reasoning:      finalReasoning,
+		CreatedAt:      time.Now(),
+	}, nil
+}
+
+// validateWithMLHighConfidence performs ML validation for high confidence cases (>= 0.8)
+// Phase 3.1: High confidence strategy - ML validation only
+// ML validates, doesn't replace base classification
+func (s *IndustryDetectionService) validateWithMLHighConfidence(
+	ctx context.Context,
+	baseResult *MultiStrategyResult,
+	businessName, description, websiteURL string,
+	requestID string,
+) (*IndustryDetectionResult, error) {
+	// Create timeout context for ML validation (shorter timeout since it's validation)
+	mlCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	// Get ML classification
+	mlResult, err := s.performMLClassification(mlCtx, businessName, description, websiteURL)
+	if err != nil {
+		return nil, fmt.Errorf("ML classification failed: %w", err)
+	}
+
+	// ML validation logic: validate, don't replace
+	var finalIndustry string
+	var finalConfidence float64
+	var finalReasoning string
+
+	if mlResult.PrimaryIndustry == baseResult.PrimaryIndustry {
+		// Consensus - boost confidence
+		boostAmount := 0.1
+		finalIndustry = baseResult.PrimaryIndustry
+		finalConfidence = math.Min(baseResult.Confidence+boostAmount, 1.0)
+		finalReasoning = baseResult.Reasoning + " (ML validated with consensus)"
+		s.logger.Printf("✅ ML consensus: boosted confidence from %.2f%% to %.2f%% (request: %s)",
+			baseResult.Confidence*100, finalConfidence*100, requestID)
+	} else {
+		// Disagreement - use base result but note ML suggestion
+		finalIndustry = baseResult.PrimaryIndustry
+		finalConfidence = baseResult.Confidence
+		finalReasoning = baseResult.Reasoning + fmt.Sprintf(" (ML suggested: %s, but base classification used)",
+			mlResult.PrimaryIndustry)
+		s.logger.Printf("⚠️ ML disagreement: ML suggested '%s', but using base result '%s' (request: %s)",
+			mlResult.PrimaryIndustry, baseResult.PrimaryIndustry, requestID)
+	}
+
+	// Merge keywords
+	keywords := append(baseResult.Keywords, mlResult.Keywords...)
+	keywordMap := make(map[string]bool)
+	uniqueKeywords := []string{}
+	for _, kw := range keywords {
+		if !keywordMap[kw] {
+			keywordMap[kw] = true
+			uniqueKeywords = append(uniqueKeywords, kw)
+		}
+	}
+
+	return &IndustryDetectionResult{
+		IndustryName:   finalIndustry,
+		Confidence:     finalConfidence,
+		Keywords:       uniqueKeywords,
+		ProcessingTime: baseResult.ProcessingTime,
+		Method:         "multi_strategy_ml_validated",
+		Reasoning:      finalReasoning,
+		CreatedAt:      time.Now(),
+	}, nil
+}
+
+// detectIndustryWithML is deprecated - ML is now integrated into DetectIndustry via three-tier strategy
+// This method is kept for backward compatibility but should not be used
 func (s *IndustryDetectionService) detectIndustryWithML(
 	ctx context.Context,
 	businessName, description, websiteURL string,
 	startTime time.Time,
 	requestID string,
 ) (*IndustryDetectionResult, error) {
-	// Use MultiMethodClassifier which combines keyword + ML + description methods
-	multiMethodResult, err := s.multiMethodClassifier.ClassifyWithMultipleMethods(
-		ctx, businessName, description, websiteURL)
-	if err != nil {
-		s.logger.Printf("⚠️ Multi-method classification failed, falling back to keyword-based: %v (request: %s)", err, requestID)
-		return s.fallbackToKeywordClassification(ctx, businessName, description, websiteURL, startTime, requestID)
-	}
-
-	if multiMethodResult == nil || multiMethodResult.PrimaryClassification == nil {
-		s.logger.Printf("⚠️ Multi-method returned nil, falling back to keyword-based (request: %s)", requestID)
-		return s.fallbackToKeywordClassification(ctx, businessName, description, websiteURL, startTime, requestID)
-	}
-
-	// Convert MultiMethodClassificationResult to IndustryDetectionResult
-	primary := multiMethodResult.PrimaryClassification
-	result := &IndustryDetectionResult{
-		IndustryName:   primary.IndustryName,
-		Confidence:     primary.ConfidenceScore,
-		Keywords:       primary.Keywords,
-		ProcessingTime: multiMethodResult.ProcessingTime,
-		Method:         primary.ClassificationMethod, // Will be "ml_distilbart" or "ml" or "keyword"
-		Reasoning:      multiMethodResult.ClassificationReasoning,
-		CreatedAt:      time.Now(),
-	}
-
-	// Log which methods were used
-	var methodNames []string
-	for _, methodResult := range multiMethodResult.MethodResults {
-		if methodResult.Success {
-			methodNames = append(methodNames, methodResult.MethodName)
-		}
-	}
-	s.logger.Printf("✅ Multi-method classification completed: %s (confidence: %.2f%%) using methods: %v (request: %s)",
-		result.IndustryName, result.Confidence*100, methodNames, requestID)
-
-	return result, nil
+	s.logger.Printf("⚠️ detectIndustryWithML is deprecated, using DetectIndustry instead (request: %s)", requestID)
+	// Delegate to main DetectIndustry method
+	return s.DetectIndustry(ctx, businessName, description, websiteURL)
 }
 
 // fallbackToKeywordClassification provides fallback when multi-strategy fails

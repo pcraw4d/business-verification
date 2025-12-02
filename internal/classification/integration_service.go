@@ -10,15 +10,16 @@ import (
 	"kyb-platform/internal/machine_learning"
 )
 
-// IntegrationService provides a sophisticated interface for integrating multi-method classification services
+// IntegrationService provides a sophisticated interface for integrating classification services
+// Phase 5.1: Updated to use IndustryDetectionService instead of MultiMethodClassifier
 type IntegrationService struct {
-	multiMethodClassifier *MultiMethodClassifier
-	keywordRepo           repository.KeywordRepository
-	mlClassifier          *machine_learning.ContentClassifier
-	logger                *log.Logger
+	detectionService *IndustryDetectionService
+	keywordRepo      repository.KeywordRepository
+	mlClassifier     *machine_learning.ContentClassifier
+	logger           *log.Logger
 }
 
-// NewIntegrationService creates a new integration service with multi-method classification
+// NewIntegrationService creates a new integration service with industry detection
 func NewIntegrationService(supabaseClient *database.SupabaseClient, logger *log.Logger) *IntegrationService {
 	if logger == nil {
 		logger = log.Default()
@@ -40,38 +41,39 @@ func NewIntegrationService(supabaseClient *database.SupabaseClient, logger *log.
 	}
 	mlClassifier := machine_learning.NewContentClassifier(mlConfig)
 
-	// Create multi-method classifier
-	multiMethodClassifier := NewMultiMethodClassifier(repo, mlClassifier, logger)
+	// Create industry detection service with ML support
+	detectionService := NewIndustryDetectionServiceWithML(repo, mlClassifier, nil, logger)
 
 	return &IntegrationService{
-		multiMethodClassifier: multiMethodClassifier,
-		keywordRepo:           repo,
-		mlClassifier:          mlClassifier,
-		logger:                logger,
+		detectionService: detectionService,
+		keywordRepo:      repo,
+		mlClassifier:     mlClassifier,
+		logger:           logger,
 	}
 }
 
-// ProcessBusinessClassification processes a business classification request using multi-method voting
+// ProcessBusinessClassification processes a business classification request using industry detection
 func (s *IntegrationService) ProcessBusinessClassification(
 	ctx context.Context,
 	businessName, description, websiteURL string,
-) (*MultiMethodClassificationResult, error) {
-	// Use multi-method classification with voting
-	result, err := s.multiMethodClassifier.ClassifyWithMultipleMethods(
-		ctx,
-		businessName,
-		description,
-		websiteURL,
-	)
+) (interface{}, error) {
+	// Use industry detection service (which uses three-tier ML strategy)
+	result, err := s.detectionService.DetectIndustry(ctx, businessName, description, websiteURL)
 	if err != nil {
-		s.logger.Printf("❌ Multi-method classification failed: %v", err)
+		s.logger.Printf("❌ Industry detection failed: %v", err)
 		return nil, err
 	}
 
-	s.logger.Printf("✅ Multi-method classification successful: %s (ensemble confidence: %.2f%%)",
-		result.PrimaryClassification.IndustryName, result.EnsembleConfidence*100)
+	s.logger.Printf("✅ Industry detection successful: %s (confidence: %.2f%%)",
+		result.IndustryName, result.Confidence*100)
 
-	return result, nil
+	// Return result in a compatible format
+	return map[string]interface{}{
+		"industry_name": result.IndustryName,
+		"confidence":    result.Confidence,
+		"method":        result.Method,
+		"reasoning":     result.Reasoning,
+	}, nil
 }
 
 // GetHealthStatus returns the health status of the integration service

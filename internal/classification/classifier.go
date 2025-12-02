@@ -20,6 +20,20 @@ type ClassificationCodeGenerator struct {
 	monitor         *ClassificationAccuracyMonitoring
 }
 
+// CodesResult represents a result from parallel code generation
+type CodesResult struct {
+	Type  string
+	Codes []*repository.ClassificationCode
+	Error error
+}
+
+// ClassificationCodesInfoParallel represents codes queried by type in parallel
+type ClassificationCodesInfoParallel struct {
+	MCC   []*repository.ClassificationCode
+	SIC   []*repository.ClassificationCode
+	NAICS []*repository.ClassificationCode
+}
+
 // NewClassificationCodeGenerator creates a new classification code generator
 func NewClassificationCodeGenerator(repo repository.KeywordRepository, logger *log.Logger) *ClassificationCodeGenerator {
 	if logger == nil {
@@ -47,6 +61,100 @@ func NewClassificationCodeGenerator(repo repository.KeywordRepository, logger *l
 		logger:          logger,
 		monitor:         nil, // Will be set separately if monitoring is needed
 	}
+}
+
+// GenerateCodesParallel queries MCC, NAICS, and SIC codes by type in parallel
+// This is a simpler parallel method for when you just need to query codes by type
+// Phase 2.4: Parallel code generation optimization
+func (g *ClassificationCodeGenerator) GenerateCodesParallel(
+	ctx context.Context,
+	industryID int,
+) (*ClassificationCodesInfoParallel, error) {
+	g.logger.Printf("🚀 Starting parallel code type queries for industry: %d", industryID)
+	
+	codesChan := make(chan CodesResult, 3)
+	var wg sync.WaitGroup
+	
+	// Query MCC codes in parallel
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		codeCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+		defer cancel()
+		
+		mccCodes, err := g.repo.GetClassificationCodesByType(codeCtx, "MCC")
+		if err != nil {
+			g.logger.Printf("⚠️ Failed to get MCC codes: %v", err)
+			codesChan <- CodesResult{Type: "MCC", Codes: nil, Error: err}
+			return
+		}
+		codesChan <- CodesResult{Type: "MCC", Codes: mccCodes, Error: nil}
+	}()
+	
+	// Query NAICS codes in parallel
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		codeCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+		defer cancel()
+		
+		naicsCodes, err := g.repo.GetClassificationCodesByType(codeCtx, "NAICS")
+		if err != nil {
+			g.logger.Printf("⚠️ Failed to get NAICS codes: %v", err)
+			codesChan <- CodesResult{Type: "NAICS", Codes: nil, Error: err}
+			return
+		}
+		codesChan <- CodesResult{Type: "NAICS", Codes: naicsCodes, Error: nil}
+	}()
+	
+	// Query SIC codes in parallel
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		codeCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+		defer cancel()
+		
+		sicCodes, err := g.repo.GetClassificationCodesByType(codeCtx, "SIC")
+		if err != nil {
+			g.logger.Printf("⚠️ Failed to get SIC codes: %v", err)
+			codesChan <- CodesResult{Type: "SIC", Codes: nil, Error: err}
+			return
+		}
+		codesChan <- CodesResult{Type: "SIC", Codes: sicCodes, Error: nil}
+	}()
+	
+	// Wait for all queries to complete
+	wg.Wait()
+	close(codesChan)
+	
+	// Collect results
+	codesInfo := &ClassificationCodesInfoParallel{
+		MCC:   []*repository.ClassificationCode{},
+		SIC:   []*repository.ClassificationCode{},
+		NAICS: []*repository.ClassificationCode{},
+	}
+	
+	for result := range codesChan {
+		switch result.Type {
+		case "MCC":
+			if result.Error == nil {
+				codesInfo.MCC = result.Codes
+			}
+		case "NAICS":
+			if result.Error == nil {
+				codesInfo.NAICS = result.Codes
+			}
+		case "SIC":
+			if result.Error == nil {
+				codesInfo.SIC = result.Codes
+			}
+		}
+	}
+	
+	g.logger.Printf("✅ Parallel code queries completed: %d MCC, %d NAICS, %d SIC",
+		len(codesInfo.MCC), len(codesInfo.NAICS), len(codesInfo.SIC))
+	
+	return codesInfo, nil
 }
 
 // NewClassificationCodeGeneratorWithMonitoring creates a new classification code generator with monitoring

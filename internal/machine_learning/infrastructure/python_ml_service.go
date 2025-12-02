@@ -106,9 +106,9 @@ func NewPythonMLService(endpoint string, logger *log.Logger) *PythonMLService {
 	circuitBreakerConfig.ResetTimeout = 120 * time.Second // Increased from 60s
 	circuitBreaker := resilience.NewCircuitBreaker(circuitBreakerConfig)
 
-		return &PythonMLService{
-			endpoint: normalizedEndpoint,
-			config: PythonMLServiceConfig{
+	return &PythonMLService{
+		endpoint: normalizedEndpoint,
+		config: PythonMLServiceConfig{
 				DefaultModelType:        "bert",
 				SupportedModelTypes:     []string{"bert", "distilbert", "custom"},
 				ModelCacheEnabled:       true,
@@ -124,7 +124,7 @@ func NewPythonMLService(endpoint string, logger *log.Logger) *PythonMLService {
 				MetricsEnabled:           true,
 				PerformanceTracking:      true,
 				ModelVersioning:          true,
-			},
+		},
 		models:         make(map[string]*MLModel),
 		httpClient:      httpClient,
 		logger:         logger,
