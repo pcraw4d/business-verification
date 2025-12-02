@@ -11,6 +11,7 @@ import (
 	"math"
 	"net/http"
 	"net/url"
+	"os"
 	"regexp"
 	"strings"
 	"time"
@@ -65,8 +66,11 @@ type WebsiteScraper struct {
 }
 
 // NewWebsiteScraper creates a new website scraper with the given configuration
+// It automatically reads PLAYWRIGHT_SERVICE_URL from environment if available
 func NewWebsiteScraper(config *ScrapingConfig, logger *zap.Logger) *WebsiteScraper {
-	return NewWebsiteScraperWithStrategies(config, logger, "")
+	// Check for Playwright service URL in environment
+	playwrightServiceURL := os.Getenv("PLAYWRIGHT_SERVICE_URL")
+	return NewWebsiteScraperWithStrategies(config, logger, playwrightServiceURL)
 }
 
 // NewWebsiteScraperWithStrategies creates a new website scraper with multi-tier strategies

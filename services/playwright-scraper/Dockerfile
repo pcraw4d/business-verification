@@ -5,8 +5,11 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm install --production
+# Install dependencies (don't use --production to ensure playwright is available)
+RUN npm install
+
+# Ensure Playwright browsers are installed (base image should have them, but verify)
+RUN npx playwright install chromium || true
 
 # Copy application
 COPY . .
