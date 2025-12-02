@@ -545,6 +545,11 @@ func getRateLimitDelay() time.Duration {
 	return delay
 }
 
+// WebsiteScraperInterface defines the interface for website scraping to avoid import cycles
+type WebsiteScraperInterface interface {
+	ScrapeWebsite(ctx context.Context, websiteURL string) interface{} // Returns *ScrapingResult
+}
+
 // NewSupabaseKeywordRepository creates a new Supabase-based keyword repository
 func NewSupabaseKeywordRepository(client *database.SupabaseClient, logger *log.Logger) *SupabaseKeywordRepository {
 	if logger == nil {
@@ -614,9 +619,7 @@ func NewSupabaseKeywordRepository(client *database.SupabaseClient, logger *log.L
 }
 
 // NewSupabaseKeywordRepositoryWithScraper creates a new Supabase-based keyword repository with Phase 1 enhanced scraper
-func NewSupabaseKeywordRepositoryWithScraper(client *database.SupabaseClient, logger *log.Logger, websiteScraper interface {
-	ScrapeWebsite(ctx context.Context, websiteURL string) interface{} // Returns *ScrapingResult
-}) *SupabaseKeywordRepository {
+func NewSupabaseKeywordRepositoryWithScraper(client *database.SupabaseClient, logger *log.Logger, websiteScraper WebsiteScraperInterface) *SupabaseKeywordRepository {
 	if logger == nil {
 		logger = log.Default()
 	}
