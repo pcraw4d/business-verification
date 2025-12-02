@@ -16,7 +16,7 @@ import (
 
 	"kyb-platform/internal/classification"
 	classificationAdapters "kyb-platform/internal/classification/adapters"
-	"kyb-platform/internal/classification/repository"
+	keywordRepo "kyb-platform/internal/classification/repository"
 	"kyb-platform/internal/machine_learning/infrastructure"
 	serviceAdapters "kyb-platform/services/classification-service/internal/adapters"
 	"kyb-platform/services/classification-service/internal/cache"
@@ -24,7 +24,6 @@ import (
 	"kyb-platform/services/classification-service/internal/errors"
 	"kyb-platform/services/classification-service/internal/handlers"
 	"kyb-platform/services/classification-service/internal/supabase"
-	"kyb-platform/internal/classification/repository"
 )
 
 // websiteScraperAdapter adapts EnhancedWebsiteScraper to WebsiteScraperInterface
