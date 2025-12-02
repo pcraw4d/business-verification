@@ -89,8 +89,11 @@ func main() {
 	enhancedScraper := classification.NewEnhancedWebsiteScraper(stdLogger)
 	logger.Info("✅ Phase 1 enhanced website scraper initialized for keyword extraction")
 
+	// Create adapter to bridge EnhancedWebsiteScraper to WebsiteScraperInterface
+	scraperAdapter := &websiteScraperAdapter{scraper: enhancedScraper}
+	
 	// Initialize classification repository with Phase 1 enhanced scraper
-	keywordRepo := repository.NewSupabaseKeywordRepositoryWithScraper(dbClient, stdLogger, enhancedScraper)
+	keywordRepoInstance = keywordRepo.NewSupabaseKeywordRepositoryWithScraper(dbClient, stdLogger, scraperAdapter)
 	logger.Info("✅ Classification repository initialized with Phase 1 enhanced scraper")
 
 	// Initialize website content cache if enabled
@@ -122,8 +125,8 @@ func main() {
 	}
 
 	// Initialize classification services
-	industryDetector := classification.NewIndustryDetectionService(keywordRepo, stdLogger)
-	codeGenerator := classification.NewClassificationCodeGenerator(keywordRepo, stdLogger)
+	industryDetector := classification.NewIndustryDetectionService(keywordRepoInstance, stdLogger)
+	codeGenerator := classification.NewClassificationCodeGenerator(keywordRepoInstance, stdLogger)
 	
 	// Set website content cache on industry detector's multi-method classifier if available
 	if websiteContentCache != nil && industryDetector != nil {
@@ -205,7 +208,7 @@ func main() {
 		cfg,
 		industryDetector,
 		codeGenerator,
-		keywordRepo, // OPTIMIZATION #5.2: Pass repository for accuracy tracking
+		keywordRepoInstance, // OPTIMIZATION #5.2: Pass repository for accuracy tracking
 		pythonMLService, // Pass Python ML service (can be nil)
 	)
 
