@@ -15,6 +15,7 @@ import (
 	"net/http/cookiejar"
 	"net/url"
 	"os"
+	"reflect"
 	"regexp"
 	"sort"
 	"strconv"
@@ -157,6 +158,26 @@ type SupabaseKeywordRepository struct {
 
 	// Session management for cookies and referer tracking
 	sessionManager *scrapingSessionManager
+
+	// Phase 1: Enhanced website scraper with multi-tier strategies
+	websiteScraper interface {
+		ScrapeWebsite(ctx context.Context, websiteURL string) *struct {
+			URL           string
+			StatusCode    int
+			Content       string
+			TextContent   string
+			Keywords      []string
+			ContentType   string
+			ContentLength int64
+			Headers       map[string]string
+			FinalURL      string
+			ScrapedAt     time.Time
+			Duration      time.Duration
+			Error         string
+			Success       bool
+			Title         string
+		}
+	}
 }
 
 // scrapingSessionManager manages scraping sessions (duplicate to avoid import cycles)
@@ -603,6 +624,66 @@ func NewSupabaseKeywordRepository(client *database.SupabaseClient, logger *log.L
 		topicModeler:     nlp.NewTopicModeler(),
 		// Enhanced keyword matching
 		keywordMatcher: NewKeywordMatcher(),
+		// Phase 1: Enhanced website scraper with multi-tier strategies
+		websiteScraper: websiteScraper,
+	}
+}
+
+// NewSupabaseKeywordRepositoryWithScraper creates a new Supabase-based keyword repository with Phase 1 enhanced scraper
+func NewSupabaseKeywordRepositoryWithScraper(client *database.SupabaseClient, logger *log.Logger, websiteScraper interface {
+	ScrapeWebsite(ctx context.Context, websiteURL string) interface{} // Returns *ScrapingResult
+}) *SupabaseKeywordRepository {
+	if logger == nil {
+		logger = log.Default()
+	}
+
+	// Initialize adapters if not already initialized (lazy initialization)
+	if NewStructuredDataExtractorAdapter == nil || NewSmartWebsiteCrawlerAdapter == nil {
+		logger.Printf("⚠️ [Repository] Adapters not initialized - some features may not work. Call adapters.Init() before using repository.")
+	}
+
+	// Default cache configuration
+	cacheConfig := &IndustryCodeCacheConfig{
+		Enabled:         true,
+		TTL:             30 * time.Minute,
+		MaxSize:         1000,
+		WarmingEnabled:  true,
+		WarmingInterval: 5 * time.Minute,
+		InvalidationRules: []string{
+			"industry_codes:*",
+			"classification_codes:*",
+		},
+	}
+
+	var intelligentCache *cache.IntelligentCache
+
+	return &SupabaseKeywordRepository{
+		client:          client,
+		clientInterface: nil,
+		logger:          logger,
+		keywordIndex: &KeywordIndex{
+			KeywordToIndustries: make(map[string][]IndustryKeywordMatch),
+			IndustryToKeywords:  make(map[int][]*KeywordWeight),
+			LastUpdated:         0,
+		},
+		industryCodeCache: intelligentCache,
+		cacheConfig:       cacheConfig,
+		cacheStats:        &IndustryCodeCacheStats{},
+		brandMatcher:      NewBrandMatcher(logger),
+		regexCache:        make(map[string]*regexp.Regexp),
+		regexMutex:        sync.RWMutex{},
+		maxContentSize:    50 * 1024,
+		dnsCache:          make(map[string]dnsCacheEntry),
+		dnsMutex:          sync.RWMutex{},
+		rateLimiter:       make(map[string]time.Time),
+		rateMutex:         sync.Mutex{},
+		minDelay:          getRateLimitDelay(),
+		sessionManager:    newScrapingSessionManager(),
+		segmenter:         word_segmentation.NewSegmenter(),
+		entityRecognizer:  nlp.NewEntityRecognizer(),
+		topicModeler:      nlp.NewTopicModeler(),
+		keywordMatcher:    NewKeywordMatcher(),
+		websiteScraper:    websiteScraper,
 	}
 }
 
@@ -3205,7 +3286,7 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromHomepageWithRetry(ctx con
 }
 
 // extractKeywordsFromWebsite scrapes website content and extracts business-relevant keywords
-// Phase 8: Enhanced with detailed logging and error tracking
+// Phase 1: Now uses EnhancedWebsiteScraper with multi-tier strategies (SimpleHTTP → BrowserHeaders → Playwright)
 func (r *SupabaseKeywordRepository) extractKeywordsFromWebsite(ctx context.Context, websiteURL string) []string {
 	startTime := time.Now()
 	r.logger.Printf("🌐 [KeywordExtraction] [SinglePage] Starting single-page website scraping for: %s", websiteURL)
@@ -3221,6 +3302,89 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromWebsite(ctx context.Conte
 		websiteURL = "https://" + websiteURL
 		r.logger.Printf("🔧 [KeywordExtraction] [SinglePage] Added HTTPS scheme: %s", websiteURL)
 	}
+
+	// Phase 1: Use enhanced scraper if available (with multi-tier strategies)
+	if r.websiteScraper != nil {
+		r.logger.Printf("✅ [Phase1] [KeywordExtraction] Using Phase 1 enhanced scraper for: %s", websiteURL)
+		
+		// Use Phase 1 enhanced scraper with multi-tier strategies
+		scrapingResultInterface := r.websiteScraper.ScrapeWebsite(ctx, websiteURL)
+		
+		// Type assert to get the actual ScrapingResult
+		// We use reflection to access fields to avoid import cycle
+		if scrapingResultInterface != nil {
+			// Use type assertion with a helper function to extract fields
+			scrapingResult := r.extractScrapingResultFields(scrapingResultInterface)
+			
+			if scrapingResult != nil && scrapingResult.Success {
+				// Extract keywords from the scraped content
+				htmlContent := scrapingResult.Content
+				if htmlContent == "" {
+					htmlContent = scrapingResult.TextContent
+				}
+			
+			if htmlContent != "" {
+				// Use existing keyword extraction logic
+				textContent := r.extractTextFromHTML(htmlContent)
+				keywords := r.extractBusinessKeywords(textContent)
+				
+				// Also extract from structured data if available (same logic as legacy method)
+				if NewStructuredDataExtractorAdapter != nil {
+					structuredDataExtractor := NewStructuredDataExtractorAdapter(r.logger)
+					structuredDataResult := structuredDataExtractor.ExtractStructuredData(htmlContent)
+					
+					// Extract structured keywords using same logic as legacy method
+					structuredKeywordMap := make(map[string]float64)
+					if structuredDataResult.BusinessInfo.Industry != "" {
+						structuredKeywordMap[strings.ToLower(structuredDataResult.BusinessInfo.Industry)] = 2.0
+					}
+					if structuredDataResult.BusinessInfo.BusinessType != "" {
+						structuredKeywordMap[strings.ToLower(structuredDataResult.BusinessInfo.BusinessType)] = 2.0
+					}
+					for _, service := range structuredDataResult.BusinessInfo.Services {
+						structuredKeywordMap[strings.ToLower(service)] = 2.0
+					}
+					for _, product := range structuredDataResult.BusinessInfo.Products {
+						structuredKeywordMap[strings.ToLower(product)] = 2.0
+					}
+					
+					// Merge structured keywords with text keywords (weighted)
+					allKeywords := make(map[string]float64)
+					for _, kw := range keywords {
+						allKeywords[strings.ToLower(kw)] = 1.0
+					}
+					for kw, weight := range structuredKeywordMap {
+						if allKeywords[kw] < weight {
+							allKeywords[kw] = weight
+						}
+					}
+					
+					// Convert back to slice
+					keywords = make([]string, 0, len(allKeywords))
+					for kw := range allKeywords {
+						keywords = append(keywords, kw)
+					}
+				}
+				
+				duration := time.Since(startTime)
+				r.logger.Printf("✅ [Phase1] [KeywordExtraction] Successfully extracted %d keywords in %v", len(keywords), duration)
+				return keywords
+			}
+			}
+			
+			// If Phase 1 scraper failed, log and fall through to legacy method
+			if scrapingResult != nil && !scrapingResult.Success {
+				r.logger.Printf("⚠️ [Phase1] [KeywordExtraction] Phase 1 scraper failed: %s, falling back to legacy method", scrapingResult.Error)
+			}
+		} else {
+			r.logger.Printf("⚠️ [Phase1] [KeywordExtraction] Phase 1 scraper returned nil, falling back to legacy method")
+		}
+	} else {
+		r.logger.Printf("ℹ️ [KeywordExtraction] Phase 1 enhanced scraper not available, using legacy scraping method")
+	}
+
+	// Legacy scraping method (fallback if Phase 1 scraper not available or failed)
+	r.logger.Printf("🔄 [KeywordExtraction] [SinglePage] Using legacy scraping method for: %s", websiteURL)
 
 	// Create custom dialer that forces IPv4 DNS resolution using Google DNS
 	// This addresses DNS resolution failures in containerized environments like Railway
@@ -3677,6 +3841,118 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromWebsite(ctx context.Conte
 	}
 
 	return keywords
+}
+
+// extractScrapingResultFields extracts fields from ScrapingResult interface to avoid import cycle
+func (r *SupabaseKeywordRepository) extractScrapingResultFields(result interface{}) *struct {
+	URL           string
+	StatusCode    int
+	Content       string
+	TextContent   string
+	Keywords      []string
+	ContentType   string
+	ContentLength int64
+	Headers       map[string]string
+	FinalURL      string
+	ScrapedAt     time.Time
+	Duration      time.Duration
+	Error         string
+	Success       bool
+	Title         string
+} {
+	if result == nil {
+		return nil
+	}
+	
+	resultValue := reflect.ValueOf(result)
+	if resultValue.Kind() == reflect.Ptr {
+		resultValue = resultValue.Elem()
+	}
+	
+	if !resultValue.IsValid() {
+		return nil
+	}
+	
+	extracted := &struct {
+		URL           string
+		StatusCode    int
+		Content       string
+		TextContent   string
+		Keywords      []string
+		ContentType   string
+		ContentLength int64
+		Headers       map[string]string
+		FinalURL      string
+		ScrapedAt     time.Time
+		Duration      time.Duration
+		Error         string
+		Success       bool
+		Title         string
+	}{}
+	
+	if field := resultValue.FieldByName("URL"); field.IsValid() && field.Kind() == reflect.String {
+		extracted.URL = field.String()
+	}
+	if field := resultValue.FieldByName("StatusCode"); field.IsValid() && field.Kind() == reflect.Int {
+		extracted.StatusCode = int(field.Int())
+	}
+	if field := resultValue.FieldByName("Content"); field.IsValid() && field.Kind() == reflect.String {
+		extracted.Content = field.String()
+	}
+	if field := resultValue.FieldByName("TextContent"); field.IsValid() && field.Kind() == reflect.String {
+		extracted.TextContent = field.String()
+	}
+	if field := resultValue.FieldByName("Keywords"); field.IsValid() && field.Kind() == reflect.Slice {
+		if field.Len() > 0 {
+			extracted.Keywords = make([]string, field.Len())
+			for i := 0; i < field.Len(); i++ {
+				if item := field.Index(i); item.Kind() == reflect.String {
+					extracted.Keywords[i] = item.String()
+				}
+			}
+		}
+	}
+	if field := resultValue.FieldByName("ContentType"); field.IsValid() && field.Kind() == reflect.String {
+		extracted.ContentType = field.String()
+	}
+	if field := resultValue.FieldByName("ContentLength"); field.IsValid() {
+		switch field.Kind() {
+		case reflect.Int, reflect.Int64:
+			extracted.ContentLength = field.Int()
+		}
+	}
+	if field := resultValue.FieldByName("Headers"); field.IsValid() && field.Kind() == reflect.Map {
+		extracted.Headers = make(map[string]string)
+		for _, key := range field.MapKeys() {
+			if val := field.MapIndex(key); val.IsValid() && val.Kind() == reflect.String {
+				extracted.Headers[key.String()] = val.String()
+			}
+		}
+	}
+	if field := resultValue.FieldByName("FinalURL"); field.IsValid() && field.Kind() == reflect.String {
+		extracted.FinalURL = field.String()
+	}
+	if field := resultValue.FieldByName("ScrapedAt"); field.IsValid() {
+		if field.Type().String() == "time.Time" {
+			extracted.ScrapedAt = field.Interface().(time.Time)
+		}
+	}
+	if field := resultValue.FieldByName("Duration"); field.IsValid() {
+		if field.Type().String() == "time.Duration" {
+			extracted.Duration = field.Interface().(time.Duration)
+		}
+	}
+	if field := resultValue.FieldByName("Error"); field.IsValid() && field.Kind() == reflect.String {
+		extracted.Error = field.String()
+	}
+	if field := resultValue.FieldByName("Success"); field.IsValid() && field.Kind() == reflect.Bool {
+		extracted.Success = field.Bool()
+	}
+	if field := resultValue.FieldByName("Title"); field.IsValid() && field.Kind() == reflect.String {
+		extracted.Title = field.String()
+	}
+	
+	return extracted
 }
 
 // extractKeywordsFromMultiPageWebsite analyzes multiple pages with relevance-based weighting

@@ -74,8 +74,13 @@ func main() {
 	classificationAdapters.Init()
 	logger.Info("✅ Classification adapters initialized")
 
-	// Initialize classification repository
-	keywordRepo := repository.NewSupabaseKeywordRepository(dbClient, stdLogger)
+	// Initialize Phase 1 enhanced website scraper for keyword extraction
+	enhancedScraper := classification.NewEnhancedWebsiteScraper(stdLogger)
+	logger.Info("✅ Phase 1 enhanced website scraper initialized for keyword extraction")
+
+	// Initialize classification repository with Phase 1 enhanced scraper
+	keywordRepo := repository.NewSupabaseKeywordRepositoryWithScraper(dbClient, stdLogger, enhancedScraper)
+	logger.Info("✅ Classification repository initialized with Phase 1 enhanced scraper")
 
 	// Initialize website content cache if enabled
 	var websiteContentCache *cache.WebsiteContentCache
