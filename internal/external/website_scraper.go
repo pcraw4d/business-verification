@@ -1231,14 +1231,9 @@ func (s *WebsiteScraper) ScrapeWithStructuredContent(ctx context.Context, target
 		}
 	}
 
-	s.logger.Info("Starting scrape with structured content extraction",
+	s.logger.Info("🌐 [Phase1] Starting scrape with structured content extraction",
 		zap.String("url", targetURL),
 		zap.Time("timestamp", startTime))
-	// Also log with printf for visibility in Railway logs
-	if s.logger != nil {
-		s.logger.Info("🌐 [Phase1] Starting scrape with structured content extraction",
-			zap.String("url", targetURL))
-	}
 
 	// Try strategies in order
 	var lastErr error
@@ -1246,11 +1241,6 @@ func (s *WebsiteScraper) ScrapeWithStructuredContent(ctx context.Context, target
 
 	for i, strategy := range s.strategies {
 		strategyStartTime := time.Now()
-		s.logger.Info("Attempting scrape strategy",
-			zap.String("strategy", strategy.Name()),
-			zap.String("url", targetURL),
-			zap.Int("attempt", i+1))
-		// Log with clear message for Railway logs
 		s.logger.Info("🔍 [Phase1] Attempting scrape strategy",
 			zap.String("strategy", strategy.Name()),
 			zap.String("url", targetURL),
@@ -1260,18 +1250,12 @@ func (s *WebsiteScraper) ScrapeWithStructuredContent(ctx context.Context, target
 		strategyDuration := time.Since(strategyStartTime)
 
 		if err == nil && content != nil && isContentValid(content) {
-			s.logger.Info("Strategy succeeded",
+			s.logger.Info("✅ [Phase1] Strategy succeeded",
 				zap.String("strategy", strategy.Name()),
 				zap.Float64("quality_score", content.QualityScore),
 				zap.Int("word_count", content.WordCount),
 				zap.Duration("strategy_duration_ms", strategyDuration),
 				zap.Duration("total_duration_ms", time.Since(startTime)))
-			// Log with clear message for Railway logs
-			s.logger.Info("✅ [Phase1] Strategy succeeded",
-				zap.String("strategy", strategy.Name()),
-				zap.Float64("quality_score", content.QualityScore),
-				zap.Int("word_count", content.WordCount),
-				zap.Duration("duration_ms", strategyDuration))
 			return content, nil
 		}
 
@@ -1280,25 +1264,17 @@ func (s *WebsiteScraper) ScrapeWithStructuredContent(ctx context.Context, target
 		if content != nil {
 			qualityScore = content.QualityScore
 		}
-		s.logger.Warn("Strategy failed, trying next",
+		s.logger.Warn("⚠️ [Phase1] Strategy failed, trying next",
 			zap.String("strategy", strategy.Name()),
 			zap.Error(err),
 			zap.Float64("quality_score", qualityScore),
 			zap.Duration("strategy_duration_ms", strategyDuration))
-		// Log with clear message for Railway logs
-		s.logger.Warn("⚠️ [Phase1] Strategy failed, trying next",
-			zap.String("strategy", strategy.Name()),
-			zap.Error(err))
 	}
 
-	s.logger.Error("All scraping strategies failed",
+	s.logger.Error("❌ [Phase1] All scraping strategies failed",
 		zap.String("url", targetURL),
 		zap.Error(lastErr),
 		zap.Duration("total_duration_ms", time.Since(startTime)))
-	// Log with clear message for Railway logs
-	s.logger.Error("❌ [Phase1] All scraping strategies failed",
-		zap.String("url", targetURL),
-		zap.Error(lastErr))
 
 	return nil, fmt.Errorf("all scraping strategies failed: %w", lastErr)
 }
