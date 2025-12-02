@@ -12,29 +12,40 @@
 - **Service URL:** `playwright-service-production-b21a.up.railway.app`
 - **Root Directory:** `services/playwright-scraper`
 
-### Known Issues
+### Service Status
 
-The Playwright service is currently experiencing a browser installation issue:
-- Error: `Executable doesn't exist at /ms-playwright/chromium_headless_shell-1200/...`
-- **Fix Applied:** Updated Dockerfile to ensure browsers are properly installed
-- **Action Required:** Redeploy the Playwright service with the updated Dockerfile
+✅ **Fully Operational**
+- Health check: ✅ Passing
+- Scrape endpoint: ✅ Working (tested with example.com)
+- Browser installation: ✅ Fixed and working
+- Integration: ✅ Ready for use
+
+### Integration Status
+
+✅ **Automatic Integration Enabled**
+- `PLAYWRIGHT_SERVICE_URL` environment variable: ✅ Set in classification service
+- Auto-detection: ✅ `NewWebsiteScraper()` automatically reads env var
+- Multi-tier fallback: ✅ Active (SimpleHTTP → BrowserHeaders → Playwright)
+- Structured content extraction: ✅ Enabled
+- Quality scoring: ✅ Active
 
 ### Next Steps
 
-1. **Redeploy Playwright Service:**
-   - The Dockerfile has been updated to fix browser installation
-   - Push changes and trigger a new deployment on Railway
-   - Verify the service works by testing the `/scrape` endpoint
+1. **Test Classification Service:**
+   - Run classification requests with various websites
+   - Check logs to verify strategy usage
+   - Monitor scrape success rates and quality scores
 
-2. **Verify Integration:**
-   - The classification service will automatically use Playwright when `PLAYWRIGHT_SERVICE_URL` is set
-   - Test classification with a JavaScript-heavy website
-   - Check logs to see which strategy succeeds
+2. **Monitor Performance:**
+   - Track scrape success rates (target: ≥95%)
+   - Monitor quality scores (target: ≥0.7 for 90%+ of scrapes)
+   - Verify strategy distribution (Playwright should handle 10-20% of requests)
+   - Check average word counts (target: ≥200)
 
-3. **Monitor Performance:**
-   - Track scrape success rates
-   - Monitor quality scores
-   - Verify strategy distribution (should see Playwright used for 10-20% of requests)
+3. **Validate Improvements:**
+   - Compare before/after accuracy
+   - Verify "no output" errors are <2%
+   - Confirm classification accuracy improvement (expected: 50-60%)
 
 ## Code Updates
 
@@ -62,12 +73,14 @@ The `ScrapeWebsite()` method now automatically uses `ScrapeWithStructuredContent
 
 ## Testing Checklist
 
-- [ ] Playwright service health check passes
-- [ ] Playwright service can scrape a test URL
-- [ ] Classification service logs show Playwright strategy being used
-- [ ] Scrape success rate ≥95%
-- [ ] Quality scores ≥0.7 for 90%+ of scrapes
-- [ ] Average word count ≥200
+- [x] Playwright service health check passes ✅
+- [x] Playwright service can scrape a test URL ✅
+- [ ] Classification service logs show Playwright strategy being used (ready for testing)
+- [ ] Scrape success rate ≥95% (ready for testing)
+- [ ] Quality scores ≥0.7 for 90%+ of scrapes (ready for testing)
+- [ ] Average word count ≥200 (ready for testing)
+
+See `docs/phase1-testing-guide.md` for detailed testing instructions.
 
 ## Files Updated
 
