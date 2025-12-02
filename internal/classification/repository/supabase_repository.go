@@ -2469,11 +2469,12 @@ func (r *SupabaseKeywordRepository) extractKeywords(businessName, websiteURL str
 		
 		// Level 1: Multi-page analysis (15 pages) - requires 5+ keywords for success
 		// Use background context with timeout for keyword extraction (non-blocking)
-		// Reduced timeout to 5s for fast-path, but allow up to 10s for regular path
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		// Use 5s timeout to enable fast-path mode (fast-path threshold is 5s)
+		// Fast-path mode: 5s timeout, 8 pages max, 3 concurrent
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		
-		r.logger.Printf("📊 [KeywordExtraction] Level 1: Starting multi-page website analysis (max 15 pages, timeout: 10s)")
+		r.logger.Printf("📊 [KeywordExtraction] Level 1: Starting multi-page website analysis (max 15 pages, timeout: 5s)")
 		level1Start := time.Now()
 		multiPageKeywords := r.extractKeywordsFromMultiPageWebsite(ctx, websiteURL)
 		metrics.level1Time = time.Since(level1Start)
@@ -3509,7 +3510,7 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromMultiPageWebsite(ctx cont
 	startTime := time.Now()
 	r.logger.Printf("🌐 [KeywordExtraction] [MultiPage] Starting multi-page website analysis for: %s", websiteURL)
 
-	// Use the parent context timeout (already set to 10s in calling function)
+	// Use the parent context timeout (set to 5s in calling function to enable fast-path)
 	// Don't create additional timeout - respect the parent timeout
 	analysisCtx := ctx
 
@@ -3523,7 +3524,7 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromMultiPageWebsite(ctx cont
 	// Use fast-path mode if timeout is short (5s or less), otherwise use regular crawl
 	// Fast-path: 5s timeout, 8 pages max, 3 concurrent
 	// Regular: uses full timeout, 15 pages max
-	timeoutDuration := 10 * time.Second // Default from calling function
+	timeoutDuration := 5 * time.Second // Default from calling function (5s to enable fast-path)
 	if deadline, ok := analysisCtx.Deadline(); ok {
 		timeoutDuration = time.Until(deadline)
 	}
