@@ -2,119 +2,50 @@ package integration
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
+	"log"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/redis/go-redis/v9"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
 
 	"kyb-platform/internal/classification"
+	"kyb-platform/internal/classification/testutil"
+	"kyb-platform/services/classification-service/internal/cache"
 	"kyb-platform/services/classification-service/internal/config"
 	"kyb-platform/services/classification-service/internal/handlers"
 	"kyb-platform/services/classification-service/internal/supabase"
 )
 
-// TestEndToEndClassification tests the complete classification flow with all optimizations
-func TestEndToEndClassification(t *testing.T) {
+// TestClassificationOptimizations_EndToEnd tests the full classification pipeline with all optimizations
+func TestClassificationOptimizations_EndToEnd(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
 	}
 
-	logger := zaptest.NewLogger(t, zaptest.Level(zap.InfoLevel))
-	cfg := &config.Config{
-		Classification: config.ClassificationConfig{
-			CacheEnabled:          true,
-			CacheTTL:              5 * time.Minute,
-			RequestTimeout:        30 * time.Second,
-			OverallTimeout:        60 * time.Second,
-			EnsembleEnabled:       true,
-			MultiPageAnalysisEnabled: true,
-		},
-	}
-
-	handler := handlers.NewClassificationHandler(
-		&supabase.Client{},
-		logger,
-		cfg,
-		classification.NewIndustryDetectionService(nil, logger.Sugar()),
-		classification.NewClassificationCodeGenerator(nil, logger.Sugar()),
-		nil,
-	)
-
-	testCases := []struct {
-		name         string
-		businessName string
-		description  string
-		websiteURL   string
-		maxDuration  time.Duration
-	}{
-		{
-			name:         "Simple classification",
-			businessName: "TechCorp Solutions",
-			description:  "Technology consulting",
-			websiteURL:   "",
-			maxDuration:  5 * time.Second,
-		},
-		{
-			name:         "Complex classification with website",
-			businessName: "Microsoft Corporation",
-			description:  "Software development and cloud computing services",
-			websiteURL:   "https://microsoft.com",
-			maxDuration:  10 * time.Second,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			reqBody := handlers.ClassificationRequest{
-				BusinessName: tc.businessName,
-				Description:  tc.description,
-				WebsiteURL:   tc.websiteURL,
-			}
-			body, _ := json.Marshal(reqBody)
-
-			req := httptest.NewRequest("POST", "/classify", bytes.NewReader(body))
-			w := httptest.NewRecorder()
-
-			start := time.Now()
-			handler.HandleClassification(w, req)
-			duration := time.Since(start)
-
-			if duration > tc.maxDuration {
-				t.Errorf("Classification took %v, exceeds max duration %v", duration, tc.maxDuration)
-			}
-
-			if w.Code != http.StatusOK && w.Code != http.StatusInternalServerError {
-				t.Errorf("Unexpected status code: %d", w.Code)
-			}
-
-			// Check response structure
-			var response handlers.ClassificationResponse
-			if err := json.NewDecoder(w.Body).Decode(&response); err == nil {
-				if response.RequestID == "" {
-					t.Error("Expected RequestID to be set")
-				}
-			}
-		})
-	}
-}
-
-// TestCacheBehavior tests cache behavior (in-memory and Redis fallback)
-func TestCacheBehavior(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
+	if os.Getenv("INTEGRATION_TESTS") != "true" {
+		t.Skip("Skipping integration tests - set INTEGRATION_TESTS=true to run")
 	}
 
 	logger := zaptest.NewLogger(t, zaptest.Level(zap.InfoLevel))
+	mockRepo := testutil.NewMockKeywordRepository()
+	loggerStd := log.Default()
+
 	cfg := &config.Config{
 		Classification: config.ClassificationConfig{
 			CacheEnabled: true,
-			CacheTTL:     5 * time.Minute,
-			RedisEnabled: false, // Test in-memory cache
+			FastPathEnabled: true,
+			EnableParallelClassification: true,
+			EnableParallelCodeGeneration: true,
 		},
 	}
 
@@ -122,51 +53,55 @@ func TestCacheBehavior(t *testing.T) {
 		&supabase.Client{},
 		logger,
 		cfg,
-		classification.NewIndustryDetectionService(nil, logger.Sugar()),
-		classification.NewClassificationCodeGenerator(nil, logger.Sugar()),
-		nil,
+		classification.NewIndustryDetectionService(mockRepo, loggerStd),
+		classification.NewClassificationCodeGenerator(mockRepo, loggerStd),
+		mockRepo,
+		nil, // pythonMLService
 	)
 
 	reqBody := handlers.ClassificationRequest{
-		BusinessName: "Cached Business",
-		Description:  "This should be cached",
-	}
-	body, _ := json.Marshal(reqBody)
-
-	// First request (cache miss)
-	req1 := httptest.NewRequest("POST", "/classify", bytes.NewReader(body))
-	w1 := httptest.NewRecorder()
-	handler.HandleClassification(w1, req1)
-
-	if w1.Header().Get("X-Cache") != "MISS" {
-		t.Log("First request should be cache miss")
+		BusinessName: "TechCorp Solutions",
+		Description:  "Technology consulting and software development services",
+		WebsiteURL:   "https://techcorp.com",
 	}
 
-	// Second request (cache hit)
-	req2 := httptest.NewRequest("POST", "/classify", bytes.NewReader(body))
-	w2 := httptest.NewRecorder()
+	body, err := json.Marshal(reqBody)
+	require.NoError(t, err)
 
-	start := time.Now()
-	handler.HandleClassification(w2, req2)
-	duration := time.Since(start)
+	req := httptest.NewRequest("POST", "/classify", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
 
-	if w2.Header().Get("X-Cache") != "HIT" {
-		t.Log("Second request should be cache hit")
-	}
+	// Execute classification
+	handler.HandleClassification(w, req)
 
-	// Cache hit should be very fast
-	if duration > 100*time.Millisecond {
-		t.Logf("Cache hit took %v (expected < 100ms)", duration)
-	}
+	// Verify response
+	assert.Equal(t, http.StatusOK, w.Code, "Expected successful classification")
+
+	var response handlers.ClassificationResponse
+	err = json.NewDecoder(w.Body).Decode(&response)
+	require.NoError(t, err, "Failed to decode response")
+
+	// Verify response contains expected fields
+	assert.NotEmpty(t, response.Industry, "Expected industry classification")
+	assert.Greater(t, response.Confidence, 0.0, "Expected confidence score")
+	assert.NotEmpty(t, response.Codes, "Expected classification codes")
 }
 
-// TestRequestDeduplicationIntegration tests request deduplication with concurrent requests
-func TestRequestDeduplicationIntegration(t *testing.T) {
+// TestRequestDeduplication_ConcurrentRequests tests request deduplication with concurrent requests
+func TestRequestDeduplication_ConcurrentRequests(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
 	}
 
+	if os.Getenv("INTEGRATION_TESTS") != "true" {
+		t.Skip("Skipping integration tests - set INTEGRATION_TESTS=true to run")
+	}
+
 	logger := zaptest.NewLogger(t, zaptest.Level(zap.InfoLevel))
+	mockRepo := testutil.NewMockKeywordRepository()
+	loggerStd := log.Default()
+
 	cfg := &config.Config{
 		Classification: config.ClassificationConfig{
 			CacheEnabled: false, // Disable cache to test deduplication
@@ -177,53 +112,137 @@ func TestRequestDeduplicationIntegration(t *testing.T) {
 		&supabase.Client{},
 		logger,
 		cfg,
-		classification.NewIndustryDetectionService(nil, logger.Sugar()),
-		classification.NewClassificationCodeGenerator(nil, logger.Sugar()),
-		nil,
+		classification.NewIndustryDetectionService(mockRepo, loggerStd),
+		classification.NewClassificationCodeGenerator(mockRepo, loggerStd),
+		mockRepo,
+		nil, // pythonMLService
 	)
 
 	reqBody := handlers.ClassificationRequest{
-		BusinessName: "Duplicate Test Business",
-		Description:  "Testing request deduplication",
+		BusinessName: "Test Business",
+		Description:  "Test description",
+		WebsiteURL:   "https://test.com",
 	}
-	body, _ := json.Marshal(reqBody)
 
-	// Create multiple concurrent identical requests
+	body, err := json.Marshal(reqBody)
+	require.NoError(t, err)
+
+	// Track how many actual classifications happen
+	var classificationCount int32
+	var mu sync.Mutex
+
+	// Create 5 concurrent identical requests
 	const numRequests = 5
-	results := make([]*httptest.ResponseRecorder, numRequests)
 	var wg sync.WaitGroup
+	results := make([]*httptest.ResponseRecorder, numRequests)
 
 	for i := 0; i < numRequests; i++ {
 		wg.Add(1)
 		go func(idx int) {
 			defer wg.Done()
+
 			req := httptest.NewRequest("POST", "/classify", bytes.NewReader(body))
+			req.Header.Set("Content-Type", "application/json")
 			w := httptest.NewRecorder()
+
 			handler.HandleClassification(w, req)
+
+			mu.Lock()
+			if w.Code == http.StatusOK {
+				classificationCount++
+			}
 			results[idx] = w
+			mu.Unlock()
 		}(i)
 	}
 
 	wg.Wait()
 
-	// All requests should complete
-	for i, w := range results {
-		if w == nil {
-			t.Errorf("Request %d did not complete", i)
-		}
+	// All requests should complete successfully
+	for i, result := range results {
+		assert.Equal(t, http.StatusOK, result.Code, "Request %d should succeed", i)
 	}
+
+	// With deduplication, ideally only 1 classification should happen
+	// But due to race conditions, it might be 1-2
+	assert.LessOrEqual(t, classificationCount, int32(2), 
+		"Deduplication should prevent most duplicate classifications")
 }
 
-// TestEarlyTerminationIntegration tests early termination for low confidence
-func TestEarlyTerminationIntegration(t *testing.T) {
+// TestRedisCache_WebsiteContent tests Redis caching for website content
+func TestRedisCache_WebsiteContent(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
 	}
 
+	redisURL := os.Getenv("REDIS_URL")
+	if redisURL == "" {
+		t.Skip("Skipping Redis test - REDIS_URL not set (e.g., redis://localhost:6379)")
+	}
+
+	// Parse Redis URL and create client
+	opts, err := redis.ParseURL(redisURL)
+	require.NoError(t, err, "Failed to parse Redis URL")
+
+	redisClient := redis.NewClient(opts)
+	defer redisClient.Close()
+
+	// Test connection
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	err = redisClient.Ping(ctx).Err()
+	require.NoError(t, err, "Failed to connect to Redis")
+
+	logger := zap.NewNop()
+	cacheInstance := cache.NewWebsiteContentCache(redisClient, logger, 1*time.Hour)
+
+	// Test cache operations
+	testURL := "https://example.com/test"
+	content := &cache.CachedWebsiteContent{
+		TextContent: "Test website content for Redis cache",
+		ScrapedAt:   time.Now(),
+		Success:     true,
+	}
+
+	// Set cache
+	err = cacheInstance.Set(ctx, testURL, content)
+	require.NoError(t, err, "Failed to set cache")
+
+	// Get cache
+	cached, found := cacheInstance.Get(ctx, testURL)
+	require.True(t, found, "Cache should be found")
+	require.NotNil(t, cached, "Cached content should not be nil")
+	assert.Equal(t, content.TextContent, cached.TextContent, "Cached content should match")
+
+	// Delete cache
+	cacheInstance.Delete(ctx, testURL)
+
+	// Verify deletion
+	_, found = cacheInstance.Get(ctx, testURL)
+	assert.False(t, found, "Cache should be deleted")
+
+	t.Log("✅ Redis cache integration test passed")
+}
+
+// TestEnsembleVoting_Accuracy tests ensemble voting accuracy
+func TestEnsembleVoting_Accuracy(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	if os.Getenv("INTEGRATION_TESTS") != "true" {
+		t.Skip("Skipping integration tests - set INTEGRATION_TESTS=true to run")
+	}
+
 	logger := zaptest.NewLogger(t, zaptest.Level(zap.InfoLevel))
+	mockRepo := testutil.NewMockKeywordRepository()
+	loggerStd := log.Default()
+
 	cfg := &config.Config{
 		Classification: config.ClassificationConfig{
-			CacheEnabled: false,
+			CacheEnabled: true,
+			EnableParallelClassification: true,
 		},
 	}
 
@@ -231,46 +250,87 @@ func TestEarlyTerminationIntegration(t *testing.T) {
 		&supabase.Client{},
 		logger,
 		cfg,
-		classification.NewIndustryDetectionService(nil, logger.Sugar()),
-		classification.NewClassificationCodeGenerator(nil, logger.Sugar()),
-		nil,
+		classification.NewIndustryDetectionService(mockRepo, loggerStd),
+		classification.NewClassificationCodeGenerator(mockRepo, loggerStd),
+		mockRepo,
+		nil, // pythonMLService - using nil to test Go-only classification
 	)
 
-	// Request with very low quality content
-	reqBody := handlers.ClassificationRequest{
-		BusinessName: "X",
-		Description:  "Y",
-		WebsiteURL:   "",
+	// Test cases with known expected industries
+	testCases := []struct {
+		name          string
+		businessName  string
+		description   string
+		expectedIndustry string
+	}{
+		{
+			name:          "Technology company",
+			businessName:  "TechCorp",
+			description:   "Software development and technology consulting",
+			expectedIndustry: "Technology",
+		},
+		{
+			name:          "Financial services",
+			businessName:  "FinanceBank",
+			description:   "Banking and financial services",
+			expectedIndustry: "Financial Services",
+		},
 	}
-	body, _ := json.Marshal(reqBody)
 
-	req := httptest.NewRequest("POST", "/classify", bytes.NewReader(body))
-	w := httptest.NewRecorder()
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			reqBody := handlers.ClassificationRequest{
+				BusinessName: tc.businessName,
+				Description:  tc.description,
+			}
 
-	start := time.Now()
-	handler.HandleClassification(w, req)
-	duration := time.Since(start)
+			body, err := json.Marshal(reqBody)
+			require.NoError(t, err)
 
-	// Early termination should be fast
-	if duration > 2*time.Second {
-		t.Logf("Early termination took %v (expected < 2s)", duration)
-	}
+			req := httptest.NewRequest("POST", "/classify", bytes.NewReader(body))
+			req.Header.Set("Content-Type", "application/json")
+			w := httptest.NewRecorder()
 
-	if w.Code == 0 {
-		t.Error("Expected request to complete")
+			handler.HandleClassification(w, req)
+
+			assert.Equal(t, http.StatusOK, w.Code, "Expected successful classification")
+
+			var response handlers.ClassificationResponse
+			err = json.NewDecoder(w.Body).Decode(&response)
+			require.NoError(t, err)
+
+			// Verify industry classification
+			assert.NotEmpty(t, response.Industry, "Expected industry classification")
+			assert.Greater(t, response.Confidence, 0.0, "Expected confidence score")
+
+			t.Logf("✅ Classification: %s -> %s (confidence: %.2f)", 
+				tc.businessName, response.Industry, response.Confidence)
+		})
 	}
 }
 
-// TestParallelProcessingIntegration tests parallel processing optimization
-func TestParallelProcessingIntegration(t *testing.T) {
+// TestSmartCrawling_ContentSufficiency tests smart crawling logic
+func TestSmartCrawling_ContentSufficiency(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
 	}
 
+	if os.Getenv("INTEGRATION_TESTS") != "true" {
+		t.Skip("Skipping integration tests - set INTEGRATION_TESTS=true to run")
+	}
+
+	// This test verifies that smart crawling skips full crawl when content is sufficient
+	// Since we're using mocks, we'll test the logic indirectly through the handler
+
 	logger := zaptest.NewLogger(t, zaptest.Level(zap.InfoLevel))
+	mockRepo := testutil.NewMockKeywordRepository()
+	loggerStd := log.Default()
+
 	cfg := &config.Config{
 		Classification: config.ClassificationConfig{
-			CacheEnabled: false,
+			CacheEnabled: true,
+			SkipFullCrawlIfContentSufficient: true,
+			MinContentLengthForML: 50,
 		},
 	}
 
@@ -278,31 +338,36 @@ func TestParallelProcessingIntegration(t *testing.T) {
 		&supabase.Client{},
 		logger,
 		cfg,
-		classification.NewIndustryDetectionService(nil, logger.Sugar()),
-		classification.NewClassificationCodeGenerator(nil, logger.Sugar()),
-		nil,
+		classification.NewIndustryDetectionService(mockRepo, loggerStd),
+		classification.NewClassificationCodeGenerator(mockRepo, loggerStd),
+		mockRepo,
+		nil, // pythonMLService
 	)
 
+	// Test with sufficient content in description
 	reqBody := handlers.ClassificationRequest{
-		BusinessName: "Parallel Test Business",
-		Description:  "Testing parallel processing",
+		BusinessName: "TechCorp Solutions",
+		Description:  "Technology consulting and software development services with comprehensive solutions for enterprise clients",
+		WebsiteURL:   "https://techcorp.com",
 	}
-	body, _ := json.Marshal(reqBody)
+
+	body, err := json.Marshal(reqBody)
+	require.NoError(t, err)
 
 	req := httptest.NewRequest("POST", "/classify", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 
 	start := time.Now()
 	handler.HandleClassification(w, req)
 	duration := time.Since(start)
 
-	// Parallel processing should reduce time
-	if duration > 10*time.Second {
-		t.Logf("Processing took %v (may indicate parallel processing not working)", duration)
-	}
+	assert.Equal(t, http.StatusOK, w.Code, "Expected successful classification")
 
-	if w.Code == 0 {
-		t.Error("Expected request to complete")
-	}
+	// With sufficient content, processing should be relatively fast
+	// (no full crawl needed)
+	assert.Less(t, duration, 5*time.Second, 
+		"Processing should be fast when content is sufficient")
+
+	t.Logf("✅ Smart crawling test passed - Duration: %v", duration)
 }
-

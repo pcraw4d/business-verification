@@ -17,8 +17,29 @@ import (
 
 // EnhancedWebsiteScraper provides advanced website scraping capabilities
 type EnhancedWebsiteScraper struct {
-	logger *log.Logger
-	client *http.Client
+	logger       *log.Logger
+	client       *http.Client
+	contentCache WebsiteContentCacher // Optional cache for website content
+}
+
+// WebsiteContentCacher interface for caching website content
+// This allows different cache implementations to be used
+type WebsiteContentCacher interface {
+	Get(ctx context.Context, url string) (*CachedWebsiteContent, bool)
+	Set(ctx context.Context, url string, content *CachedWebsiteContent) error
+	IsEnabled() bool
+}
+
+// CachedWebsiteContent represents cached website content
+type CachedWebsiteContent struct {
+	TextContent    string                 `json:"text_content"`
+	Title          string                 `json:"title"`
+	Keywords       []string               `json:"keywords"`
+	StructuredData map[string]interface{} `json:"structured_data"`
+	ScrapedAt      time.Time              `json:"scraped_at"`
+	Success        bool                   `json:"success"`
+	StatusCode     int                    `json:"status_code,omitempty"`
+	ContentType    string                 `json:"content_type,omitempty"`
 }
 
 // ScrapingResult represents the result of a website scraping operation
@@ -54,6 +75,11 @@ func NewEnhancedWebsiteScraper(logger *log.Logger) *EnhancedWebsiteScraper {
 	}
 }
 
+// SetContentCache sets the content cache for the scraper
+func (ews *EnhancedWebsiteScraper) SetContentCache(cache WebsiteContentCacher) {
+	ews.contentCache = cache
+}
+
 // ScrapeWebsite performs enhanced website scraping with comprehensive error handling
 func (ews *EnhancedWebsiteScraper) ScrapeWebsite(ctx context.Context, websiteURL string) *ScrapingResult {
 	startTime := time.Now()
@@ -61,6 +87,20 @@ func (ews *EnhancedWebsiteScraper) ScrapeWebsite(ctx context.Context, websiteURL
 		URL:       websiteURL,
 		ScrapedAt: time.Now(),
 		Success:   false,
+	}
+
+	// Check cache first if enabled
+	if ews.contentCache != nil && ews.contentCache.IsEnabled() {
+		if cached, found := ews.contentCache.Get(ctx, websiteURL); found {
+			ews.logger.Printf("📦 [Enhanced] Using cached content for %s", websiteURL)
+			result.TextContent = cached.TextContent
+			result.Keywords = cached.Keywords
+			result.Success = cached.Success
+			result.StatusCode = cached.StatusCode
+			result.ContentType = cached.ContentType
+			result.Duration = time.Since(startTime)
+			return result
+		}
 	}
 
 	ews.logger.Printf("🌐 [Enhanced] Starting enhanced website scraping for: %s", websiteURL)
@@ -141,11 +181,61 @@ func (ews *EnhancedWebsiteScraper) ScrapeWebsite(ctx context.Context, websiteURL
 	result.Keywords = ews.extractBusinessKeywords(result.TextContent)
 	ews.logger.Printf("🔍 [Enhanced] Extracted %d keywords: %v", len(result.Keywords), result.Keywords)
 
+	// Extract title from HTML
+	title := ews.extractTitle(result.Content)
+	if title != "" {
+		ews.logger.Printf("📄 [Enhanced] Extracted title: %s", title)
+	}
+
 	result.Duration = time.Since(startTime)
 	result.Success = true
 
+	// Cache the result if cache is enabled
+	if ews.contentCache != nil && ews.contentCache.IsEnabled() && result.Success {
+		cached := &CachedWebsiteContent{
+			TextContent:   result.TextContent,
+			Title:         title,
+			Keywords:      result.Keywords,
+			StructuredData: make(map[string]interface{}),
+			ScrapedAt:     time.Now(),
+			Success:       true,
+			StatusCode:    result.StatusCode,
+			ContentType:   result.ContentType,
+		}
+		if err := ews.contentCache.Set(ctx, websiteURL, cached); err != nil {
+			ews.logger.Printf("⚠️ [Enhanced] Failed to cache content: %v", err)
+		}
+	}
+
 	ews.logger.Printf("✅ [Enhanced] Website scraping completed for %s in %v", normalizedURL, result.Duration)
 	return result
+}
+
+// extractTitle extracts the title from HTML content
+func (ews *EnhancedWebsiteScraper) extractTitle(htmlContent string) string {
+	// Try to extract from <title> tag
+	titleRegex := regexp.MustCompile(`(?i)<title[^>]*>([^<]+)</title>`)
+	matches := titleRegex.FindStringSubmatch(htmlContent)
+	if len(matches) > 1 {
+		title := strings.TrimSpace(matches[1])
+		// Decode HTML entities
+		title = strings.ReplaceAll(title, "&amp;", "&")
+		title = strings.ReplaceAll(title, "&lt;", "<")
+		title = strings.ReplaceAll(title, "&gt;", ">")
+		title = strings.ReplaceAll(title, "&quot;", "\"")
+		title = strings.ReplaceAll(title, "&#39;", "'")
+		title = strings.ReplaceAll(title, "&nbsp;", " ")
+		return title
+	}
+
+	// Try Open Graph title
+	ogTitleRegex := regexp.MustCompile(`(?i)<meta[^>]*property=["']og:title["'][^>]*content=["']([^"']+)["']`)
+	ogMatches := ogTitleRegex.FindStringSubmatch(htmlContent)
+	if len(ogMatches) > 1 {
+		return strings.TrimSpace(ogMatches[1])
+	}
+
+	return ""
 }
 
 // normalizeURL validates and normalizes the URL

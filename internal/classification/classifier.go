@@ -760,17 +760,38 @@ func (g *ClassificationCodeGenerator) generateCodesInParallel(ctx context.Contex
 			len(naicsResults), len(industries), len(keywordMatches))
 	}()
 
-	// Wait for all goroutines to complete
-	wg.Wait()
-	close(errorChan)
-
-	// Log any errors that occurred
-	for err := range errorChan {
-		g.logger.Printf("⚠️ Error in parallel code generation: %v", err)
+	// Wait for all goroutines to complete with timeout (Task 2.2: Enhanced parallel execution)
+	done := make(chan struct{})
+	go func() {
+		wg.Wait()
+		close(done)
+	}()
+	
+	// Wait with context timeout
+	select {
+	case <-done:
+		// All goroutines completed successfully
+		close(errorChan)
+	case <-ctx.Done():
+		// Context cancelled or timed out
+		g.logger.Printf("⚠️ Parallel code generation timed out or cancelled")
+		close(errorChan)
+		return
 	}
 
-	g.logger.Printf("🚀 Parallel code generation completed: %d MCC, %d SIC, %d NAICS codes",
-		len(codes.MCC), len(codes.SIC), len(codes.NAICS))
+	// Log any errors that occurred
+	errorCount := 0
+	for err := range errorChan {
+		errorCount++
+		g.logger.Printf("⚠️ Error in parallel code generation: %v", err)
+	}
+	
+	if errorCount > 0 {
+		g.logger.Printf("⚠️ Parallel code generation completed with %d errors", errorCount)
+	} else {
+		g.logger.Printf("🚀 Parallel code generation completed successfully: %d MCC, %d SIC, %d NAICS codes",
+			len(codes.MCC), len(codes.SIC), len(codes.NAICS))
+	}
 }
 
 // =============================================================================

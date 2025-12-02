@@ -60,6 +60,14 @@ type ClassificationConfig struct {
 	CrawlDelayMs             int
 	FastPathMaxPages         int
 	WebsiteScrapingTimeout   time.Duration
+	// Website content caching
+	WebsiteContentCacheTTL   time.Duration
+	EnableWebsiteContentCache bool
+	// Early termination configuration (Task 1.5)
+	EnableEarlyTermination   bool
+	EarlyTerminationConfidenceThreshold float64
+	MinContentLengthForML    int
+	SkipFullCrawlIfContentSufficient bool
 }
 
 // LoggingConfig holds logging configurations
@@ -110,6 +118,14 @@ func Load() (*Config, error) {
 			CrawlDelayMs:             getEnvAsInt("CLASSIFICATION_CRAWL_DELAY_MS", 500),
 			FastPathMaxPages:         getEnvAsInt("CLASSIFICATION_FAST_PATH_MAX_PAGES", 8),
 			WebsiteScrapingTimeout:   getEnvAsDuration("CLASSIFICATION_WEBSITE_SCRAPING_TIMEOUT", 5*time.Second),
+			// Website content caching
+			WebsiteContentCacheTTL:   getEnvAsDuration("WEBSITE_CONTENT_CACHE_TTL", 24*time.Hour),
+			EnableWebsiteContentCache: getEnvAsBool("ENABLE_WEBSITE_CONTENT_CACHE", true),
+			// Early termination configuration (Task 1.5)
+			EnableEarlyTermination:   getEnvAsBool("ENABLE_EARLY_TERMINATION", true),
+			EarlyTerminationConfidenceThreshold: getEnvAsFloat("EARLY_TERMINATION_CONFIDENCE_THRESHOLD", 0.85),
+			MinContentLengthForML:    getEnvAsInt("MIN_CONTENT_LENGTH_FOR_ML", 50),
+			SkipFullCrawlIfContentSufficient: getEnvAsBool("SKIP_FULL_CRAWL_IF_CONTENT_SUFFICIENT", true),
 		},
 		Logging: LoggingConfig{
 			Level:  getEnvAsString("LOG_LEVEL", "info"),
@@ -146,6 +162,15 @@ func getEnvAsBool(key string, defaultValue bool) bool {
 	if value, exists := os.LookupEnv(key); exists {
 		if boolValue, err := strconv.ParseBool(value); err == nil {
 			return boolValue
+		}
+	}
+	return defaultValue
+}
+
+func getEnvAsFloat(key string, defaultValue float64) float64 {
+	if value, exists := os.LookupEnv(key); exists {
+		if floatValue, err := strconv.ParseFloat(value, 64); err == nil {
+			return floatValue
 		}
 	}
 	return defaultValue

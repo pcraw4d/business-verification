@@ -67,6 +67,14 @@ func NewIndustryDetectionService(repo repository.KeywordRepository, logger *log.
 	}
 }
 
+// SetContentCache sets the website content cache on the multi-method classifier if available
+func (s *IndustryDetectionService) SetContentCache(cache WebsiteContentCacher) {
+	if s.multiMethodClassifier != nil {
+		s.multiMethodClassifier.SetContentCache(cache)
+		s.logger.Printf("✅ Website content cache set on MultiMethodClassifier")
+	}
+}
+
 // NewIndustryDetectionServiceWithML creates a new industry detection service with ML support
 func NewIndustryDetectionServiceWithML(
 	repo repository.KeywordRepository,

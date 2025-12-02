@@ -2,9 +2,8 @@ package handlers
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
-	"net/http"
+	"log"
 	"net/http/httptest"
 	"sync"
 	"testing"
@@ -14,6 +13,7 @@ import (
 	"go.uber.org/zap/zaptest"
 
 	"kyb-platform/internal/classification"
+	"kyb-platform/internal/classification/testutil"
 	"kyb-platform/services/classification-service/internal/config"
 	"kyb-platform/services/classification-service/internal/supabase"
 )
@@ -26,13 +26,17 @@ func TestRequestDeduplication(t *testing.T) {
 		},
 	}
 
+	mockRepo := testutil.NewMockKeywordRepository()
+	loggerStd := log.Default()
+	
 	handler := NewClassificationHandler(
 		&supabase.Client{},
 		logger,
 		cfg,
-		classification.NewIndustryDetectionService(nil, logger.Sugar()),
-		classification.NewClassificationCodeGenerator(nil, logger.Sugar()),
-		nil,
+		classification.NewIndustryDetectionService(mockRepo, loggerStd),
+		classification.NewClassificationCodeGenerator(mockRepo, loggerStd),
+		mockRepo,
+		nil, // pythonMLService
 	)
 
 	reqBody := ClassificationRequest{
@@ -82,13 +86,17 @@ func TestContentQualityValidation(t *testing.T) {
 		},
 	}
 
+	mockRepo := testutil.NewMockKeywordRepository()
+	loggerStd := log.Default()
+	
 	handler := NewClassificationHandler(
 		&supabase.Client{},
 		logger,
 		cfg,
-		classification.NewIndustryDetectionService(nil, logger.Sugar()),
-		classification.NewClassificationCodeGenerator(nil, logger.Sugar()),
-		nil,
+		classification.NewIndustryDetectionService(mockRepo, loggerStd),
+		classification.NewClassificationCodeGenerator(mockRepo, loggerStd),
+		mockRepo,
+		nil, // pythonMLService
 	)
 
 	tests := []struct {
@@ -144,13 +152,17 @@ func TestEarlyTermination(t *testing.T) {
 		},
 	}
 
+	mockRepo := testutil.NewMockKeywordRepository()
+	loggerStd := log.Default()
+	
 	handler := NewClassificationHandler(
 		&supabase.Client{},
 		logger,
 		cfg,
-		classification.NewIndustryDetectionService(nil, logger.Sugar()),
-		classification.NewClassificationCodeGenerator(nil, logger.Sugar()),
-		nil,
+		classification.NewIndustryDetectionService(mockRepo, loggerStd),
+		classification.NewClassificationCodeGenerator(mockRepo, loggerStd),
+		mockRepo,
+		nil, // pythonMLService
 	)
 
 	// Request with very low quality content that should trigger early termination
@@ -187,13 +199,17 @@ func TestCachePerformance(t *testing.T) {
 		},
 	}
 
+	mockRepo := testutil.NewMockKeywordRepository()
+	loggerStd := log.Default()
+	
 	handler := NewClassificationHandler(
 		&supabase.Client{},
 		logger,
 		cfg,
-		classification.NewIndustryDetectionService(nil, logger.Sugar()),
-		classification.NewClassificationCodeGenerator(nil, logger.Sugar()),
-		nil,
+		classification.NewIndustryDetectionService(mockRepo, loggerStd),
+		classification.NewClassificationCodeGenerator(mockRepo, loggerStd),
+		mockRepo,
+		nil, // pythonMLService
 	)
 
 	reqBody := ClassificationRequest{
@@ -234,13 +250,17 @@ func TestParallelProcessing(t *testing.T) {
 		},
 	}
 
+	mockRepo := testutil.NewMockKeywordRepository()
+	loggerStd := log.Default()
+	
 	handler := NewClassificationHandler(
 		&supabase.Client{},
 		logger,
 		cfg,
-		classification.NewIndustryDetectionService(nil, logger.Sugar()),
-		classification.NewClassificationCodeGenerator(nil, logger.Sugar()),
-		nil,
+		classification.NewIndustryDetectionService(mockRepo, loggerStd),
+		classification.NewClassificationCodeGenerator(mockRepo, loggerStd),
+		mockRepo,
+		nil, // pythonMLService
 	)
 
 	reqBody := ClassificationRequest{

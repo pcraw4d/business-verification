@@ -2,6 +2,7 @@ package testutil
 
 import (
 	"context"
+	"time"
 
 	"kyb-platform/internal/classification/repository"
 )
@@ -572,5 +573,32 @@ func (m *MockKeywordRepository) GetClassificationCodesByKeywords(
 	}
 
 	return result, nil
+}
+
+// GetCalibrationStatistics retrieves calibration statistics for a date range
+func (m *MockKeywordRepository) GetCalibrationStatistics(ctx context.Context, startDate, endDate time.Time) ([]*repository.CalibrationBinStatistics, error) {
+	if err := m.errorMap["GetCalibrationStatistics"]; err != nil {
+		return nil, err
+	}
+	// Return empty slice for mock - tests can override if needed
+	return []*repository.CalibrationBinStatistics{}, nil
+}
+
+// SaveClassificationAccuracy saves classification accuracy tracking data
+func (m *MockKeywordRepository) SaveClassificationAccuracy(ctx context.Context, tracking *repository.ClassificationAccuracyTracking) error {
+	if err := m.errorMap["SaveClassificationAccuracy"]; err != nil {
+		return err
+	}
+	// Mock implementation - just return nil
+	return nil
+}
+
+// UpdateClassificationAccuracy updates classification accuracy tracking data
+func (m *MockKeywordRepository) UpdateClassificationAccuracy(ctx context.Context, requestID string, actualIndustry string, validatedBy string) error {
+	if err := m.errorMap["UpdateClassificationAccuracy"]; err != nil {
+		return err
+	}
+	// Mock implementation - just return nil
+	return nil
 }
 

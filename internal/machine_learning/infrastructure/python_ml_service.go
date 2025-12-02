@@ -389,6 +389,106 @@ func (pms *PythonMLService) DetectRisk(ctx context.Context, req *RiskDetectionRe
 	return &riskResp, nil
 }
 
+// ClassifyFast performs fast classification using lightweight model (Task 3.1)
+// Protected by circuit breaker to prevent cascading failures
+func (pms *PythonMLService) ClassifyFast(
+	ctx context.Context,
+	req *EnhancedClassificationRequest,
+) (*EnhancedClassificationResponse, error) {
+	start := time.Now()
+
+	pms.mu.Lock()
+	if pms.metrics == nil {
+		pms.metrics = &ServiceMetrics{}
+	}
+	pms.metrics.RequestCount++
+	pms.mu.Unlock()
+
+	// Check circuit breaker state before making request
+	cbState := pms.circuitBreaker.GetState()
+	if cbState == resilience.CircuitOpen {
+		pms.logger.Printf("⚠️ [CircuitBreaker] Circuit is OPEN - failing fast for Python ML service")
+		pms.mu.Lock()
+		pms.metrics.ErrorCount++
+		pms.mu.Unlock()
+		return nil, fmt.Errorf("circuit breaker is open: Python ML service unavailable")
+	}
+
+	// Execute through circuit breaker
+	var enhancedResp *EnhancedClassificationResponse
+	var err error
+
+	err = pms.circuitBreaker.Execute(ctx, func() error {
+		// Prepare request
+		requestBody, marshalErr := json.Marshal(req)
+		if marshalErr != nil {
+			return fmt.Errorf("failed to marshal request: %w", marshalErr)
+		}
+
+		// Make HTTP request to fast endpoint
+		httpReq, createErr := http.NewRequestWithContext(
+			ctx,
+			"POST",
+			pms.endpoint+"/classify-fast",
+			bytes.NewBuffer(requestBody),
+		)
+		if createErr != nil {
+			return fmt.Errorf("failed to create request: %w", createErr)
+		}
+
+		httpReq.Header.Set("Content-Type", "application/json")
+
+		// Execute request with shorter timeout for fast path
+		fastCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+		defer cancel()
+		httpReq = httpReq.WithContext(fastCtx)
+
+		resp, doErr := pms.httpClient.Do(httpReq)
+		if doErr != nil {
+			return fmt.Errorf("failed to execute request: %w", doErr)
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			body, _ := io.ReadAll(resp.Body)
+			if len(body) > 0 {
+				return fmt.Errorf("Python service returned status %d: %s", resp.StatusCode, string(body))
+			}
+			return fmt.Errorf("Python service returned status %d", resp.StatusCode)
+		}
+
+		// Parse response
+		var respData EnhancedClassificationResponse
+		if decodeErr := json.NewDecoder(resp.Body).Decode(&respData); decodeErr != nil {
+			return fmt.Errorf("failed to decode response: %w", decodeErr)
+		}
+
+		enhancedResp = &respData
+		return nil
+	})
+
+	// Handle circuit breaker errors
+	if err != nil {
+		pms.mu.Lock()
+		pms.metrics.ErrorCount++
+		pms.mu.Unlock()
+		return nil, err
+	}
+
+	// Update metrics
+	processingTime := time.Since(start)
+	pms.mu.Lock()
+	if enhancedResp.Success {
+		pms.metrics.SuccessCount++
+	} else {
+		pms.metrics.ErrorCount++
+	}
+	pms.mu.Unlock()
+
+	pms.logger.Printf("✅ Fast classification completed in %v", processingTime)
+	return enhancedResp, nil
+}
+
 // ClassifyEnhanced performs enhanced classification with summarization and explanation
 // Protected by circuit breaker to prevent cascading failures
 func (pms *PythonMLService) ClassifyEnhanced(

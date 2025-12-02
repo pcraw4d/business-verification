@@ -69,6 +69,13 @@ except ImportError as e:
     logger.error(f"❌ Could not import DistilBART classifier: {e}")
     DistilBARTBusinessClassifier = None  # Will be handled in startup
 
+# Import lightweight classifier (Task 3.1)
+try:
+    from lightweight_classifier import LightweightBusinessClassifier
+except ImportError as e:
+    logger.warning(f"⚠️ Could not import lightweight classifier: {e}")
+    LightweightBusinessClassifier = None
+
 # Configuration
 class Config:
     # Model configuration
@@ -814,8 +821,51 @@ class ModelManager:
 # Models themselves are still loaded lazily on first request
 model_manager: Optional[ModelManager] = ModelManager(load_models=False)
 distilbart_classifier: Optional[DistilBARTBusinessClassifier] = None
+lightweight_classifier: Optional[LightweightBusinessClassifier] = None  # Task 3.1
 _models_loading = False
 _models_loaded = False
+_lightweight_loading = False
+_lightweight_loaded = False
+
+# Helper function to ensure lightweight model is loaded (Task 3.1)
+def ensure_lightweight_loaded():
+    """Ensure lightweight model is loaded - lazy initialization"""
+    global lightweight_classifier, _lightweight_loading, _lightweight_loaded
+    
+    if lightweight_classifier is None and not _lightweight_loading:
+        if _lightweight_loaded:
+            return  # Already tried and failed
+        
+        _lightweight_loading = True
+        try:
+            logger.info("📥 Loading lightweight classifier...")
+            
+            if LightweightBusinessClassifier is None:
+                logger.error("❌ LightweightBusinessClassifier not available - import failed")
+                _lightweight_loaded = True
+                return
+            
+            lightweight_classifier = LightweightBusinessClassifier({
+                'model_save_path': os.getenv('MODEL_SAVE_PATH', 'models/lightweight'),
+                'industry_labels': [
+                    "Technology", "Healthcare", "Financial Services",
+                    "Retail", "Food & Beverage", "Manufacturing",
+                    "Construction", "Real Estate", "Transportation",
+                    "Education", "Professional Services", "Agriculture",
+                    "Mining & Energy", "Utilities", "Wholesale Trade",
+                    "Arts & Entertainment", "Accommodation & Hospitality",
+                    "Administrative Services", "Other Services"
+                ]
+            })
+            
+            _lightweight_loaded = True
+            _lightweight_loading = False
+            logger.info("✅ Lightweight classifier loaded successfully")
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to load lightweight classifier: {e}")
+            _lightweight_loaded = True
+            _lightweight_loading = False
 
 # Helper function to ensure models are loaded (lazy loading)
 def ensure_models_loaded():
@@ -1182,6 +1232,95 @@ async def classify_enhanced(request: EnhancedClassificationRequest):
             request_id=request_id,
             model_id="distilbart",
             model_version="2.0.0",
+            classifications=[],
+            confidence=0.0,
+            summary="",
+            explanation="",
+            processing_time=time.time() - start_time,
+            quantization_enabled=False,
+            timestamp=datetime.now(),
+            success=False,
+            error=str(e)
+        )
+
+@app.post("/classify-fast", response_model=EnhancedClassificationResponse)
+async def classify_fast(request: EnhancedClassificationRequest):
+    """Fast classification using lightweight model (Task 3.1)"""
+    start_time = time.time()
+    request_id = f"req_{int(time.time() * 1000)}"
+    
+    try:
+        # Prepare content
+        content = request.website_content or ""
+        if not content and request.description:
+            content = request.description
+        if not content and request.business_name:
+            content = request.business_name
+        
+        # Validate content
+        if not content or not content.strip():
+            raise HTTPException(
+                status_code=400,
+                detail="Content is required for classification."
+            )
+        
+        # Ensure lightweight model is loaded
+        try:
+            ensure_lightweight_loaded()
+        except RuntimeError as e:
+            raise HTTPException(
+                status_code=503,
+                detail=f"Lightweight classifier is still loading. Please try again in a moment. ({str(e)})"
+            )
+        
+        # Check if classifier is loaded
+        if lightweight_classifier is None:
+            # Fallback to full classifier if lightweight not available
+            logger.warn("Lightweight classifier not available, falling back to full classifier")
+            return await classify_enhanced(request)
+        
+        # Perform fast classification
+        result = lightweight_classifier.classify_fast(
+            content=content,
+            business_name=request.business_name,
+            max_length=256  # Fast path: shorter content
+        )
+        
+        # Convert to response format
+        classifications = []
+        all_scores = result.get('all_scores', {})
+        sorted_scores = sorted(all_scores.items(), key=lambda x: x[1], reverse=True)
+        
+        for i, (label, score) in enumerate(sorted_scores):
+            if i < (request.max_results or 5):
+                classifications.append(ClassificationPrediction(
+                    label=label,
+                    confidence=score,
+                    probability=score,
+                    rank=i + 1
+                ))
+        
+        return EnhancedClassificationResponse(
+            request_id=request_id,
+            model_id=result.get('model', 'lightweight-distilbert'),
+            model_version="1.0.0",
+            classifications=classifications,
+            confidence=result['confidence'],
+            summary="",  # No summarization in fast path
+            explanation=f"Fast classification using lightweight model. Processing time: {result.get('processing_time', 0):.3f}s",
+            processing_time=result.get('processing_time', time.time() - start_time),
+            quantization_enabled=False,
+            timestamp=datetime.now(),
+            success=True,
+            error=None
+        )
+        
+    except Exception as e:
+        logger.error(f"Fast classification error: {e}")
+        return EnhancedClassificationResponse(
+            request_id=request_id,
+            model_id="lightweight-distilbert",
+            model_version="1.0.0",
             classifications=[],
             confidence=0.0,
             summary="",

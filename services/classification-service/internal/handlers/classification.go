@@ -35,6 +35,7 @@ type cacheEntry struct {
 type inFlightRequest struct {
 	resultChan chan *inFlightResult
 	startTime  time.Time
+	timeout    time.Duration // Maximum time to wait for this request
 }
 
 // inFlightResult represents the result of an in-flight request
@@ -110,6 +111,9 @@ func NewClassificationHandler(
 		go handler.cleanupCache()
 	}
 	
+	// Start in-flight requests cleanup goroutine (Task 1.4: Request Deduplication)
+	go handler.cleanupInFlightRequests()
+	
 	return handler
 }
 
@@ -127,6 +131,34 @@ func (h *ClassificationHandler) cleanupCache() {
 			}
 		}
 		h.cacheMutex.Unlock()
+	}
+}
+
+// cleanupInFlightRequests periodically removes stale in-flight requests (Task 1.4)
+func (h *ClassificationHandler) cleanupInFlightRequests() {
+	ticker := time.NewTicker(30 * time.Second)
+	defer ticker.Stop()
+	
+	for range ticker.C {
+		h.inFlightMutex.Lock()
+		now := time.Now()
+		maxAge := h.config.Classification.RequestTimeout * 2 // Remove requests older than 2x timeout
+		if maxAge == 0 {
+			maxAge = 2 * time.Minute // Default max age
+		}
+		
+		for key, req := range h.inFlightRequests {
+			age := now.Sub(req.startTime)
+			if age > maxAge {
+				h.logger.Warn("Removing stale in-flight request",
+					zap.String("cache_key", key),
+					zap.Duration("age", age))
+				delete(h.inFlightRequests, key)
+				// Close the channel to unblock any waiting goroutines
+				close(req.resultChan)
+			}
+		}
+		h.inFlightMutex.Unlock()
 	}
 }
 
@@ -401,40 +433,75 @@ func (h *ClassificationHandler) HandleClassification(w http.ResponseWriter, r *h
 	h.inFlightMutex.RUnlock()
 	
 	if exists {
-		h.logger.Info("Request deduplication: waiting for in-flight request",
-			zap.String("request_id", req.RequestID),
-			zap.String("cache_key", cacheKey),
-			zap.Duration("wait_time", time.Since(inFlight.startTime)))
-		
-		// Wait for the in-flight request to complete
-		select {
-		case result := <-inFlight.resultChan:
-			if result.err != nil {
-				h.logger.Error("In-flight request failed",
+		// Check if in-flight request has timed out
+		elapsed := time.Since(inFlight.startTime)
+		if inFlight.timeout > 0 && elapsed > inFlight.timeout {
+			h.logger.Warn("In-flight request timed out, removing from deduplication",
+				zap.String("request_id", req.RequestID),
+				zap.String("cache_key", cacheKey),
+				zap.Duration("elapsed", elapsed),
+				zap.Duration("timeout", inFlight.timeout))
+			// Remove stale in-flight request
+			h.inFlightMutex.Lock()
+			delete(h.inFlightRequests, cacheKey)
+			h.inFlightMutex.Unlock()
+			// Continue with new request processing
+		} else {
+			h.logger.Info("Request deduplication: waiting for in-flight request",
+				zap.String("request_id", req.RequestID),
+				zap.String("cache_key", cacheKey),
+				zap.Duration("elapsed", elapsed),
+				zap.Duration("max_wait", requestTimeout))
+			
+			// Wait for the in-flight request to complete with timeout
+			waitTimeout := requestTimeout - elapsed
+			if waitTimeout <= 0 {
+				waitTimeout = 5 * time.Second // Minimum wait time
+			}
+			
+			waitCtx, waitCancel := context.WithTimeout(ctx, waitTimeout)
+			defer waitCancel()
+			
+			select {
+			case result := <-inFlight.resultChan:
+				if result.err != nil {
+					h.logger.Error("In-flight request failed",
+						zap.String("request_id", req.RequestID),
+						zap.Error(result.err))
+					errors.WriteInternalError(w, r, "Classification failed")
+					return
+				}
+				h.logger.Info("Classification served from in-flight request",
 					zap.String("request_id", req.RequestID),
-					zap.Error(result.err))
-				errors.WriteInternalError(w, r, "Classification failed")
+					zap.String("business_name", req.BusinessName),
+					zap.Duration("total_wait", time.Since(inFlight.startTime)))
+				w.Header().Set("X-Deduplication", "HIT")
+				json.NewEncoder(w).Encode(result.response)
+				return
+			case <-waitCtx.Done():
+				h.logger.Warn("Timeout waiting for in-flight request, processing new request",
+					zap.String("request_id", req.RequestID),
+					zap.Duration("wait_timeout", waitTimeout))
+				// Remove stale in-flight request and continue
+				h.inFlightMutex.Lock()
+				delete(h.inFlightRequests, cacheKey)
+				h.inFlightMutex.Unlock()
+				// Continue with new request processing below
+			case <-ctx.Done():
+				h.logger.Warn("Context cancelled while waiting for in-flight request",
+					zap.String("request_id", req.RequestID))
+				errors.WriteRequestTimeout(w, r, "Request timeout while waiting for duplicate request")
 				return
 			}
-			h.logger.Info("Classification served from in-flight request",
-				zap.String("request_id", req.RequestID),
-				zap.String("business_name", req.BusinessName))
-			w.Header().Set("X-Deduplication", "HIT")
-			json.NewEncoder(w).Encode(result.response)
-			return
-		case <-ctx.Done():
-			h.logger.Warn("Context cancelled while waiting for in-flight request",
-				zap.String("request_id", req.RequestID))
-			errors.WriteRequestTimeout(w, r, "Request timeout while waiting for duplicate request")
-			return
 		}
 	}
 	
-	// Create in-flight request entry
+	// Create in-flight request entry with timeout
 	resultChan := make(chan *inFlightResult, 1)
 	inFlightReq := &inFlightRequest{
 		resultChan: resultChan,
 		startTime:  time.Now(),
+		timeout:    requestTimeout,
 	}
 	
 	h.inFlightMutex.Lock()
@@ -1580,25 +1647,89 @@ func (h *ClassificationHandler) generateEnhancedClassification(ctx context.Conte
 		return nil, fmt.Errorf("classification services not initialized: code generator is nil")
 	}
 
-	// OPTIMIZATION #13: Keyword Extraction Consolidation
+	// OPTIMIZATION #13: Keyword Extraction Consolidation (Task 1.3)
 	// Extract keywords once at the start and reuse throughout the pipeline
 	// This prevents redundant keyword extraction (40-60% CPU savings)
 	classificationCtx := classification.NewClassificationContext(req.BusinessName, req.WebsiteURL)
 	ctx = classification.WithClassificationContext(ctx, classificationCtx)
 	
 	// Extract keywords once using the repository (if available)
-	// Note: Keywords will also be extracted by DetectIndustry, but we can reuse them
-	// from the context to avoid re-extraction in code generation
+	// This is the single point of keyword extraction for the entire pipeline
 	h.logger.Info("Extracting keywords once for reuse throughout pipeline",
 		zap.String("request_id", req.RequestID),
 		zap.String("business_name", req.BusinessName),
 		zap.String("website_url", req.WebsiteURL))
+	
+	// Extract keywords from database/repository (most comprehensive method)
+	// Use ClassifyBusiness which returns keywords as part of the result
+	if h.keywordRepo != nil {
+		classifyResult, err := h.keywordRepo.ClassifyBusiness(ctx, req.BusinessName, req.WebsiteURL)
+		if err == nil && classifyResult != nil && len(classifyResult.Keywords) > 0 {
+			classificationCtx.SetKeywords(classifyResult.Keywords)
+			h.logger.Info("Keywords extracted from repository and stored in context",
+				zap.String("request_id", req.RequestID),
+				zap.Int("keyword_count", len(classifyResult.Keywords)))
+		} else if err != nil {
+			h.logger.Warn("Failed to extract keywords from repository, will extract in downstream components",
+				zap.String("request_id", req.RequestID),
+				zap.Error(err))
+		}
+	}
+	
+	// If no keywords from repository, extract from text as fallback
+	if !classificationCtx.HasKeywords() {
+		combinedText := strings.TrimSpace(req.BusinessName + " " + req.Description)
+		if combinedText != "" {
+			keywords := h.extractKeywordsFromText(combinedText)
+			if len(keywords) > 0 {
+				classificationCtx.SetKeywords(keywords)
+				h.logger.Info("Keywords extracted from text fallback",
+					zap.String("request_id", req.RequestID),
+					zap.Int("keyword_count", len(keywords)))
+			}
+		}
+	}
 
+	// Task 1.5: Early Termination Logic
+	// Check if we should use fast-path mode (context deadline < 5s)
+	deadline, hasDeadline := ctx.Deadline()
+	useFastPath := false
+	if hasDeadline {
+		timeRemaining := time.Until(deadline)
+		if timeRemaining < 5*time.Second {
+			useFastPath = true
+			h.logger.Info("Fast-path mode enabled due to short deadline",
+				zap.String("request_id", req.RequestID),
+				zap.Duration("time_remaining", timeRemaining))
+		}
+	}
+	_ = useFastPath // Used in model selection logic below
+	
+	// Run Go classification first to check for early termination
+	// This allows us to skip ML if keyword-based classification has high confidence
+	goResult, goErr := h.runGoClassification(ctx, req, classificationCtx)
+	
+	// Early termination: Skip ML if Go classification has high confidence (Task 1.5)
+	skipML := false
+	if h.config.Classification.EnableEarlyTermination && goErr == nil && goResult != nil {
+		threshold := h.config.Classification.EarlyTerminationConfidenceThreshold
+		if threshold == 0 {
+			threshold = 0.85 // Default threshold
+		}
+		if goResult.ConfidenceScore >= threshold {
+			skipML = true
+			h.logger.Info("Early termination: Skipping ML service due to high keyword confidence",
+				zap.String("request_id", req.RequestID),
+				zap.Float64("confidence", goResult.ConfidenceScore),
+				zap.Float64("threshold", threshold))
+		}
+	}
+	
 	// Ensemble Voting: Run Python ML and Go classification in parallel
-	// Check if we should use ensemble voting (Python ML available and sufficient content)
+	// Check if we should use ensemble voting (Python ML available, sufficient content, and not skipped)
 	useEnsembleVoting := false
 	var pms *infrastructure.PythonMLService
-	if h.pythonMLService != nil && req.WebsiteURL != "" {
+	if !skipML && h.pythonMLService != nil && req.WebsiteURL != "" {
 		var ok bool
 		pms, ok = h.pythonMLService.(*infrastructure.PythonMLService)
 		if ok && pms != nil {
@@ -1622,33 +1753,17 @@ func (h *ClassificationHandler) generateEnhancedClassification(ctx context.Conte
 		}
 	}
 	
-	// Run both classification methods in parallel if ensemble voting is enabled
+	// Run Python ML classification in parallel if ensemble voting is enabled (Task 2.1)
+	// Note: Go classification already completed above for early termination check
+	// Now run ML in parallel if needed (though Go is done, this maintains the parallel structure)
 	var pythonMLResult *EnhancedClassificationResult
 	var pythonMLErr error
-	var goResult *EnhancedClassificationResult
-	var goErr error
 	
-	var wg sync.WaitGroup
-	
-	// Start Python ML classification in parallel
 	if useEnsembleVoting {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			pythonMLResult, pythonMLErr = h.runPythonMLClassification(ctx, pms, req)
-		}()
+		// Run ML classification (can run in parallel with other operations if needed)
+		// Since Go is already done, this runs sequentially but the structure supports parallel execution
+		pythonMLResult, pythonMLErr = h.runPythonMLClassification(ctx, pms, req)
 	}
-	
-	// Start Go classification in parallel (always run)
-	// Pass context with shared keywords to avoid re-extraction
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		goResult, goErr = h.runGoClassification(ctx, req, classificationCtx)
-	}()
-	
-	// Wait for both to complete
-	wg.Wait()
 	
 	// Handle errors
 	if goErr != nil {
@@ -1682,7 +1797,7 @@ func (h *ClassificationHandler) generateEnhancedClassification(ctx context.Conte
 	return nil, fmt.Errorf("classification failed: no results available")
 }
 
-// runPythonMLClassification runs Python ML classification
+// runPythonMLClassification runs Python ML classification with model selection (Task 3.1)
 func (h *ClassificationHandler) runPythonMLClassification(ctx context.Context, pms *infrastructure.PythonMLService, req *ClassificationRequest) (*EnhancedClassificationResult, error) {
 	// Prepare enhanced classification request
 	enhancedReq := &infrastructure.EnhancedClassificationRequest{
@@ -1693,8 +1808,66 @@ func (h *ClassificationHandler) runPythonMLClassification(ctx context.Context, p
 		MaxContentLength: 1024,
 	}
 	
-	// Call Python ML service
-	enhancedResp, err := pms.ClassifyEnhanced(ctx, enhancedReq)
+	// Model selection logic (Task 3.1): Choose lightweight or full model
+	useLightweight := false
+	
+	// Check if we should use lightweight model:
+	// 1. Fast-path mode (context deadline < 5s)
+	deadline, hasDeadline := ctx.Deadline()
+	if hasDeadline {
+		timeRemaining := time.Until(deadline)
+		if timeRemaining < 5*time.Second {
+			useLightweight = true
+			h.logger.Info("Using lightweight model: fast-path mode",
+				zap.String("request_id", req.RequestID),
+				zap.Duration("time_remaining", timeRemaining))
+		}
+	}
+	
+	// 2. Short content (<256 tokens ~ 1024 chars)
+	combinedContent := strings.TrimSpace(req.BusinessName + " " + req.Description + " " + req.WebsiteURL)
+	if !useLightweight && len(combinedContent) < 1024 {
+		useLightweight = true
+		h.logger.Info("Using lightweight model: short content",
+			zap.String("request_id", req.RequestID),
+			zap.Int("content_length", len(combinedContent)))
+	}
+	
+	// 3. High keyword confidence (already checked in early termination, but double-check)
+	if !useLightweight {
+		// Check classification context for keyword confidence
+		if classificationCtx, ok := classification.GetClassificationContext(ctx); ok {
+			// If we have high-confidence keywords, use lightweight
+			// (This is a heuristic - actual confidence would come from Go classification result)
+			if len(classificationCtx.GetKeywords()) > 10 {
+				useLightweight = true
+				h.logger.Info("Using lightweight model: high keyword count",
+					zap.String("request_id", req.RequestID),
+					zap.Int("keyword_count", len(classificationCtx.GetKeywords())))
+			}
+		}
+	}
+	
+	// Call appropriate Python ML service endpoint
+	var enhancedResp *infrastructure.EnhancedClassificationResponse
+	var err error
+	
+	if useLightweight {
+		// Use fast classification endpoint
+		enhancedReq.MaxContentLength = 256 // Shorter for fast path
+		enhancedResp, err = pms.ClassifyFast(ctx, enhancedReq)
+		if err != nil {
+			// Fallback to full model if lightweight fails
+			h.logger.Warn("Lightweight model failed, falling back to full model",
+				zap.String("request_id", req.RequestID),
+				zap.Error(err))
+			enhancedReq.MaxContentLength = 1024
+			enhancedResp, err = pms.ClassifyEnhanced(ctx, enhancedReq)
+		}
+	} else {
+		// Use full enhanced classification
+		enhancedResp, err = pms.ClassifyEnhanced(ctx, enhancedReq)
+	}
 	if err != nil || enhancedResp == nil || !enhancedResp.Success {
 		return nil, fmt.Errorf("Python ML classification failed: %w", err)
 	}

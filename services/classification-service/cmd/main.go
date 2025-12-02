@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 
 	"kyb-platform/internal/classification"
@@ -18,6 +19,7 @@ import (
 	"kyb-platform/internal/classification/repository"
 	"kyb-platform/internal/machine_learning/infrastructure"
 	serviceAdapters "kyb-platform/services/classification-service/internal/adapters"
+	"kyb-platform/services/classification-service/internal/cache"
 	"kyb-platform/services/classification-service/internal/config"
 	"kyb-platform/services/classification-service/internal/errors"
 	"kyb-platform/services/classification-service/internal/handlers"
@@ -75,9 +77,82 @@ func main() {
 	// Initialize classification repository
 	keywordRepo := repository.NewSupabaseKeywordRepository(dbClient, stdLogger)
 
+	// Initialize website content cache if enabled
+	var websiteContentCache *cache.WebsiteContentCache
+	if cfg.Classification.EnableWebsiteContentCache && cfg.Classification.RedisEnabled && cfg.Classification.RedisURL != "" {
+		// Create Redis client for website content cache
+		redisOpt, err := redis.ParseURL(cfg.Classification.RedisURL)
+		if err == nil {
+			redisClient := redis.NewClient(redisOpt)
+			// Test connection
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			if err := redisClient.Ping(ctx).Err(); err == nil {
+				websiteContentCache = cache.NewWebsiteContentCache(
+					redisClient,
+					logger,
+					cfg.Classification.WebsiteContentCacheTTL,
+				)
+				logger.Info("✅ Website content cache initialized",
+					zap.Duration("ttl", cfg.Classification.WebsiteContentCacheTTL))
+			} else {
+				logger.Warn("⚠️ Failed to connect to Redis for website content cache, caching disabled",
+					zap.Error(err))
+			}
+			cancel()
+		} else {
+			logger.Warn("⚠️ Failed to parse Redis URL for website content cache",
+				zap.Error(err))
+		}
+	}
+
 	// Initialize classification services
 	industryDetector := classification.NewIndustryDetectionService(keywordRepo, stdLogger)
 	codeGenerator := classification.NewClassificationCodeGenerator(keywordRepo, stdLogger)
+	
+	// Set website content cache on industry detector's multi-method classifier if available
+	if websiteContentCache != nil && industryDetector != nil {
+		// Create adapter to bridge cache package and classification package
+		cacheAdapter := classification.NewWebsiteContentCacheAdapter(
+			func(ctx context.Context, url string) (*classification.CachedWebsiteContent, bool) {
+				cached, found := websiteContentCache.Get(ctx, url)
+				if !found {
+					return nil, false
+				}
+				// Convert cache package type to classification package type
+				return &classification.CachedWebsiteContent{
+					TextContent:    cached.TextContent,
+					Title:          cached.Title,
+					Keywords:       cached.Keywords,
+					StructuredData: cached.StructuredData,
+					ScrapedAt:      cached.ScrapedAt,
+					Success:        cached.Success,
+					StatusCode:     cached.StatusCode,
+					ContentType:    cached.ContentType,
+				}, true
+			},
+			func(ctx context.Context, url string, content *classification.CachedWebsiteContent) error {
+				// Convert classification package type to cache package type
+				cached := &cache.CachedWebsiteContent{
+					TextContent:    content.TextContent,
+					Title:          content.Title,
+					Keywords:       content.Keywords,
+					StructuredData: content.StructuredData,
+					ScrapedAt:      content.ScrapedAt,
+					Success:        content.Success,
+					StatusCode:     content.StatusCode,
+					ContentType:    content.ContentType,
+				}
+				return websiteContentCache.Set(ctx, url, cached)
+			},
+			func() bool {
+				return websiteContentCache.IsEnabled()
+			},
+		)
+		
+		// Set cache on industry detector's multi-method classifier
+		industryDetector.SetContentCache(cacheAdapter)
+		logger.Info("✅ Website content cache set on classification services")
+	}
 
 	// Initialize Python ML service if URL is configured
 	var pythonMLService *infrastructure.PythonMLService

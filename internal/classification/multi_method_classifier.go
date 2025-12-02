@@ -18,15 +18,16 @@ import (
 	"kyb-platform/internal/shared"
 )
 
-// CachedWebsiteContent represents cached website content
-type CachedWebsiteContent struct {
+// Note: CachedWebsiteContent is now defined in enhanced_website_scraper.go
+// This type is kept for backward compatibility with WebsiteCache
+type CachedWebsiteContentLegacy struct {
 	Keywords  []string
 	Timestamp time.Time
 }
 
 // WebsiteCache provides thread-safe caching for website content
 type WebsiteCache struct {
-	cache map[string]*CachedWebsiteContent
+	cache map[string]*CachedWebsiteContentLegacy
 	mu    sync.RWMutex
 	ttl   time.Duration
 }
@@ -34,7 +35,7 @@ type WebsiteCache struct {
 // NewWebsiteCache creates a new website cache with the specified TTL
 func NewWebsiteCache(ttl time.Duration) *WebsiteCache {
 	return &WebsiteCache{
-		cache: make(map[string]*CachedWebsiteContent),
+		cache: make(map[string]*CachedWebsiteContentLegacy),
 		ttl:   ttl,
 	}
 }
@@ -62,7 +63,7 @@ func (wc *WebsiteCache) Set(url string, keywords []string) {
 	wc.mu.Lock()
 	defer wc.mu.Unlock()
 
-	wc.cache[url] = &CachedWebsiteContent{
+	wc.cache[url] = &CachedWebsiteContentLegacy{
 		Keywords:  keywords,
 		Timestamp: time.Now(),
 	}
@@ -92,6 +93,7 @@ func NewMultiMethodClassifier(
 		logger = log.Default()
 	}
 
+	scraper := NewEnhancedWebsiteScraper(logger)
 	return &MultiMethodClassifier{
 		keywordRepo:              keywordRepo,
 		mlClassifier:             mlClassifier,
@@ -99,10 +101,17 @@ func NewMultiMethodClassifier(
 		weightedConfidenceScorer: NewWeightedConfidenceScorer(logger),
 		reasoningEngine:          NewReasoningEngine(logger),
 		qualityMetricsService:    NewQualityMetricsService(logger),
-		enhancedScraper:          NewEnhancedWebsiteScraper(logger),
+		enhancedScraper:          scraper,
 		logger:                   logger,
 		monitor:                  nil, // Will be set separately if monitoring is needed
 		websiteCache:             NewWebsiteCache(24 * time.Hour), // Cache for 24 hours
+	}
+}
+
+// SetContentCache sets the content cache for the enhanced scraper
+func (mmc *MultiMethodClassifier) SetContentCache(cache WebsiteContentCacher) {
+	if mmc.enhancedScraper != nil {
+		mmc.enhancedScraper.SetContentCache(cache)
 	}
 }
 

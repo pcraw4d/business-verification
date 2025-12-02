@@ -3359,33 +3359,33 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromWebsite(ctx context.Conte
 
 	// Extract keywords from BusinessInfo
 	if structuredDataResult.BusinessInfo.Industry != "" {
-		structuredKeywordMap[strings.ToLower(structuredDataResult.BusinessInfo.Industry)] = 1.5
+		structuredKeywordMap[strings.ToLower(structuredDataResult.BusinessInfo.Industry)] = 2.0 // OPTIMIZATION #15: 2x weight for structured data
 	}
 	if structuredDataResult.BusinessInfo.BusinessType != "" {
-		structuredKeywordMap[strings.ToLower(structuredDataResult.BusinessInfo.BusinessType)] = 1.5
+		structuredKeywordMap[strings.ToLower(structuredDataResult.BusinessInfo.BusinessType)] = 2.0 // OPTIMIZATION #15: 2x weight for structured data
 	}
 	for _, service := range structuredDataResult.BusinessInfo.Services {
 		serviceLower := strings.ToLower(service)
-		structuredKeywordMap[serviceLower] = 1.5
+			structuredKeywordMap[serviceLower] = 2.0 // OPTIMIZATION #15: 2x weight for structured data
 	}
 	for _, product := range structuredDataResult.BusinessInfo.Products {
 		productLower := strings.ToLower(product)
-		structuredKeywordMap[productLower] = 1.5
+			structuredKeywordMap[productLower] = 2.0 // OPTIMIZATION #15: 2x weight for structured data
 	}
 
 	// Extract keywords from ProductInfo
 	for _, product := range structuredDataResult.ProductInfo {
 		if product.Name != "" {
-			structuredKeywordMap[strings.ToLower(product.Name)] = 1.5
+			structuredKeywordMap[strings.ToLower(product.Name)] = 2.0 // OPTIMIZATION #15: 2x weight for structured data
 		}
 		if product.Category != "" {
-			structuredKeywordMap[strings.ToLower(product.Category)] = 1.5
+			structuredKeywordMap[strings.ToLower(product.Category)] = 2.0 // OPTIMIZATION #15: 2x weight for structured data
 		}
 		if product.Description != "" {
 			// Extract keywords from product description
 			descKeywords := r.extractBusinessKeywords(product.Description)
 			for _, kw := range descKeywords {
-				structuredKeywordMap[strings.ToLower(kw)] = 1.5
+				structuredKeywordMap[strings.ToLower(kw)] = 2.0 // OPTIMIZATION #15: 2x weight for structured data
 			}
 		}
 	}
@@ -3393,16 +3393,16 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromWebsite(ctx context.Conte
 	// Extract keywords from ServiceInfo
 	for _, service := range structuredDataResult.ServiceInfo {
 		if service.Name != "" {
-			structuredKeywordMap[strings.ToLower(service.Name)] = 1.5
+			structuredKeywordMap[strings.ToLower(service.Name)] = 2.0 // OPTIMIZATION #15: 2x weight for structured data
 		}
 		if service.Category != "" {
-			structuredKeywordMap[strings.ToLower(service.Category)] = 1.5
+			structuredKeywordMap[strings.ToLower(service.Category)] = 2.0 // OPTIMIZATION #15: 2x weight for structured data
 		}
 		if service.Description != "" {
 			// Extract keywords from service description
 			descKeywords := r.extractBusinessKeywords(service.Description)
 			for _, kw := range descKeywords {
-				structuredKeywordMap[strings.ToLower(kw)] = 1.5
+				structuredKeywordMap[strings.ToLower(kw)] = 2.0 // OPTIMIZATION #15: 2x weight for structured data
 			}
 		}
 	}
@@ -3440,7 +3440,7 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromWebsite(ctx context.Conte
 		structuredKeywords = append(structuredKeywords, kw)
 	}
 
-	r.logger.Printf("📊 [StructuredData] Extracted %d keywords from structured data (weighted 1.5x)", len(structuredKeywords))
+	r.logger.Printf("📊 [StructuredData] Extracted %d keywords from structured data (weighted 2.0x)", len(structuredKeywords))
 
 	// Combine text keywords and structured keywords
 	allKeywords := make(map[string]float64)
@@ -3453,7 +3453,7 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromWebsite(ctx context.Conte
 		}
 	}
 	
-	// Add structured keywords with weight 1.5 (higher priority)
+	// Add structured keywords with weight 2.0 (higher priority - OPTIMIZATION #15)
 	for kw, weight := range structuredKeywordMap {
 		if allKeywords[kw] < weight {
 			allKeywords[kw] = weight
@@ -4077,11 +4077,25 @@ func (r *SupabaseKeywordRepository) filterGibberishKeywords(keywords []string) [
 	}
 	
 	// Suspicious bigrams that rarely appear in English
+	// Enhanced to catch patterns from gibberish words: "ivdi", "fays", "yilp", "dioy", "ukxa"
 	suspiciousBigrams := map[string]bool{
-		"iv": true, "di": true, "xa": true, "gu": true, "oi": true,
-		"je": true, "yl": true, "lb": true, "io": true,
+		"iv": true, "vd": true, "di": true, "xa": true, "uk": true, "kx": true,
+		"fa": true, "ay": true, "ys": true, "yi": true, "il": true, "lp": true,
+		"gu": true, "oi": true, "je": true, "yl": true, "lb": true, "io": true,
 		"fv": true, "yz": true, "zx": true, "qw": true, "xc": true, "vb": true,
-		"uk": true,
+		"fg": true, "gh": true, "hj": true, "jk": true, "kl": true, "lm": true,
+		"kj": true, "mn": true, "nb": true, "bv": true, "vc": true, "cx": true,
+		"xz": true, "zq": true, "qa": true, "az": true, "ws": true, "sx": true,
+		"xw": true, "ed": true, "dc": true, "cd": true, "de": true, "rf": true,
+		"vr": true, "tg": true, "gb": true, "bg": true, "gt": true,
+		"yh": true, "hn": true, "nh": true, "hy": true, "uj": true, "jm": true,
+		"mj": true, "ju": true,
+	}
+	
+	// Known gibberish words to filter
+	knownGibberish := map[string]bool{
+		"ivdi": true, "fays": true, "yilp": true, "dioy": true, "ukxa": true,
+		"ivd": true, "fay": true, "yil": true, "dio": true, "ukx": true,
 	}
 	
 	for _, keyword := range keywords {
@@ -4093,6 +4107,11 @@ func (r *SupabaseKeywordRepository) filterGibberishKeywords(keywords []string) [
 		
 		// Skip if too short
 		if len(keyword) < 4 {
+			continue
+		}
+		
+		// Check for known gibberish words first
+		if knownGibberish[keyword] {
 			continue
 		}
 		
@@ -4123,14 +4142,27 @@ func (r *SupabaseKeywordRepository) hasSuspiciousPattern(word string) bool {
 	}
 	
 	// Check for unusual consonant clusters
+	// Enhanced to catch specific gibberish words: "ivdi", "fays", "yilp", "dioy", "ukxa"
 	suspiciousClusters := []string{
-		"ivd", "fay", "yil", "dio", "ukx", "guo", "jey", "mii",
-		"xzv", "qwx", "jkl", "zxc", "vbn", "qwe", "asd",
+		"ivd", "ivdi", "fay", "fays", "yil", "yilp", "dio", "dioy", "ukx", "ukxa",
+		"guo", "jey", "mii", "xzv", "qwx", "jkl", "zxc", "vbn", "qwe", "asd",
+		// Additional suspicious patterns
+		"fgh", "hjk", "lkj", "mnb", "bvc", "cxz", "zqa", "qaz", "wsx", "xsw",
+		"edc", "cde", "rfv", "vfr", "tgb", "bgt", "yhn", "nhy", "ujm", "mju",
 	}
 	for _, cluster := range suspiciousClusters {
 		if strings.Contains(word, cluster) {
 			return true
 		}
+	}
+	
+	// Check for specific known gibberish words
+	knownGibberish := map[string]bool{
+		"ivdi": true, "fays": true, "yilp": true, "dioy": true, "ukxa": true,
+		"ivd": true, "fay": true, "yil": true, "dio": true, "ukx": true,
+	}
+	if knownGibberish[word] {
+		return true
 	}
 	
 	// Check for too many rare letters

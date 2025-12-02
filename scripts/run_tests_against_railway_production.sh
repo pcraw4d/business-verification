@@ -19,16 +19,28 @@ echo ""
 # Load Railway environment variables
 if [ -f "railway.env" ]; then
     echo "📋 Loading Railway environment variables from railway.env..."
+    # Use set -a to automatically export all variables
     set -a
     source railway.env
     set +a
-    echo -e "${GREEN}✅ Environment variables loaded${NC}"
+    # Explicitly export key variables to ensure they're available
+    export SUPABASE_URL
+    export SUPABASE_ANON_KEY
+    export SUPABASE_SERVICE_ROLE_KEY
+    export DATABASE_URL
+    export PYTHON_ML_SERVICE_URL
+    echo -e "${GREEN}✅ Environment variables loaded and exported${NC}"
 elif [ -f "railway-essential.env" ]; then
     echo "📋 Loading Railway environment variables from railway-essential.env..."
     set -a
     source railway-essential.env
     set +a
-    echo -e "${GREEN}✅ Environment variables loaded${NC}"
+    export SUPABASE_URL
+    export SUPABASE_ANON_KEY
+    export SUPABASE_SERVICE_ROLE_KEY
+    export DATABASE_URL
+    export PYTHON_ML_SERVICE_URL
+    echo -e "${GREEN}✅ Environment variables loaded and exported${NC}"
 else
     echo -e "${YELLOW}⚠️  No railway.env or railway-essential.env found${NC}"
     echo "   Using environment variables from current shell"
@@ -55,36 +67,79 @@ else
     echo -e "${GREEN}✅ SUPABASE_ANON_KEY: [REDACTED]${NC}"
 fi
 
+# Check if DATABASE_URL has placeholder and try to get real one from Railway
+if [ -n "$DATABASE_URL" ] && echo "$DATABASE_URL" | grep -q "\[YOUR_PASSWORD_HERE\]\|\[YOUR_PASSWORD\]\|placeholder\|your_password"; then
+    echo -e "${YELLOW}⚠️  DATABASE_URL contains placeholder${NC}"
+    echo "   Attempting to get real DATABASE_URL from Railway..."
+    
+    # Try to get from Railway CLI
+    if command -v railway &> /dev/null; then
+        RAILWAY_DB_URL=$(railway variables 2>/dev/null | grep -i "DATABASE_URL" | head -1 | awk -F'=' '{print $2}' | tr -d ' ' || echo "")
+        if [ -n "$RAILWAY_DB_URL" ] && ! echo "$RAILWAY_DB_URL" | grep -q "\[YOUR_PASSWORD_HERE\]\|\[YOUR_PASSWORD\]\|placeholder"; then
+            DATABASE_URL="$RAILWAY_DB_URL"
+            echo -e "${GREEN}✅ Got DATABASE_URL from Railway${NC}"
+        else
+            echo "   Railway DATABASE_URL also has placeholder or not found"
+            DATABASE_URL=""
+        fi
+    else
+        DATABASE_URL=""
+    fi
+fi
+
 if [ -z "$DATABASE_URL" ] && [ -z "$TEST_DATABASE_URL" ]; then
     echo -e "${YELLOW}⚠️  DATABASE_URL or TEST_DATABASE_URL not set${NC}"
-    echo "   Will try to construct from SUPABASE_URL"
+    echo "   Attempting to construct from Supabase connection..."
+    
     if [ -n "$SUPABASE_URL" ]; then
         # Extract project ref from Supabase URL
         PROJECT_REF=$(echo "$SUPABASE_URL" | sed 's|https://||' | sed 's|\.supabase\.co||')
+        
+        # Try to get password from Railway or environment
+        # For Supabase, we can use the service role key or connection pooling
+        # Use Supabase connection pooling URL format
         if [ -n "$SUPABASE_SERVICE_ROLE_KEY" ]; then
-            # Try to construct DATABASE_URL (user needs to provide password)
-            echo "   You may need to set DATABASE_URL manually"
+            # Use Supabase connection pooling (port 6543) or direct connection
+            # Note: This requires the actual database password
+            echo "   ⚠️  Cannot auto-construct DATABASE_URL without password"
+            echo "   Please set DATABASE_URL or TEST_DATABASE_URL manually"
+            echo "   Format: postgresql://postgres:[PASSWORD]@db.$PROJECT_REF.supabase.co:5432/postgres"
         fi
     fi
 else
-    if [ -n "$DATABASE_URL" ]; then
+    if [ -n "$DATABASE_URL" ] && ! echo "$DATABASE_URL" | grep -q "\[YOUR_PASSWORD_HERE\]\|placeholder"; then
         echo -e "${GREEN}✅ DATABASE_URL: [REDACTED]${NC}"
-    fi
-    if [ -n "$TEST_DATABASE_URL" ]; then
+    elif [ -n "$TEST_DATABASE_URL" ]; then
         echo -e "${GREEN}✅ TEST_DATABASE_URL: [REDACTED]${NC}"
+        DATABASE_URL="$TEST_DATABASE_URL"
+    else
+        echo -e "${RED}❌ DATABASE_URL contains invalid placeholder${NC}"
+        MISSING_VARS=$((MISSING_VARS + 1))
     fi
 fi
 
 if [ $MISSING_VARS -gt 0 ]; then
     echo ""
-    echo -e "${RED}❌ Missing required environment variables${NC}"
+    echo -e "${YELLOW}⚠️  Some environment variables have issues${NC}"
     echo ""
-    echo "Please set the following variables:"
-    echo "  export SUPABASE_URL='https://your-project.supabase.co'"
-    echo "  export SUPABASE_ANON_KEY='your_anon_key'"
-    echo "  export DATABASE_URL='postgresql://...' (or TEST_DATABASE_URL)"
-    echo ""
-    exit 1
+    
+    if [ -z "$DATABASE_URL" ] || echo "$DATABASE_URL" | grep -q "\[YOUR_PASSWORD_HERE\]\|\[YOUR_PASSWORD\]\|placeholder"; then
+        echo "DATABASE_URL issue detected. The test may still work using Supabase API."
+        echo "If tests fail, you can:"
+        echo "  1. Set DATABASE_URL manually: export DATABASE_URL='postgresql://postgres:[PASSWORD]@db.qpqhuqqmkjxsltzshfam.supabase.co:5432/postgres'"
+        echo "  2. Or get it from Railway: railway variables | grep DATABASE_URL"
+        echo ""
+        read -p "Continue with tests anyway? (y/n): " CONTINUE_DB
+        if [ "$CONTINUE_DB" != "y" ]; then
+            exit 1
+        fi
+    else
+        echo "Please set the following variables:"
+        echo "  export SUPABASE_URL='https://your-project.supabase.co'"
+        echo "  export SUPABASE_ANON_KEY='your_anon_key'"
+        echo ""
+        exit 1
+    fi
 fi
 
 # Check for Python ML service URL
@@ -114,13 +169,28 @@ if [ -z "$PYTHON_ML_SERVICE_URL" ]; then
             echo "   Using: $PYTHON_ML_SERVICE_URL"
             export PYTHON_ML_SERVICE_URL
         fi
-    else
-        # Use default Railway URL pattern
-        PYTHON_ML_SERVICE_URL="https://python-ml-service-production.up.railway.app"
-        echo "   Using default: $PYTHON_ML_SERVICE_URL"
-        echo "   (You can override with: export PYTHON_ML_SERVICE_URL='your-url')"
-        export PYTHON_ML_SERVICE_URL
-    fi
+        else
+            # Try to get from railway.env file
+            if [ -f "railway.env" ]; then
+                ENV_URL=$(grep "^PYTHON_ML_SERVICE_URL=" railway.env | cut -d'=' -f2- | tr -d '"' | tr -d "'" || echo "")
+                if [ -n "$ENV_URL" ]; then
+                    PYTHON_ML_SERVICE_URL="$ENV_URL"
+                    echo "   Found in railway.env: $PYTHON_ML_SERVICE_URL"
+                    export PYTHON_ML_SERVICE_URL
+                else
+                    # Use known production URL
+                    PYTHON_ML_SERVICE_URL="https://python-ml-service-production-a6b8.up.railway.app"
+                    echo "   Using known production URL: $PYTHON_ML_SERVICE_URL"
+                    export PYTHON_ML_SERVICE_URL
+                fi
+            else
+                # Use known production URL
+                PYTHON_ML_SERVICE_URL="https://python-ml-service-production-a6b8.up.railway.app"
+                echo "   Using known production URL: $PYTHON_ML_SERVICE_URL"
+                echo "   (You can override with: export PYTHON_ML_SERVICE_URL='your-url')"
+                export PYTHON_ML_SERVICE_URL
+            fi
+        fi
 else
     echo -e "${GREEN}✅ PYTHON_ML_SERVICE_URL: $PYTHON_ML_SERVICE_URL${NC}"
 fi
