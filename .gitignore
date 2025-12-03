@@ -201,4 +201,21 @@ subtask_*_completion*.md
 
 # Configuration files with secrets
 config.local.json
-secrets.jsonservices/frontend/public/node_modules
+secrets.json
+
+# Python virtual environments (explicitly ignore)
+python_ml_service/venv/
+.venv/
+venv/
+**/venv/
+**/.venv/
+
+# Large build artifacts
+*.test
+database.test
+comprehensive_accuracy_test
+railway-server
+test-auth
+test-build
+test-supabase
+bin/
