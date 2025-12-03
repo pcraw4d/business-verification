@@ -186,13 +186,40 @@ backup-*
 *.zip
 *.rar
 
-# Task summary and completion files
+# Task summary and completion files (historical - should not be committed)
 *completion*.md
 *summary*.md
 *_completion_summary.md
 *_summary.md
 task_*_completion*.md
 subtask_*_completion*.md
+TASK_*_COMPLETION_SUMMARY.md
+SUBTASK_*_COMPLETION_SUMMARY.md
+
+# Old test output files
+*test-output*.txt
+*test-results*.txt
+beta-test*.txt
+performance-test-report.txt
+uat-test-report.txt
+review-test-output.txt
+compliance-verification-report.txt
+
+# Old accuracy report JSON files (keep only baseline)
+accuracy_report_railway_production_*.json
+accuracy_report_v*.json
+# Note: accuracy_report_baseline.json and accuracy_report_integration_phases.json may be kept for reference
+
+# Old JSON analysis files (dated)
+*_2025-09-19.json
+keyword_*.json
+industry_*.json
+emerging_trends_*.json
+
+# Compiled binaries
+main
+kyb-*
+test-*
 
 # Database files
 *.db

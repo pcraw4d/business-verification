@@ -11,12 +11,14 @@ Investigated Railway deployment issues using Railway CLI. Found that:
 ## Findings
 
 ### Build Status
+
 - ✅ Build completes successfully
 - ✅ Docker image is created and pushed
 - ✅ No compilation errors
 - ✅ Image digest: `sha256:5f7c3726a3e3cb88328d95b533ad7cff6c7707a022cc6f2f89bf4a4809cd24df`
 
 ### Runtime Status
+
 - ✅ Service is running and responding to health checks
 - ✅ Processing classification requests successfully
 - ⚠️ Missing Phase 1 initialization logs:
@@ -27,11 +29,13 @@ Investigated Railway deployment issues using Railway CLI. Found that:
 ### Possible Issues
 
 1. **Code Not Deployed**: The latest code with Phase 1 integration may not be deployed yet
+
    - Latest commit: `70a1838ad` (Phase 1 keyword extraction integration)
    - Build timestamp: `2025-12-03T00:52:16Z`
    - May need to trigger a new deployment
 
 2. **Log Retention**: Startup logs may have been rotated out
+
    - Railway logs may only show recent runtime logs
    - Startup logs from service initialization may not be visible
 
@@ -48,11 +52,13 @@ Investigated Railway deployment issues using Railway CLI. Found that:
 ## Next Steps
 
 1. **Monitor New Deployment**: After triggering `railway up`, check logs for:
+
    - `🚀 Starting Classification Service`
    - `✅ Phase 1 enhanced website scraper initialized for keyword extraction`
    - `✅ Classification repository initialized with Phase 1 enhanced scraper`
 
 2. **Test with Website URL**: Send a classification request with a `website_url` to trigger keyword extraction and see Phase 1 logs:
+
    ```bash
    curl -X POST https://your-service.railway.app/v1/classify \
      -H "Content-Type: application/json" \
@@ -86,4 +92,3 @@ railway up --service classification-service --detach
 - No compilation errors detected
 - Service is functional but Phase 1 logs not visible (may need fresh deployment)
 - Playwright service was not found in Railway (may need to check service name or deployment status)
-

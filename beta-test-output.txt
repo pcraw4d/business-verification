@@ -1,5 +1,0 @@
-🧪 Starting Comprehensive Beta Testing...
-
-📋 TEST 1: Frontend Directory Sync
------------------------------------
-[0;32m✅ PASS:[0m File synced: add-merchant.html

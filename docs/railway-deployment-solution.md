@@ -3,6 +3,7 @@
 ## Problem
 
 Railway deployment fails with:
+
 ```
 Failed to upload code. File too large (387836660 bytes)
 operation timed out
@@ -11,6 +12,7 @@ operation timed out
 ## Root Cause
 
 1. **Repository is 5.9GB** - Contains large directories:
+
    - `python_ml_service/venv/` (1.3GB) - was tracked in git
    - `frontend/node_modules/` (1.3GB) - not tracked but present locally
    - Build artifacts and binaries
@@ -22,11 +24,13 @@ operation timed out
 ### ✅ Fixes Applied
 
 1. **Removed large directories from git tracking**
+
    ```bash
    git rm -r --cached python_ml_service/venv
    ```
 
 2. **Created `.railwayignore` file**
+
    - Excludes venv, node_modules, build artifacts
    - Reduces upload size significantly
 
@@ -38,11 +42,13 @@ operation timed out
 **DO NOT use `railway up`** for large repositories. Instead:
 
 1. **Use Git-based deployment** (automatic):
+
    - Railway automatically deploys when code is pushed to GitHub
    - Code is already pushed: `70a1838ad` (latest commit)
    - Railway should detect the push and deploy automatically
 
 2. **Check Railway Dashboard**:
+
    - Go to Railway dashboard
    - Check if deployment is triggered from git push
    - Monitor deployment status there
@@ -57,6 +63,7 @@ operation timed out
 After Railway auto-deploys from git:
 
 1. **Check startup logs** for:
+
    ```
    🚀 Starting Classification Service
    ✅ Phase 1 enhanced website scraper initialized for keyword extraction
@@ -64,6 +71,7 @@ After Railway auto-deploys from git:
    ```
 
 2. **Test with website URL** to trigger Phase 1:
+
    ```bash
    curl -X POST https://your-service.railway.app/v1/classify \
      -H "Content-Type: application/json" \
@@ -99,4 +107,3 @@ After Railway auto-deploys from git:
 - The `.railwayignore` file will help if Railway needs to upload files
 - The removed venv directory will need to be recreated in the Railway build process (if needed)
 - For Python ML service, Railway should install dependencies during build, not use local venv
-

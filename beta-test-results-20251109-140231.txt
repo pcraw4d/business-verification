@@ -1,4 +1,0 @@
-Beta Testing Results - Sun Nov  9 14:02:31 EST 2025
-=================================
-
-✅ PASS: File synced: add-merchant.html
