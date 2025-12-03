@@ -1,0 +1,68 @@
+# Railway ignore file - excludes large directories from deployment
+# This prevents Railway from uploading unnecessary files
+
+# Python virtual environments
+python_ml_service/venv/
+.venv/
+venv/
+**/venv/
+**/.venv/
+
+# Node.js dependencies
+frontend/node_modules/
+web/node_modules/
+**/node_modules/
+
+# Frontend build artifacts
+frontend/.next/
+frontend/out/
+web/dist/
+web/.next/
+
+# Build artifacts and binaries
+*.test
+*.dylib
+*.so
+*.dll
+bin/
+railway-server
+comprehensive_accuracy_test
+database.test
+test-auth
+test-build
+test-supabase
+
+# Large log files
+docs/railway log/*.json
+*.log
+
+# Archive and backup files
+archive/
+backup-*/
+*.tar.gz
+*.zip
+
+# Reports
+reports/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Go build artifacts
+*.exe
+*.exe~
+kyb-platform
+kyb-platform-*
+
+# IDE files
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+._*
+
