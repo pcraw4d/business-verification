@@ -19,13 +19,21 @@ SERVICE_URL="${SERVICE_URL:-http://localhost:8081}"
 HEALTH_URL="${SERVICE_URL}/health"
 
 echo -e "${YELLOW}Checking service health at ${HEALTH_URL}...${NC}"
-if curl -s -f "${HEALTH_URL}" > /dev/null; then
+if curl -s -f "${HEALTH_URL}" > /dev/null 2>&1; then
     echo -e "${GREEN}✅ Service is running${NC}\n"
 else
     echo -e "${RED}❌ Service is not running at ${SERVICE_URL}${NC}"
     echo -e "${YELLOW}Please start the classification service first:${NC}"
-    echo -e "  cd services/classification-service"
-    echo -e "  go run cmd/main.go"
+    echo -e "  ${BLUE}Option 1:${NC} Run in a separate terminal:"
+    echo -e "    ./scripts/start-classification-service.sh"
+    echo -e ""
+    echo -e "  ${BLUE}Option 2:${NC} Manual start:"
+    echo -e "    cd services/classification-service"
+    echo -e "    export \$(cat ../../.env | grep -v '^#' | xargs)"
+    echo -e "    export SUPABASE_ANON_KEY=\"\${SUPABASE_API_KEY}\""
+    echo -e "    export PORT=\"8081\""
+    echo -e "    export LOG_LEVEL=\"debug\""
+    echo -e "    go run cmd/main.go"
     echo ""
     exit 1
 fi
