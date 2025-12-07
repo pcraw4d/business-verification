@@ -13,9 +13,10 @@ import (
 	"strings"
 	"time"
 
+	"kyb-platform/internal/external"
+
 	"github.com/andybalholm/brotli"
 	"go.uber.org/zap"
-	"kyb-platform/internal/external"
 )
 
 // EnhancedWebsiteScraper provides advanced website scraping capabilities
@@ -120,6 +121,9 @@ func (ews *EnhancedWebsiteScraper) SetContentCache(cache WebsiteContentCacher) {
 // Now uses external.WebsiteScraper with Phase 1 features (multi-tier strategies, structured content)
 func (ews *EnhancedWebsiteScraper) ScrapeWebsite(ctx context.Context, websiteURL string) *ScrapingResult {
 	startTime := time.Now()
+	ews.logger.Printf("🌐 [Enhanced] ScrapeWebsite called for: %s", websiteURL)
+	ews.logger.Printf("🔍 [Enhanced] External scraper available: %v", ews.externalScraper != nil)
+	
 	result := &ScrapingResult{
 		URL:       websiteURL,
 		ScrapedAt: time.Now(),
@@ -147,8 +151,30 @@ func (ews *EnhancedWebsiteScraper) ScrapeWebsite(ctx context.Context, websiteURL
 		ews.logger.Printf("🌐 [Enhanced] Using Phase 1 enhanced scraper for: %s", websiteURL)
 		ews.logger.Printf("🔍 [Phase1] Starting scrape with structured content extraction for: %s", websiteURL)
 		
+		// Verify context before passing it - detailed logging
+		ews.logger.Printf("🔍 [Enhanced] [ContextCheck] Checking context state before passing to external scraper")
+		ctxErr := ctx.Err()
+		ews.logger.Printf("🔍 [Enhanced] [ContextCheck] Context error state: %v", ctxErr)
+		
+		if deadline, ok := ctx.Deadline(); ok {
+			timeUntilDeadline := time.Until(deadline)
+			ews.logger.Printf("⏱️ [Enhanced] [ContextCheck] Context deadline: %v from now (deadline: %v, now: %v, valid: %v)", 
+				timeUntilDeadline, deadline, time.Now(), ctxErr == nil)
+		} else {
+			ews.logger.Printf("⏱️ [Enhanced] [ContextCheck] Context has no deadline (valid: %v)", ctxErr == nil)
+		}
+		
+		if ctxErr != nil {
+			ews.logger.Printf("❌ [Enhanced] [ContextCheck] Context already cancelled before calling external scraper: %v", ctxErr)
+			result.Error = ctxErr.Error()
+			result.Success = false
+			return result
+		}
+		
 		// Use ScrapeWebsite which now automatically uses ScrapeWithStructuredContent when strategies are available
+		ews.logger.Printf("🚀 [Phase1] Calling external.ScrapeWebsite() for: %s (context valid: %v)", websiteURL, ctxErr == nil)
 		scrapingResult, err := ews.externalScraper.ScrapeWebsite(ctx, websiteURL)
+		ews.logger.Printf("📥 [Phase1] External scraper returned (result nil: %v, error: %v)", scrapingResult == nil, err != nil)
 		if err == nil && scrapingResult != nil {
 			// Convert external.ScrapingResult to internal.ScrapingResult
 			result.URL = scrapingResult.URL

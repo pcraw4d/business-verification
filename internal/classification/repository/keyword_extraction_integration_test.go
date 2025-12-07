@@ -62,8 +62,10 @@ func TestKeywordExtractionIntegration_Phase10_2(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
 			start := time.Now()
-			keywords := repo.extractKeywords(tt.businessName, tt.websiteURL)
+			keywords := repo.extractKeywords(ctx, tt.businessName, tt.websiteURL)
 			duration := time.Since(start)
 
 			// Verify keyword count
@@ -212,7 +214,7 @@ func TestEndToEndClassificationIntegration(t *testing.T) {
 			defer cancel()
 
 			// Extract keywords
-			keywords := repo.extractKeywords(tt.businessName, tt.websiteURL)
+			keywords := repo.extractKeywords(ctx, tt.businessName, tt.websiteURL)
 
 			if len(keywords) < tt.expectedMin {
 				t.Logf("Warning: Got %d keywords, expected at least %d (may be network issue)", len(keywords), tt.expectedMin)

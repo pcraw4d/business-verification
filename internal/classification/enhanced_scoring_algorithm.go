@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"sort"
 	"strings"
 	"time"
 )
@@ -238,6 +239,15 @@ func (esa *EnhancedScoringAlgorithm) CalculateEnhancedScore(
 
 	esa.logger.Printf("🚀 Starting enhanced scoring calculation (request: %s)", requestID)
 
+	// Check context deadline at start
+	if deadline, hasDeadline := ctx.Deadline(); hasDeadline {
+		timeRemaining := time.Until(deadline)
+		if timeRemaining < 1*time.Second {
+			return nil, fmt.Errorf("context deadline too short for enhanced scoring: %v remaining", timeRemaining)
+		}
+		esa.logger.Printf("⏱️ [PROFILING] CalculateEnhancedScore start - time remaining: %v", timeRemaining)
+	}
+
 	// Validate inputs
 	if len(contextualKeywords) == 0 {
 		return nil, fmt.Errorf("no contextual keywords provided")
@@ -265,16 +275,103 @@ func (esa *EnhancedScoringAlgorithm) CalculateEnhancedScore(
 	// Calculate scores for all industries
 	industryScores := make(map[int]*IndustryScore)
 
-	// Process keywords with enhanced algorithm
-	for _, contextualKeyword := range contextualKeywords {
-		matches := esa.findEnhancedMatches(contextualKeyword, keywordIndex)
-		esa.updateIndustryScores(industryScores, matches, contextualKeyword)
-		performanceMetrics.MatchesFound += len(matches)
+	// Determine batch size and early termination threshold based on context deadline
+	batchSize := 10 // Default batch size
+	earlyTerminationThreshold := 0.9 // Early termination if confidence > 0.9
+	maxKeywordsToProcess := len(contextualKeywords)
+	
+	if deadline, hasDeadline := ctx.Deadline(); hasDeadline {
+		timeRemaining := time.Until(deadline)
+		// Adjust batch size and max keywords based on remaining time
+		if timeRemaining < 5*time.Second {
+			batchSize = 5 // Smaller batches for short deadlines
+			if maxKeywordsToProcess > 20 {
+				maxKeywordsToProcess = 20 // Limit to 20 keywords
+			}
+			earlyTerminationThreshold = 0.85 // Lower threshold for early termination
+		} else if timeRemaining < 10*time.Second {
+			if maxKeywordsToProcess > 50 {
+				maxKeywordsToProcess = 50 // Limit to 50 keywords
+			}
+		}
+		esa.logger.Printf("📊 [BATCHING] Processing %d keywords in batches of %d (max: %d, early termination: %.2f)", 
+			len(contextualKeywords), batchSize, maxKeywordsToProcess, earlyTerminationThreshold)
 	}
 
-	// Apply dynamic weight adjustment if enabled
+	// Process keywords in batches with early termination
+	keywordsProcessed := 0
+	keywordProcessingStart := time.Now()
+	
+	for i := 0; i < len(contextualKeywords) && i < maxKeywordsToProcess; i += batchSize {
+		// Check context deadline before each batch
+		if deadline, hasDeadline := ctx.Deadline(); hasDeadline {
+			timeRemaining := time.Until(deadline)
+			if timeRemaining < 2*time.Second {
+				esa.logger.Printf("⚠️ Context deadline approaching, stopping keyword processing after %d keywords", keywordsProcessed)
+				break
+			}
+		}
+		
+		// Process batch
+		batchEnd := i + batchSize
+		if batchEnd > len(contextualKeywords) {
+			batchEnd = len(contextualKeywords)
+		}
+		if batchEnd > maxKeywordsToProcess {
+			batchEnd = maxKeywordsToProcess
+		}
+		for j := i; j < batchEnd; j++ {
+			contextualKeyword := contextualKeywords[j]
+			matches := esa.findEnhancedMatches(ctx, contextualKeyword, keywordIndex)
+			esa.updateIndustryScores(industryScores, matches, contextualKeyword)
+			performanceMetrics.MatchesFound += len(matches)
+			keywordsProcessed++
+		}
+		
+		// Check for early termination after each batch
+		if len(industryScores) > 0 {
+			// Calculate current best score to check for early termination
+			tempBestID, tempBestScore := esa.findBestIndustry(industryScores)
+			if tempBestID != 0 {
+				// Calculate temporary confidence for early termination check
+				tempBreakdown := esa.calculateScoreBreakdown(industryScores[tempBestID])
+				tempConfidence := esa.calculateEnhancedConfidence(tempBestScore, tempBreakdown, keywordsProcessed)
+				
+				if tempConfidence >= earlyTerminationThreshold {
+					esa.logger.Printf("✅ [EARLY TERMINATION] Achieved confidence %.3f (threshold: %.2f) after processing %d keywords, stopping early", 
+						tempConfidence, earlyTerminationThreshold, keywordsProcessed)
+					break
+				}
+			}
+		}
+	}
+	
+	keywordProcessingDuration := time.Since(keywordProcessingStart)
+	performanceMetrics.KeywordsProcessed = keywordsProcessed
+	esa.logger.Printf("⏱️ [PROFILING] Keyword processing completed: %d keywords processed in %v", keywordsProcessed, keywordProcessingDuration)
+
+	// Apply dynamic weight adjustment if enabled (check deadline first)
 	if esa.config.EnableDynamicWeightAdjust {
-		esa.applyDynamicWeightAdjustment(industryScores, contextualKeywords)
+		if deadline, hasDeadline := ctx.Deadline(); hasDeadline {
+			if time.Until(deadline) < 2*time.Second {
+				esa.logger.Printf("⚠️ Context deadline too short for dynamic weight adjustment, skipping")
+			} else {
+				esa.applyDynamicWeightAdjustment(industryScores, contextualKeywords)
+			}
+		} else {
+			esa.applyDynamicWeightAdjustment(industryScores, contextualKeywords)
+		}
+	}
+
+	// Check context deadline before finding best industry
+	if deadline, hasDeadline := ctx.Deadline(); hasDeadline {
+		if time.Until(deadline) < 1*time.Second {
+			esa.logger.Printf("⚠️ Context deadline approaching, using partial results")
+			// Return early with partial results if deadline is too short
+			if len(industryScores) == 0 {
+				return nil, fmt.Errorf("no industry scores calculated before deadline")
+			}
+		}
 	}
 
 	// Find best industry
@@ -343,6 +440,7 @@ type KeywordMatch struct {
 
 // findEnhancedMatches finds all types of matches for a contextual keyword
 func (esa *EnhancedScoringAlgorithm) findEnhancedMatches(
+	ctx context.Context,
 	contextualKeyword ContextualKeyword,
 	keywordIndex *KeywordIndex,
 ) []KeywordMatch {
@@ -357,14 +455,24 @@ func (esa *EnhancedScoringAlgorithm) findEnhancedMatches(
 	phraseMatches := esa.findPhraseMatches(normalizedKeyword, contextualKeyword, keywordIndex)
 	matches = append(matches, phraseMatches...)
 
-	// 3. Partial matches (substring matches)
-	partialMatches := esa.findPartialMatches(normalizedKeyword, contextualKeyword, keywordIndex)
+	// 3. Partial matches (substring matches) - optimized with context checks
+	partialMatches := esa.findPartialMatches(ctx, normalizedKeyword, contextualKeyword, keywordIndex)
 	matches = append(matches, partialMatches...)
 
-	// 4. Fuzzy matches (if enabled)
+	// 4. Fuzzy matches (if enabled) - optimized with context checks
 	if esa.config.EnableFuzzyMatching {
-		fuzzyMatches := esa.findFuzzyMatches(normalizedKeyword, contextualKeyword, keywordIndex)
-		matches = append(matches, fuzzyMatches...)
+		// Check context deadline before expensive fuzzy matching
+		if deadline, hasDeadline := ctx.Deadline(); hasDeadline {
+			if time.Until(deadline) < 5*time.Second {
+				esa.logger.Printf("⚠️ Context deadline too short for fuzzy matching, skipping")
+			} else {
+				fuzzyMatches := esa.findFuzzyMatches(ctx, normalizedKeyword, contextualKeyword, keywordIndex)
+				matches = append(matches, fuzzyMatches...)
+			}
+		} else {
+			fuzzyMatches := esa.findFuzzyMatches(ctx, normalizedKeyword, contextualKeyword, keywordIndex)
+			matches = append(matches, fuzzyMatches...)
+		}
 	}
 
 	return matches
@@ -463,23 +571,82 @@ func (esa *EnhancedScoringAlgorithm) findPhraseMatches(
 	return matches
 }
 
-// findPartialMatches finds partial (substring) matches
+// findPartialMatches finds partial (substring) matches with optimizations
 func (esa *EnhancedScoringAlgorithm) findPartialMatches(
+	ctx context.Context,
 	normalizedKeyword string,
 	contextualKeyword ContextualKeyword,
 	keywordIndex *KeywordIndex,
 ) []KeywordMatch {
+	const maxPartialMatches = 50 // Maximum number of partial matches to return
+	const lengthSimilarityThreshold = 0.5 // Only consider keywords within 50% length difference
+	
 	var matches []KeywordMatch
-
+	normalizedKeywordLen := len(normalizedKeyword)
+	
+	// Pre-filter candidates by length similarity to reduce search space
+	type candidateMatch struct {
+		keyword        string
+		industryMatches []IndexKeywordMatch
+		lengthDiff     float64
+	}
+	
+	var candidates []candidateMatch
 	for keyword, industryMatches := range keywordIndex.KeywordToIndustries {
 		// Skip exact matches (already handled by direct matches)
 		if keyword == normalizedKeyword {
 			continue
 		}
-
-		// Check for substring matches
-		if strings.Contains(normalizedKeyword, keyword) || strings.Contains(keyword, normalizedKeyword) {
-			for _, match := range industryMatches {
+		
+		// Length-based filtering: only consider keywords with similar length
+		keywordLen := len(keyword)
+		lengthDiff := float64(absInt(normalizedKeywordLen - keywordLen)) / float64(maxInt(normalizedKeywordLen, keywordLen))
+		if lengthDiff <= lengthSimilarityThreshold {
+			candidates = append(candidates, candidateMatch{
+				keyword:          keyword,
+				industryMatches:  industryMatches,
+				lengthDiff:       lengthDiff,
+			})
+		}
+	}
+	
+	// Sort candidates by length similarity (closer length = better match)
+	sort.Slice(candidates, func(i, j int) bool {
+		return candidates[i].lengthDiff < candidates[j].lengthDiff
+	})
+	
+	// Process candidates with early termination
+	for i, candidate := range candidates {
+		// Check context deadline periodically (every 10 candidates)
+		if i%10 == 0 {
+			if deadline, hasDeadline := ctx.Deadline(); hasDeadline {
+				if time.Until(deadline) < 1*time.Second {
+					esa.logger.Printf("⚠️ Context deadline approaching, stopping partial match search")
+					break
+				}
+			}
+		}
+		
+		// Early termination if we have enough matches
+		if len(matches) >= maxPartialMatches {
+			break
+		}
+		
+		// Check for substring matches (optimized: check shorter string first)
+		hasMatch := false
+		if len(candidate.keyword) <= normalizedKeywordLen {
+			hasMatch = strings.Contains(normalizedKeyword, candidate.keyword)
+		} else {
+			hasMatch = strings.Contains(candidate.keyword, normalizedKeyword)
+		}
+		
+		if hasMatch {
+			for _, match := range candidate.industryMatches {
+				// Early termination check
+				if len(matches) >= maxPartialMatches {
+					break
+				}
+				
 				contextMultiplier := esa.getContextMultiplier(contextualKeyword.Context)
 				partialMultiplier := 0.5 // Reduced weight for partial matches
 				finalWeight := match.Weight * partialMultiplier * contextMultiplier
@@ -502,20 +669,87 @@ func (esa *EnhancedScoringAlgorithm) findPartialMatches(
 	return matches
 }
 
-// findFuzzyMatches finds fuzzy string matches using advanced fuzzy matching algorithms
+// Helper functions for optimization
+func absInt(x int) int {
+	if x < 0 {
+		return -x
+	}
+	return x
+}
+
+// Helper functions absInt is defined here, maxInt and minInt are in advanced_fuzzy_matcher.go
+
+// findFuzzyMatches finds fuzzy string matches using advanced fuzzy matching algorithms with optimizations
 func (esa *EnhancedScoringAlgorithm) findFuzzyMatches(
+	ctx context.Context,
 	normalizedKeyword string,
 	contextualKeyword ContextualKeyword,
 	keywordIndex *KeywordIndex,
 ) []KeywordMatch {
+	const maxFuzzyCandidates = 100 // Limit fuzzy matching to top 100 candidates
+	const lengthSimilarityThreshold = 0.6 // Only consider keywords within 60% length difference
+	
 	var matches []KeywordMatch
+	normalizedKeywordLen := len(normalizedKeyword)
+	
+	// Pre-filter candidates by length similarity before expensive fuzzy matching
+	type candidateInfo struct {
+		keyword string
+		lengthDiff float64
+	}
+	
+	var candidates []candidateInfo
+	for keyword := range keywordIndex.KeywordToIndustries {
+		// Skip exact matches
+		if keyword == normalizedKeyword {
+			continue
+		}
+		
+		// Length-based filtering: only consider keywords with similar length
+		keywordLen := len(keyword)
+		lengthDiff := float64(absInt(normalizedKeywordLen - keywordLen)) / float64(maxInt(normalizedKeywordLen, keywordLen))
+		if lengthDiff <= lengthSimilarityThreshold {
+			candidates = append(candidates, candidateInfo{
+				keyword:    keyword,
+				lengthDiff: lengthDiff,
+			})
+		}
+	}
+	
+	// Sort candidates by length similarity (closer length = better match)
+	sort.Slice(candidates, func(i, j int) bool {
+		return candidates[i].lengthDiff < candidates[j].lengthDiff
+	})
+	
+	// Limit to top N candidates for performance
+	if len(candidates) > maxFuzzyCandidates {
+		candidates = candidates[:maxFuzzyCandidates]
+	}
+	
+	// Check context deadline before expensive fuzzy matching
+	if deadline, hasDeadline := ctx.Deadline(); hasDeadline {
+		if time.Until(deadline) < 3*time.Second {
+			esa.logger.Printf("⚠️ Context deadline too short for fuzzy matching, using simple fallback")
+			// Convert candidates to string slice for simple matching
+			candidateKeywords := make([]string, len(candidates))
+			for i, c := range candidates {
+				candidateKeywords[i] = c.keyword
+			}
+			return esa.findSimpleFuzzyMatches(ctx, normalizedKeyword, contextualKeyword, keywordIndex, candidateKeywords)
+		}
+	}
 
-	// Use advanced fuzzy matcher for sophisticated matching
-	ctx := context.Background()
+	// Use advanced fuzzy matcher for sophisticated matching (with filtered candidates)
+	// Note: The advanced fuzzy matcher will process the filtered candidates
 	fuzzyMatches, err := esa.advancedFuzzyMatcher.FindFuzzyMatches(ctx, normalizedKeyword, keywordIndex)
 	if err != nil {
 		esa.logger.Printf("⚠️ Advanced fuzzy matching failed, falling back to simple matching: %v", err)
-		return esa.findSimpleFuzzyMatches(normalizedKeyword, contextualKeyword, keywordIndex)
+		// Convert candidates to string slice for simple matching
+		candidateKeywords := make([]string, len(candidates))
+		for i, c := range candidates {
+			candidateKeywords[i] = c.keyword
+		}
+		return esa.findSimpleFuzzyMatches(ctx, normalizedKeyword, contextualKeyword, keywordIndex, candidateKeywords)
 	}
 
 	// Convert fuzzy matches to keyword matches
@@ -537,26 +771,53 @@ func (esa *EnhancedScoringAlgorithm) findFuzzyMatches(
 		})
 	}
 
-	// Perform semantic expansion if enabled
+	// Perform semantic expansion if enabled (only if we have time)
 	if esa.config.EnableSemanticBoost {
-		semanticExpansion, err := esa.advancedFuzzyMatcher.ExpandSemanticKeywords(ctx, normalizedKeyword, keywordIndex)
-		if err == nil && semanticExpansion != nil {
-			for _, semanticKeyword := range semanticExpansion.Expansions {
-				contextMultiplier := esa.getContextMultiplier(contextualKeyword.Context)
-				semanticMultiplier := semanticKeyword.Similarity * 0.2      // Lower weight for semantic matches
-				finalWeight := 1.0 * semanticMultiplier * contextMultiplier // Default weight for semantic keywords
+		if deadline, hasDeadline := ctx.Deadline(); hasDeadline {
+			if time.Until(deadline) < 2*time.Second {
+				esa.logger.Printf("⚠️ Context deadline too short for semantic expansion, skipping")
+			} else {
+				semanticExpansion, err := esa.advancedFuzzyMatcher.ExpandSemanticKeywords(ctx, normalizedKeyword, keywordIndex)
+				if err == nil && semanticExpansion != nil {
+					for _, semanticKeyword := range semanticExpansion.Expansions {
+						contextMultiplier := esa.getContextMultiplier(contextualKeyword.Context)
+						semanticMultiplier := semanticKeyword.Similarity * 0.2      // Lower weight for semantic matches
+						finalWeight := 1.0 * semanticMultiplier * contextMultiplier // Default weight for semantic keywords
 
-				matches = append(matches, KeywordMatch{
-					InputKeyword:      normalizedKeyword,
-					MatchedKeyword:    semanticKeyword.Keyword,
-					MatchType:         "semantic",
-					BaseWeight:        1.0,
-					ContextMultiplier: contextMultiplier,
-					FinalWeight:       finalWeight,
-					Confidence:        semanticKeyword.Similarity,
-					Source:            contextualKeyword.Context,
-					IndustryID:        semanticKeyword.IndustryID,
-				})
+						matches = append(matches, KeywordMatch{
+							InputKeyword:      normalizedKeyword,
+							MatchedKeyword:    semanticKeyword.Keyword,
+							MatchType:         "semantic",
+							BaseWeight:        1.0,
+							ContextMultiplier: contextMultiplier,
+							FinalWeight:       finalWeight,
+							Confidence:        semanticKeyword.Similarity,
+							Source:            contextualKeyword.Context,
+							IndustryID:        semanticKeyword.IndustryID,
+						})
+					}
+				}
+			}
+		} else {
+			semanticExpansion, err := esa.advancedFuzzyMatcher.ExpandSemanticKeywords(ctx, normalizedKeyword, keywordIndex)
+			if err == nil && semanticExpansion != nil {
+				for _, semanticKeyword := range semanticExpansion.Expansions {
+					contextMultiplier := esa.getContextMultiplier(contextualKeyword.Context)
+					semanticMultiplier := semanticKeyword.Similarity * 0.2      // Lower weight for semantic matches
+					finalWeight := 1.0 * semanticMultiplier * contextMultiplier // Default weight for semantic keywords
+
+					matches = append(matches, KeywordMatch{
+						InputKeyword:      normalizedKeyword,
+						MatchedKeyword:    semanticKeyword.Keyword,
+						MatchType:         "semantic",
+						BaseWeight:        1.0,
+						ContextMultiplier: contextMultiplier,
+						FinalWeight:       finalWeight,
+						Confidence:        semanticKeyword.Similarity,
+						Source:            contextualKeyword.Context,
+						IndustryID:        semanticKeyword.IndustryID,
+					})
+				}
 			}
 		}
 	}
@@ -564,26 +825,92 @@ func (esa *EnhancedScoringAlgorithm) findFuzzyMatches(
 	return matches
 }
 
-// findSimpleFuzzyMatches provides fallback simple fuzzy matching
+// findSimpleFuzzyMatches provides fallback simple fuzzy matching with optimizations
 func (esa *EnhancedScoringAlgorithm) findSimpleFuzzyMatches(
+	ctx context.Context,
 	normalizedKeyword string,
 	contextualKeyword ContextualKeyword,
 	keywordIndex *KeywordIndex,
+	prefilteredCandidates []string,
 ) []KeywordMatch {
+	const maxSimpleFuzzyMatches = 30 // Maximum number of simple fuzzy matches
+	const similarityThreshold = 0.7 // Only consider matches with similarity > 0.7
+	
 	var matches []KeywordMatch
+	normalizedKeywordLen := len(normalizedKeyword)
+	
+	// Use prefiltered candidates if provided, otherwise filter by length
+	var candidates []string
+	if len(prefilteredCandidates) > 0 {
+		candidates = prefilteredCandidates
+	} else {
+		// Fallback: filter by length similarity
+		type candidateInfo struct {
+			keyword    string
+			lengthDiff float64
+		}
+		var candidateInfos []candidateInfo
+		for keyword := range keywordIndex.KeywordToIndustries {
+			if keyword == normalizedKeyword {
+				continue
+			}
+			keywordLen := len(keyword)
+			lengthDiff := float64(absInt(normalizedKeywordLen - keywordLen)) / float64(maxInt(normalizedKeywordLen, keywordLen))
+			if lengthDiff <= 0.6 {
+				candidateInfos = append(candidateInfos, candidateInfo{
+					keyword:    keyword,
+					lengthDiff: lengthDiff,
+				})
+			}
+		}
+		// Sort by length similarity
+		sort.Slice(candidateInfos, func(i, j int) bool {
+			return candidateInfos[i].lengthDiff < candidateInfos[j].lengthDiff
+		})
+		// Limit to top candidates and extract keywords
+		if len(candidateInfos) > 100 {
+			candidateInfos = candidateInfos[:100]
+		}
+		candidates = make([]string, len(candidateInfos))
+		for i, c := range candidateInfos {
+			candidates[i] = c.keyword
+		}
+	}
 
-	// Simple fuzzy matching based on edit distance (fallback)
-	for keyword, industryMatches := range keywordIndex.KeywordToIndustries {
-		if keyword == normalizedKeyword {
-			continue // Skip exact matches
+	// Process candidates with early termination
+	for i, candidateKeyword := range candidates {
+		// Check context deadline periodically
+		if i%10 == 0 {
+			if deadline, hasDeadline := ctx.Deadline(); hasDeadline {
+				if time.Until(deadline) < 1*time.Second {
+					esa.logger.Printf("⚠️ Context deadline approaching, stopping simple fuzzy match search")
+					break
+				}
+			}
+		}
+		
+		// Early termination if we have enough matches
+		if len(matches) >= maxSimpleFuzzyMatches {
+			break
+		}
+		
+		// Get industry matches for this keyword
+		industryMatches, exists := keywordIndex.KeywordToIndustries[candidateKeyword]
+		if !exists {
+			continue
 		}
 
 		// Calculate similarity score
-		similarity := esa.calculateStringSimilarity(normalizedKeyword, keyword)
+		similarity := esa.calculateStringSimilarity(normalizedKeyword, candidateKeyword)
 
-		// Only consider matches with similarity > 0.7
-		if similarity > 0.7 {
+		// Only consider matches with similarity > threshold
+		if similarity > similarityThreshold {
 			for _, match := range industryMatches {
+				// Early termination check
+				if len(matches) >= maxSimpleFuzzyMatches {
+					break
+				}
+				
 				contextMultiplier := esa.getContextMultiplier(contextualKeyword.Context)
 				fuzzyMultiplier := similarity * 0.3 // Reduced weight for fuzzy matches
 				finalWeight := match.Weight * fuzzyMultiplier * contextMultiplier

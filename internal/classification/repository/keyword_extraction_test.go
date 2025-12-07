@@ -401,7 +401,9 @@ func TestExtractKeywordsFallbackChain(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			keywords := repo.extractKeywords(tt.businessName, tt.websiteURL)
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+			keywords := repo.extractKeywords(ctx, tt.businessName, tt.websiteURL)
 
 			if len(keywords) < tt.wantMin {
 				t.Errorf("extractKeywords() returned %d keywords, want at least %d. Got: %v", len(keywords), tt.wantMin, keywords)

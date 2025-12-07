@@ -17,7 +17,9 @@ func TestTask2_3_2_ContextMultipliers(t *testing.T) {
 		repo := createMockRepository(t)
 
 		// Test business name keyword extraction
-		contextualKeywords := repo.extractKeywords("Mario's Italian Restaurant", "")
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		contextualKeywords := repo.extractKeywords(ctx,"Mario's Italian Restaurant", "")
 
 		// Verify business name keywords are extracted with correct context
 		businessNameKeywords := 0
@@ -39,7 +41,9 @@ func TestTask2_3_2_ContextMultipliers(t *testing.T) {
 		repo := createMockRepository(t)
 
 		// Test website content keyword extraction (description removed for security)
-		contextualKeywords := repo.extractKeywords("", "https://www.mariositalian.com")
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		contextualKeywords := repo.extractKeywords(ctx,"", "https://www.mariositalian.com")
 
 		// Verify website keywords are extracted with correct context
 		websiteKeywords := 0
@@ -63,7 +67,9 @@ func TestTask2_3_2_ContextMultipliers(t *testing.T) {
 		repo := createMockRepository(t)
 
 		// Test website URL keyword extraction
-		contextualKeywords := repo.extractKeywords("", "https://www.mariositalian.com")
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		contextualKeywords := repo.extractKeywords(ctx,"", "https://www.mariositalian.com")
 
 		// Verify website URL keywords are extracted with correct context
 		websiteKeywords := 0
@@ -85,7 +91,9 @@ func TestTask2_3_2_ContextMultipliers(t *testing.T) {
 		repo := createMockRepositoryWithContextTestData()
 
 		// Test classification with business name keywords (should get higher weight)
-		contextualKeywords := repo.extractKeywords("Italian Restaurant", "https://example.com")
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		contextualKeywords := repo.extractKeywords(ctx,"Italian Restaurant", "https://example.com")
 
 		// Test that context multipliers are applied during scoring
 		// We'll test the multiplier application directly since we can't easily mock the full classification
@@ -187,7 +195,9 @@ func TestTask2_3_2_ContextMultipliers(t *testing.T) {
 		websiteURL := "https://www.mariositalian.com"
 
 		// Extract contextual keywords
-		contextualKeywords := repo.extractKeywords(businessName, websiteURL)
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		contextualKeywords := repo.extractKeywords(ctx,businessName, websiteURL)
 
 		// Verify we have keywords from all contexts
 		contexts := make(map[string]int)

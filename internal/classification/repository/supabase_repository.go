@@ -127,6 +127,14 @@ type SupabaseKeywordRepository struct {
 	cacheStats        *IndustryCodeCacheStats
 	statsMutex        sync.RWMutex
 
+	// Industry caching (5-minute TTL)
+	industryCache     map[int]*industryCacheEntry
+	industryCacheMutex sync.RWMutex
+
+	// Website content caching (5-minute TTL) - OPTIMIZATION: Priority 4
+	websiteContentCache map[string]*websiteContentCacheEntry
+	websiteContentCacheMutex sync.RWMutex
+
 	// Brand matcher for MCC 3000-3831 (hotels)
 	brandMatcher *BrandMatcher
 
@@ -162,6 +170,10 @@ type SupabaseKeywordRepository struct {
 	// Phase 1: Enhanced website scraper with multi-tier strategies
 	// Using interface to avoid import cycle with classification package
 	websiteScraper WebsiteScraperInterface
+
+	// Enhanced scoring algorithm (reused instance for performance)
+	enhancedScorer *EnhancedScoringAlgorithm
+	enhancedScorerMutex sync.RWMutex // Thread-safe access to enhanced scorer
 }
 
 // scrapingSessionManager manages scraping sessions (duplicate to avoid import cycles)
@@ -302,9 +314,22 @@ func (ssm *scrapingSessionManager) updateReferer(domain string, referer string) 
 }
 
 // dnsCacheEntry represents a cached DNS resolution with TTL
+// industryCacheEntry holds cached industry data with TTL
+type industryCacheEntry struct {
+	industry *Industry
+	expiresAt time.Time
+}
+
 type dnsCacheEntry struct {
 	ips       []net.IPAddr
 	expiresAt time.Time
+}
+
+// websiteContentCacheEntry holds cached website scraping results with TTL
+type websiteContentCacheEntry struct {
+	keywords  []string
+	expiresAt time.Time
+	cachedAt  time.Time
 }
 
 // IndustryCodeCacheStats holds statistics for industry code caching
@@ -561,6 +586,13 @@ func NewSupabaseKeywordRepositoryWithScraper(client *database.SupabaseClient, lo
 		logger = log.Default()
 	}
 
+	// Log Phase 1 scraper injection status
+	if websiteScraper != nil {
+		logger.Printf("✅ [Phase1] [Repository] Phase 1 enhanced scraper injected successfully")
+	} else {
+		logger.Printf("⚠️ [Phase1] [Repository] Phase 1 enhanced scraper is nil - will use legacy scraping method")
+	}
+
 	// Initialize adapters if not already initialized (lazy initialization)
 	if NewStructuredDataExtractorAdapter == nil || NewSmartWebsiteCrawlerAdapter == nil {
 		logger.Printf("⚠️ [Repository] Adapters not initialized - some features may not work. Call adapters.Init() before using repository.")
@@ -608,6 +640,8 @@ func NewSupabaseKeywordRepositoryWithScraper(client *database.SupabaseClient, lo
 		topicModeler:      nlp.NewTopicModeler(),
 		keywordMatcher:    NewKeywordMatcher(),
 		websiteScraper:    websiteScraper, // Phase 1: Enhanced scraper with multi-tier strategies
+		websiteContentCache: make(map[string]*websiteContentCacheEntry), // OPTIMIZATION: Priority 4 - Website content caching
+		industryCache:     make(map[int]*industryCacheEntry),
 	}
 }
 
@@ -660,6 +694,9 @@ func NewSupabaseKeywordRepositoryWithInterface(client SupabaseClientInterface, l
 		// Phase 9.2: Initialize DNS cache
 		dnsCache: make(map[string]dnsCacheEntry),
 		dnsMutex: sync.RWMutex{},
+		// Industry caching (5-minute TTL)
+		industryCache:     make(map[int]*industryCacheEntry),
+		industryCacheMutex: sync.RWMutex{},
 		// Phase 9.3: Initialize rate limiter
 		rateLimiter: make(map[string]time.Time),
 		rateMutex:   sync.Mutex{},
@@ -673,6 +710,9 @@ func NewSupabaseKeywordRepositoryWithInterface(client SupabaseClientInterface, l
 		topicModeler:     nlp.NewTopicModeler(),
 		// Enhanced keyword matching
 		keywordMatcher: NewKeywordMatcher(),
+		// Initialize enhanced scoring algorithm (reused instance)
+		enhancedScorer: NewEnhancedScoringAlgorithm(logger, DefaultEnhancedScoringConfig()),
+		enhancedScorerMutex: sync.RWMutex{},
 	}
 }
 
@@ -681,10 +721,36 @@ func NewSupabaseKeywordRepositoryWithInterface(client SupabaseClientInterface, l
 // =============================================================================
 
 // BuildKeywordIndex builds an optimized keyword index for fast lookups
+// FIX: Added detailed profiling and caching with TTL (5 minutes)
 func (r *SupabaseKeywordRepository) BuildKeywordIndex(ctx context.Context) error {
-	r.logger.Printf("🔍 Building optimized keyword index...")
+	// PROFILING: Track time at function entry
+	funcStartTime := time.Now()
+	if deadline, hasDeadline := ctx.Deadline(); hasDeadline {
+		timeRemaining := time.Until(deadline)
+		r.logger.Printf("⏱️ [PROFILING] BuildKeywordIndex entry - time remaining: %v", timeRemaining)
+	}
+	
+	// FIX: Check cache first (TTL: 5 minutes)
+	r.cacheMutex.RLock()
+	indexAge := time.Since(time.Unix(r.keywordIndex.LastUpdated, 0))
+	cacheValid := r.keywordIndex.LastUpdated > 0 && indexAge < 5*time.Minute
+	keywordCount := len(r.keywordIndex.KeywordToIndustries)
+	r.cacheMutex.RUnlock()
+	
+	if cacheValid && keywordCount > 0 {
+		r.logger.Printf("✅ [CACHE HIT] Using cached keyword index (age: %v, keywords: %d, industries: %d)", 
+			indexAge, keywordCount, len(r.keywordIndex.IndustryToKeywords))
+		return nil
+	}
+	
+	if keywordCount > 0 {
+		r.logger.Printf("🔍 Building optimized keyword index... (cache expired, age: %v, keywords: %d)", indexAge, keywordCount)
+	} else {
+		r.logger.Printf("🔍 Building optimized keyword index... (cache miss, index empty)")
+	}
 
 	// Check if client is available
+	clientCheckStart := time.Now()
 	if r.client == nil {
 		return fmt.Errorf("database client not available")
 	}
@@ -692,7 +758,11 @@ func (r *SupabaseKeywordRepository) BuildKeywordIndex(ctx context.Context) error
 	if postgrestClient == nil {
 		return fmt.Errorf("postgrest client not available")
 	}
+	clientCheckDuration := time.Since(clientCheckStart)
+	r.logger.Printf("⏱️ [PROFILING] Client check duration: %v", clientCheckDuration)
 
+	// PROFILING: Track database query time
+	queryStart := time.Now()
 	// Optimized query with proper indexing and filtering
 	query := postgrestClient.From("keyword_weights").
 		Select("id,industry_id,keyword,base_weight,context_multiplier,usage_count", "", false).
@@ -701,15 +771,23 @@ func (r *SupabaseKeywordRepository) BuildKeywordIndex(ctx context.Context) error
 		Limit(10000, "") // Limit to prevent memory issues
 
 	data, _, err := query.Execute()
+	queryDuration := time.Since(queryStart)
 	if err != nil {
 		return fmt.Errorf("failed to fetch keywords for index: %w", err)
 	}
+	r.logger.Printf("⏱️ [PROFILING] Database query duration: %v, data size: %d bytes", queryDuration, len(data))
 
+	// PROFILING: Track JSON unmarshal time
+	unmarshalStart := time.Now()
 	var keywordWeights []KeywordWeight
 	if err := json.Unmarshal(data, &keywordWeights); err != nil {
 		return fmt.Errorf("failed to unmarshal keyword weights: %w", err)
 	}
+	unmarshalDuration := time.Since(unmarshalStart)
+	r.logger.Printf("⏱️ [PROFILING] JSON unmarshal duration: %v, keyword count: %d", unmarshalDuration, len(keywordWeights))
 
+	// PROFILING: Track index building time
+	indexBuildStart := time.Now()
 	// Build optimized index structures
 	r.cacheMutex.Lock()
 	defer r.cacheMutex.Unlock()
@@ -744,7 +822,11 @@ func (r *SupabaseKeywordRepository) BuildKeywordIndex(ctx context.Context) error
 			&kw,
 		)
 	}
+	indexBuildDuration := time.Since(indexBuildStart)
+	r.logger.Printf("⏱️ [PROFILING] Index building duration: %v", indexBuildDuration)
 
+	// PROFILING: Track sorting time
+	sortStart := time.Now()
 	// Sort keyword matches by weight (descending) for better performance
 	for keyword := range r.keywordIndex.KeywordToIndustries {
 		matches := r.keywordIndex.KeywordToIndustries[keyword]
@@ -753,9 +835,21 @@ func (r *SupabaseKeywordRepository) BuildKeywordIndex(ctx context.Context) error
 		})
 		r.keywordIndex.KeywordToIndustries[keyword] = matches
 	}
+	sortDuration := time.Since(sortStart)
+	r.logger.Printf("⏱️ [PROFILING] Sorting duration: %v", sortDuration)
 
-	r.logger.Printf("✅ Built keyword index with %d keywords across %d industries",
-		len(r.keywordIndex.KeywordToIndustries), len(r.keywordIndex.IndustryToKeywords))
+	// FIX: Update LastUpdated timestamp for caching
+	r.keywordIndex.LastUpdated = time.Now().Unix()
+
+	buildDuration := time.Since(funcStartTime)
+	if deadline, hasDeadline := ctx.Deadline(); hasDeadline {
+		timeRemaining := time.Until(deadline)
+		r.logger.Printf("⏱️ [PROFILING] BuildKeywordIndex complete - time remaining: %v, build_duration: %v", timeRemaining, buildDuration)
+	}
+	
+	r.logger.Printf("✅ Built keyword index with %d keywords across %d industries (query: %v, unmarshal: %v, build: %v, sort: %v)",
+		len(r.keywordIndex.KeywordToIndustries), len(r.keywordIndex.IndustryToKeywords),
+		queryDuration, unmarshalDuration, indexBuildDuration, sortDuration)
 
 	return nil
 }
@@ -884,6 +978,38 @@ func (r *SupabaseKeywordRepository) InvalidateIndustryCodeCache(ctx context.Cont
 
 	r.logger.Printf("✅ Industry code cache invalidation completed")
 	return nil
+}
+
+// storeWebsiteContentCache stores website scraping results in cache (OPTIMIZATION: Priority 4)
+func (r *SupabaseKeywordRepository) storeWebsiteContentCache(cacheKey string, keywords []string) {
+	if len(keywords) == 0 {
+		// Don't cache empty results
+		return
+	}
+	
+	const cacheTTL = 5 * time.Minute
+	now := time.Now()
+	
+	r.websiteContentCacheMutex.Lock()
+	defer r.websiteContentCacheMutex.Unlock()
+	
+	// Limit cache size to prevent memory issues (max 1000 entries)
+	if len(r.websiteContentCache) >= 1000 {
+		// Remove oldest entry (simple eviction - could be improved with LRU)
+		for key := range r.websiteContentCache {
+			delete(r.websiteContentCache, key)
+			break // Remove one entry
+		}
+		r.logger.Printf("🧹 [CACHE] [storeWebsiteContentCache] Cache full, evicted oldest entry")
+	}
+	
+	r.websiteContentCache[cacheKey] = &websiteContentCacheEntry{
+		keywords:  keywords,
+		expiresAt: now.Add(cacheTTL),
+		cachedAt:  now,
+	}
+	
+	r.logger.Printf("✅ [CACHE] [storeWebsiteContentCache] Stored %d keywords in cache for %s (TTL: %v)", len(keywords), cacheKey, cacheTTL)
 }
 
 // GetIndustryCodeCacheStats returns cache statistics
@@ -1168,9 +1294,26 @@ func (r *SupabaseKeywordRepository) GetBatchKeywords(ctx context.Context, indust
 // Industry Management
 // =============================================================================
 
-// GetIndustryByID retrieves an industry by its ID
+// GetIndustryByID retrieves an industry by its ID with caching (5-minute TTL)
 func (r *SupabaseKeywordRepository) GetIndustryByID(ctx context.Context, id int) (*Industry, error) {
-	r.logger.Printf("🔍 Getting industry by ID: %d", id)
+	const cacheTTL = 5 * time.Minute
+	
+	// Check cache first
+	r.industryCacheMutex.RLock()
+	if cached, exists := r.industryCache[id]; exists {
+		if time.Now().Before(cached.expiresAt) {
+			// Cache hit
+			r.industryCacheMutex.RUnlock()
+			r.logger.Printf("✅ [CACHE HIT] Retrieved industry %d from cache", id)
+			return cached.industry, nil
+		}
+		// Cache expired, remove it
+		delete(r.industryCache, id)
+	}
+	r.industryCacheMutex.RUnlock()
+	
+	// Cache miss - fetch from database
+	r.logger.Printf("🔍 [CACHE MISS] Getting industry by ID: %d", id)
 
 	// Get the PostgREST client directly
 	postgrestClient := r.client.GetPostgrestClient()
@@ -1191,6 +1334,16 @@ func (r *SupabaseKeywordRepository) GetIndustryByID(ctx context.Context, id int)
 	if err := json.Unmarshal(data, &industry); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal industry data: %w", err)
 	}
+
+	// Store in cache
+	r.industryCacheMutex.Lock()
+	r.industryCache[id] = &industryCacheEntry{
+		industry:  &industry,
+		expiresAt: time.Now().Add(cacheTTL),
+	}
+	r.industryCacheMutex.Unlock()
+	
+	r.logger.Printf("✅ Cached industry %d (expires in %v)", id, cacheTTL)
 
 	return &industry, nil
 }
@@ -1840,13 +1993,47 @@ func (r *SupabaseKeywordRepository) IncrementUsageCount(ctx context.Context, key
 
 // ClassifyBusiness classifies a business based on name and website (description removed for security)
 func (r *SupabaseKeywordRepository) ClassifyBusiness(ctx context.Context, businessName, websiteURL string) (*ClassificationResult, error) {
+	// PROFILING: Track time at function entry
+	funcStartTime := time.Now()
+	if deadline, hasDeadline := ctx.Deadline(); hasDeadline {
+		timeRemaining := time.Until(deadline)
+		r.logger.Printf("⏱️ [PROFILING] ClassifyBusiness entry - time remaining: %v", timeRemaining)
+	}
+	
 	r.logger.Printf("🔍 Classifying business: %s", businessName)
 
 	// Extract contextual keywords from business information (excluding description for security)
-	contextualKeywords := r.extractKeywords(businessName, websiteURL)
+	// Pass context to extractKeywords to maintain proper context propagation
+	extractStartTime := time.Now()
+	if deadline, hasDeadline := ctx.Deadline(); hasDeadline {
+		timeRemaining := time.Until(deadline)
+		r.logger.Printf("⏱️ [PROFILING] Before extractKeywords - time remaining: %v, elapsed: %v", timeRemaining, time.Since(funcStartTime))
+	}
+	
+	contextualKeywords := r.extractKeywords(ctx, businessName, websiteURL)
+	
+	extractDuration := time.Since(extractStartTime)
+	if deadline, hasDeadline := ctx.Deadline(); hasDeadline {
+		timeRemaining := time.Until(deadline)
+		r.logger.Printf("⏱️ [PROFILING] After extractKeywords - time remaining: %v, extract_duration: %v, elapsed: %v", timeRemaining, extractDuration, time.Since(funcStartTime))
+	}
 
 	// Classify based on contextual keywords
-	return r.ClassifyBusinessByContextualKeywords(ctx, contextualKeywords)
+	classifyStartTime := time.Now()
+	if deadline, hasDeadline := ctx.Deadline(); hasDeadline {
+		timeRemaining := time.Until(deadline)
+		r.logger.Printf("⏱️ [PROFILING] Before ClassifyBusinessByContextualKeywords - time remaining: %v, elapsed: %v", timeRemaining, time.Since(funcStartTime))
+	}
+	
+	result, err := r.ClassifyBusinessByContextualKeywords(ctx, contextualKeywords)
+	
+	classifyDuration := time.Since(classifyStartTime)
+	if deadline, hasDeadline := ctx.Deadline(); hasDeadline {
+		timeRemaining := time.Until(deadline)
+		r.logger.Printf("⏱️ [PROFILING] After ClassifyBusinessByContextualKeywords - time remaining: %v, classify_duration: %v, elapsed: %v", timeRemaining, classifyDuration, time.Since(funcStartTime))
+	}
+	
+	return result, err
 }
 
 // ClassifyBusinessByKeywordsTrigram classifies a business using trigram similarity for fuzzy matching
@@ -2288,7 +2475,41 @@ func (r *SupabaseKeywordRepository) fallbackClassification(keywords []string, re
 }
 
 // ClassifyBusinessByContextualKeywords classifies a business based on contextual keywords with enhanced scoring algorithm
+// Configurable timeout: default 30 seconds (increased to accommodate extractKeywords + classification)
+// Can be overridden by parent context if shorter
 func (r *SupabaseKeywordRepository) ClassifyBusinessByContextualKeywords(ctx context.Context, contextualKeywords []ContextualKeyword) (*ClassificationResult, error) {
+	const defaultClassificationTimeout = 30 * time.Second
+	
+	// Create context with timeout if parent context doesn't have a deadline or has a longer deadline
+	var classificationCtx context.Context
+	var cancel context.CancelFunc
+	
+	if deadline, hasDeadline := ctx.Deadline(); hasDeadline {
+		timeRemaining := time.Until(deadline)
+		if timeRemaining < defaultClassificationTimeout {
+			// Use parent context if it has a shorter deadline
+			classificationCtx = ctx
+			cancel = func() {} // No-op cancel
+			r.logger.Printf("⏱️ [TIMEOUT] Using parent context deadline: %v (shorter than default %v)", timeRemaining, defaultClassificationTimeout)
+		} else {
+			// Create new context with default timeout
+			classificationCtx, cancel = context.WithTimeout(ctx, defaultClassificationTimeout)
+			r.logger.Printf("⏱️ [TIMEOUT] Created classification context with timeout: %v (parent has %v remaining)", defaultClassificationTimeout, timeRemaining)
+		}
+	} else {
+		// Parent has no deadline, create our own
+		classificationCtx, cancel = context.WithTimeout(ctx, defaultClassificationTimeout)
+		r.logger.Printf("⏱️ [TIMEOUT] Created classification context with timeout: %v (parent has no deadline)", defaultClassificationTimeout)
+	}
+	defer cancel()
+	
+	// PROFILING: Track time at function entry
+	funcStartTime := time.Now()
+	if deadline, hasDeadline := classificationCtx.Deadline(); hasDeadline {
+		timeRemaining := time.Until(deadline)
+		r.logger.Printf("⏱️ [PROFILING] ClassifyBusinessByContextualKeywords entry - time remaining: %v", timeRemaining)
+	}
+	
 	r.logger.Printf("🔍 Classifying business by contextual keywords with enhanced scoring: %d keywords", len(contextualKeywords))
 
 	if len(contextualKeywords) == 0 {
@@ -2303,11 +2524,49 @@ func (r *SupabaseKeywordRepository) ClassifyBusinessByContextualKeywords(ctx con
 		}, nil
 	}
 
+	// Check timeout before proceeding
+	if err := classificationCtx.Err(); err != nil {
+		return nil, fmt.Errorf("classification context cancelled before start: %w", err)
+	}
+
 	// Ensure keyword index is built
+	indexCheckStart := time.Now()
 	index := r.GetKeywordIndex()
+	indexCheckDuration := time.Since(indexCheckStart)
+	
+	// Enhanced logging for index state
+	indexState := "empty"
+	indexAge := time.Duration(0)
+	keywordCount := len(index.KeywordToIndustries)
+	if keywordCount > 0 {
+		if index.LastUpdated > 0 {
+			indexAge = time.Since(time.Unix(index.LastUpdated, 0))
+			if indexAge < 5*time.Minute {
+				indexState = fmt.Sprintf("populated (age: %v, valid)", indexAge)
+			} else {
+				indexState = fmt.Sprintf("populated (age: %v, expired)", indexAge)
+			}
+		} else {
+			indexState = "populated (no timestamp)"
+		}
+	}
+	r.logger.Printf("📊 [INDEX STATE] Keyword index: %s, keywords: %d, industries: %d", 
+		indexState, keywordCount, len(index.IndustryToKeywords))
+	
+	if deadline, hasDeadline := classificationCtx.Deadline(); hasDeadline {
+		timeRemaining := time.Until(deadline)
+		r.logger.Printf("⏱️ [PROFILING] After GetKeywordIndex - time remaining: %v, index_check_duration: %v, elapsed: %v", timeRemaining, indexCheckDuration, time.Since(funcStartTime))
+	}
+	
 	if len(index.KeywordToIndustries) == 0 {
 		r.logger.Printf("⚠️ Keyword index is empty, building it now...")
-		if err := r.BuildKeywordIndex(ctx); err != nil {
+		buildStartTime := time.Now()
+		if deadline, hasDeadline := classificationCtx.Deadline(); hasDeadline {
+			timeRemaining := time.Until(deadline)
+			r.logger.Printf("⏱️ [PROFILING] Before BuildKeywordIndex - time remaining: %v, elapsed: %v", timeRemaining, time.Since(funcStartTime))
+		}
+		
+		if err := r.BuildKeywordIndex(classificationCtx); err != nil {
 			r.logger.Printf("⚠️ Failed to build keyword index: %v", err)
 			// Convert contextual keywords to strings for fallback
 			keywords := make([]string, len(contextualKeywords))
@@ -2316,36 +2575,195 @@ func (r *SupabaseKeywordRepository) ClassifyBusinessByContextualKeywords(ctx con
 			}
 			return r.fallbackClassification(keywords, "Failed to build keyword index"), nil
 		}
+		
+		buildDuration := time.Since(buildStartTime)
+		if deadline, hasDeadline := classificationCtx.Deadline(); hasDeadline {
+			timeRemaining := time.Until(deadline)
+			r.logger.Printf("⏱️ [PROFILING] After BuildKeywordIndex - time remaining: %v, build_duration: %v, elapsed: %v", timeRemaining, buildDuration, time.Since(funcStartTime))
+		}
+		
 		index = r.GetKeywordIndex()
+		r.logger.Printf("✅ [INDEX BUILT] Keyword index built successfully: %d keywords, %d industries", 
+			len(index.KeywordToIndustries), len(index.IndustryToKeywords))
+	} else if indexAge >= 5*time.Minute {
+		r.logger.Printf("⚠️ Keyword index expired (age: %v), but using it anyway to avoid rebuild during request", indexAge)
 	}
 
 	// Use enhanced scoring algorithm for improved accuracy and performance
-	enhancedScorer := NewEnhancedScoringAlgorithm(r.logger, DefaultEnhancedScoringConfig())
-	enhancedResult, err := enhancedScorer.CalculateEnhancedScore(ctx, contextualKeywords, index)
+	// Create context with timeout for CalculateEnhancedScore (default: 8 seconds)
+	const defaultEnhancedScoreTimeout = 8 * time.Second
+	var enhancedScoreCtx context.Context
+	var enhancedScoreCancel context.CancelFunc
+	
+	if deadline, hasDeadline := classificationCtx.Deadline(); hasDeadline {
+		timeRemaining := time.Until(deadline)
+		if timeRemaining < defaultEnhancedScoreTimeout {
+			enhancedScoreCtx = classificationCtx
+			enhancedScoreCancel = func() {}
+			r.logger.Printf("⏱️ [TIMEOUT] Using classification context for enhanced scoring: %v (shorter than default %v)", timeRemaining, defaultEnhancedScoreTimeout)
+		} else {
+			enhancedScoreCtx, enhancedScoreCancel = context.WithTimeout(classificationCtx, defaultEnhancedScoreTimeout)
+			r.logger.Printf("⏱️ [TIMEOUT] Created enhanced scoring context with timeout: %v", defaultEnhancedScoreTimeout)
+		}
+	} else {
+		enhancedScoreCtx, enhancedScoreCancel = context.WithTimeout(classificationCtx, defaultEnhancedScoreTimeout)
+		r.logger.Printf("⏱️ [TIMEOUT] Created enhanced scoring context with timeout: %v", defaultEnhancedScoreTimeout)
+	}
+	defer enhancedScoreCancel()
+	
+	enhancedScorerStart := time.Now()
+	if deadline, hasDeadline := enhancedScoreCtx.Deadline(); hasDeadline {
+		timeRemaining := time.Until(deadline)
+		r.logger.Printf("⏱️ [PROFILING] Before CalculateEnhancedScore - time remaining: %v, elapsed: %v", timeRemaining, time.Since(funcStartTime))
+	}
+	
+	// Use reused enhanced scoring algorithm instance (thread-safe)
+	r.enhancedScorerMutex.RLock()
+	enhancedScorer := r.enhancedScorer
+	r.enhancedScorerMutex.RUnlock()
+	
+	// Initialize if not already initialized (shouldn't happen, but safety check)
+	if enhancedScorer == nil {
+		r.enhancedScorerMutex.Lock()
+		if r.enhancedScorer == nil {
+			r.enhancedScorer = NewEnhancedScoringAlgorithm(r.logger, DefaultEnhancedScoringConfig())
+		}
+		enhancedScorer = r.enhancedScorer
+		r.enhancedScorerMutex.Unlock()
+	}
+	
+	enhancedResult, err := enhancedScorer.CalculateEnhancedScore(enhancedScoreCtx, contextualKeywords, index)
+	
+	enhancedScorerDuration := time.Since(enhancedScorerStart)
+	if deadline, hasDeadline := enhancedScoreCtx.Deadline(); hasDeadline {
+		timeRemaining := time.Until(deadline)
+		r.logger.Printf("⏱️ [PROFILING] After CalculateEnhancedScore - time remaining: %v, calculate_enhanced_score_duration: %v, elapsed: %v", timeRemaining, enhancedScorerDuration, time.Since(funcStartTime))
+	}
+	
 	if err != nil {
-		r.logger.Printf("⚠️ Enhanced scoring failed, falling back to basic algorithm: %v", err)
-		return r.classifyBusinessByContextualKeywordsBasic(ctx, contextualKeywords, index)
+		// Check if error is due to timeout
+		if enhancedScoreCtx.Err() == context.DeadlineExceeded {
+			r.logger.Printf("⚠️ Enhanced scoring timed out after %v, falling back to basic algorithm", defaultEnhancedScoreTimeout)
+		} else {
+			r.logger.Printf("⚠️ Enhanced scoring failed, falling back to basic algorithm: %v", err)
+		}
+		return r.classifyBusinessByContextualKeywordsBasic(classificationCtx, contextualKeywords, index)
 	}
 
-	// Get industry information
+	// Parallelize database queries: GetIndustryByID and GetCachedClassificationCodes
+	type queryResults struct {
+		industry         *Industry
+		codes            []*ClassificationCode
+		industryErr      error
+		codesErr         error
+		industryDuration time.Duration
+		codesDuration    time.Duration
+	}
+	
 	var bestIndustry *Industry
-	if enhancedResult.IndustryID != 26 {
-		industry, err := r.GetIndustryByID(ctx, enhancedResult.IndustryID)
-		if err != nil {
-			r.logger.Printf("⚠️ Failed to get industry %d: %v", enhancedResult.IndustryID, err)
+	var codesPtr []*ClassificationCode
+	var getIndustryDuration, getCodesDuration time.Duration
+	
+	queryStart := time.Now()
+	if deadline, hasDeadline := classificationCtx.Deadline(); hasDeadline {
+		timeRemaining := time.Until(deadline)
+		r.logger.Printf("⏱️ [PROFILING] Before parallel queries - time remaining: %v, elapsed: %v", timeRemaining, time.Since(funcStartTime))
+		// Check if we have enough time for queries (need at least 2 seconds)
+		if timeRemaining < 2*time.Second {
+			r.logger.Printf("⚠️ Context deadline too short for parallel queries, using defaults")
+			// Return defaults if deadline too short
+			bestIndustry = &Industry{Name: "General Business", ID: 26}
+			if enhancedResult.IndustryID != 26 {
+				bestIndustry = &Industry{Name: "General Business", ID: enhancedResult.IndustryID}
+			}
+			codesPtr = []*ClassificationCode{}
+			getIndustryDuration = 0
+			getCodesDuration = 0
+		} else if enhancedResult.IndustryID != 26 {
+		// Execute queries in parallel
+		resultsChan := make(chan queryResults, 2)
+		var wg sync.WaitGroup
+		
+		// Get industry information in parallel
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			industryStart := time.Now()
+			industry, err := r.GetIndustryByID(classificationCtx, enhancedResult.IndustryID)
+			industryDuration := time.Since(industryStart)
+			resultsChan <- queryResults{
+				industry:         industry,
+				industryErr:      err,
+				industryDuration: industryDuration,
+			}
+		}()
+		
+		// Get classification codes in parallel
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			codesStart := time.Now()
+			codes, err := r.GetCachedClassificationCodes(classificationCtx, enhancedResult.IndustryID)
+			codesDuration := time.Since(codesStart)
+			resultsChan <- queryResults{
+				codes:         codes,
+				codesErr:      err,
+				codesDuration: codesDuration,
+			}
+		}()
+		
+		// Wait for both queries to complete
+		wg.Wait()
+		close(resultsChan)
+		
+		// Collect results (each goroutine sends one result with either industry or codes)
+		var industryResult, codesResult queryResults
+		for result := range resultsChan {
+			// Check which type of result this is
+			if result.industry != nil || result.industryErr != nil {
+				industryResult = result
+			}
+			if result.codes != nil || result.codesErr != nil {
+				codesResult = result
+			}
+		}
+		
+		// Process industry result
+		getIndustryDuration = industryResult.industryDuration
+		if industryResult.industryErr != nil {
+			r.logger.Printf("⚠️ Failed to get industry %d: %v", enhancedResult.IndustryID, industryResult.industryErr)
 			bestIndustry = &Industry{Name: "General Business", ID: 26}
 		} else {
-			bestIndustry = industry
+			bestIndustry = industryResult.industry
+		}
+		
+		// Process codes result
+		getCodesDuration = codesResult.codesDuration
+		if codesResult.codesErr != nil {
+			r.logger.Printf("⚠️ Failed to get classification codes for industry %d: %v", enhancedResult.IndustryID, codesResult.codesErr)
+			codesPtr = []*ClassificationCode{}
+		} else {
+			codesPtr = codesResult.codes
+		}
+		
+		totalQueryDuration := time.Since(queryStart)
+		if deadline, hasDeadline := classificationCtx.Deadline(); hasDeadline {
+			timeRemaining := time.Until(deadline)
+			r.logger.Printf("⏱️ [PROFILING] After parallel queries - time remaining: %v, total_query_duration: %v (industry: %v, codes: %v), elapsed: %v", 
+				timeRemaining, totalQueryDuration, getIndustryDuration, getCodesDuration, time.Since(funcStartTime))
+		}
 		}
 	} else {
 		bestIndustry = &Industry{Name: "General Business", ID: 26}
-	}
-
-	// Get classification codes for the best industry
-	codesPtr, err := r.GetCachedClassificationCodes(ctx, enhancedResult.IndustryID)
-	if err != nil {
-		r.logger.Printf("⚠️ Failed to get classification codes for industry %d: %v", enhancedResult.IndustryID, err)
-		codesPtr = []*ClassificationCode{}
+		// Still get codes even for default industry
+		getCodesStart := time.Now()
+		var err error
+		codesPtr, err = r.GetCachedClassificationCodes(classificationCtx, enhancedResult.IndustryID)
+		getCodesDuration = time.Since(getCodesStart)
+		if err != nil {
+			r.logger.Printf("⚠️ Failed to get classification codes for industry %d: %v", enhancedResult.IndustryID, err)
+			codesPtr = []*ClassificationCode{}
+		}
 	}
 
 	// Convert []*ClassificationCode to []ClassificationCode
@@ -2361,6 +2779,23 @@ func (r *SupabaseKeywordRepository) ClassifyBusinessByContextualKeywords(ctx con
 	}
 
 	// Build enhanced reasoning with detailed breakdown
+	totalDuration := time.Since(funcStartTime)
+	if deadline, hasDeadline := classificationCtx.Deadline(); hasDeadline {
+		timeRemaining := time.Until(deadline)
+		r.logger.Printf("⏱️ [PROFILING] ClassifyBusinessByContextualKeywords exit - time remaining: %v, total_duration: %v", timeRemaining, totalDuration)
+		r.logger.Printf("⏱️ [PROFILING] Duration breakdown - GetKeywordIndex: %v, CalculateEnhancedScore: %v, GetIndustryByID: %v, GetCachedClassificationCodes: %v",
+			indexCheckDuration, enhancedScorerDuration, getIndustryDuration, getCodesDuration)
+	} else {
+		r.logger.Printf("⏱️ [PROFILING] ClassifyBusinessByContextualKeywords exit - total_duration: %v", totalDuration)
+		r.logger.Printf("⏱️ [PROFILING] Duration breakdown - GetKeywordIndex: %v, CalculateEnhancedScore: %v, GetIndustryByID: %v, GetCachedClassificationCodes: %v",
+			indexCheckDuration, enhancedScorerDuration, getIndustryDuration, getCodesDuration)
+	}
+	
+	// Check if timeout was exceeded
+	if classificationCtx.Err() == context.DeadlineExceeded {
+		r.logger.Printf("⚠️ [TIMEOUT] Classification timeout exceeded after %v", totalDuration)
+	}
+	
 	reasoning := fmt.Sprintf("Enhanced classification as %s with confidence %.3f based on %d contextual keywords. "+
 		"Score breakdown: Direct(%.3f), Phrase(%.3f), Partial(%.3f), Context(%.3f). "+
 		"Quality indicators: Diversity(%.3f), Relevance(%.3f), Overall(%.3f). "+
@@ -2614,9 +3049,27 @@ func (r *SupabaseKeywordRepository) CleanupInactiveData(ctx context.Context) err
 // Note: Description removed for security - only uses business name and website content
 // Priority: Website content FIRST (highest priority), business name LAST (only for brand matches in MCC 3000-3831)
 // Phase 8: Enhanced with comprehensive logging and observability
-func (r *SupabaseKeywordRepository) extractKeywords(businessName, websiteURL string) []ContextualKeyword {
+// FIX: Now accepts context parameter to maintain proper context propagation (Root Cause #1)
+func (r *SupabaseKeywordRepository) extractKeywords(ctx context.Context, businessName, websiteURL string) []ContextualKeyword {
 	extractionStartTime := time.Now()
 	r.logger.Printf("🔍 [KeywordExtraction] Starting extraction for: %s (business: %s)", websiteURL, businessName)
+	
+	// PROFILING: Detailed profiling for extractKeywords optimization
+	funcStartTime := time.Now()
+	if deadline, ok := ctx.Deadline(); ok {
+		timeRemaining := time.Until(deadline)
+		r.logger.Printf("⏱️ [PROFILING] [extractKeywords] Entry - time remaining: %v", timeRemaining)
+	} else {
+		r.logger.Printf("⏱️ [PROFILING] [extractKeywords] Entry - no deadline")
+	}
+	
+	// Log parent context state for debugging
+	if deadline, ok := ctx.Deadline(); ok {
+		timeRemaining := time.Until(deadline)
+		r.logger.Printf("⏱️ [KeywordExtraction] Parent context deadline: %v from now", timeRemaining)
+	} else {
+		r.logger.Printf("⏱️ [KeywordExtraction] Parent context has no deadline")
+	}
 	
 	var keywords []ContextualKeyword
 	seen := make(map[string]bool)
@@ -2644,69 +3097,71 @@ func (r *SupabaseKeywordRepository) extractKeywords(businessName, websiteURL str
 	}
 
 	// PRIORITY 1: Extract keywords from website content (HIGHEST PRIORITY)
-	// Enhanced multi-level fallback chain (Phase 5)
+	// Optimized: Try fastest method first (single-page) before slower multi-page
 	if websiteURL != "" {
 		analysisMethod := "none"
 		confidenceLevel := "high"
 		
-		// Level 1: Multi-page analysis (15 pages) - requires 5+ keywords for success
-		// Use background context with timeout for keyword extraction (non-blocking)
-		// Use 5s timeout to enable fast-path mode (fast-path threshold is 5s)
-		// Fast-path mode: 5s timeout, 8 pages max, 3 concurrent
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		// OPTIMIZATION: Reduced timeout requirement (was 25s, now 18s)
+		// Phase 1 scraper: 12s max (reduced from 15s), overhead: 6s buffer
+		// This allows faster failure and reduces overall extractKeywords duration
+		const requiredTimeout = 18 * time.Second
+		var extractionCtx context.Context
+		var cancel context.CancelFunc
+		
+		if deadline, hasDeadline := ctx.Deadline(); hasDeadline {
+			timeRemaining := time.Until(deadline)
+			if timeRemaining < requiredTimeout {
+				// Parent context doesn't have enough time, create new context from Background
+				r.logger.Printf("🔧 [KeywordExtraction] Parent context has insufficient time (%v < %v), creating separate context from Background", timeRemaining, requiredTimeout)
+				extractionCtx, cancel = context.WithTimeout(context.Background(), requiredTimeout)
+			} else {
+				// Parent has enough time, use it directly
+				r.logger.Printf("✅ [KeywordExtraction] Parent context has sufficient time (%v >= %v), using parent context", timeRemaining, requiredTimeout)
+				extractionCtx = ctx
+				cancel = func() {} // No-op cancel for parent context
+			}
+		} else {
+			// Parent context has no deadline, create our own with required timeout
+			r.logger.Printf("🔧 [KeywordExtraction] Parent context has no deadline, creating context with %v timeout", requiredTimeout)
+			extractionCtx, cancel = context.WithTimeout(ctx, requiredTimeout)
+		}
 		defer cancel()
 		
-		r.logger.Printf("📊 [KeywordExtraction] Level 1: Starting multi-page website analysis (max 15 pages, timeout: 5s)")
-		level1Start := time.Now()
-		multiPageKeywords := r.extractKeywordsFromMultiPageWebsite(ctx, websiteURL)
-		metrics.level1Time = time.Since(level1Start)
-		metrics.level1Keywords = len(multiPageKeywords)
-		
-		r.logger.Printf("📊 [KeywordExtraction] Level 1 completed in %v: extracted %d keywords", metrics.level1Time, len(multiPageKeywords))
-		
-		if len(multiPageKeywords) >= 5 {
-			// Success: enough keywords from multi-page analysis
-			for _, keyword := range multiPageKeywords {
-				if !seen[keyword] {
-					seen[keyword] = true
-					keywords = append(keywords, ContextualKeyword{
-						Keyword: keyword,
-						Context: "website_content",
-					})
-				}
+		// OPTIMIZATION: Try Level 2 (single-page) FIRST - it's faster than multi-page
+		// Level 2: Single-page analysis (homepage only) - requires 3+ keywords for success
+		// FIX: Check context deadline before starting single-page analysis
+		hasEnoughTimeForLevel2 := true
+		if deadline, ok := extractionCtx.Deadline(); ok {
+			timeRemaining := time.Until(deadline)
+			// FIX: Add defensive check for negative time (expired context)
+			if timeRemaining < 0 {
+				hasEnoughTimeForLevel2 = false
+				r.logger.Printf("⚠️ [KeywordExtraction] Level 2 SKIPPED: Context already expired (time remaining: %v)", timeRemaining)
+			} else if timeRemaining < 13*time.Second {
+				hasEnoughTimeForLevel2 = false
+				r.logger.Printf("⚠️ [KeywordExtraction] Level 2 SKIPPED: Insufficient time remaining (%v < 13s required for Phase 1 scraper)", timeRemaining)
+			} else {
+				r.logger.Printf("📊 [KeywordExtraction] Level 2: Starting single-page website analysis (homepage only) - trying fastest method first (time remaining: %v)", timeRemaining)
 			}
-			analysisMethod = "multi_page"
-			confidenceLevel = "high"
-			metrics.level1Success = true
-			r.logger.Printf("✅ [KeywordExtraction] Level 1 SUCCESS: Extracted %d keywords from multi-page analysis (threshold: 5+)", len(multiPageKeywords))
-			r.logger.Printf("📝 [KeywordExtraction] Level 1 keywords: %v", multiPageKeywords)
-		} else if len(multiPageKeywords) > 0 {
-			// Partial success: some keywords but not enough (Phase 5.2)
-			for _, keyword := range multiPageKeywords {
-				if !seen[keyword] {
-					seen[keyword] = true
-					keywords = append(keywords, ContextualKeyword{
-						Keyword: keyword,
-						Context: "website_content",
-					})
-				}
-			}
-			analysisMethod = "multi_page_partial"
-			confidenceLevel = "medium"
-			metrics.level1Success = false
-			r.logger.Printf("⚠️ [KeywordExtraction] Level 1 PARTIAL: Only %d keywords from multi-page analysis (below threshold of 5), continuing fallback", len(multiPageKeywords))
-			if len(multiPageKeywords) > 0 {
-				r.logger.Printf("📝 [KeywordExtraction] Level 1 partial keywords: %v", multiPageKeywords)
-			}
+		} else {
+			r.logger.Printf("📊 [KeywordExtraction] Level 2: Starting single-page website analysis (homepage only) - trying fastest method first (no deadline on context)")
 		}
 		
-		// Level 2: Single-page analysis (homepage only) - requires 3+ keywords for success
-		if len(keywords) < 5 {
-			r.logger.Printf("📊 [KeywordExtraction] Level 2: Starting single-page website analysis (homepage only)")
+		if hasEnoughTimeForLevel2 {
 			level2Start := time.Now()
-			singlePageKeywords := r.extractKeywordsFromWebsite(ctx, websiteURL)
+			if deadline, ok := extractionCtx.Deadline(); ok {
+				timeRemaining := time.Until(deadline)
+				r.logger.Printf("⏱️ [PROFILING] [extractKeywords] Before extractKeywordsFromWebsite (Level 2) - time remaining: %v, elapsed: %v", timeRemaining, time.Since(funcStartTime))
+			}
+			singlePageKeywords := r.extractKeywordsFromWebsite(extractionCtx, websiteURL)
 			metrics.level2Time = time.Since(level2Start)
 			metrics.level2Keywords = len(singlePageKeywords)
+			
+			if deadline, ok := extractionCtx.Deadline(); ok {
+				timeRemaining := time.Until(deadline)
+				r.logger.Printf("⏱️ [PROFILING] [extractKeywords] After extractKeywordsFromWebsite (Level 2) - time remaining: %v, level2_duration: %v, elapsed: %v", timeRemaining, metrics.level2Time, time.Since(funcStartTime))
+			}
 			
 			r.logger.Printf("📊 [KeywordExtraction] Level 2 completed in %v: extracted %d keywords", metrics.level2Time, len(singlePageKeywords))
 			
@@ -2721,111 +3176,305 @@ func (r *SupabaseKeywordRepository) extractKeywords(businessName, websiteURL str
 						})
 					}
 				}
-				if analysisMethod == "none" || analysisMethod == "multi_page_partial" {
-					analysisMethod = "single_page"
-					confidenceLevel = "medium"
-				}
+				analysisMethod = "single_page"
+				confidenceLevel = "medium"
 				metrics.level2Success = true
 				r.logger.Printf("✅ [KeywordExtraction] Level 2 SUCCESS: Extracted %d keywords from single-page analysis (threshold: 3+)", len(singlePageKeywords))
 				r.logger.Printf("📝 [KeywordExtraction] Level 2 keywords: %v", singlePageKeywords)
+				// EARLY TERMINATION: Return immediately after Level 2 success to avoid unnecessary Level 1/3/4 calls
+				r.logger.Printf("🚀 [KeywordExtraction] Early termination: Level 2 success, skipping Levels 1/3/4")
+				return keywords
 			} else if len(singlePageKeywords) > 0 {
-				// Partial success: some keywords but not enough
-				for _, keyword := range singlePageKeywords {
-					if !seen[keyword] {
-						seen[keyword] = true
-						keywords = append(keywords, ContextualKeyword{
-							Keyword: keyword,
-							Context: "website_content",
-						})
-					}
+			// Partial success: some keywords but not enough
+			for _, keyword := range singlePageKeywords {
+				if !seen[keyword] {
+					seen[keyword] = true
+					keywords = append(keywords, ContextualKeyword{
+						Keyword: keyword,
+						Context: "website_content",
+					})
 				}
-				if analysisMethod == "none" {
-					analysisMethod = "single_page_partial"
-					confidenceLevel = "low"
-				}
+			}
+				analysisMethod = "single_page_partial"
+				confidenceLevel = "low"
 				metrics.level2Success = false
-				r.logger.Printf("⚠️ [KeywordExtraction] Level 2 PARTIAL: Only %d keywords from single-page analysis (below threshold of 3), continuing fallback", len(singlePageKeywords))
+				r.logger.Printf("⚠️ [KeywordExtraction] Level 2 PARTIAL: Only %d keywords from single-page analysis (below threshold of 3), trying Level 1 (multi-page)", len(singlePageKeywords))
 				if len(singlePageKeywords) > 0 {
 					r.logger.Printf("📝 [KeywordExtraction] Level 2 partial keywords: %v", singlePageKeywords)
 				}
 			}
+		} else {
+			// Not enough time for Level 2, skip it
+			r.logger.Printf("⚠️ [KeywordExtraction] Level 2 SKIPPED: Insufficient time remaining for single-page analysis")
 		}
 		
-		// Level 3: Homepage with enhanced retry (different DNS, longer timeout) - requires 2+ keywords
-		if len(keywords) < 3 {
-			r.logger.Printf("📊 [KeywordExtraction] Level 3: Starting homepage extraction with enhanced retry (multiple DNS servers)")
-			level3Start := time.Now()
-			homepageKeywords := r.extractKeywordsFromHomepageWithRetry(ctx, websiteURL)
-			metrics.level3Time = time.Since(level3Start)
-			metrics.level3Keywords = len(homepageKeywords)
+		// Level 1: Multi-page analysis (15 pages) - requires 5+ keywords for success
+		// Only try if Level 2 didn't get enough keywords
+		// FIX: Check context deadline before starting expensive multi-page analysis
+		if len(keywords) < 5 {
+			// Check if we have enough time remaining for multi-page analysis
+			hasEnoughTime := true
+			if deadline, ok := extractionCtx.Deadline(); ok {
+				timeRemaining := time.Until(deadline)
+				// FIX: Add defensive check for negative time (expired context)
+				if timeRemaining < 0 {
+					hasEnoughTime = false
+					r.logger.Printf("⚠️ [KeywordExtraction] Level 1 SKIPPED: Context already expired (time remaining: %v)", timeRemaining)
+				} else if timeRemaining < 6*time.Second {
+					hasEnoughTime = false
+					r.logger.Printf("⚠️ [KeywordExtraction] Level 1 SKIPPED: Insufficient time remaining (%v < 6s required for multi-page analysis)", timeRemaining)
+				} else {
+					r.logger.Printf("✅ [KeywordExtraction] Level 1: Starting multi-page website analysis (max 15 pages, timeout: capped at 10s, time remaining: %v)", timeRemaining)
+				}
+			} else {
+				r.logger.Printf("📊 [KeywordExtraction] Level 1: Starting multi-page website analysis (max 15 pages, timeout: capped at 10s, no deadline on context)")
+			}
 			
-			r.logger.Printf("📊 [KeywordExtraction] Level 3 completed in %v: extracted %d keywords", metrics.level3Time, len(homepageKeywords))
-			
-			if len(homepageKeywords) >= 2 {
-				// Success: enough keywords from retry
-				for _, keyword := range homepageKeywords {
-					if !seen[keyword] {
-						seen[keyword] = true
-						keywords = append(keywords, ContextualKeyword{
-							Keyword: keyword,
-							Context: "website_content",
-						})
+			if hasEnoughTime {
+				level1Start := time.Now()
+				multiPageKeywords := r.extractKeywordsFromMultiPageWebsite(extractionCtx, websiteURL)
+				metrics.level1Time = time.Since(level1Start)
+				metrics.level1Keywords = len(multiPageKeywords)
+				
+				r.logger.Printf("📊 [KeywordExtraction] Level 1 completed in %v: extracted %d keywords", metrics.level1Time, len(multiPageKeywords))
+				
+				if len(multiPageKeywords) >= 5 {
+					// Success: enough keywords from multi-page analysis
+					for _, keyword := range multiPageKeywords {
+						if !seen[keyword] {
+							seen[keyword] = true
+							keywords = append(keywords, ContextualKeyword{
+								Keyword: keyword,
+								Context: "website_content",
+							})
+						}
 					}
-				}
-				if analysisMethod == "none" || analysisMethod == "single_page_partial" {
-					analysisMethod = "homepage_retry"
-					confidenceLevel = "low"
-				}
-				metrics.level3Success = true
-				r.logger.Printf("✅ [KeywordExtraction] Level 3 SUCCESS: Extracted %d keywords from homepage with retry (threshold: 2+)", len(homepageKeywords))
-				r.logger.Printf("📝 [KeywordExtraction] Level 3 keywords: %v", homepageKeywords)
-			} else if len(homepageKeywords) > 0 {
-				// Partial success
-				for _, keyword := range homepageKeywords {
-					if !seen[keyword] {
-						seen[keyword] = true
-						keywords = append(keywords, ContextualKeyword{
-							Keyword: keyword,
-							Context: "website_content",
-						})
+					analysisMethod = "multi_page"
+					confidenceLevel = "high"
+					metrics.level1Success = true
+					r.logger.Printf("✅ [KeywordExtraction] Level 1 SUCCESS: Extracted %d keywords from multi-page analysis (threshold: 5+)", len(multiPageKeywords))
+					r.logger.Printf("📝 [KeywordExtraction] Level 1 keywords: %v", multiPageKeywords)
+					// EARLY TERMINATION: Return immediately after Level 1 success to avoid unnecessary Level 3/4 calls
+					r.logger.Printf("🚀 [KeywordExtraction] Early termination: Level 1 success, skipping Levels 3-4")
+					return keywords
+				} else if len(multiPageKeywords) > 0 {
+					// Partial success: some keywords but not enough (Phase 5.2)
+					for _, keyword := range multiPageKeywords {
+						if !seen[keyword] {
+							seen[keyword] = true
+							keywords = append(keywords, ContextualKeyword{
+								Keyword: keyword,
+								Context: "website_content",
+							})
+						}
 					}
-				}
-				if analysisMethod == "none" {
-					analysisMethod = "homepage_retry_partial"
-					confidenceLevel = "low"
-				}
-				metrics.level3Success = false
-				r.logger.Printf("⚠️ [KeywordExtraction] Level 3 PARTIAL: Only %d keywords from homepage retry (below threshold of 2)", len(homepageKeywords))
-				if len(homepageKeywords) > 0 {
-					r.logger.Printf("📝 [KeywordExtraction] Level 3 partial keywords: %v", homepageKeywords)
+					if analysisMethod == "none" || analysisMethod == "single_page_partial" {
+						analysisMethod = "multi_page_partial"
+						confidenceLevel = "medium"
+					}
+					metrics.level1Success = false
+					r.logger.Printf("⚠️ [KeywordExtraction] Level 1 PARTIAL: Only %d keywords from multi-page analysis (below threshold of 5), continuing fallback", len(multiPageKeywords))
+					if len(multiPageKeywords) > 0 {
+						r.logger.Printf("📝 [KeywordExtraction] Level 1 partial keywords: %v", multiPageKeywords)
+					}
 				}
 			}
 		}
 		
-		// Level 4: Enhanced URL text extraction - requires 1+ keywords
-		if len(keywords) < 2 {
-			r.logger.Printf("📊 [KeywordExtraction] Level 4: Starting enhanced URL text extraction")
-			level4Start := time.Now()
-			urlKeywords := r.extractKeywordsFromURLEnhanced(websiteURL)
-			metrics.level4Time = time.Since(level4Start)
-			metrics.level4Keywords = len(urlKeywords)
+		// OPTIMIZATION: Priority 5 - Parallel extraction from multiple sources
+		// Level 3 and Level 4 can run in parallel since they're independent
+		needsLevel3 := len(keywords) < 3
+		needsLevel4 := len(keywords) < 2
+		
+		if needsLevel3 && needsLevel4 {
+			// Run Level 3 and Level 4 in parallel
+			r.logger.Printf("🚀 [OPTIMIZATION] [extractKeywords] Running Level 3 and Level 4 in parallel")
 			
-			r.logger.Printf("📊 [KeywordExtraction] Level 4 completed in %v: extracted %d keywords", metrics.level4Time, len(urlKeywords))
+			type levelResult struct {
+				level    int
+				keywords []string
+				urlKeywords []ContextualKeyword
+				duration time.Duration
+			}
 			
-			if len(urlKeywords) >= 1 {
-				for _, keyword := range urlKeywords {
-					if !seen[keyword.Keyword] {
-						seen[keyword.Keyword] = true
-						keywords = append(keywords, keyword)
+			resultsChan := make(chan levelResult, 2)
+			var wg sync.WaitGroup
+			
+			// Level 3: Homepage retry (needs context)
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				level3Start := time.Now()
+				r.logger.Printf("📊 [KeywordExtraction] Level 3 (parallel): Starting homepage extraction with enhanced retry")
+				homepageKeywords := r.extractKeywordsFromHomepageWithRetry(extractionCtx, websiteURL)
+				level3Duration := time.Since(level3Start)
+				resultsChan <- levelResult{
+					level:    3,
+					keywords: homepageKeywords,
+					duration: level3Duration,
+				}
+			}()
+			
+			// Level 4: URL extraction (no context needed, very fast)
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				level4Start := time.Now()
+				r.logger.Printf("📊 [KeywordExtraction] Level 4 (parallel): Starting enhanced URL text extraction")
+				urlKeywords := r.extractKeywordsFromURLEnhanced(websiteURL)
+				level4Duration := time.Since(level4Start)
+				resultsChan <- levelResult{
+					level:       4,
+					urlKeywords: urlKeywords,
+					duration:    level4Duration,
+				}
+			}()
+			
+			// Wait for both to complete
+			wg.Wait()
+			close(resultsChan)
+			
+			// Process results
+			for result := range resultsChan {
+				if result.level == 3 {
+					metrics.level3Time = result.duration
+					metrics.level3Keywords = len(result.keywords)
+					r.logger.Printf("📊 [KeywordExtraction] Level 3 (parallel) completed in %v: extracted %d keywords", metrics.level3Time, len(result.keywords))
+					
+					if len(result.keywords) >= 2 {
+						// Success: enough keywords from retry
+						for _, keyword := range result.keywords {
+							if !seen[keyword] {
+								seen[keyword] = true
+								keywords = append(keywords, ContextualKeyword{
+									Keyword: keyword,
+									Context: "website_content",
+								})
+							}
+						}
+						if analysisMethod == "none" || analysisMethod == "single_page_partial" {
+							analysisMethod = "homepage_retry"
+							confidenceLevel = "low"
+						}
+						metrics.level3Success = true
+						r.logger.Printf("✅ [KeywordExtraction] Level 3 SUCCESS: Extracted %d keywords from homepage with retry (threshold: 2+)", len(result.keywords))
+					} else if len(result.keywords) > 0 {
+						// Partial success
+						for _, keyword := range result.keywords {
+							if !seen[keyword] {
+								seen[keyword] = true
+								keywords = append(keywords, ContextualKeyword{
+									Keyword: keyword,
+									Context: "website_content",
+								})
+							}
+						}
+						if analysisMethod == "none" {
+							analysisMethod = "homepage_retry_partial"
+							confidenceLevel = "low"
+						}
+						metrics.level3Success = false
+						r.logger.Printf("⚠️ [KeywordExtraction] Level 3 PARTIAL: Only %d keywords from homepage retry (below threshold of 2)", len(result.keywords))
+					}
+				} else if result.level == 4 {
+					metrics.level4Time = result.duration
+					metrics.level4Keywords = len(result.urlKeywords)
+					r.logger.Printf("📊 [KeywordExtraction] Level 4 (parallel) completed in %v: extracted %d keywords", metrics.level4Time, len(result.urlKeywords))
+					
+					if len(result.urlKeywords) >= 1 {
+						for _, keyword := range result.urlKeywords {
+							if !seen[keyword.Keyword] {
+								seen[keyword.Keyword] = true
+								keywords = append(keywords, keyword)
+							}
+						}
+						if analysisMethod == "none" {
+							analysisMethod = "url_only"
+							confidenceLevel = "low"
+						}
+						metrics.level4Success = true
+						r.logger.Printf("✅ [KeywordExtraction] Level 4 SUCCESS: Extracted %d keywords from enhanced URL text extraction (threshold: 1+)", len(result.urlKeywords))
 					}
 				}
-				if analysisMethod == "none" {
-					analysisMethod = "url_only"
-					confidenceLevel = "low"
+			}
+			
+			r.logger.Printf("✅ [OPTIMIZATION] [extractKeywords] Parallel extraction completed (Level 3: %v, Level 4: %v)", metrics.level3Time, metrics.level4Time)
+		} else {
+			// Sequential execution (only one level needed)
+			if needsLevel3 {
+				r.logger.Printf("📊 [KeywordExtraction] Level 3: Starting homepage extraction with enhanced retry (multiple DNS servers)")
+				level3Start := time.Now()
+				homepageKeywords := r.extractKeywordsFromHomepageWithRetry(extractionCtx, websiteURL)
+				metrics.level3Time = time.Since(level3Start)
+				metrics.level3Keywords = len(homepageKeywords)
+				
+				r.logger.Printf("📊 [KeywordExtraction] Level 3 completed in %v: extracted %d keywords", metrics.level3Time, len(homepageKeywords))
+				
+				if len(homepageKeywords) >= 2 {
+					// Success: enough keywords from retry
+					for _, keyword := range homepageKeywords {
+						if !seen[keyword] {
+							seen[keyword] = true
+							keywords = append(keywords, ContextualKeyword{
+								Keyword: keyword,
+								Context: "website_content",
+							})
+						}
+					}
+					if analysisMethod == "none" || analysisMethod == "single_page_partial" {
+						analysisMethod = "homepage_retry"
+						confidenceLevel = "low"
+					}
+					metrics.level3Success = true
+					r.logger.Printf("✅ [KeywordExtraction] Level 3 SUCCESS: Extracted %d keywords from homepage with retry (threshold: 2+)", len(homepageKeywords))
+					r.logger.Printf("📝 [KeywordExtraction] Level 3 keywords: %v", homepageKeywords)
+				} else if len(homepageKeywords) > 0 {
+					// Partial success
+					for _, keyword := range homepageKeywords {
+						if !seen[keyword] {
+							seen[keyword] = true
+							keywords = append(keywords, ContextualKeyword{
+								Keyword: keyword,
+								Context: "website_content",
+							})
+						}
+					}
+					if analysisMethod == "none" {
+						analysisMethod = "homepage_retry_partial"
+						confidenceLevel = "low"
+					}
+					metrics.level3Success = false
+					r.logger.Printf("⚠️ [KeywordExtraction] Level 3 PARTIAL: Only %d keywords from homepage retry (below threshold of 2)", len(homepageKeywords))
+					if len(homepageKeywords) > 0 {
+						r.logger.Printf("📝 [KeywordExtraction] Level 3 partial keywords: %v", homepageKeywords)
+					}
 				}
-				metrics.level4Success = true
-				r.logger.Printf("✅ [KeywordExtraction] Level 4 SUCCESS: Extracted %d keywords from enhanced URL text extraction (threshold: 1+)", len(urlKeywords))
-				r.logger.Printf("📝 [KeywordExtraction] Level 4 keywords: %v", urlKeywords)
+			}
+			
+			if needsLevel4 {
+				r.logger.Printf("📊 [KeywordExtraction] Level 4: Starting enhanced URL text extraction")
+				level4Start := time.Now()
+				urlKeywords := r.extractKeywordsFromURLEnhanced(websiteURL)
+				metrics.level4Time = time.Since(level4Start)
+				metrics.level4Keywords = len(urlKeywords)
+				
+				r.logger.Printf("📊 [KeywordExtraction] Level 4 completed in %v: extracted %d keywords", metrics.level4Time, len(urlKeywords))
+				
+				if len(urlKeywords) >= 1 {
+					for _, keyword := range urlKeywords {
+						if !seen[keyword.Keyword] {
+							seen[keyword.Keyword] = true
+							keywords = append(keywords, keyword)
+						}
+					}
+					if analysisMethod == "none" {
+						analysisMethod = "url_only"
+						confidenceLevel = "low"
+					}
+					metrics.level4Success = true
+					r.logger.Printf("✅ [KeywordExtraction] Level 4 SUCCESS: Extracted %d keywords from enhanced URL text extraction (threshold: 1+)", len(urlKeywords))
+					r.logger.Printf("📝 [KeywordExtraction] Level 4 keywords: %v", urlKeywords)
+				}
 			}
 		}
 		
@@ -2834,8 +3483,14 @@ func (r *SupabaseKeywordRepository) extractKeywords(businessName, websiteURL str
 		
 		// Phase 8.2: Log performance metrics
 		totalExtractionTime := time.Since(extractionStartTime)
+		totalFuncTime := time.Since(funcStartTime)
+		if deadline, ok := ctx.Deadline(); ok {
+			timeRemaining := time.Until(deadline)
+			r.logger.Printf("⏱️ [PROFILING] [extractKeywords] Exit - time remaining: %v, total_duration: %v", timeRemaining, totalFuncTime)
+		}
 		r.logger.Printf("📊 [KeywordExtraction] Performance Metrics:")
 		r.logger.Printf("   - Total extraction time: %v", totalExtractionTime)
+		r.logger.Printf("   - Total function time: %v", totalFuncTime)
 		r.logger.Printf("   - Level 1 (multi-page): %v, keywords: %d, success: %v", metrics.level1Time, metrics.level1Keywords, metrics.level1Success)
 		r.logger.Printf("   - Level 2 (single-page): %v, keywords: %d, success: %v", metrics.level2Time, metrics.level2Keywords, metrics.level2Success)
 		r.logger.Printf("   - Level 3 (homepage-retry): %v, keywords: %d, success: %v", metrics.level3Time, metrics.level3Keywords, metrics.level3Success)
@@ -2879,7 +3534,11 @@ func (r *SupabaseKeywordRepository) extractKeywords(businessName, websiteURL str
 			
 			if len(topicScores) > 0 {
 				// Log top industry topics
-				topIndustries := make([]int, 0, min(3, len(topicScores)))
+				maxIndustries := 3
+				if len(topicScores) < maxIndustries {
+					maxIndustries = len(topicScores)
+				}
+				topIndustries := make([]int, 0, maxIndustries)
 				for industryID := range topicScores {
 					topIndustries = append(topIndustries, industryID)
 					if len(topIndustries) >= 3 {
@@ -2894,7 +3553,11 @@ func (r *SupabaseKeywordRepository) extractKeywords(businessName, websiteURL str
 		
 		// Log top keywords for observability
 		if len(keywords) > 0 {
-			topKeywords := make([]string, 0, min(10, len(keywords)))
+			maxKeywords := 10
+			if len(keywords) < maxKeywords {
+				maxKeywords = len(keywords)
+			}
+			topKeywords := make([]string, 0, maxKeywords)
 			for i, kw := range keywords {
 				if i >= 10 {
 					break
@@ -2903,7 +3566,7 @@ func (r *SupabaseKeywordRepository) extractKeywords(businessName, websiteURL str
 			}
 			r.logger.Printf("📝 [KeywordExtraction] Top keywords: %v", topKeywords)
 		}
-	}
+	} // FIX: Close if websiteURL != "" block that starts at line 2738
 
 	// Note: Description processing removed for security reasons
 	// Business descriptions provided by merchants can be unreliable, misleading, or fraudulent
@@ -3211,9 +3874,32 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromHomepageWithRetry(ctx con
 
 // extractKeywordsFromWebsite scrapes website content and extracts business-relevant keywords
 // Phase 1: Now uses EnhancedWebsiteScraper with multi-tier strategies (SimpleHTTP → BrowserHeaders → Playwright)
+// OPTIMIZATION: Priority 4 - Website content caching to reduce redundant scraping
 func (r *SupabaseKeywordRepository) extractKeywordsFromWebsite(ctx context.Context, websiteURL string) []string {
 	startTime := time.Now()
 	r.logger.Printf("🌐 [KeywordExtraction] [SinglePage] Starting single-page website scraping for: %s", websiteURL)
+
+	// OPTIMIZATION: Check cache first (Priority 4)
+	cacheKey := websiteURL
+	r.websiteContentCacheMutex.RLock()
+	if cached, exists := r.websiteContentCache[cacheKey]; exists {
+		if time.Now().Before(cached.expiresAt) {
+			r.websiteContentCacheMutex.RUnlock()
+			cacheAge := time.Since(cached.cachedAt)
+			r.logger.Printf("✅ [CACHE] [extractKeywordsFromWebsite] Cache HIT for %s (age: %v, keywords: %d)", websiteURL, cacheAge, len(cached.keywords))
+			return cached.keywords
+		} else {
+			// Expired entry, remove it
+			r.websiteContentCacheMutex.RUnlock()
+			r.websiteContentCacheMutex.Lock()
+			delete(r.websiteContentCache, cacheKey)
+			r.websiteContentCacheMutex.Unlock()
+			r.logger.Printf("⏰ [CACHE] [extractKeywordsFromWebsite] Cache entry expired for %s, removing", websiteURL)
+		}
+	} else {
+		r.websiteContentCacheMutex.RUnlock()
+		r.logger.Printf("❌ [CACHE] [extractKeywordsFromWebsite] Cache MISS for %s", websiteURL)
+	}
 
 	// Validate URL
 	parsedURL, err := url.Parse(websiteURL)
@@ -3228,11 +3914,84 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromWebsite(ctx context.Conte
 	}
 
 	// Phase 1: Use enhanced scraper if available (with multi-tier strategies)
+	r.logger.Printf("🔍 [Phase1] [KeywordExtraction] Checking Phase 1 scraper availability for: %s (scraper is nil: %v)", websiteURL, r.websiteScraper == nil)
+	
+	// Log parent context state for debugging
+	if deadline, ok := ctx.Deadline(); ok {
+		parentTimeUntilDeadline := time.Until(deadline)
+		r.logger.Printf("⏱️ [Phase1] [KeywordExtraction] Parent context deadline: %v from now (will create new context)", parentTimeUntilDeadline)
+	} else {
+		r.logger.Printf("⏱️ [Phase1] [KeywordExtraction] Parent context has no deadline")
+	}
+	r.logger.Printf("🔍 [Phase1] [KeywordExtraction] Parent context error state: %v", ctx.Err())
+	
 	if r.websiteScraper != nil {
 		r.logger.Printf("✅ [Phase1] [KeywordExtraction] Using Phase 1 enhanced scraper for: %s", websiteURL)
 		
+		// OPTIMIZATION: Reduced Phase 1 scraper timeout (was 15s, now 12s)
+		// This allows faster failure and reduces overall extractKeywords duration
+		// Early termination will prevent waiting for slow websites
+		const phase1RequiredTimeout = 12 * time.Second
+		
+		var phase1Ctx context.Context
+		var phase1Cancel context.CancelFunc
+		var useSeparateContext bool
+		
+		// Check parent context deadline
+		deadline, hasDeadline := ctx.Deadline()
+		if hasDeadline {
+			timeRemaining := time.Until(deadline)
+			if timeRemaining < phase1RequiredTimeout {
+				// Parent context doesn't have enough time
+				// Create new context from Background with full timeout
+				// Don't propagate parent cancellation since parent had insufficient time anyway
+				r.logger.Printf("🔧 [Phase1] [KeywordExtraction] Parent context has insufficient time (%v < %v), creating separate context from Background", timeRemaining, phase1RequiredTimeout)
+				phase1Ctx, phase1Cancel = context.WithTimeout(context.Background(), phase1RequiredTimeout)
+				useSeparateContext = true
+				
+				// Note: We do NOT monitor parent context cancellation here because:
+				// 1. The parent context had insufficient time to begin with
+				// 2. The Phase 1 scraper needs the full 15s to complete
+				// 3. The parent context expiring is expected and should not cancel Phase 1
+				// The Phase 1 context will run independently with its own 15s timeout
+			} else {
+				// Parent has enough time, use it directly
+				r.logger.Printf("✅ [Phase1] [KeywordExtraction] Parent context has sufficient time (%v >= %v), using parent context", timeRemaining, phase1RequiredTimeout)
+				phase1Ctx = ctx
+				phase1Cancel = func() {} // No-op cancel for parent context
+				useSeparateContext = false
+			}
+		} else {
+			// Parent context has no deadline, create our own with required timeout
+			r.logger.Printf("🔧 [Phase1] [KeywordExtraction] Parent context has no deadline, creating context with %v timeout", phase1RequiredTimeout)
+			phase1Ctx, phase1Cancel = context.WithTimeout(ctx, phase1RequiredTimeout)
+			useSeparateContext = false
+		}
+		
+		// Only defer cancel if we created a separate context
+		if useSeparateContext {
+			defer phase1Cancel()
+		}
+		
+		// Log context deadline for debugging
+		if deadline, ok := phase1Ctx.Deadline(); ok {
+			timeUntilDeadline := time.Until(deadline)
+			r.logger.Printf("⏱️ [Phase1] [KeywordExtraction] Phase 1 context deadline: %v from now (deadline: %v, separate_context: %v)", 
+				timeUntilDeadline, deadline, useSeparateContext)
+		}
+		
+		// Verify context is valid before passing
+		ctxErr := phase1Ctx.Err()
+		if ctxErr != nil {
+			r.logger.Printf("❌ [Phase1] [KeywordExtraction] ERROR: Context already cancelled: %v", ctxErr)
+			return []string{} // Fall back to legacy method
+		}
+		
 		// Use Phase 1 enhanced scraper with multi-tier strategies
-		scrapingResultInterface := r.websiteScraper.ScrapeWebsite(ctx, websiteURL)
+		r.logger.Printf("🚀 [Phase1] [KeywordExtraction] Calling Phase 1 scraper.ScrapeWebsite() for: %s (timeout: %v, separate_context: %v)", 
+			websiteURL, phase1RequiredTimeout, useSeparateContext)
+		scrapingResultInterface := r.websiteScraper.ScrapeWebsite(phase1Ctx, websiteURL)
+		r.logger.Printf("📥 [Phase1] [KeywordExtraction] Phase 1 scraper returned result (nil: %v)", scrapingResultInterface == nil)
 		
 		// Type assert to get the actual ScrapingResult
 		// We use reflection to access fields to avoid import cycle
@@ -3292,6 +4051,10 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromWebsite(ctx context.Conte
 				
 				duration := time.Since(startTime)
 				r.logger.Printf("✅ [Phase1] [KeywordExtraction] Successfully extracted %d keywords in %v", len(keywords), duration)
+				
+				// OPTIMIZATION: Store in cache (Priority 4)
+				r.storeWebsiteContentCache(cacheKey, keywords)
+				
 				return keywords
 			}
 			}
@@ -3528,7 +4291,11 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromWebsite(ctx context.Conte
 		r.logger.Printf("❌ [KeywordExtraction] [SinglePage] HTTP ERROR: Status %d %s for %s", resp.StatusCode, resp.Status, websiteURL)
 		// Try to read error response body
 		if body, readErr := io.ReadAll(resp.Body); readErr == nil && len(body) > 0 {
-			r.logger.Printf("📄 [KeywordExtraction] [SinglePage] Error response body (first 500 chars): %s", string(body[:min(500, len(body))]))
+			maxLen := 500
+			if len(body) < maxLen {
+				maxLen = len(body)
+			}
+			r.logger.Printf("📄 [KeywordExtraction] [SinglePage] Error response body (first 500 chars): %s", string(body[:maxLen]))
 		}
 		return []string{}
 	} else if resp.StatusCode != 200 {
@@ -3586,7 +4353,11 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromWebsite(ctx context.Conte
 	// Check if body appears to be binary/garbled (contains null bytes or high percentage of non-printable chars)
 	if len(body) > 0 {
 		nonPrintableCount := 0
-		for i := 0; i < min(1000, len(body)); i++ {
+		maxLen := 1000
+		if len(body) < maxLen {
+			maxLen = len(body)
+		}
+		for i := 0; i < maxLen; i++ {
 			if body[i] < 32 && body[i] != 9 && body[i] != 10 && body[i] != 13 {
 				nonPrintableCount++
 			}
@@ -3602,7 +4373,11 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromWebsite(ctx context.Conte
 
 	// Log sample of extracted text for debugging
 	if len(textContent) > 0 {
-		sampleText := textContent[:min(200, len(textContent))]
+		maxLen := 200
+		if len(textContent) < maxLen {
+			maxLen = len(textContent)
+		}
+		sampleText := textContent[:maxLen]
 		r.logger.Printf("📝 [KeywordExtraction] [SinglePage] Sample extracted text: %s...", sampleText)
 	}
 
@@ -3615,6 +4390,10 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromWebsite(ctx context.Conte
 		r.logger.Printf("⚠️ [KeywordExtraction] [SinglePage] WARNING: StructuredDataExtractor adapter not initialized - skipping structured data extraction")
 		// Fallback to text-only extraction
 		keywords := r.extractBusinessKeywords(textContent)
+		
+		// OPTIMIZATION: Store in cache (Priority 4)
+		r.storeWebsiteContentCache(cacheKey, keywords)
+		
 		return keywords
 	}
 	structuredDataExtractor := NewStructuredDataExtractorAdapter(r.logger)
@@ -3761,8 +4540,15 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromWebsite(ctx context.Conte
 	r.logger.Printf("   - Keywords from structured data: %d", len(structuredKeywords))
 	r.logger.Printf("   - Total unique keywords extracted: %d", len(keywords))
 	if len(keywords) > 0 {
-		r.logger.Printf("   - Top keywords: %v", keywords[:min(10, len(keywords))])
+		maxLen := 10
+		if len(keywords) < maxLen {
+			maxLen = len(keywords)
+		}
+		r.logger.Printf("   - Top keywords: %v", keywords[:maxLen])
 	}
+
+	// OPTIMIZATION: Store in cache (Priority 4)
+	r.storeWebsiteContentCache(cacheKey, keywords)
 
 	return keywords
 }
@@ -3900,13 +4686,31 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromMultiPageWebsite(ctx cont
 	
 	// Use fast-path mode if timeout is short (5s or less), otherwise use regular crawl
 	// Fast-path: 5s timeout, 8 pages max, 3 concurrent
-	// Regular: uses full timeout, 15 pages max
+	// Regular: capped at 10s to reserve time for other operations (Phase 1 scraping, classification, etc.)
+	// FIX: Don't use full remaining context time - cap at 10s to prevent consuming entire deadline
+	// FIX: Handle negative timeouts (expired context) gracefully
+	const maxMultiPageTimeout = 10 * time.Second
 	timeoutDuration := 5 * time.Second // Default from calling function (5s to enable fast-path)
 	if deadline, ok := analysisCtx.Deadline(); ok {
-		timeoutDuration = time.Until(deadline)
+		remainingTime := time.Until(deadline)
+		// FIX: Handle expired context (negative remaining time)
+		if remainingTime <= 0 {
+			// Context already expired, use fast-path with minimal timeout
+			r.logger.Printf("⚠️ [KeywordExtraction] [MultiPage] Context already expired, using fast-path with 1s timeout")
+			timeoutDuration = 1 * time.Second
+		} else if remainingTime > maxMultiPageTimeout+5*time.Second {
+			// Cap timeout to maxMultiPageTimeout to reserve time for other operations
+			timeoutDuration = maxMultiPageTimeout
+		} else if remainingTime > 5*time.Second {
+			// Use remaining time minus 5s buffer for other operations
+			timeoutDuration = remainingTime - 5*time.Second
+		} else {
+			// Very little time remaining, use fast-path
+			timeoutDuration = remainingTime
+		}
 	}
 	
-	r.logger.Printf("📊 [KeywordExtraction] [MultiPage] Timeout duration: %v (threshold: 5s)", timeoutDuration)
+	r.logger.Printf("📊 [KeywordExtraction] [MultiPage] Timeout duration: %v (threshold: 5s, max: 10s)", timeoutDuration)
 	
 	var crawlResult CrawlResultInterface
 	var err error
@@ -4052,7 +4856,11 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromMultiPageWebsite(ctx cont
 	r.logger.Printf("   - Successful pages: %d", successfulPages)
 	r.logger.Printf("   - Unique keywords extracted: %d", len(keywords))
 	if len(keywords) > 0 {
-		r.logger.Printf("   - Top keywords: %v", keywords[:min(10, len(keywords))])
+		maxLen := 10
+		if len(keywords) < maxLen {
+			maxLen = len(keywords)
+		}
+		r.logger.Printf("   - Top keywords: %v", keywords[:maxLen])
 	}
 
 	return keywords

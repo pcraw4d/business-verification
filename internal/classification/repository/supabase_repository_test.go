@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"testing"
+	"time"
 )
 
 // MockPostgrestQuery is a mock implementation for PostgREST queries
@@ -196,11 +197,13 @@ func TestSupabaseKeywordRepository_ClassifyBusinessByKeywords(t *testing.T) {
 
 // TestSupabaseKeywordRepository_extractKeywords tests keyword extraction
 func TestSupabaseKeywordRepository_extractKeywords(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
 	mockClient := &MockSupabaseClient{}
 	repo := NewSupabaseKeywordRepositoryWithInterface(mockClient, log.Default())
 
 	// Test with business name only
-	contextualKeywords := repo.extractKeywords("Acme Software Solutions", "")
+	contextualKeywords := repo.extractKeywords(ctx, "Acme Software Solutions", "")
 	expected := []string{"acme", "software", "solutions"}
 
 	// The new method extracts more keywords including phrases, so we check for at least the expected ones
@@ -224,7 +227,7 @@ func TestSupabaseKeywordRepository_extractKeywords(t *testing.T) {
 	}
 
 	// Test with description
-	contextualKeywords = repo.extractKeywords("", "https://example.com")
+	contextualKeywords = repo.extractKeywords(ctx, "", "https://example.com")
 	if len(contextualKeywords) < 4 {
 		t.Errorf("Expected at least 4 keywords, got %d", len(contextualKeywords))
 	}
@@ -236,7 +239,7 @@ func TestSupabaseKeywordRepository_extractKeywords(t *testing.T) {
 	}
 
 	// Test with website URL
-	contextualKeywords = repo.extractKeywords("", "https://www.tech-company.com")
+	contextualKeywords = repo.extractKeywords(ctx, "", "https://www.tech-company.com")
 	if len(contextualKeywords) < 1 {
 		t.Errorf("Expected at least 1 keyword, got %d", len(contextualKeywords))
 	}
@@ -248,7 +251,7 @@ func TestSupabaseKeywordRepository_extractKeywords(t *testing.T) {
 	}
 
 	// Test with all inputs
-	contextualKeywords = repo.extractKeywords("Tech Corp", "https://www.techcorp.com")
+	contextualKeywords = repo.extractKeywords(ctx, "Tech Corp", "https://www.techcorp.com")
 	if len(contextualKeywords) < 5 {
 		t.Errorf("Expected at least 5 keywords, got %d", len(contextualKeywords))
 	}
@@ -290,11 +293,12 @@ func BenchmarkSupabaseKeywordRepository_ClassifyBusiness(b *testing.B) {
 
 // BenchmarkSupabaseKeywordRepository_extractKeywords benchmarks keyword extraction
 func BenchmarkSupabaseKeywordRepository_extractKeywords(b *testing.B) {
+	ctx := context.Background()
 	mockClient := &MockSupabaseClient{}
 	repo := NewSupabaseKeywordRepositoryWithInterface(mockClient, log.Default())
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		repo.extractKeywords("Acme Software Solutions Inc", "https://www.acme-software-solutions.com")
+		repo.extractKeywords(ctx, "Acme Software Solutions Inc", "https://www.acme-software-solutions.com")
 	}
 }

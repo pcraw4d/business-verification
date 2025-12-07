@@ -111,14 +111,21 @@ func NewWebsiteScraperWithStrategies(config *ScrapingConfig, logger *zap.Logger,
 	}
 
 	// Initialize strategies
+	// Note: HTTP client timeout should be set to match or be less than context deadline
+	// Context deadline is typically 20s, so client timeout of 30s could cause issues
+	// The client timeout is a hard limit, but context cancellation should take precedence
+	// For now, we keep 30s as a safety net, but requests use context which will cancel at 20s
 	strategies := []ScraperStrategy{
 		&SimpleHTTPScraper{client: client, logger: logger},
 		&BrowserHeadersScraper{client: client, logger: logger},
 	}
 
 	// Add Playwright strategy if URL is provided
+	// FIX: Increase client timeout to account for queue wait times (25s) + scrape time (15s) + overhead (10s)
+	// The getClientWithContextTimeout will still respect context deadline, but base timeout needs to be higher
+	// to handle queue wait scenarios
 	if playwrightServiceURL != "" {
-		playwrightClient := &http.Client{Timeout: 30 * time.Second}
+		playwrightClient := &http.Client{Timeout: 60 * time.Second}
 		strategies = append(strategies, &PlaywrightScraper{
 			serviceURL: playwrightServiceURL,
 			client:     playwrightClient,
@@ -202,7 +209,14 @@ func (s *WebsiteScraper) ScrapeWebsite(ctx context.Context, targetURL string) (*
 		zap.String("user_agent", s.config.UserAgent))
 
 	// If strategies are available, use enhanced method
+	s.logger.Info("🔍 [Phase1] Checking strategies availability",
+		zap.Int("strategies_count", len(s.strategies)),
+		zap.String("url", targetURL))
+	
 	if len(s.strategies) > 0 {
+		s.logger.Info("✅ [Phase1] Strategies available, using ScrapeWithStructuredContent",
+			zap.String("url", targetURL),
+			zap.Int("strategy_count", len(s.strategies)))
 		structuredContent, err := s.ScrapeWithStructuredContent(ctx, targetURL)
 		if err == nil && structuredContent != nil {
 			// Convert ScrapedContent to ScrapingResult for backward compatibility
@@ -601,7 +615,64 @@ func (s *SimpleHTTPScraper) Name() string {
 	return "simple_http"
 }
 
+// getClientWithContextTimeout returns a client with timeout that respects context deadline
+// FIX: Root Cause #3 - Ensure client timeout <= context deadline
+func (s *SimpleHTTPScraper) getClientWithContextTimeout(ctx context.Context, baseClient *http.Client) *http.Client {
+	// Safety check: if baseClient is nil, return nil (shouldn't happen, but defensive)
+	if baseClient == nil {
+		s.logger.Warn("⚠️ [Phase1] Base client is nil in getClientWithContextTimeout")
+		return nil
+	}
+	
+	// Check if context is already expired
+	if ctx.Err() != nil {
+		s.logger.Warn("⚠️ [Phase1] Context already expired in getClientWithContextTimeout",
+			zap.Error(ctx.Err()))
+		return baseClient // Return base client, context cancellation will handle it
+	}
+	
+	// If context has no deadline, use base client as-is
+	if deadline, ok := ctx.Deadline(); ok {
+		timeRemaining := time.Until(deadline)
+		// If context is already expired or has very little time, use base client
+		if timeRemaining <= 0 {
+			return baseClient
+		}
+		// Add small buffer (500ms) to ensure context cancellation happens before client timeout
+		clientTimeout := timeRemaining - 500*time.Millisecond
+		if clientTimeout < 0 {
+			clientTimeout = 100 * time.Millisecond // Minimum timeout
+		}
+		// If calculated timeout is less than base client timeout, create new client
+		if clientTimeout < baseClient.Timeout {
+			return &http.Client{
+				Transport: baseClient.Transport,
+				Timeout:   clientTimeout,
+			}
+		}
+	}
+	// Use base client if context has no deadline or base timeout is already appropriate
+	return baseClient
+}
+
 func (s *SimpleHTTPScraper) Scrape(ctx context.Context, targetURL string) (*ScrapedContent, error) {
+	// Check if context is already cancelled
+	select {
+	case <-ctx.Done():
+		s.logger.Warn("⚠️ [Phase1] Context already cancelled before SimpleHTTP strategy",
+			zap.String("url", targetURL),
+			zap.Error(ctx.Err()))
+		return nil, ctx.Err()
+	default:
+		// Context is still valid, proceed
+	}
+	
+	// FIX: Create client with timeout that respects context deadline (Root Cause #3)
+	client := s.getClientWithContextTimeout(ctx, s.client)
+	if client == nil {
+		return nil, fmt.Errorf("failed to create HTTP client: base client is nil")
+	}
+	
 	req, err := http.NewRequestWithContext(ctx, "GET", targetURL, nil)
 	if err != nil {
 		return nil, err
@@ -610,7 +681,7 @@ func (s *SimpleHTTPScraper) Scrape(ctx context.Context, targetURL string) (*Scra
 	// Basic headers
 	req.Header.Set("User-Agent", "Mozilla/5.0 (compatible; KYB-Bot/1.0)")
 
-	resp, err := s.client.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -644,7 +715,64 @@ func (s *BrowserHeadersScraper) Name() string {
 	return "browser_headers"
 }
 
+// getClientWithContextTimeout returns a client with timeout that respects context deadline
+// FIX: Root Cause #3 - Ensure client timeout <= context deadline
+func (s *BrowserHeadersScraper) getClientWithContextTimeout(ctx context.Context, baseClient *http.Client) *http.Client {
+	// Safety check: if baseClient is nil, return nil (shouldn't happen, but defensive)
+	if baseClient == nil {
+		s.logger.Warn("⚠️ [Phase1] Base client is nil in getClientWithContextTimeout")
+		return nil
+	}
+	
+	// Check if context is already expired
+	if ctx.Err() != nil {
+		s.logger.Warn("⚠️ [Phase1] Context already expired in getClientWithContextTimeout",
+			zap.Error(ctx.Err()))
+		return baseClient // Return base client, context cancellation will handle it
+	}
+	
+	// If context has no deadline, use base client as-is
+	if deadline, ok := ctx.Deadline(); ok {
+		timeRemaining := time.Until(deadline)
+		// If context is already expired or has very little time, use base client
+		if timeRemaining <= 0 {
+			return baseClient
+		}
+		// Add small buffer (500ms) to ensure context cancellation happens before client timeout
+		clientTimeout := timeRemaining - 500*time.Millisecond
+		if clientTimeout < 0 {
+			clientTimeout = 100 * time.Millisecond // Minimum timeout
+		}
+		// If calculated timeout is less than base client timeout, create new client
+		if clientTimeout < baseClient.Timeout {
+			return &http.Client{
+				Transport: baseClient.Transport,
+				Timeout:   clientTimeout,
+			}
+		}
+	}
+	// Use base client if context has no deadline or base timeout is already appropriate
+	return baseClient
+}
+
 func (s *BrowserHeadersScraper) Scrape(ctx context.Context, targetURL string) (*ScrapedContent, error) {
+	// Check if context is already cancelled
+	select {
+	case <-ctx.Done():
+		s.logger.Warn("⚠️ [Phase1] Context already cancelled before BrowserHeaders strategy",
+			zap.String("url", targetURL),
+			zap.Error(ctx.Err()))
+		return nil, ctx.Err()
+	default:
+		// Context is still valid, proceed
+	}
+	
+	// FIX: Create client with timeout that respects context deadline (Root Cause #3)
+	client := s.getClientWithContextTimeout(ctx, s.client)
+	if client == nil {
+		return nil, fmt.Errorf("failed to create HTTP client: base client is nil")
+	}
+	
 	req, err := http.NewRequestWithContext(ctx, "GET", targetURL, nil)
 	if err != nil {
 		return nil, err
@@ -659,7 +787,7 @@ func (s *BrowserHeadersScraper) Scrape(ctx context.Context, targetURL string) (*
 	req.Header.Set("Connection", "keep-alive")
 	req.Header.Set("Upgrade-Insecure-Requests", "1")
 
-	resp, err := s.client.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -705,7 +833,69 @@ func (s *PlaywrightScraper) Name() string {
 	return "playwright"
 }
 
+// getClientWithContextTimeout returns a client with timeout that respects context deadline
+// FIX: Root Cause #3 - Ensure client timeout <= context deadline
+func (s *PlaywrightScraper) getClientWithContextTimeout(ctx context.Context, baseClient *http.Client) *http.Client {
+	// Safety check: if baseClient is nil, return nil (shouldn't happen, but defensive)
+	if baseClient == nil {
+		s.logger.Warn("⚠️ [Phase1] Base client is nil in getClientWithContextTimeout")
+		return nil
+	}
+	
+	// Check if context is already expired
+	if ctx.Err() != nil {
+		s.logger.Warn("⚠️ [Phase1] Context already expired in getClientWithContextTimeout",
+			zap.Error(ctx.Err()))
+		return baseClient // Return base client, context cancellation will handle it
+	}
+	
+	// If context has no deadline, use base client as-is
+	if deadline, ok := ctx.Deadline(); ok {
+		timeRemaining := time.Until(deadline)
+		// If context is already expired or has very little time, use base client
+		if timeRemaining <= 0 {
+			return baseClient
+		}
+		// FIX: For Playwright, account for queue wait time (up to 25s) in timeout calculation
+		// Queue wait can be significant, so we need more buffer
+		// Add buffer (1s) to ensure context cancellation happens before client timeout
+		// But ensure we have at least 30s for queue wait (25s) + scrape start (5s)
+		const minPlaywrightTimeout = 30 * time.Second
+		clientTimeout := timeRemaining - 1*time.Second
+		if clientTimeout < minPlaywrightTimeout {
+			// If context doesn't have enough time, use minimum (will likely timeout, but try anyway)
+			clientTimeout = minPlaywrightTimeout
+		}
+		// If calculated timeout is less than base client timeout, create new client
+		if clientTimeout < baseClient.Timeout {
+			return &http.Client{
+				Transport: baseClient.Transport,
+				Timeout:   clientTimeout,
+			}
+		}
+	}
+	// Use base client if context has no deadline or base timeout is already appropriate
+	return baseClient
+}
+
 func (s *PlaywrightScraper) Scrape(ctx context.Context, targetURL string) (*ScrapedContent, error) {
+	// Check if context is already cancelled
+	select {
+	case <-ctx.Done():
+		s.logger.Warn("⚠️ [Phase1] Context already cancelled before Playwright strategy",
+			zap.String("url", targetURL),
+			zap.Error(ctx.Err()))
+		return nil, ctx.Err()
+	default:
+		// Context is still valid, proceed
+	}
+	
+	// FIX: Create client with timeout that respects context deadline (Root Cause #3)
+	client := s.getClientWithContextTimeout(ctx, s.client)
+	if client == nil {
+		return nil, fmt.Errorf("failed to create HTTP client: base client is nil")
+	}
+	
 	// Call Playwright service
 	reqBody, _ := json.Marshal(map[string]string{"url": targetURL})
 
@@ -715,7 +905,7 @@ func (s *PlaywrightScraper) Scrape(ctx context.Context, targetURL string) (*Scra
 	}
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := s.client.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -909,11 +1099,95 @@ func extractAboutSection(doc *html.Node) string {
 	aboutText := ""
 
 	// Strategy 1: Look for section/div with id/class containing "about"
-	aboutSection := findNodeWithIdentifier(doc, []string{"about", "about-us", "company", "who-we-are"})
+	identifiers := []string{"about", "about-us", "aboutus", "company", "who-we-are", "who-we-are", "our-story", "our-mission", "overview", "intro", "introduction"}
+	aboutSection := findNodeWithIdentifier(doc, identifiers)
 	if aboutSection != nil {
 		aboutText = extractText(aboutSection)
 		if len(aboutText) > 100 { // Substantial content
 			return aboutText
+		}
+	}
+
+	// Strategy 2: Look for headings containing "about" and extract following paragraphs
+	var foundAboutText string
+	var f func(*html.Node)
+	f = func(n *html.Node) {
+		if foundAboutText != "" {
+			return // Already found
+		}
+		if n.Type == html.ElementNode && (n.Data == "h1" || n.Data == "h2" || n.Data == "h3") {
+			headingText := strings.ToLower(extractText(n))
+			if strings.Contains(headingText, "about") || strings.Contains(headingText, "company") || strings.Contains(headingText, "who we are") {
+				// Found about heading, extract following content
+				next := n.NextSibling
+				content := []string{}
+				paragraphCount := 0
+				maxParagraphs := 5 // Limit to avoid grabbing too much
+				
+				for next != nil && paragraphCount < maxParagraphs {
+					if next.Type == html.ElementNode && (next.Data == "p" || next.Data == "div" || next.Data == "section") {
+						text := extractText(next)
+						text = strings.TrimSpace(text)
+						if len(text) > 20 { // Meaningful paragraph
+							content = append(content, text)
+							paragraphCount++
+						}
+					}
+					next = next.NextSibling
+				}
+				
+				if len(content) > 0 {
+					combined := strings.Join(content, " ")
+					if len(combined) > 100 {
+						foundAboutText = combined
+						return
+					}
+				}
+			}
+		}
+		
+		for c := n.FirstChild; c != nil; c = c.NextSibling {
+			f(c)
+		}
+	}
+	f(doc)
+	if foundAboutText != "" {
+		return foundAboutText
+	}
+
+	// Strategy 3: Look for main content area (article, main, or first large div)
+	mainContent := findNodeByTag(doc, "main")
+	if mainContent == nil {
+		mainContent = findNodeByTag(doc, "article")
+	}
+	if mainContent != nil {
+		text := extractText(mainContent)
+		// Take first 500 characters as about text if substantial
+		if len(text) > 200 {
+			// Find first paragraph or section
+			var extractFirstParagraph func(*html.Node) string
+			extractFirstParagraph = func(n *html.Node) string {
+				if n.Type == html.ElementNode && n.Data == "p" {
+					text := extractText(n)
+					if len(text) > 100 {
+						return text
+					}
+				}
+				for c := n.FirstChild; c != nil; c = c.NextSibling {
+					if result := extractFirstParagraph(c); result != "" {
+						return result
+					}
+				}
+				return ""
+			}
+			if para := extractFirstParagraph(mainContent); para != "" {
+				return para
+			}
+			// Fallback: return first 500 chars
+			if len(text) > 500 {
+				return text[:500]
+			}
+			return text
 		}
 	}
 
@@ -1208,6 +1482,63 @@ func (s *WebsiteScraper) detectBlocking(result *ScrapingResult) bool {
 // This is the enhanced method that uses multi-tier strategies and structured extraction
 func (s *WebsiteScraper) ScrapeWithStructuredContent(ctx context.Context, targetURL string) (*ScrapedContent, error) {
 	startTime := time.Now()
+	
+	// CRITICAL: Log immediately to verify function is being called with new code
+	s.logger.Info("🔍 [Phase1] ScrapeWithStructuredContent ENTRY",
+		zap.String("url", targetURL),
+		zap.Time("start_time", startTime),
+		zap.String("function", "ScrapeWithStructuredContent"))
+	
+	// IMMEDIATELY check context state - this must be first
+	ctxErr := ctx.Err()
+	s.logger.Info("🔍 [Phase1] [ContextCheck] Checking context state at function entry",
+		zap.String("url", targetURL),
+		zap.Any("context_err", ctxErr),
+		zap.Bool("context_cancelled", ctxErr != nil))
+	
+	if ctxErr != nil {
+		s.logger.Error("❌ [Phase1] Context already cancelled before scraping",
+			zap.String("url", targetURL),
+			zap.Error(ctxErr),
+			zap.String("error_type", fmt.Sprintf("%T", ctxErr)))
+		return nil, fmt.Errorf("context already cancelled: %w", ctxErr)
+	}
+	
+	// Log context deadline and HTTP client timeout for debugging
+	var contextDeadline time.Duration
+	var clientTimeout time.Duration
+	var hasDeadline bool
+	
+	if deadline, ok := ctx.Deadline(); ok {
+		hasDeadline = true
+		contextDeadline = time.Until(deadline)
+		s.logger.Info("⏱️ [Phase1] [ContextCheck] Context deadline check - HAS DEADLINE",
+			zap.String("url", targetURL),
+			zap.Duration("time_until_deadline", contextDeadline),
+			zap.Time("deadline", deadline),
+			zap.Time("current_time", time.Now()),
+			zap.Bool("context_valid", ctx.Err() == nil),
+			zap.String("deadline_string", deadline.Format(time.RFC3339Nano)))
+	} else {
+		hasDeadline = false
+		s.logger.Info("⏱️ [Phase1] [ContextCheck] Context deadline check - NO DEADLINE",
+			zap.String("url", targetURL),
+			zap.Bool("context_valid", ctx.Err() == nil))
+	}
+	
+	// Log HTTP client timeout for strategies
+	if s.client != nil {
+		clientTimeout = s.client.Timeout
+		s.logger.Info("⏱️ [Phase1] [HTTPClient] HTTP client timeout configuration",
+			zap.String("url", targetURL),
+			zap.Duration("client_timeout", clientTimeout),
+			zap.Duration("context_deadline", contextDeadline),
+			zap.Bool("has_context_deadline", hasDeadline),
+			zap.Bool("client_will_limit", clientTimeout > 0 && hasDeadline && clientTimeout < contextDeadline))
+	} else {
+		s.logger.Warn("⚠️ [Phase1] [HTTPClient] HTTP client is nil",
+			zap.String("url", targetURL))
+	}
 
 	// Validate URL
 	parsedURL, err := url.Parse(targetURL)
@@ -1246,10 +1577,53 @@ func (s *WebsiteScraper) ScrapeWithStructuredContent(ctx context.Context, target
 			zap.String("url", targetURL),
 			zap.Int("attempt", i+1))
 
+		// CRITICAL DEBUG: Log right before strategy call
+		s.logger.Info("🔍 [Phase1] [DEBUG] About to call strategy.Scrape()",
+			zap.String("strategy", strategy.Name()),
+			zap.String("url", targetURL))
+
 		content, err = strategy.Scrape(ctx, targetURL)
 		strategyDuration := time.Since(strategyStartTime)
 
-		if err == nil && content != nil && isContentValid(content) {
+		// CRITICAL DEBUG: Log immediately after strategy returns
+		var errorMsg string
+		if err != nil {
+			errorMsg = err.Error()
+		} else {
+			errorMsg = "none"
+		}
+		s.logger.Info("🔍 [Phase1] [DEBUG] Strategy.Scrape() returned",
+			zap.String("strategy", strategy.Name()),
+			zap.Bool("content_is_nil", content == nil),
+			zap.Bool("error_is_nil", err == nil),
+			zap.String("error", errorMsg),
+			zap.Duration("duration", strategyDuration))
+
+		// CRITICAL: Log immediately after strategy returns to verify execution path
+		s.logger.Info("🔍 [Phase1] [StrategyResult] Strategy returned",
+			zap.String("strategy", strategy.Name()),
+			zap.Bool("content_is_nil", content == nil),
+			zap.Bool("error_is_nil", err == nil),
+			zap.String("error_msg", errorMsg),
+			zap.Duration("duration", strategyDuration))
+
+		// Log detailed validation information
+		if content != nil {
+			s.logger.Info("📊 [Phase1] [Validation] Content received from strategy, logging validation details",
+				zap.String("strategy", strategy.Name()),
+				zap.Bool("content_is_nil", content == nil),
+				zap.Float64("quality_score", content.QualityScore),
+				zap.Int("word_count", content.WordCount))
+			logContentValidationDetails(s.logger, content, strategy.Name())
+		} else {
+			s.logger.Warn("⚠️ [Phase1] [Validation] Content is nil from strategy",
+				zap.String("strategy", strategy.Name()),
+				zap.Error(err))
+		}
+
+		// Use logging version for better debugging
+		isValid := content != nil && err == nil && isContentValidWithLogging(content, s.logger, strategy.Name())
+		if err == nil && content != nil && isValid {
 			s.logger.Info("✅ [Phase1] Strategy succeeded",
 				zap.String("strategy", strategy.Name()),
 				zap.Float64("quality_score", content.QualityScore),
@@ -1261,13 +1635,24 @@ func (s *WebsiteScraper) ScrapeWithStructuredContent(ctx context.Context, target
 
 		lastErr = err
 		qualityScore := 0.0
+		wordCount := 0
+		hasTitle := false
+		hasMetaDesc := false
 		if content != nil {
 			qualityScore = content.QualityScore
+			wordCount = content.WordCount
+			hasTitle = content.Title != ""
+			hasMetaDesc = content.MetaDesc != ""
 		}
 		s.logger.Warn("⚠️ [Phase1] Strategy failed, trying next",
 			zap.String("strategy", strategy.Name()),
 			zap.Error(err),
 			zap.Float64("quality_score", qualityScore),
+			zap.Int("word_count", wordCount),
+			zap.Bool("has_title", hasTitle),
+			zap.Bool("has_meta_desc", hasMetaDesc),
+			zap.Bool("meets_word_count", wordCount >= 50),
+			zap.Bool("meets_quality_threshold", qualityScore >= 0.5),
 			zap.Duration("strategy_duration_ms", strategyDuration))
 	}
 
@@ -1277,6 +1662,50 @@ func (s *WebsiteScraper) ScrapeWithStructuredContent(ctx context.Context, target
 		zap.Duration("total_duration_ms", time.Since(startTime)))
 
 	return nil, fmt.Errorf("all scraping strategies failed: %w", lastErr)
+}
+
+// logContentValidationDetails logs detailed validation information for debugging
+func logContentValidationDetails(logger *zap.Logger, content *ScrapedContent, strategyName string) {
+	logger.Info("🔍 [Phase1] [Validation] logContentValidationDetails ENTRY",
+		zap.String("strategy", strategyName),
+		zap.Bool("content_is_nil", content == nil))
+	
+	if content == nil {
+		logger.Warn("⚠️ [Phase1] [Validation] Content is nil",
+			zap.String("strategy", strategyName))
+		return
+	}
+	
+	// Log all content fields for debugging
+	logger.Info("📋 [Phase1] [Validation] Content fields",
+		zap.String("strategy", strategyName),
+		zap.String("title", content.Title),
+		zap.String("meta_desc", content.MetaDesc),
+		zap.Int("headings_count", len(content.Headings)),
+		zap.Int("nav_count", len(content.NavMenu)),
+		zap.String("about_text_preview", truncateString(content.AboutText, 100)),
+		zap.Int("products_count", len(content.ProductList)),
+		zap.String("contact_info_preview", truncateString(content.ContactInfo, 100)),
+		zap.Int("plain_text_length", len(content.PlainText)))
+	
+	logger.Info("🔍 [Phase1] [Validation] Content validation details",
+		zap.String("strategy", strategyName),
+		zap.Int("word_count", content.WordCount),
+		zap.Bool("has_title", content.Title != ""),
+		zap.Bool("has_meta_desc", content.MetaDesc != ""),
+		zap.Float64("quality_score", content.QualityScore),
+		zap.Bool("meets_word_count", content.WordCount >= 50),
+		zap.Bool("meets_metadata", content.Title != "" || content.MetaDesc != ""),
+		zap.Bool("meets_quality_threshold", content.QualityScore >= 0.5),
+		zap.Bool("is_valid", isContentValid(content)))
+}
+
+// truncateString truncates a string to a maximum length
+func truncateString(s string, maxLen int) string {
+	if len(s) <= maxLen {
+		return s
+	}
+	return s[:maxLen] + "..."
 }
 
 // isContentValid validates content quality before accepting it
@@ -1308,21 +1737,76 @@ func isContentValid(content *ScrapedContent) bool {
 	return true
 }
 
-// containsErrorIndicators checks if text contains error page indicators
-func containsErrorIndicators(text string) bool {
-	lowerText := strings.ToLower(text)
-	errorIndicators := []string{
-		"404", "not found", "page not found",
-		"403", "access denied", "forbidden",
-		"500", "internal server error",
-		"503", "service unavailable",
-		"error", "oops",
+// isContentValidWithLogging validates content quality and logs the reason for failure
+func isContentValidWithLogging(content *ScrapedContent, logger *zap.Logger, strategyName string) bool {
+	if content == nil {
+		logger.Debug("❌ [Phase1] [Validation] Content is nil")
+		return false
 	}
 
-	for _, indicator := range errorIndicators {
-		if strings.Contains(lowerText, indicator) {
+	// Minimum word count
+	if content.WordCount < 50 {
+		logger.Debug("❌ [Phase1] [Validation] Word count too low",
+			zap.Int("word_count", content.WordCount),
+			zap.Int("required", 50))
+		return false
+	}
+
+	// Must have basic metadata
+	if content.Title == "" && content.MetaDesc == "" {
+		logger.Debug("❌ [Phase1] [Validation] Missing title and meta description")
+		return false
+	}
+
+	// Check for error pages
+	if containsErrorIndicators(content.PlainText) {
+		logger.Debug("❌ [Phase1] [Validation] Contains error indicators",
+			zap.String("strategy", strategyName))
+		return false
+	}
+
+	// Quality score threshold
+	if content.QualityScore < 0.5 {
+		logger.Debug("❌ [Phase1] [Validation] Quality score too low",
+			zap.Float64("quality_score", content.QualityScore),
+			zap.Float64("required", 0.5))
+		return false
+	}
+
+	logger.Debug("✅ [Phase1] [Validation] Content is valid",
+		zap.String("strategy", strategyName),
+		zap.Int("word_count", content.WordCount),
+		zap.Float64("quality_score", content.QualityScore))
+	return true
+}
+
+// containsErrorIndicators checks if text contains error page indicators
+// Uses more specific patterns to avoid false positives (e.g., "error handling" is legitimate)
+func containsErrorIndicators(text string) bool {
+	lowerText := strings.ToLower(text)
+	
+	// More specific error patterns to avoid false positives
+	errorPatterns := []string{
+		"404", "not found", "page not found", "page cannot be found",
+		"403", "access denied", "forbidden",
+		"500", "internal server error", "500 error",
+		"503", "service unavailable", "503 error",
+		"oops! something went wrong",
+		"this page doesn't exist",
+		"the page you're looking for",
+		"we couldn't find that page",
+	}
+	
+	// Check for specific error patterns (not just "error" which is too broad)
+	for _, pattern := range errorPatterns {
+		if strings.Contains(lowerText, pattern) {
 			return true
 		}
+	}
+	
+	// Check for HTTP status codes at start of text (common in error pages)
+	if matched, _ := regexp.MatchString(`^(404|403|500|503|502|504)`, strings.TrimSpace(lowerText)); matched {
+		return true
 	}
 
 	return false

@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"regexp"
+	"runtime/debug"
 	"strings"
 	"sync"
 	"time"
@@ -413,15 +414,65 @@ func (h *ClassificationHandler) HandleClassification(w http.ResponseWriter, r *h
 		w.Header().Set("X-Cache", "MISS")
 	}
 	
-	// Create context with timeout (use OverallTimeout if available, otherwise RequestTimeout)
-	requestTimeout := h.config.Classification.RequestTimeout
-	if h.config.Classification.OverallTimeout > 0 {
-		requestTimeout = h.config.Classification.OverallTimeout
-	}
+	// Calculate adaptive timeout based on request characteristics (Hybrid Approach)
+	requestTimeout := h.calculateAdaptiveTimeout(&req)
 	
 	// Add request-scoped content cache to context
-	ctx, contentCache := reqcache.WithContentCache(r.Context())
+	// Use Background context if parent context is already expired or has insufficient time
+	// This prevents inheriting an expired or too-short timeout from the HTTP request
+	parentCtx := r.Context()
+	useBackground := false
+	
+	if parentCtx.Err() != nil {
+		h.logger.Warn("Parent context already expired, using Background context",
+			zap.String("request_id", req.RequestID),
+			zap.Error(parentCtx.Err()))
+		useBackground = true
+	} else if deadline, hasDeadline := parentCtx.Deadline(); hasDeadline {
+		timeRemaining := time.Until(deadline)
+		// If parent context has less time than our calculated timeout, use Background
+		// Add 5s buffer to account for overhead
+		if timeRemaining < requestTimeout+5*time.Second {
+			h.logger.Warn("Parent context has insufficient time, using Background context",
+				zap.String("request_id", req.RequestID),
+				zap.Duration("time_remaining", timeRemaining),
+				zap.Duration("request_timeout", requestTimeout),
+				zap.Duration("required", requestTimeout+5*time.Second))
+			useBackground = true
+		} else {
+			h.logger.Info("Parent context has sufficient time, using parent context",
+				zap.String("request_id", req.RequestID),
+				zap.Duration("time_remaining", timeRemaining),
+				zap.Duration("request_timeout", requestTimeout))
+		}
+	} else {
+		// No deadline on parent context, safe to use
+		h.logger.Info("Parent context has no deadline, using parent context",
+			zap.String("request_id", req.RequestID),
+			zap.Duration("request_timeout", requestTimeout))
+	}
+	
+	if useBackground {
+		parentCtx = context.Background()
+	}
+	
+	// PROFILING: Track time at context creation
+	contextCreationStart := time.Now()
+	
+	ctx, contentCache := reqcache.WithContentCache(parentCtx)
 	ctx, cancel := context.WithTimeout(ctx, requestTimeout)
+	
+	contextCreationDuration := time.Since(contextCreationStart)
+	
+	// Log created context state
+	if deadline, hasDeadline := ctx.Deadline(); hasDeadline {
+		timeRemaining := time.Until(deadline)
+		h.logger.Info("Created context with timeout",
+			zap.String("request_id", req.RequestID),
+			zap.Duration("time_remaining", timeRemaining),
+			zap.Duration("context_creation_duration", contextCreationDuration),
+			zap.Duration("request_timeout", requestTimeout))
+	}
 	defer cancel()
 	
 	// Store cache reference for later use (if needed)
@@ -969,10 +1020,25 @@ func (h *ClassificationHandler) sendStreamError(flusher http.Flusher, message st
 
 // processClassification processes a classification request
 func (h *ClassificationHandler) processClassification(ctx context.Context, req *ClassificationRequest, startTime time.Time) (*ClassificationResponse, error) {
+	// FIX: Add panic recovery to prevent HTTP 500 errors from unhandled panics
+	defer func() {
+		if r := recover(); r != nil {
+			h.logger.Error("Panic recovered in processClassification",
+				zap.String("request_id", req.RequestID),
+				zap.Any("panic", r),
+				zap.String("stack", string(debug.Stack())))
+		}
+	}()
+	
 	// Generate enhanced classification using actual classification services
 	enhancedResult, err := h.generateEnhancedClassification(ctx, req)
 	if err != nil {
 		return nil, fmt.Errorf("classification failed: %w", err)
+	}
+	
+	// FIX: Defensive check for enhancedResult to prevent nil pointer dereference
+	if enhancedResult == nil {
+		return nil, fmt.Errorf("classification returned nil result")
 	}
 
 	// Convert enhanced result to response format
@@ -1635,6 +1701,15 @@ type WebsiteAnalysisData struct {
 
 // generateEnhancedClassification generates enhanced classification using actual classification services
 func (h *ClassificationHandler) generateEnhancedClassification(ctx context.Context, req *ClassificationRequest) (*EnhancedClassificationResult, error) {
+	// PROFILING: Track time at function entry
+	funcStartTime := time.Now()
+	if deadline, hasDeadline := ctx.Deadline(); hasDeadline {
+		timeRemaining := time.Until(deadline)
+		h.logger.Info("⏱️ [PROFILING] generateEnhancedClassification entry",
+			zap.String("request_id", req.RequestID),
+			zap.Duration("time_remaining", timeRemaining))
+	}
+	
 	// Check if classification services are initialized
 	if h.industryDetector == nil {
 		h.logger.Error("Industry detector is nil - classification services not initialized",
@@ -1663,7 +1738,28 @@ func (h *ClassificationHandler) generateEnhancedClassification(ctx context.Conte
 	// Extract keywords from database/repository (most comprehensive method)
 	// Use ClassifyBusiness which returns keywords as part of the result
 	if h.keywordRepo != nil {
+		// PROFILING: Track time before ClassifyBusiness
+		classifyStartTime := time.Now()
+		if deadline, hasDeadline := ctx.Deadline(); hasDeadline {
+			timeRemaining := time.Until(deadline)
+			h.logger.Info("⏱️ [PROFILING] Before ClassifyBusiness",
+				zap.String("request_id", req.RequestID),
+				zap.Duration("time_remaining", timeRemaining),
+				zap.Duration("elapsed_since_func_start", time.Since(funcStartTime)))
+		}
+		
 		classifyResult, err := h.keywordRepo.ClassifyBusiness(ctx, req.BusinessName, req.WebsiteURL)
+		
+		// PROFILING: Track time after ClassifyBusiness
+		classifyDuration := time.Since(classifyStartTime)
+		if deadline, hasDeadline := ctx.Deadline(); hasDeadline {
+			timeRemaining := time.Until(deadline)
+			h.logger.Info("⏱️ [PROFILING] After ClassifyBusiness",
+				zap.String("request_id", req.RequestID),
+				zap.Duration("time_remaining", timeRemaining),
+				zap.Duration("classify_duration", classifyDuration),
+				zap.Duration("elapsed_since_func_start", time.Since(funcStartTime)))
+		}
 		if err == nil && classifyResult != nil && len(classifyResult.Keywords) > 0 {
 			classificationCtx.SetKeywords(classifyResult.Keywords)
 			h.logger.Info("Keywords extracted from repository and stored in context",
@@ -1868,13 +1964,21 @@ func (h *ClassificationHandler) runPythonMLClassification(ctx context.Context, p
 		// Use full enhanced classification
 		enhancedResp, err = pms.ClassifyEnhanced(ctx, enhancedReq)
 	}
-	if err != nil || enhancedResp == nil || !enhancedResp.Success {
+	// FIX: Add defensive checks to prevent nil pointer dereference (HTTP 500 errors)
+	if err != nil {
 		return nil, fmt.Errorf("Python ML classification failed: %w", err)
 	}
+	if enhancedResp == nil {
+		return nil, fmt.Errorf("Python ML classification returned nil response")
+	}
+	if !enhancedResp.Success {
+		return nil, fmt.Errorf("Python ML classification failed: success=false")
+	}
 	
-	// Get primary industry from classifications array
+	// FIX: Defensive check for Classifications array to prevent index out of range
 	primaryIndustry := "Unknown"
-	if len(enhancedResp.Classifications) > 0 {
+	if enhancedResp.Classifications != nil && len(enhancedResp.Classifications) > 0 {
+		// ClassificationPrediction is a struct, not a pointer, so we can access it directly
 		primaryIndustry = enhancedResp.Classifications[0].Label
 	}
 	
@@ -1912,6 +2016,13 @@ func (h *ClassificationHandler) runPythonMLClassification(ctx context.Context, p
 // runGoClassification runs Go-based classification (industry detection + code generation)
 // classificationCtx is optional - if provided, keywords will be reused from it
 func (h *ClassificationHandler) runGoClassification(ctx context.Context, req *ClassificationRequest, classificationCtx *classification.ClassificationContext) (*EnhancedClassificationResult, error) {
+	// FIX: Defensive check for industryDetector to prevent nil pointer dereference
+	if h.industryDetector == nil {
+		h.logger.Error("Industry detector is nil in runGoClassification",
+			zap.String("request_id", req.RequestID))
+		return nil, fmt.Errorf("industry detector is nil")
+	}
+	
 	// Step 1: Detect industry using IndustryDetectionService
 	h.logger.Info("Starting industry detection",
 		zap.String("request_id", req.RequestID),
@@ -1921,11 +2032,16 @@ func (h *ClassificationHandler) runGoClassification(ctx context.Context, req *Cl
 	industryResult, err := h.industryDetector.DetectIndustry(ctx, req.BusinessName, req.Description, req.WebsiteURL)
 	
 	// OPTIMIZATION #13: Store keywords in shared context for reuse
+	// FIX: Add defensive check for industryResult.Keywords to prevent nil pointer dereference
 	if classificationCtx != nil && industryResult != nil {
-		classificationCtx.SetKeywords(industryResult.Keywords)
+		keywords := industryResult.Keywords
+		if keywords == nil {
+			keywords = []string{} // Use empty slice instead of nil
+		}
+		classificationCtx.SetKeywords(keywords)
 		h.logger.Info("Stored keywords in shared context for reuse",
 			zap.String("request_id", req.RequestID),
-			zap.Int("keywords_count", len(industryResult.Keywords)))
+			zap.Int("keywords_count", len(keywords)))
 	}
 	if err != nil {
 		h.logger.Error("Industry detection failed",
@@ -2805,35 +2921,97 @@ func (h *ClassificationHandler) HandleHealth(w http.ResponseWriter, r *http.Requ
 	var mlServiceStatus map[string]interface{}
 	if h.pythonMLService != nil {
 		// Type assert to get PythonMLService
-		if pms, ok := h.pythonMLService.(*infrastructure.PythonMLService); ok {
-			// Get circuit breaker state and metrics
-			cbState := pms.GetCircuitBreakerState()
-			cbMetrics := pms.GetCircuitBreakerMetrics()
+		if pms, ok := h.pythonMLService.(*infrastructure.PythonMLService); ok && pms != nil {
+			// Safely get circuit breaker state and metrics with nil checks
+			var cbState interface{}
+			var cbMetrics interface{}
+			var cbStateErr error
+			var cbMetricsErr error
+			
+			// Use recover to handle potential panics from nil circuit breaker
+			func() {
+				defer func() {
+					if r := recover(); r != nil {
+						cbStateErr = fmt.Errorf("circuit breaker not initialized: %v", r)
+					}
+				}()
+				cbState = pms.GetCircuitBreakerState()
+			}()
+			
+			func() {
+				defer func() {
+					if r := recover(); r != nil {
+						cbMetricsErr = fmt.Errorf("circuit breaker metrics not available: %v", r)
+					}
+				}()
+				cbMetrics = pms.GetCircuitBreakerMetrics()
+			}()
 			
 			// Try to get health with circuit breaker info (with timeout)
 			healthCtx, healthCancel := context.WithTimeout(ctx, 3*time.Second)
 			defer healthCancel()
 			
-			cbHealth, err := pms.HealthCheckWithCircuitBreaker(healthCtx)
+			var cbHealth interface{}
+			var healthErr error
+			
+			// Safely call HealthCheckWithCircuitBreaker with panic recovery
+			func() {
+				defer func() {
+					if r := recover(); r != nil {
+						healthErr = fmt.Errorf("health check panic: %v", r)
+					}
+				}()
+				cbHealth, healthErr = pms.HealthCheckWithCircuitBreaker(healthCtx)
+			}()
+			
+			// Build mlServiceStatus safely
 			mlServiceStatus = map[string]interface{}{
 				"available": true,
-				"circuit_breaker_state": cbState.String(),
-				"circuit_breaker_metrics": map[string]interface{}{
-					"state":              cbMetrics.State,
-					"failure_count":      cbMetrics.FailureCount,
-					"success_count":      cbMetrics.SuccessCount,
-					"state_change_time":  cbMetrics.StateChangeTime,
-					"last_failure_time":  cbMetrics.LastFailureTime,
-					"total_requests":    cbMetrics.TotalRequests,
-					"rejected_requests": cbMetrics.RejectedRequests,
-				},
 			}
-			if err == nil && cbHealth != nil {
-				// cbHealth is already *infrastructure.HealthStatus, no type assertion needed
-				mlServiceStatus["health_status"] = cbHealth.Status
-				mlServiceStatus["health_checks"] = cbHealth.Checks
-			} else if err != nil {
-				mlServiceStatus["health_check_error"] = err.Error()
+			
+			// Add circuit breaker state if available
+			if cbStateErr == nil && cbState != nil {
+				if stateStr, ok := cbState.(fmt.Stringer); ok {
+					mlServiceStatus["circuit_breaker_state"] = stateStr.String()
+				} else {
+					mlServiceStatus["circuit_breaker_state"] = fmt.Sprintf("%v", cbState)
+				}
+			} else if cbStateErr != nil {
+				mlServiceStatus["circuit_breaker_state_error"] = cbStateErr.Error()
+				mlServiceStatus["circuit_breaker_state"] = "unavailable"
+			}
+			
+			// Add circuit breaker metrics if available
+			if cbMetricsErr == nil && cbMetrics != nil {
+				// Type assert to CircuitBreakerMetrics
+				if metrics, ok := cbMetrics.(infrastructure.CircuitBreakerMetrics); ok {
+					mlServiceStatus["circuit_breaker_metrics"] = map[string]interface{}{
+						"state":              metrics.State,
+						"failure_count":      metrics.FailureCount,
+						"success_count":      metrics.SuccessCount,
+						"state_change_time":  metrics.StateChangeTime,
+						"last_failure_time":  metrics.LastFailureTime,
+						"total_requests":     metrics.TotalRequests,
+						"rejected_requests":  metrics.RejectedRequests,
+					}
+				} else {
+					// Fallback: just include the metrics as-is
+					mlServiceStatus["circuit_breaker_metrics"] = cbMetrics
+				}
+			} else if cbMetricsErr != nil {
+				mlServiceStatus["circuit_breaker_metrics_error"] = cbMetricsErr.Error()
+			}
+			
+			// Add health check result if available
+			if healthErr == nil && cbHealth != nil {
+				if healthStatus, ok := cbHealth.(*infrastructure.HealthStatus); ok {
+					mlServiceStatus["health_status"] = healthStatus.Status
+					mlServiceStatus["health_checks"] = healthStatus.Checks
+				} else {
+					mlServiceStatus["health_status"] = fmt.Sprintf("%v", cbHealth)
+				}
+			} else if healthErr != nil {
+				mlServiceStatus["health_check_error"] = healthErr.Error()
 			}
 		} else {
 			mlServiceStatus = map[string]interface{}{
@@ -2880,4 +3058,88 @@ func (h *ClassificationHandler) HandleHealth(w http.ResponseWriter, r *http.Requ
 
 	w.WriteHeader(statusCode)
 	json.NewEncoder(w).Encode(health)
+}
+
+// calculateAdaptiveTimeout calculates an adaptive timeout based on request characteristics
+// Implements Hybrid Approach: combines budget allocation with adaptive timeout strategy
+func (h *ClassificationHandler) calculateAdaptiveTimeout(req *ClassificationRequest) time.Duration {
+	// Base timeout from config (use OverallTimeout if available, otherwise RequestTimeout)
+	baseTimeout := h.config.Classification.RequestTimeout
+	if h.config.Classification.OverallTimeout > 0 {
+		baseTimeout = h.config.Classification.OverallTimeout
+	}
+	
+	// Timeout budget allocation for different operations
+	const (
+		phase1ScrapingBudget    = 15 * time.Second // Phase 1 scraper: 15s (reduced for faster fallback)
+		multiPageAnalysisBudget = 10 * time.Second // Multi-page analysis: 10s (capped)
+		// FIX: Index building now has 5-minute TTL cache - first call: 10-30s, subsequent calls: <1ms (cache hit)
+		indexBuildingBudget     = 30 * time.Second // Keyword index building: 30s (first call, cached for 5min)
+		goClassificationBudget  = 5 * time.Second
+		mlClassificationBudget  = 10 * time.Second
+		riskAssessmentBudget    = 5 * time.Second
+		generalOverhead         = 5 * time.Second
+	)
+	
+	// Determine if we need long-running operations
+	needsWebsiteScraping := req.WebsiteURL != "" && req.WebsiteURL != "N/A"
+	
+	// Calculate required timeout based on operation needs
+	var requiredTimeout time.Duration
+	
+	if needsWebsiteScraping {
+		// Website scraping needed - allocate budget for Phase 1 scraper
+		// Budget breakdown:
+		// - Index building: 30s (first call can take 10-30s, happens before extractKeywords)
+		// - Phase 1 scraping: 15s (reduced for faster fallback to legacy methods)
+		// - Multi-page analysis: 10s (capped, may be skipped if insufficient time)
+		// - Go classification: 5s
+		// - ML classification: 10s (optional, may be skipped)
+		// - Risk assessment: 5s (parallel, doesn't add to total)
+		// - General overhead: 5s
+		// FIX: Add budget for index building (30s) - this happens synchronously before extractKeywords
+		// FIX: Add budget for multi-page analysis (10s) to prevent context expiration
+		requiredTimeout = indexBuildingBudget + phase1ScrapingBudget + multiPageAnalysisBudget + goClassificationBudget + mlClassificationBudget + generalOverhead
+		
+		h.logger.Info("Adaptive timeout: website scraping detected",
+			zap.String("request_id", req.RequestID),
+			zap.String("website_url", req.WebsiteURL),
+			zap.Duration("calculated_timeout", requiredTimeout),
+			zap.Duration("base_timeout", baseTimeout))
+	} else {
+		// Simple request without website scraping
+		// Budget breakdown:
+		// - Index building: 30s (first call can take 10-30s, happens before classification)
+		// - Go classification: 5s
+		// - ML classification: 10s (optional)
+		// - General overhead: 5s
+		// FIX: Add budget for index building even for simple requests
+		requiredTimeout = indexBuildingBudget + goClassificationBudget + mlClassificationBudget + generalOverhead
+		
+		h.logger.Info("Adaptive timeout: simple request (no website scraping)",
+			zap.String("request_id", req.RequestID),
+			zap.Duration("calculated_timeout", requiredTimeout),
+			zap.Duration("base_timeout", baseTimeout))
+	}
+	
+	// FIX: Use the calculated requiredTimeout when it's determined
+	// The adaptive timeout calculation allocates budget for specific operations
+	// We should use this calculated value, not the base timeout
+	// Only use baseTimeout if requiredTimeout wasn't calculated (shouldn't happen, but safety check)
+	if requiredTimeout > 0 {
+		if requiredTimeout != baseTimeout {
+			h.logger.Info("Using adaptive timeout calculation",
+				zap.String("request_id", req.RequestID),
+				zap.Duration("calculated_timeout", requiredTimeout),
+				zap.Duration("base_timeout", baseTimeout),
+				zap.Bool("needs_scraping", needsWebsiteScraping))
+		}
+		return requiredTimeout
+	}
+	
+	// Fallback to baseTimeout if requiredTimeout wasn't calculated (shouldn't happen)
+	h.logger.Warn("Required timeout not calculated, using base timeout",
+		zap.String("request_id", req.RequestID),
+		zap.Duration("base_timeout", baseTimeout))
+	return baseTimeout
 }

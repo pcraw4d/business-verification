@@ -884,6 +884,9 @@ func (pms *PythonMLService) ResetCircuitBreaker() {
 
 // GetCircuitBreakerState returns the current circuit breaker state
 func (pms *PythonMLService) GetCircuitBreakerState() resilience.CircuitState {
+	if pms == nil || pms.circuitBreaker == nil {
+		return resilience.CircuitOpen // Return safe default if not initialized
+	}
 	return pms.circuitBreaker.GetState()
 }
 
@@ -900,6 +903,19 @@ type CircuitBreakerMetrics struct {
 
 // GetCircuitBreakerMetrics returns comprehensive metrics about the circuit breaker
 func (pms *PythonMLService) GetCircuitBreakerMetrics() CircuitBreakerMetrics {
+	if pms == nil || pms.circuitBreaker == nil {
+		// Return empty metrics if circuit breaker not initialized
+		return CircuitBreakerMetrics{
+			State:            "unavailable",
+			FailureCount:     0,
+			SuccessCount:     0,
+			StateChangeTime:  time.Time{},
+			LastFailureTime:  time.Time{},
+			TotalRequests:    0,
+			RejectedRequests: 0,
+		}
+	}
+	
 	stats := pms.circuitBreaker.GetStats()
 	
 	pms.mu.RLock()

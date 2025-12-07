@@ -23,13 +23,12 @@ RUN go mod download
 # the root directory in Railway dashboard to be the repo root
 COPY internal/ ./internal/
 
-# Copy pkg/ directory (create empty directory first as fallback)
-# Note: COPY will fail if pkg/ doesn't exist, so we ensure it exists first
-RUN mkdir -p ./pkg
+# Copy pkg/ directory
+# Note: pkg directory exists in the repo, so we copy it directly
 # Copy pkg directory but exclude the conflicting errors/api_errors.go file
 # This avoids the WriteError function conflict between api_errors.go and response.go
-COPY pkg ./pkg
-RUN rm -f ./pkg/errors/api_errors.go || true
+COPY pkg/ ./pkg/
+RUN rm -f ./pkg/errors/api_errors.go 2>/dev/null || true
 
 # Copy service-specific source code
 COPY services/classification-service/cmd/ ./services/classification-service/cmd/

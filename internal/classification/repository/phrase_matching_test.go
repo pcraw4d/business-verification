@@ -1,7 +1,9 @@
 package repository
 
 import (
+	"context"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -103,10 +105,12 @@ func TestTask2_3_1_PhraseMatchingIntegration(t *testing.T) {
 	repo := NewSupabaseKeywordRepositoryWithInterface(mockClient, nil)
 
 	t.Run("extractKeywords with phrase extraction", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
 		// Extract keywords from business name only (description removed for security)
 		// Note: Business name keywords are only extracted for brand matches in MCC 3000-3831
 		// For non-brand matches, only website content keywords are extracted
-		keywords := repo.extractKeywords("Mario's Italian Bistro", "")
+		keywords := repo.extractKeywords(ctx, "Mario's Italian Bistro", "")
 
 		// Convert to keyword strings for easier checking
 		keywordStrings := make([]string, len(keywords))
@@ -122,9 +126,11 @@ func TestTask2_3_1_PhraseMatchingIntegration(t *testing.T) {
 	})
 
 	t.Run("phrase matching with business classification", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
 		// Test with restaurant business (description removed for security)
 		// Note: Business name keywords only extracted for brand matches in MCC 3000-3831
-		keywords := repo.extractKeywords("McDonald's", "")
+		keywords := repo.extractKeywords(ctx, "McDonald's", "")
 
 		// Convert to keyword strings for easier checking
 		keywordStrings := make([]string, len(keywords))
@@ -140,9 +146,11 @@ func TestTask2_3_1_PhraseMatchingIntegration(t *testing.T) {
 	})
 
 	t.Run("phrase matching with technology business", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
 		// Test with technology business (description removed for security)
 		// Note: Business name keywords only extracted for brand matches in MCC 3000-3831
-		keywords := repo.extractKeywords("TechCorp Solutions", "")
+		keywords := repo.extractKeywords(ctx, "TechCorp Solutions", "")
 
 		// Convert to keyword strings for easier checking
 		keywordStrings := make([]string, len(keywords))
@@ -204,13 +212,17 @@ func TestTask2_3_1_PhraseMatchingEdgeCases(t *testing.T) {
 	repo := NewSupabaseKeywordRepositoryWithInterface(mockClient, nil)
 
 	t.Run("empty text", func(t *testing.T) {
-		keywords := repo.extractKeywords("", "")
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		keywords := repo.extractKeywords(ctx, "", "")
 		assert.Empty(t, keywords)
 	})
 
 	t.Run("single word", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
 		// Note: Business name keywords only extracted for brand matches in MCC 3000-3831
-		keywords := repo.extractKeywords("restaurant", "")
+		keywords := repo.extractKeywords(ctx, "restaurant", "")
 		// Convert to keyword strings for easier checking
 		keywordStrings := make([]string, len(keywords))
 		for i, kw := range keywords {
@@ -223,8 +235,10 @@ func TestTask2_3_1_PhraseMatchingEdgeCases(t *testing.T) {
 	})
 
 	t.Run("text with special characters", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
 		// Note: Business name keywords only extracted for brand matches in MCC 3000-3831
-		keywords := repo.extractKeywords("Café & Bistro", "")
+		keywords := repo.extractKeywords(ctx, "Café & Bistro", "")
 		// Convert to keyword strings for easier checking
 		keywordStrings := make([]string, len(keywords))
 		for i, kw := range keywords {
@@ -237,8 +251,10 @@ func TestTask2_3_1_PhraseMatchingEdgeCases(t *testing.T) {
 	})
 
 	t.Run("text with numbers", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
 		// Note: Business name keywords only extracted for brand matches in MCC 3000-3831
-		keywords := repo.extractKeywords("24/7 Fitness", "")
+		keywords := repo.extractKeywords(ctx, "24/7 Fitness", "")
 		// Convert to keyword strings for easier checking
 		keywordStrings := make([]string, len(keywords))
 		for i, kw := range keywords {
@@ -251,8 +267,10 @@ func TestTask2_3_1_PhraseMatchingEdgeCases(t *testing.T) {
 	})
 
 	t.Run("text with very long phrases", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
 		// Test with website URL (description removed for security)
-		keywords := repo.extractKeywords("", "https://example.com")
+		keywords := repo.extractKeywords(ctx, "", "https://example.com")
 		// Convert to keyword strings for easier checking
 		keywordStrings := make([]string, len(keywords))
 		for i, kw := range keywords {
@@ -310,9 +328,11 @@ func TestTask2_3_1_PhraseMatchingBusinessScenarios(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
 			// Note: Business name keywords only extracted for brand matches in MCC 3000-3831
 			// Description processing was removed for security
-			keywords := repo.extractKeywords(tc.businessName, "")
+			keywords := repo.extractKeywords(ctx, tc.businessName, "")
 
 			// Convert to keyword strings for easier checking
 			keywordStrings := make([]string, len(keywords))

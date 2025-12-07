@@ -58,7 +58,9 @@ func main() {
 
 	logger.Info("✅ Configuration loaded successfully",
 		zap.String("port", cfg.Server.Port),
-		zap.String("supabase_url", cfg.Supabase.URL))
+		zap.String("supabase_url", cfg.Supabase.URL),
+		zap.Duration("read_timeout", cfg.Server.ReadTimeout),
+		zap.Duration("write_timeout", cfg.Server.WriteTimeout))
 
 	// Initialize Supabase client
 	supabaseClient, err := supabase.NewClient(&cfg.Supabase, logger)

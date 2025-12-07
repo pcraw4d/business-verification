@@ -20,6 +20,45 @@ services:
     networks:
       - kyb-network
 
+  # Playwright Scraper Service (Phase 1)
+  playwright-scraper:
+    build:
+      context: ./services/playwright-scraper
+      dockerfile: Dockerfile
+    container_name: kyb-playwright-local
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "-O",
+          "/dev/null",
+          "http://localhost:3000/health",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+    ulimits:
+      nproc: 64
+      nofile: 1024
+    networks:
+      - kyb-network
+    restart: unless-stopped
+
   # Classification Service
   classification-service:
     build:
@@ -35,15 +74,28 @@ services:
       - ENVIRONMENT=local
       - LOG_LEVEL=debug
       - SUPABASE_URL=${SUPABASE_URL}
-      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      - SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwcWh1cXFta2p4c2x0enNoZmFtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ4NzQ4MzEsImV4cCI6MjA3MDQ1MDgzMX0.UelJkQAVf-XJz1UV0Rbyi-hZHADGOdsHo1PwcPf7JVI
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
       - DATABASE_URL=${DATABASE_URL}
       - REDIS_URL=redis://redis-cache:6379
+      # Phase 1: Playwright Service URL (use Docker service name for internal communication)
+      - PLAYWRIGHT_SERVICE_URL=http://playwright-scraper:3000
     depends_on:
       redis-cache:
         condition: service_healthy
+      playwright-scraper:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "-O", "/dev/null", "http://localhost:8081/health"]
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "-O",
+          "/dev/null",
+          "http://localhost:8081/health",
+        ]
       interval: 30s
       timeout: 15s
       retries: 5
@@ -81,7 +133,16 @@ services:
       redis-cache:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "-O", "/dev/null", "http://localhost:8080/health"]
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "-O",
+          "/dev/null",
+          "http://localhost:8080/health",
+        ]
       interval: 30s
       timeout: 15s
       retries: 5
@@ -105,7 +166,7 @@ services:
       - ENVIRONMENT=local
       - LOG_LEVEL=debug
       - SUPABASE_URL=${SUPABASE_URL}
-      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      - SUPABASE_ANON_KEY=${SUPABASE_API_KEY}
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
       - DATABASE_URL=${DATABASE_URL}
       - REDIS_URL=redis://redis-cache:6379
@@ -113,7 +174,16 @@ services:
       redis-cache:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "-O", "/dev/null", "http://localhost:8080/health"]
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "-O",
+          "/dev/null",
+          "http://localhost:8080/health",
+        ]
       interval: 30s
       timeout: 15s
       retries: 5
@@ -136,7 +206,7 @@ services:
       - ENVIRONMENT=local
       - LOG_LEVEL=debug
       - SUPABASE_URL=${SUPABASE_URL}
-      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      - SUPABASE_ANON_KEY=${SUPABASE_API_KEY}
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
       - SUPABASE_JWT_SECRET=${SUPABASE_JWT_SECRET}
       # Service URLs - use Docker service names for internal communication
@@ -162,7 +232,16 @@ services:
       risk-assessment-service:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "-O", "/dev/null", "http://localhost:8080/health"]
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "-O",
+          "/dev/null",
+          "http://localhost:8080/health",
+        ]
       interval: 30s
       timeout: 15s
       retries: 5
@@ -170,7 +249,6 @@ services:
     networks:
       - kyb-network
     restart: unless-stopped
-
   # Frontend Service
   frontend:
     build:
@@ -189,7 +267,16 @@ services:
       api-gateway:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "-O", "/dev/null", "http://localhost:8080/health"]
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "-O",
+          "/dev/null",
+          "http://localhost:8080/health",
+        ]
       interval: 30s
       timeout: 15s
       retries: 5
@@ -206,4 +293,3 @@ networks:
 volumes:
   redis-data:
     name: kyb-redis-data
-

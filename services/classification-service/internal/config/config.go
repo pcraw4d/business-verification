@@ -82,7 +82,7 @@ func Load() (*Config, error) {
 		Server: ServerConfig{
 			Port:         getEnvAsString("PORT", "8081"),
 			Host:         getEnvAsString("HOST", "0.0.0.0"),
-			ReadTimeout:  getEnvAsDuration("READ_TIMEOUT", 30*time.Second),
+			ReadTimeout:  getEnvAsDuration("READ_TIMEOUT", 60*time.Second), // Increased to 60s to accommodate adaptive timeout (45s for scraping + overhead)
 			WriteTimeout: getEnvAsDuration("WRITE_TIMEOUT", 120*time.Second), // Increased to 120s for long-running classifications
 			IdleTimeout:  getEnvAsDuration("IDLE_TIMEOUT", 60*time.Second),
 		},

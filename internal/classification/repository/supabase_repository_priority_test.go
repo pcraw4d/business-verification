@@ -48,7 +48,9 @@ func TestExtractKeywords_PriorityOrder(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			keywords := repo.extractKeywords(tt.businessName, tt.websiteURL)
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+			keywords := repo.extractKeywords(ctx, tt.businessName, tt.websiteURL)
 
 			// Check if website keywords are present
 			hasWebsiteKeywords := false
@@ -127,7 +129,9 @@ func TestExtractKeywords_BrandMatch(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			keywords := repo.extractKeywords(tt.businessName, tt.websiteURL)
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+			keywords := repo.extractKeywords(ctx, tt.businessName, tt.websiteURL)
 
 			hasBusinessKeywords := false
 			for _, kw := range keywords {
@@ -157,7 +161,9 @@ func TestExtractKeywords_NonBrandMatch(t *testing.T) {
 
 	for _, businessName := range nonBrandNames {
 		t.Run(businessName, func(t *testing.T) {
-			keywords := repo.extractKeywords(businessName, "https://example.com")
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+			keywords := repo.extractKeywords(ctx, businessName, "https://example.com")
 
 			// Should not have business_name keywords for non-brand matches
 			for _, kw := range keywords {
@@ -278,7 +284,9 @@ func TestMultiPageAnalysis_Fallback(t *testing.T) {
 	}
 
 	// Test that extractKeywords handles fallback correctly
-	allKeywords := repo.extractKeywords("Test Business", invalidURL)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	allKeywords := repo.extractKeywords(ctx, "Test Business", invalidURL)
 
 	// Should have some keywords from fallback chain (URL text extraction)
 	if len(allKeywords) == 0 {

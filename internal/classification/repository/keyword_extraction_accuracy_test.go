@@ -67,7 +67,7 @@ func TestKeywordExtractionAccuracy_Phase10_4(t *testing.T) {
 			defer cancel()
 
 			// Extract keywords
-			keywords := repo.extractKeywords(tc.businessName, tc.websiteURL)
+			keywords := repo.extractKeywords(ctx, tc.businessName, tc.websiteURL)
 
 			// Verify minimum keyword count
 			if len(keywords) < tc.minKeywordCount {
@@ -158,7 +158,9 @@ func TestKeywordExtractionAccuracy_Comparison(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			keywords := repo.extractKeywords(tc.businessName, tc.websiteURL)
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+			keywords := repo.extractKeywords(ctx, tc.businessName, tc.websiteURL)
 
 			// Verify improvement: should extract more keywords than before
 			if len(keywords) < tc.expectedMinKeywords {
