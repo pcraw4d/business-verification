@@ -53,12 +53,12 @@ RUN go mod download
 # Copy the rest of the source code
 COPY . .
 
-# Copy startup script to a known location in builder stage
-# Try both possible locations depending on build context
+# Ensure startup script is executable if it exists
+# When root directory is services/risk-assessment-service, startup_debug.sh is already in /app
 RUN if [ -f ./startup_debug.sh ]; then \
-    cp ./startup_debug.sh /app/startup_debug.sh && chmod +x /app/startup_debug.sh; \
-    elif [ -f ../startup_debug.sh ]; then \
-    cp ../startup_debug.sh /app/startup_debug.sh && chmod +x /app/startup_debug.sh; \
+    chmod +x ./startup_debug.sh; \
+    elif [ -f /app/startup_debug.sh ]; then \
+    chmod +x /app/startup_debug.sh; \
     else \
     echo "startup_debug.sh not found, will run binary directly"; \
     fi
@@ -106,8 +106,7 @@ RUN echo '#!/bin/sh' > /app/start.sh && \
 
 # Try to copy startup debug script from builder stage (optional)
 # If it doesn't exist, the wrapper script will handle it
-# Use COPY instead of RUN --mount for better compatibility
-COPY --from=builder /app/startup_debug.sh ./startup_debug.sh 2>/dev/null || true
+COPY --from=builder /app/startup_debug.sh ./startup_debug.sh 2>/dev/null || echo "startup_debug.sh not found in builder, will use wrapper script"
 RUN if [ -f ./startup_debug.sh ]; then chmod +x ./startup_debug.sh; fi
 
 # Copy ONNX Runtime libraries from builder stage (robust copy)
