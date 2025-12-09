@@ -173,6 +173,7 @@ type ScrapedContent struct {
 	AboutText   string   `json:"about_text"`      // About/Company section
 	ProductList []string `json:"products"`        // Products/services
 	ContactInfo string   `json:"contact"`         // Contact page content
+	MainContent string   `json:"main_content"`    // Main content paragraphs
 
 	// Quality metrics
 	WordCount   int     `json:"word_count"`
@@ -767,14 +768,30 @@ func (s *BrowserHeadersScraper) Scrape(ctx context.Context, targetURL string) (*
 		// Context is still valid, proceed
 	}
 	
+	// Log strategy attempt with context info
+	if deadline, hasDeadline := ctx.Deadline(); hasDeadline {
+		timeRemaining := time.Until(deadline)
+		s.logger.Info("🔍 [Phase1] [BrowserHeaders] Starting scrape attempt",
+			zap.String("url", targetURL),
+			zap.Duration("time_remaining", timeRemaining))
+	} else {
+		s.logger.Info("🔍 [Phase1] [BrowserHeaders] Starting scrape attempt (no deadline)",
+			zap.String("url", targetURL))
+	}
+	
 	// FIX: Create client with timeout that respects context deadline (Root Cause #3)
 	client := s.getClientWithContextTimeout(ctx, s.client)
 	if client == nil {
+		s.logger.Error("❌ [Phase1] [BrowserHeaders] Failed to create HTTP client: base client is nil",
+			zap.String("url", targetURL))
 		return nil, fmt.Errorf("failed to create HTTP client: base client is nil")
 	}
 	
 	req, err := http.NewRequestWithContext(ctx, "GET", targetURL, nil)
 	if err != nil {
+		s.logger.Error("❌ [Phase1] [BrowserHeaders] Failed to create request",
+			zap.String("url", targetURL),
+			zap.Error(err))
 		return nil, err
 	}
 
@@ -787,10 +804,27 @@ func (s *BrowserHeadersScraper) Scrape(ctx context.Context, targetURL string) (*
 	req.Header.Set("Connection", "keep-alive")
 	req.Header.Set("Upgrade-Insecure-Requests", "1")
 
+	s.logger.Debug("🔍 [Phase1] [BrowserHeaders] Sending HTTP request",
+		zap.String("url", targetURL),
+		zap.Duration("client_timeout", client.Timeout))
+	
+	startTime := time.Now()
 	resp, err := client.Do(req)
+	duration := time.Since(startTime)
+	
 	if err != nil {
+		s.logger.Warn("⚠️ [Phase1] [BrowserHeaders] HTTP request failed",
+			zap.String("url", targetURL),
+			zap.Error(err),
+			zap.Duration("duration", duration),
+			zap.Duration("client_timeout", client.Timeout))
 		return nil, err
 	}
+	
+	s.logger.Debug("✅ [Phase1] [BrowserHeaders] HTTP request succeeded",
+		zap.String("url", targetURL),
+		zap.Int("status_code", resp.StatusCode),
+		zap.Duration("duration", duration))
 	defer resp.Body.Close()
 
 	if resp.StatusCode >= 400 {
@@ -890,30 +924,116 @@ func (s *PlaywrightScraper) Scrape(ctx context.Context, targetURL string) (*Scra
 		// Context is still valid, proceed
 	}
 	
+	// Log strategy attempt with context info
+	if deadline, hasDeadline := ctx.Deadline(); hasDeadline {
+		timeRemaining := time.Until(deadline)
+		s.logger.Info("🔍 [Phase1] [Playwright] Starting scrape attempt",
+			zap.String("url", targetURL),
+			zap.String("service_url", s.serviceURL),
+			zap.Duration("time_remaining", timeRemaining))
+	} else {
+		s.logger.Info("🔍 [Phase1] [Playwright] Starting scrape attempt (no deadline)",
+			zap.String("url", targetURL),
+			zap.String("service_url", s.serviceURL))
+	}
+	
+	// Check if service URL is set
+	if s.serviceURL == "" {
+		s.logger.Error("❌ [Phase1] [Playwright] Service URL is not set",
+			zap.String("url", targetURL))
+		return nil, fmt.Errorf("playwright service URL is not configured")
+	}
+	
 	// FIX: Create client with timeout that respects context deadline (Root Cause #3)
 	client := s.getClientWithContextTimeout(ctx, s.client)
 	if client == nil {
+		s.logger.Error("❌ [Phase1] [Playwright] Failed to create HTTP client: base client is nil",
+			zap.String("url", targetURL))
 		return nil, fmt.Errorf("failed to create HTTP client: base client is nil")
 	}
 	
-	// Call Playwright service
+	// Call Playwright service with retry logic
 	reqBody, _ := json.Marshal(map[string]string{"url": targetURL})
+	
+	maxRetries := 2
+	var lastErr error
+	
+	for attempt := 0; attempt <= maxRetries; attempt++ {
+		if attempt > 0 {
+			// Exponential backoff: 1s, 2s
+			backoff := time.Duration(attempt) * time.Second
+			s.logger.Info("🔄 [Phase1] [Playwright] Retrying scrape",
+				zap.String("url", targetURL),
+				zap.Int("attempt", attempt+1),
+				zap.Duration("backoff", backoff))
+			
+			// Check if context is still valid before retry
+			select {
+			case <-ctx.Done():
+				s.logger.Warn("⚠️ [Phase1] [Playwright] Context cancelled during retry",
+					zap.String("url", targetURL),
+					zap.Error(ctx.Err()))
+				return nil, ctx.Err()
+			case <-time.After(backoff):
+				// Continue with retry
+			}
+		}
+		
+		req, err := http.NewRequestWithContext(ctx, "POST", s.serviceURL+"/scrape", bytes.NewReader(reqBody))
+		if err != nil {
+			s.logger.Error("❌ [Phase1] [Playwright] Failed to create request",
+				zap.String("url", targetURL),
+				zap.Error(err))
+			return nil, err
+		}
+		req.Header.Set("Content-Type", "application/json")
+		
+		s.logger.Debug("🔍 [Phase1] [Playwright] Sending request to Playwright service",
+			zap.String("url", targetURL),
+			zap.String("service_url", s.serviceURL),
+			zap.Duration("client_timeout", client.Timeout),
+			zap.Int("attempt", attempt+1))
+		
+		startTime := time.Now()
+		resp, err := client.Do(req)
+		duration := time.Since(startTime)
+		
+		if err != nil {
+			lastErr = err
+			s.logger.Warn("⚠️ [Phase1] [Playwright] HTTP request failed",
+				zap.String("url", targetURL),
+				zap.Error(err),
+				zap.Duration("duration", duration),
+				zap.Duration("client_timeout", client.Timeout),
+				zap.Int("attempt", attempt+1))
+			
+			// Retry on network errors or timeouts (but not context cancellation)
+			if attempt < maxRetries && ctx.Err() == nil && isRetryableError(err) {
+				continue
+			}
+			return nil, err
+		}
+		
+		s.logger.Debug("✅ [Phase1] [Playwright] HTTP request succeeded",
+			zap.String("url", targetURL),
+			zap.Int("status_code", resp.StatusCode),
+			zap.Duration("duration", duration))
+		
+		defer resp.Body.Close()
 
-	req, err := http.NewRequestWithContext(ctx, "POST", s.serviceURL+"/scrape", bytes.NewReader(reqBody))
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode >= 400 {
-		return nil, fmt.Errorf("playwright service error: %d %s", resp.StatusCode, resp.Status)
-	}
+		if resp.StatusCode >= 400 {
+			lastErr = fmt.Errorf("playwright service error: %d %s", resp.StatusCode, resp.Status)
+			s.logger.Warn("⚠️ [Phase1] [Playwright] Playwright service returned error",
+				zap.String("url", targetURL),
+				zap.Int("status_code", resp.StatusCode),
+				zap.Int("attempt", attempt+1))
+			
+			// Retry on 5xx errors
+			if attempt < maxRetries && resp.StatusCode >= 500 {
+				continue
+			}
+			return nil, lastErr
+		}
 
 	var result struct {
 		HTML    string `json:"html"`
@@ -941,6 +1061,37 @@ func (s *PlaywrightScraper) Scrape(ctx context.Context, targetURL string) (*Scra
 
 	content := extractStructuredContent(doc, result.HTML, targetURL)
 	return content, nil
+}
+
+// isRetryableError checks if an error is retryable (network errors, timeouts, but not context cancellation)
+func isRetryableError(err error) bool {
+	if err == nil {
+		return false
+	}
+	
+	errStr := err.Error()
+	
+	// Retry on network errors
+	if strings.Contains(errStr, "connection") || 
+		strings.Contains(errStr, "network") ||
+		strings.Contains(errStr, "timeout") ||
+		strings.Contains(errStr, "EOF") ||
+		strings.Contains(errStr, "refused") {
+		return true
+	}
+	
+	// Don't retry on context cancellation (handled separately)
+	if strings.Contains(errStr, "context canceled") || strings.Contains(errStr, "context deadline exceeded") {
+		return false
+	}
+	
+	// Don't retry on client errors (4xx)
+	if strings.Contains(errStr, "HTTP error: 4") {
+		return false
+	}
+	
+	// Default: retry on other errors
+	return true
 }
 
 // ============================================================================
@@ -981,6 +1132,9 @@ func extractStructuredContent(doc *html.Node, rawHTML string, targetURL string) 
 
 	// Extract contact page content
 	content.ContactInfo = extractContactInfo(doc)
+
+	// Extract main content paragraphs for better word count
+	content.MainContent = extractMainContent(doc)
 
 	// Detect language
 	content.Language = detectLanguage(doc)
@@ -1162,30 +1316,39 @@ func extractAboutSection(doc *html.Node) string {
 	}
 	if mainContent != nil {
 		text := extractText(mainContent)
-		// Take first 500 characters as about text if substantial
+		// Take first 800 characters as about text if substantial (increased from 500)
 		if len(text) > 200 {
-			// Find first paragraph or section
-			var extractFirstParagraph func(*html.Node) string
-			extractFirstParagraph = func(n *html.Node) string {
+			// Extract multiple paragraphs for better content coverage
+			var extractParagraphs func(*html.Node) []string
+			extractParagraphs = func(n *html.Node) []string {
+				paragraphs := []string{}
 				if n.Type == html.ElementNode && n.Data == "p" {
 					text := extractText(n)
-					if len(text) > 100 {
-						return text
+					text = strings.TrimSpace(text)
+					if len(text) > 50 { // Lower threshold to capture more content
+						paragraphs = append(paragraphs, text)
 					}
 				}
 				for c := n.FirstChild; c != nil; c = c.NextSibling {
-					if result := extractFirstParagraph(c); result != "" {
-						return result
-					}
+					paragraphs = append(paragraphs, extractParagraphs(c)...)
 				}
-				return ""
+				return paragraphs
 			}
-			if para := extractFirstParagraph(mainContent); para != "" {
-				return para
+			paragraphs := extractParagraphs(mainContent)
+			if len(paragraphs) > 0 {
+				// Combine up to 5 paragraphs for better coverage
+				maxParagraphs := 5
+				if len(paragraphs) > maxParagraphs {
+					paragraphs = paragraphs[:maxParagraphs]
+				}
+				combined := strings.Join(paragraphs, " ")
+				if len(combined) > 100 {
+					return combined
+				}
 			}
-			// Fallback: return first 500 chars
-			if len(text) > 500 {
-				return text[:500]
+			// Fallback: return first 800 chars (increased from 500)
+			if len(text) > 800 {
+				return text[:800]
 			}
 			return text
 		}
@@ -1204,13 +1367,29 @@ func extractProductsServices(doc *html.Node) []string {
 	})
 
 	if productSection != nil {
-		// Extract list items
+		// Extract list items and descriptions
 		var f func(*html.Node)
 		f = func(n *html.Node) {
-			if n.Type == html.ElementNode && (n.Data == "li" || n.Data == "h3" || n.Data == "h4") {
-				text := extractText(n)
-				if text != "" && len(text) < 100 { // Reasonable product name
-					products = append(products, text)
+			if n.Type == html.ElementNode {
+				if n.Data == "li" || n.Data == "h3" || n.Data == "h4" || n.Data == "h2" {
+					text := extractText(n)
+					text = strings.TrimSpace(text)
+					if text != "" {
+						// Include longer descriptions (up to 200 chars) for better content
+						if len(text) < 200 {
+							products = append(products, text)
+						} else {
+							// For longer text, take first 200 chars
+							products = append(products, text[:200])
+						}
+					}
+				} else if n.Data == "div" || n.Data == "section" {
+					// Also extract from div/section with product-related classes
+					text := extractText(n)
+					text = strings.TrimSpace(text)
+					if len(text) > 30 && len(text) < 200 {
+						products = append(products, text)
+					}
 				}
 			}
 
@@ -1231,6 +1410,50 @@ func extractContactInfo(doc *html.Node) string {
 		return extractText(contactSection)
 	}
 	return ""
+}
+
+// extractMainContent extracts main content paragraphs from article, main, or content sections
+func extractMainContent(doc *html.Node) string {
+	// Look for main content areas
+	mainContent := findNodeByTag(doc, "main")
+	if mainContent == nil {
+		mainContent = findNodeByTag(doc, "article")
+	}
+	if mainContent == nil {
+		// Look for divs with common content class names
+		contentIdentifiers := []string{"content", "main-content", "main_content", "post", "entry", "body"}
+		mainContent = findNodeWithIdentifier(doc, contentIdentifiers)
+	}
+	
+	if mainContent == nil {
+		return ""
+	}
+	
+	// Extract paragraphs from main content
+	var paragraphs []string
+	var extractParagraphs func(*html.Node)
+	extractParagraphs = func(n *html.Node) {
+		if n.Type == html.ElementNode && n.Data == "p" {
+			text := extractText(n)
+			text = strings.TrimSpace(text)
+			// Include paragraphs with at least 30 characters
+			if len(text) >= 30 {
+				paragraphs = append(paragraphs, text)
+			}
+		}
+		for c := n.FirstChild; c != nil; c = c.NextSibling {
+			extractParagraphs(c)
+		}
+	}
+	extractParagraphs(mainContent)
+	
+	// Limit to first 10 paragraphs to avoid excessive content
+	maxParagraphs := 10
+	if len(paragraphs) > maxParagraphs {
+		paragraphs = paragraphs[:maxParagraphs]
+	}
+	
+	return strings.Join(paragraphs, " ")
 }
 
 // combineTextWithWeights combines text with priority weighting
@@ -1266,6 +1489,11 @@ func combineTextWithWeights(content *ScrapedContent) string {
 	if len(content.ProductList) > 0 {
 		parts = append(parts, strings.Join(content.ProductList, ". "))
 	}
+	
+	// Main content paragraphs (medium weight - repeat 1x)
+	if content.MainContent != "" {
+		parts = append(parts, content.MainContent)
+	}
 
 	return strings.Join(parts, ". ")
 }
@@ -1294,9 +1522,13 @@ func calculateContentQuality(content *ScrapedContent) float64 {
 		score += 0.20
 	}
 
-	// Sufficient word count? +0.15
+	// Sufficient word count? Progressive scoring for better coverage
 	if content.WordCount >= 200 {
-		score += 0.15
+		score += 0.15 // Full bonus for 200+ words
+	} else if content.WordCount >= 150 {
+		score += 0.12 // Partial bonus for 150-199 words
+	} else if content.WordCount >= 100 {
+		score += 0.10 // Partial bonus for 100-149 words
 	}
 
 	// Has navigation? +0.10
@@ -1624,10 +1856,12 @@ func (s *WebsiteScraper) ScrapeWithStructuredContent(ctx context.Context, target
 		// Use logging version for better debugging
 		isValid := content != nil && err == nil && isContentValidWithLogging(content, s.logger, strategy.Name())
 		if err == nil && content != nil && isValid {
+			// Always log quality score for successful scrapes, even if below threshold
 			s.logger.Info("✅ [Phase1] Strategy succeeded",
 				zap.String("strategy", strategy.Name()),
 				zap.Float64("quality_score", content.QualityScore),
 				zap.Int("word_count", content.WordCount),
+				zap.Bool("meets_quality_threshold", content.QualityScore >= 0.7),
 				zap.Duration("strategy_duration_ms", strategyDuration),
 				zap.Duration("total_duration_ms", time.Since(startTime)))
 			return content, nil

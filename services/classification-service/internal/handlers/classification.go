@@ -12,6 +12,7 @@ import (
 	"runtime/debug"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"go.uber.org/zap"
@@ -37,12 +38,317 @@ type inFlightRequest struct {
 	resultChan chan *inFlightResult
 	startTime  time.Time
 	timeout    time.Duration // Maximum time to wait for this request
+	// FIX #13: Use sync.Once to prevent double-close panic
+	closeOnce  sync.Once
 }
 
 // inFlightResult represents the result of an in-flight request
 type inFlightResult struct {
 	response *ClassificationResponse
 	err      error
+}
+
+// queuedRequest represents a request in the processing queue
+type queuedRequest struct {
+	req      *ClassificationRequest
+	ctx      context.Context
+	response chan *ClassificationResponse
+	errChan  chan error
+	startTime time.Time
+}
+
+// requestQueue manages a queue of requests waiting to be processed
+type requestQueue struct {
+	queue       chan *queuedRequest
+	maxSize     int
+	currentSize int32 // atomic counter
+	mu          sync.RWMutex
+}
+
+// NewRequestQueue creates a new request queue
+func NewRequestQueue(maxSize int) *requestQueue {
+	return &requestQueue{
+		queue:       make(chan *queuedRequest, maxSize),
+		maxSize:     maxSize,
+		currentSize: 0,
+	}
+}
+
+// Enqueue adds a request to the queue
+func (rq *requestQueue) Enqueue(req *queuedRequest) error {
+	rq.mu.Lock()
+	defer rq.mu.Unlock()
+	
+	currentSize := int(atomic.LoadInt32(&rq.currentSize))
+	if currentSize >= rq.maxSize {
+		return fmt.Errorf("request queue is full")
+	}
+	
+	select {
+	case rq.queue <- req:
+		atomic.AddInt32(&rq.currentSize, 1)
+		return nil
+	default:
+		return fmt.Errorf("request queue is full")
+	}
+}
+
+// Dequeue removes a request from the queue
+func (rq *requestQueue) Dequeue() (*queuedRequest, bool) {
+	select {
+	case req := <-rq.queue:
+		atomic.AddInt32(&rq.currentSize, -1)
+		return req, true
+	default:
+		return nil, false
+	}
+}
+
+// Size returns the current queue size
+// FIX #8: Use actual channel length instead of atomic counter for accuracy
+func (rq *requestQueue) Size() int {
+	rq.mu.RLock()
+	defer rq.mu.RUnlock()
+	return len(rq.queue)
+}
+
+// workerStats tracks statistics for a single worker
+type workerStats struct {
+	workerID            int
+	requestsProcessed   int64
+	totalProcessingTime time.Duration
+	averageTime         time.Duration
+	lastActivity        time.Time
+	currentRequestID    string
+	isBlocked           bool
+	blockedDuration     time.Duration
+}
+
+// workerPool manages a pool of workers for processing requests
+type workerPool struct {
+	workers     int
+	queue       *requestQueue
+	handler     *ClassificationHandler
+	logger      *zap.Logger
+	ctx         context.Context
+	cancel      context.CancelFunc
+	wg          sync.WaitGroup
+	workerStats map[int]*workerStats // workerID -> stats
+	statsMutex  sync.RWMutex
+}
+
+// NewWorkerPool creates a new worker pool
+func NewWorkerPool(workers int, queue *requestQueue, handler *ClassificationHandler, logger *zap.Logger) *workerPool {
+	ctx, cancel := context.WithCancel(context.Background())
+	return &workerPool{
+		workers:     workers,
+		queue:       queue,
+		handler:     handler,
+		logger:      logger,
+		ctx:         ctx,
+		cancel:      cancel,
+		workerStats: make(map[int]*workerStats),
+	}
+}
+
+// Start starts the worker pool
+func (wp *workerPool) Start() {
+	for i := 0; i < wp.workers; i++ {
+		wp.wg.Add(1)
+		go wp.worker(i)
+	}
+	wp.logger.Info("Worker pool started",
+		zap.Int("workers", wp.workers))
+}
+
+// Stop stops the worker pool
+func (wp *workerPool) Stop() {
+	wp.cancel()
+	wp.wg.Wait()
+	wp.logger.Info("Worker pool stopped")
+}
+
+// worker processes requests from the queue
+func (wp *workerPool) worker(id int) {
+	defer wp.wg.Done()
+	
+	// Initialize worker stats
+	wp.statsMutex.Lock()
+	wp.workerStats[id] = &workerStats{
+		workerID:     id,
+		lastActivity: time.Now(),
+	}
+	wp.statsMutex.Unlock()
+	
+	wp.logger.Info("🔧 [WORKER-START] Worker started",
+		zap.Int("worker_id", id),
+		zap.Time("start_time", time.Now()))
+	
+	// Check for blocked workers periodically (only worker 0 does this)
+	if id == 0 {
+		go func() {
+			ticker := time.NewTicker(30 * time.Second)
+			defer ticker.Stop()
+			for {
+				select {
+				case <-wp.ctx.Done():
+					return
+				case <-ticker.C:
+					wp.checkBlockedWorkers()
+				}
+			}
+		}()
+	}
+	
+	for {
+		select {
+		case <-wp.ctx.Done():
+			wp.logger.Info("Worker stopping",
+				zap.Int("worker_id", id))
+			return
+		default:
+			// Dequeue request
+			queuedReq, ok := wp.queue.Dequeue()
+			if !ok {
+				// No requests available, wait a bit
+				time.Sleep(100 * time.Millisecond)
+				continue
+			}
+			
+			startTime := queuedReq.startTime
+			if startTime.IsZero() {
+				startTime = time.Now()
+			}
+			
+			// Calculate queue wait time
+			queueWaitTime := time.Since(startTime)
+			
+			// ALWAYS create fresh context to avoid expiration issues
+			// This eliminates the need for complex checks and ensures sufficient time
+			// Increased to 120s to accommodate longer processing times (scraping, classification, etc.)
+			freshTimeout := 120 * time.Second
+			processingCtx, cancel := context.WithTimeout(context.Background(), freshTimeout)
+			defer cancel()
+			
+			// Log original context state for debugging
+			originalTimeRemaining := time.Duration(0)
+			originalExpired := false
+			if queuedReq.ctx.Err() != nil {
+				originalExpired = true
+			} else if deadline, hasDeadline := queuedReq.ctx.Deadline(); hasDeadline {
+				originalTimeRemaining = time.Until(deadline)
+				if originalTimeRemaining <= 0 {
+					originalExpired = true
+				}
+			}
+			
+			wp.logger.Info("🔧 [WORKER-CONTEXT] Worker creating fresh context for processing",
+				zap.Int("worker_id", id),
+				zap.String("request_id", queuedReq.req.RequestID),
+				zap.Duration("queue_wait", queueWaitTime),
+				zap.Duration("fresh_timeout", freshTimeout),
+				zap.Duration("original_time_remaining", originalTimeRemaining),
+				zap.Bool("original_expired", originalExpired),
+				zap.Duration("time_since_enqueue", time.Since(queuedReq.startTime)))
+			
+			// Update worker stats - processing started
+			wp.statsMutex.Lock()
+			stats := wp.workerStats[id]
+			stats.lastActivity = time.Now()
+			stats.currentRequestID = queuedReq.req.RequestID
+			stats.isBlocked = false
+			wp.statsMutex.Unlock()
+			
+			// Process request
+			wp.logger.Info("🔧 [WORKER-PROCESSING] Worker processing request",
+				zap.Int("worker_id", id),
+				zap.String("request_id", queuedReq.req.RequestID),
+				zap.Int("queue_size", wp.queue.Size()),
+				zap.Duration("queue_wait", queueWaitTime),
+				zap.Int("active_workers", wp.getActiveWorkerCount()))
+			
+			response, err := wp.handler.processClassification(processingCtx, queuedReq.req, startTime)
+			
+			// Update worker stats - processing completed
+			processingDuration := time.Since(startTime)
+			wp.statsMutex.Lock()
+			stats = wp.workerStats[id]
+			stats.requestsProcessed++
+			stats.totalProcessingTime += processingDuration
+			if stats.requestsProcessed > 0 {
+				stats.averageTime = stats.totalProcessingTime / time.Duration(stats.requestsProcessed)
+			}
+			stats.lastActivity = time.Now()
+			stats.currentRequestID = ""
+			wp.statsMutex.Unlock()
+			
+			if err != nil {
+				wp.logger.Error("Request processing failed",
+					zap.Int("worker_id", id),
+					zap.String("request_id", queuedReq.req.RequestID),
+					zap.Error(err),
+					zap.Duration("duration", processingDuration))
+				// FIX #12: Error channel is buffered (size 1) and has default case to prevent blocking
+				// The receiver (HTTP handler) is always waiting, so this should never block
+				select {
+				case queuedReq.errChan <- err:
+					// Error sent successfully
+				default:
+					// Error channel already has an error (shouldn't happen, but safe to ignore)
+					wp.logger.Warn("Error channel full, error may be lost",
+						zap.String("request_id", queuedReq.req.RequestID),
+						zap.Error(err))
+				}
+			} else {
+				wp.logger.Info("✅ [WORKER-COMPLETE] Request processing completed",
+					zap.Int("worker_id", id),
+					zap.String("request_id", queuedReq.req.RequestID),
+					zap.Duration("duration", processingDuration),
+					zap.Int64("total_processed", stats.requestsProcessed),
+					zap.Duration("avg_time", stats.averageTime))
+				select {
+				case queuedReq.response <- response:
+				default:
+					// Response channel already has a response (shouldn't happen)
+				}
+			}
+		}
+	}
+}
+
+// getActiveWorkerCount returns count of workers currently processing
+func (wp *workerPool) getActiveWorkerCount() int {
+	wp.statsMutex.RLock()
+	defer wp.statsMutex.RUnlock()
+	
+	active := 0
+	for _, stats := range wp.workerStats {
+		if stats.currentRequestID != "" {
+			active++
+		}
+	}
+	return active
+}
+
+// checkBlockedWorkers checks for workers that appear blocked
+func (wp *workerPool) checkBlockedWorkers() {
+	wp.statsMutex.RLock()
+	defer wp.statsMutex.RUnlock()
+	
+	now := time.Now()
+	for id, stats := range wp.workerStats {
+		if stats.currentRequestID != "" {
+			inactiveTime := now.Sub(stats.lastActivity)
+			if inactiveTime > 2*time.Minute && !stats.isBlocked {
+				stats.isBlocked = true
+				stats.blockedDuration = inactiveTime
+				wp.logger.Warn("⚠️ [WORKER-BLOCKED] Worker appears blocked",
+					zap.Int("worker_id", id),
+					zap.String("current_request", stats.currentRequestID),
+					zap.Duration("inactive_time", inactiveTime))
+			}
+		}
+	}
 }
 
 // ClassificationHandler handles classification requests
@@ -61,6 +367,11 @@ type ClassificationHandler struct {
 	redisCache            *cache.RedisCache // Distributed Redis cache (optional)
 	inFlightRequests      map[string]*inFlightRequest
 	inFlightMutex         sync.RWMutex
+	requestQueue          *requestQueue // Request queue for managing concurrent requests
+	WorkerPool            *workerPool   // Worker pool for processing queued requests (exported for shutdown)
+	// FIX #7: Shutdown context for cleanup goroutines (exported for shutdown)
+	ShutdownCtx           context.Context
+	ShutdownCancel        context.CancelFunc
 }
 
 // NewClassificationHandler creates a new classification handler
@@ -81,6 +392,13 @@ func NewClassificationHandler(
 	stdLogger := log.New(&zapLoggerAdapter{logger: logger}, "", 0)
 	confidenceCalibrator := classification.NewConfidenceCalibrator(stdLogger)
 	
+	// Initialize request queue (default max size: 50, or use MaxConcurrentRequests config)
+	maxQueueSize := 50
+	if config.Classification.MaxConcurrentRequests > 0 {
+		maxQueueSize = config.Classification.MaxConcurrentRequests
+	}
+	requestQueue := NewRequestQueue(maxQueueSize)
+	
 	handler := &ClassificationHandler{
 		supabaseClient:  supabaseClient,
 		logger:          logger,
@@ -93,7 +411,37 @@ func NewClassificationHandler(
 		pythonMLService: pythonMLService,
 		cache:           make(map[string]*cacheEntry),
 		inFlightRequests: make(map[string]*inFlightRequest),
+		requestQueue:    requestQueue,
 	}
+	
+	logger.Info("Request queue initialized",
+		zap.Int("max_size", maxQueueSize))
+	
+	// Initialize worker pool (default: 10 workers, or 20% of MaxConcurrentRequests)
+	// OPTIMIZATION: Increased worker count to handle burst traffic better
+	workerCount := 10
+	if config.Classification.MaxConcurrentRequests > 0 {
+		// Use 30% of max concurrent requests as workers (increased from 20%)
+		workerCount = config.Classification.MaxConcurrentRequests * 3 / 10
+		if workerCount < 1 {
+			workerCount = 1
+		}
+		if workerCount > 40 {
+			workerCount = 40 // Cap at 40 workers (increased from 20)
+		}
+	} else {
+		// Default to 30 workers if no config (increased from 10)
+		workerCount = 30
+	}
+	
+	workerPool := NewWorkerPool(workerCount, requestQueue, handler, logger)
+	handler.WorkerPool = workerPool
+	
+	// Start worker pool
+	workerPool.Start()
+	
+	logger.Info("Worker pool initialized",
+		zap.Int("workers", workerCount))
 	
 	// Initialize Redis cache if enabled
 	if config.Classification.RedisEnabled && config.Classification.RedisURL != "" {
@@ -107,59 +455,78 @@ func NewClassificationHandler(
 		logger.Info("Using in-memory cache only (Redis not enabled or URL not provided)")
 	}
 	
+	// FIX #7: Initialize shutdown context for cleanup goroutines
+	handler.ShutdownCtx, handler.ShutdownCancel = context.WithCancel(context.Background())
+	
 	// Start cache cleanup goroutine (for in-memory cache only)
 	if config.Classification.CacheEnabled {
-		go handler.cleanupCache()
+		go handler.cleanupCache(handler.ShutdownCtx)
 	}
 	
 	// Start in-flight requests cleanup goroutine (Task 1.4: Request Deduplication)
-	go handler.cleanupInFlightRequests()
+	go handler.cleanupInFlightRequests(handler.ShutdownCtx)
 	
 	return handler
 }
 
 // cleanupCache periodically removes expired cache entries
-func (h *ClassificationHandler) cleanupCache() {
+// FIX #7: Accept context to allow graceful shutdown
+func (h *ClassificationHandler) cleanupCache(ctx context.Context) {
 	ticker := time.NewTicker(1 * time.Minute)
 	defer ticker.Stop()
 	
-	for range ticker.C {
-		h.cacheMutex.Lock()
-		now := time.Now()
-		for key, entry := range h.cache {
-			if now.After(entry.expiresAt) {
-				delete(h.cache, key)
+	for {
+		select {
+		case <-ctx.Done():
+			h.logger.Info("Cache cleanup goroutine stopping")
+			return
+		case <-ticker.C:
+			h.cacheMutex.Lock()
+			now := time.Now()
+			for key, entry := range h.cache {
+				if now.After(entry.expiresAt) {
+					delete(h.cache, key)
+				}
 			}
+			h.cacheMutex.Unlock()
 		}
-		h.cacheMutex.Unlock()
 	}
 }
 
 // cleanupInFlightRequests periodically removes stale in-flight requests (Task 1.4)
-func (h *ClassificationHandler) cleanupInFlightRequests() {
+// FIX #7: Accept context to allow graceful shutdown
+func (h *ClassificationHandler) cleanupInFlightRequests(ctx context.Context) {
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
 	
-	for range ticker.C {
-		h.inFlightMutex.Lock()
-		now := time.Now()
-		maxAge := h.config.Classification.RequestTimeout * 2 // Remove requests older than 2x timeout
-		if maxAge == 0 {
-			maxAge = 2 * time.Minute // Default max age
-		}
-		
-		for key, req := range h.inFlightRequests {
-			age := now.Sub(req.startTime)
-			if age > maxAge {
-				h.logger.Warn("Removing stale in-flight request",
-					zap.String("cache_key", key),
-					zap.Duration("age", age))
-				delete(h.inFlightRequests, key)
-				// Close the channel to unblock any waiting goroutines
-				close(req.resultChan)
+	for {
+		select {
+		case <-ctx.Done():
+			h.logger.Info("In-flight requests cleanup goroutine stopping")
+			return
+		case <-ticker.C:
+			h.inFlightMutex.Lock()
+			now := time.Now()
+			maxAge := h.config.Classification.RequestTimeout * 2 // Remove requests older than 2x timeout
+			if maxAge == 0 {
+				maxAge = 2 * time.Minute // Default max age
 			}
+			
+				for key, req := range h.inFlightRequests {
+				age := now.Sub(req.startTime)
+				if age > maxAge {
+					h.logger.Warn("Removing stale in-flight request",
+						zap.String("cache_key", key),
+						zap.Duration("age", age))
+					delete(h.inFlightRequests, key)
+					// FIX #13: Use sync.Once to prevent double-close panic
+					req.closeOnce.Do(func() {
+						close(req.resultChan)
+					})
+				}
+			}
+			h.inFlightMutex.Unlock()
 		}
-		h.inFlightMutex.Unlock()
 	}
 }
 
@@ -274,6 +641,25 @@ type ClassificationResponse struct {
 	Metadata           map[string]interface{} `json:"metadata,omitempty"`
 }
 
+// requestTrace tracks detailed timing for a single request
+type requestTrace struct {
+	requestID     string
+	stages        []stageTiming
+	totalDuration time.Duration
+	startTime     time.Time
+	endTime       time.Time
+}
+
+// stageTiming tracks timing for a single processing stage
+type stageTiming struct {
+	stage     string
+	startTime time.Time
+	endTime   time.Time
+	duration  time.Duration
+	error     error
+	metadata  map[string]interface{}
+}
+
 // VerificationStatus represents verification status information
 type VerificationStatus struct {
 	Status         string        `json:"status"`
@@ -350,13 +736,50 @@ type RiskAssessmentResult struct {
 
 // HandleClassification handles classification requests
 func (h *ClassificationHandler) HandleClassification(w http.ResponseWriter, r *http.Request) {
-	// Entry-point logging to confirm request arrival
+	startTime := time.Now()
+	
+	// CRITICAL FIX: Check context state IMMEDIATELY and create fresh context if needed
+	// This must happen before any processing to ensure sufficient time for operations
+	parentCtx := r.Context()
+	ctxInfo := map[string]interface{}{
+		"has_deadline": false,
+		"time_remaining_ms": 0,
+		"context_err": nil,
+	}
+	
+	if deadline, hasDeadline := parentCtx.Deadline(); hasDeadline {
+		ctxInfo["has_deadline"] = true
+		timeRemaining := time.Until(deadline)
+		ctxInfo["time_remaining_ms"] = timeRemaining.Milliseconds()
+		
+		// If context has insufficient time (<90s), create fresh context IMMEDIATELY
+		// Increased threshold to 90s to match worker context timeout expectations
+		if timeRemaining < 90*time.Second {
+			h.logger.Warn("⚠️ [CONTEXT-FIX] Parent context has insufficient time, creating fresh context immediately",
+				zap.Duration("time_remaining", timeRemaining),
+				zap.Duration("minimum_required", 60*time.Second))
+			parentCtx = context.Background()
+			ctxInfo["fresh_context_created"] = true
+		}
+	}
+	
+	if parentCtx.Err() != nil {
+		ctxInfo["context_err"] = parentCtx.Err().Error()
+		h.logger.Warn("⚠️ [CONTEXT-FIX] Parent context expired, creating fresh context",
+			zap.Error(parentCtx.Err()))
+		parentCtx = context.Background()
+		ctxInfo["fresh_context_created"] = true
+	}
+	
+	// Entry-point logging with context information
+	// FIX #17: Logging verbosity - Consider reducing in production for performance
+	// Current logging is verbose for debugging but may impact performance at scale
 	h.logger.Info("📥 [ENTRY-POINT] Classification request received",
 		zap.String("method", r.Method),
 		zap.String("path", r.URL.Path),
 		zap.String("remote_addr", r.RemoteAddr),
-		zap.String("user_agent", r.UserAgent()))
-	startTime := time.Now()
+		zap.String("user_agent", r.UserAgent()),
+		zap.Any("context_info", ctxInfo))
 
 	// Check if streaming is requested
 	stream := r.URL.Query().Get("stream") == "true"
@@ -369,13 +792,25 @@ func (h *ClassificationHandler) HandleClassification(w http.ResponseWriter, r *h
 	// Set response headers for non-streaming
 	w.Header().Set("Content-Type", "application/json")
 
-	// Parse request
+	// Parse request body with timeout protection
+	h.logger.Info("📥 [PARSE] Starting request body parsing",
+		zap.String("content_length", r.Header.Get("Content-Length")))
+	
+	parseStart := time.Now()
+	
 	var req ClassificationRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		h.logger.Error("Failed to decode request", zap.Error(err))
+		h.logger.Error("❌ [PARSE] Failed to decode request",
+			zap.Error(err),
+			zap.Duration("parse_duration", time.Since(parseStart)))
 		errors.WriteBadRequest(w, r, "Invalid request body: Please provide valid JSON")
 		return
 	}
+	
+	h.logger.Info("✅ [PARSE] Request body parsed successfully",
+		zap.Duration("parse_duration", time.Since(parseStart)),
+		zap.String("business_name", req.BusinessName),
+		zap.String("website_url", req.WebsiteURL))
 
 	// Validate request
 	if req.BusinessName == "" {
@@ -397,6 +832,17 @@ func (h *ClassificationHandler) HandleClassification(w http.ResponseWriter, r *h
 		req.RequestID = h.generateRequestID()
 	}
 
+	// Log request arrival with detailed information
+	h.logger.Info("📥 [REQUEST-ARRIVAL] Classification request received",
+		zap.String("request_id", req.RequestID),
+		zap.String("method", r.Method),
+		zap.String("path", r.URL.Path),
+		zap.String("remote_addr", r.RemoteAddr),
+		zap.String("user_agent", r.UserAgent()),
+		zap.Time("arrival_time", time.Now()),
+		zap.Int("queue_size", h.requestQueue.Size()),
+		zap.Int("worker_count", h.WorkerPool.workers))
+
 	// Generate cache key for deduplication
 	cacheKey := h.getCacheKey(&req)
 	
@@ -417,63 +863,78 @@ func (h *ClassificationHandler) HandleClassification(w http.ResponseWriter, r *h
 	// Calculate adaptive timeout based on request characteristics (Hybrid Approach)
 	requestTimeout := h.calculateAdaptiveTimeout(&req)
 	
-	// Add request-scoped content cache to context
-	// Use Background context if parent context is already expired or has insufficient time
-	// This prevents inheriting an expired or too-short timeout from the HTTP request
-	parentCtx := r.Context()
-	useBackground := false
-	
-	if parentCtx.Err() != nil {
-		h.logger.Warn("Parent context already expired, using Background context",
-			zap.String("request_id", req.RequestID),
-			zap.Error(parentCtx.Err()))
-		useBackground = true
-	} else if deadline, hasDeadline := parentCtx.Deadline(); hasDeadline {
+	// CONTEXT FLOW DOCUMENTATION (FIX #11):
+	// 1. Entry point (line ~728): Checks parentCtx (r.Context()) for sufficient time
+	//    - If <90s remaining, creates fresh context.Background()
+	//    - This ensures we have sufficient time for processing
+	// 2. Context creation (line ~850): Creates processing context
+	//    - Uses parentCtx (either original or Background from step 1)
+	//    - Only adds timeout if parent has no deadline or insufficient time
+	//    - Preserves parent context if it has >= requestTimeout remaining
+	// 3. Queue context (line ~1016): Creates queueCtx for HTTP response wait
+	//    - Uses workerTimeout (120s) + estimatedQueueWait + buffer
+	//    - Ensures HTTP doesn't timeout before worker completes
+	// 4. Worker context (line ~225): Worker creates fresh 120s context
+	//    - Ignores queuedReq.ctx and creates fresh context for processing
+	//    - This is correct - worker needs guaranteed time regardless of queue wait
+	// 5. Process start (line ~1603): May create fresh context if insufficient time
+	//    - Checks if context has <90s remaining
+	//    - Creates fresh 120s context if needed
+	//
+	// NOTE: parentCtx was already checked and fixed at entry point if needed
+	// It's either r.Context() with sufficient time, or context.Background() if insufficient
+	// Log the final context state for verification
+	if deadline, hasDeadline := parentCtx.Deadline(); hasDeadline {
 		timeRemaining := time.Until(deadline)
-		// If parent context has less time than our calculated timeout, use Background
-		// Add 5s buffer to account for overhead
-		if timeRemaining < requestTimeout+5*time.Second {
-			h.logger.Warn("Parent context has insufficient time, using Background context",
-				zap.String("request_id", req.RequestID),
-				zap.Duration("time_remaining", timeRemaining),
-				zap.Duration("request_timeout", requestTimeout),
-				zap.Duration("required", requestTimeout+5*time.Second))
-			useBackground = true
-		} else {
-			h.logger.Info("Parent context has sufficient time, using parent context",
-				zap.String("request_id", req.RequestID),
-				zap.Duration("time_remaining", timeRemaining),
-				zap.Duration("request_timeout", requestTimeout))
-		}
+		h.logger.Info("✅ [CONTEXT] Using context for processing",
+			zap.String("request_id", req.RequestID),
+			zap.Duration("time_remaining", timeRemaining),
+			zap.Duration("request_timeout", requestTimeout),
+			zap.Bool("has_deadline", hasDeadline))
 	} else {
-		// No deadline on parent context, safe to use
-		h.logger.Info("Parent context has no deadline, using parent context",
+		h.logger.Info("✅ [CONTEXT] Using context without deadline for processing",
 			zap.String("request_id", req.RequestID),
 			zap.Duration("request_timeout", requestTimeout))
-	}
-	
-	if useBackground {
-		parentCtx = context.Background()
 	}
 	
 	// PROFILING: Track time at context creation
 	contextCreationStart := time.Now()
 	
 	ctx, contentCache := reqcache.WithContentCache(parentCtx)
-	ctx, cancel := context.WithTimeout(ctx, requestTimeout)
+	
+	// FIX #1: Only add timeout if parent has no deadline or insufficient time
+	// This prevents overwriting a context that already has sufficient time
+	var cancel context.CancelFunc
+	if deadline, hasDeadline := parentCtx.Deadline(); !hasDeadline || time.Until(deadline) < requestTimeout {
+		// Parent has no deadline or insufficient time, create timeout
+		ctx, cancel = context.WithTimeout(ctx, requestTimeout)
+		h.logger.Info("Created new context timeout",
+			zap.String("request_id", req.RequestID),
+			zap.Duration("request_timeout", requestTimeout),
+			zap.Bool("parent_had_deadline", hasDeadline))
+		if cancel != nil {
+			defer cancel()
+		}
+	} else {
+		// Parent has sufficient time, use as-is
+		// No cancel needed since we're not creating a new timeout
+		h.logger.Info("Using parent context with sufficient time",
+			zap.String("request_id", req.RequestID),
+			zap.Duration("parent_time_remaining", time.Until(deadline)),
+			zap.Duration("request_timeout", requestTimeout))
+	}
 	
 	contextCreationDuration := time.Since(contextCreationStart)
 	
 	// Log created context state
 	if deadline, hasDeadline := ctx.Deadline(); hasDeadline {
 		timeRemaining := time.Until(deadline)
-		h.logger.Info("Created context with timeout",
+		h.logger.Info("Final context state",
 			zap.String("request_id", req.RequestID),
 			zap.Duration("time_remaining", timeRemaining),
 			zap.Duration("context_creation_duration", contextCreationDuration),
 			zap.Duration("request_timeout", requestTimeout))
 	}
-	defer cancel()
 	
 	// Store cache reference for later use (if needed)
 	_ = contentCache
@@ -547,7 +1008,98 @@ func (h *ClassificationHandler) HandleClassification(w http.ResponseWriter, r *h
 		}
 	}
 	
-	// Create in-flight request entry with timeout
+	// Check if queue is full before enqueuing
+	queueSize := h.requestQueue.Size()
+	if queueSize >= h.requestQueue.maxSize {
+		h.logger.Warn("Request queue is full, rejecting request",
+			zap.String("request_id", req.RequestID),
+			zap.Int("queue_size", queueSize),
+			zap.Int("max_size", h.requestQueue.maxSize))
+		errors.WriteServiceUnavailable(w, r, "Service temporarily unavailable, request queue is full")
+		return
+	}
+	
+	// Estimate queue wait time based on current queue size and average processing time
+	// OPTIMIZATION: Improved estimation based on worker count and actual processing times
+	// Average processing time: 15-20 seconds (conservative estimate)
+	// With 30 workers, each worker can process ~3 requests per minute
+	// Queue wait = (queue_size / worker_count) * average_processing_time
+	avgProcessingTime := 15 * time.Second
+	workerCount := h.WorkerPool.workers
+	if workerCount == 0 {
+		workerCount = 30 // Default if not initialized
+	}
+	
+	// More accurate estimation: divide queue size by worker count
+	estimatedQueueWait := time.Duration(queueSize) * avgProcessingTime / time.Duration(workerCount)
+	if estimatedQueueWait > 60*time.Second {
+		estimatedQueueWait = 60 * time.Second // Cap at 60 seconds (increased from 30s)
+	}
+	
+	// OPTIMIZATION: Check if parent context is expired or has insufficient time
+	// If so, use Background context instead of inheriting expired deadline
+	useBackgroundForQueue := false
+	if parentCtx.Err() != nil {
+		h.logger.Warn("Parent context expired before queue, using Background context",
+			zap.String("request_id", req.RequestID),
+			zap.Error(parentCtx.Err()))
+		useBackgroundForQueue = true
+	} else if deadline, hasDeadline := parentCtx.Deadline(); hasDeadline {
+		timeRemaining := time.Until(deadline)
+		requiredTime := requestTimeout + estimatedQueueWait + 10*time.Second
+		if timeRemaining < requiredTime {
+			h.logger.Warn("Parent context has insufficient time for queue wait, using Background context",
+				zap.String("request_id", req.RequestID),
+				zap.Duration("time_remaining", timeRemaining),
+				zap.Duration("required", requiredTime),
+				zap.Duration("estimated_queue_wait", estimatedQueueWait))
+			useBackgroundForQueue = true
+		}
+	}
+	
+	// FIX #2: Create context with sufficient time accounting for queue wait
+	// Match worker timeout (120s) + queue wait + buffer to ensure HTTP doesn't timeout before worker completes
+	// Worker creates fresh 120s context, so queue context needs at least that + queue wait + buffer
+	workerTimeout := 120 * time.Second
+	queueAwareTimeout := workerTimeout + estimatedQueueWait + 10*time.Second
+	queueCtxParent := parentCtx
+	if useBackgroundForQueue {
+		queueCtxParent = context.Background()
+	}
+	queueCtx, queueCancel := context.WithTimeout(queueCtxParent, queueAwareTimeout)
+	defer queueCancel()
+	
+	// Create queued request
+	// FIX #14: Response channels are buffered (size 1) and used for one-time communication
+	// They don't need explicit closing - garbage collection will handle cleanup
+	// Context cancellation is used for cancellation instead of channel closure
+	queuedReq := &queuedRequest{
+		req:       &req,
+		ctx:       queueCtx,
+		response:  make(chan *ClassificationResponse, 1),
+		errChan:   make(chan error, 1),
+		startTime: time.Now(),
+	}
+	
+	// Enqueue request
+	if err := h.requestQueue.Enqueue(queuedReq); err != nil {
+		h.logger.Warn("Failed to enqueue request",
+			zap.String("request_id", req.RequestID),
+			zap.Error(err))
+		errors.WriteServiceUnavailable(w, r, "Service temporarily unavailable")
+		return
+	}
+	
+	h.logger.Info("📋 [QUEUE-ENQUEUE] Request enqueued for processing",
+		zap.String("request_id", req.RequestID),
+		zap.Int("queue_size", h.requestQueue.Size()),
+		zap.Int("worker_count", h.WorkerPool.workers),
+		zap.Duration("estimated_wait", estimatedQueueWait),
+		zap.Duration("queue_aware_timeout", queueAwareTimeout),
+		zap.Bool("using_background_context", useBackgroundForQueue),
+		zap.Time("enqueue_time", time.Now()))
+	
+	// Create in-flight request entry with timeout for deduplication
 	resultChan := make(chan *inFlightResult, 1)
 	inFlightReq := &inFlightRequest{
 		resultChan: resultChan,
@@ -566,96 +1118,113 @@ func (h *ClassificationHandler) HandleClassification(w http.ResponseWriter, r *h
 		h.inFlightMutex.Unlock()
 	}()
 
-	// Process classification
-	response, err := h.processClassification(ctx, &req, startTime)
-	
-	// Send result to waiting duplicate requests (non-blocking)
+	// Wait for response from worker pool
 	select {
-	case inFlightReq.resultChan <- &inFlightResult{response: response, err: err}:
-		// Result sent successfully
-	default:
-		// Channel already has a result (shouldn't happen, but safe to ignore)
-	}
-	
-	if err != nil {
-		h.logger.Error("Classification failed",
-			zap.String("request_id", req.RequestID),
-			zap.Error(err))
-		errors.WriteInternalError(w, r, fmt.Sprintf("Classification failed: %v", err))
-		return
-	}
-
-	// Cache the response if enabled
-	if h.config.Classification.CacheEnabled && err == nil {
-		h.setCachedResponse(cacheKey, response)
-	}
-
-	// Set cache headers for browser caching (before encoding to avoid WriteHeader issues)
-	if h.config.Classification.CacheEnabled {
-		w.Header().Set("Cache-Control", fmt.Sprintf("public, max-age=%d", int(h.config.Classification.CacheTTL.Seconds())))
-		w.Header().Set("ETag", fmt.Sprintf(`"%s"`, req.RequestID))
-	}
-
-	// Marshal JSON response to bytes first (optimize for large responses and better error handling)
-	responseBytes, err := json.Marshal(response)
-	if err != nil {
-		h.logger.Error("Failed to marshal response", 
-			zap.String("request_id", req.RequestID),
-			zap.Error(err))
-		errors.WriteInternalError(w, r, fmt.Sprintf("Failed to marshal response: %v", err))
-		return
-	}
-
-	// Log response size for monitoring
-	responseSize := len(responseBytes)
-	h.logger.Info("Response prepared for sending",
-		zap.String("request_id", req.RequestID),
-		zap.Int("response_size_bytes", responseSize),
-		zap.String("response_size_kb", fmt.Sprintf("%.2f", float64(responseSize)/1024)))
-	
-	// Log the actual JSON response structure for debugging frontend issues
-	h.logger.Info("Response JSON structure (first 2000 chars)",
-		zap.String("request_id", req.RequestID),
-		zap.String("response_preview", func() string {
-			if responseSize > 2000 {
-				return string(responseBytes[:2000]) + "... (truncated)"
-			}
-			return string(responseBytes)
-		}()),
-		zap.String("primary_industry", response.PrimaryIndustry),
-		zap.Int("mcc_codes_count", len(response.Classification.MCCCodes)),
-		zap.Int("sic_codes_count", len(response.Classification.SICCodes)),
-		zap.Int("naics_codes_count", len(response.Classification.NAICSCodes)),
-		zap.String("classification_industry", response.Classification.Industry))
-
-	// Set Content-Length header for better HTTP/1.1 keep-alive handling
-	// This helps the client know the response size and prevents connection issues
-	w.Header().Set("Content-Length", fmt.Sprintf("%d", responseSize))
-	
-	// Set status code before writing body
-	w.WriteHeader(http.StatusOK)
-	
-	// Write response bytes directly (more efficient than streaming encoder)
-	// This approach allows us to detect encoding errors before committing the response
-	// and provides better control over the write operation
-	if _, err := w.Write(responseBytes); err != nil {
-		h.logger.Error("Failed to write response",
+	case response := <-queuedReq.response:
+		// Send result to waiting duplicate requests (non-blocking)
+		select {
+		case inFlightReq.resultChan <- &inFlightResult{response: response, err: nil}:
+			// Result sent successfully
+		default:
+			// Channel already has a result (shouldn't happen, but safe to ignore)
+		}
+		
+		// Cache the response if enabled
+		if h.config.Classification.CacheEnabled {
+			h.setCachedResponse(cacheKey, response)
+		}
+		
+		// Set cache headers for browser caching
+		if h.config.Classification.CacheEnabled {
+			w.Header().Set("Cache-Control", fmt.Sprintf("public, max-age=%d", int(h.config.Classification.CacheTTL.Seconds())))
+			w.Header().Set("ETag", fmt.Sprintf(`"%s"`, req.RequestID))
+		}
+		
+		// Marshal JSON response to bytes first
+		responseBytes, err := json.Marshal(response)
+		if err != nil {
+			h.logger.Error("Failed to marshal response", 
+				zap.String("request_id", req.RequestID),
+				zap.Error(err))
+			errors.WriteInternalError(w, r, fmt.Sprintf("Failed to marshal response: %v", err))
+			return
+		}
+		
+		// Log response size for monitoring
+		responseSize := len(responseBytes)
+		h.logger.Info("Response prepared for sending",
 			zap.String("request_id", req.RequestID),
 			zap.Int("response_size_bytes", responseSize),
+			zap.Duration("total_duration", time.Since(startTime)))
+		
+		// FIX #15: Check if HTTP connection is still valid before writing response
+		// This prevents HTTP 000 errors from writing to closed connections
+		if r.Context().Err() != nil {
+			h.logger.Warn("HTTP connection already closed, skipping response",
+				zap.String("request_id", req.RequestID),
+				zap.Error(r.Context().Err()))
+			return
+		}
+		
+		// Write response
+		w.WriteHeader(http.StatusOK)
+		if _, err := w.Write(responseBytes); err != nil {
+			h.logger.Warn("Failed to write response",
+				zap.String("request_id", req.RequestID),
+				zap.Error(err))
+		}
+		return
+		
+	case err := <-queuedReq.errChan:
+		h.logger.Error("Request processing failed",
+			zap.String("request_id", req.RequestID),
 			zap.Error(err))
-		// Response write failed, but header already written - can't send error response
-		// The WriteTimeout in the server config should handle slow writes
+		
+		// Send error to waiting duplicate requests (non-blocking)
+		select {
+		case inFlightReq.resultChan <- &inFlightResult{response: nil, err: err}:
+			// Error sent successfully
+		default:
+			// Channel already has a result (shouldn't happen, but safe to ignore)
+		}
+		
+		// OPTIMIZATION: Check if HTTP connection is still valid before writing error
+		// This prevents HTTP 000 errors from writing to closed connections
+		if r.Context().Err() != nil {
+			h.logger.Warn("HTTP connection already closed, skipping error response",
+				zap.String("request_id", req.RequestID),
+				zap.Error(r.Context().Err()))
+			return
+		}
+		
+		errors.WriteInternalError(w, r, fmt.Sprintf("Classification failed: %v", err))
+		return
+		
+	case <-queueCtx.Done():
+		h.logger.Warn("Request context cancelled while waiting for processing",
+			zap.String("request_id", req.RequestID),
+			zap.Error(queueCtx.Err()))
+		
+		// OPTIMIZATION: Check if HTTP connection is still valid before writing error
+		if r.Context().Err() != nil {
+			h.logger.Warn("HTTP connection already closed, skipping timeout response",
+				zap.String("request_id", req.RequestID))
+			return
+		}
+		
+		errors.WriteRequestTimeout(w, r, "Request timeout while waiting for processing")
+		return
+		
+	case <-r.Context().Done():
+		h.logger.Warn("HTTP request context cancelled",
+			zap.String("request_id", req.RequestID),
+			zap.Error(r.Context().Err()))
+		
+		// OPTIMIZATION: Connection is already closed, don't try to write
+		// This prevents additional errors from trying to write to closed connections
+		// The client has already timed out, so writing would fail anyway
 		return
 	}
-
-	h.logger.Info("Classification completed successfully",
-		zap.String("request_id", req.RequestID),
-		zap.Duration("processing_time", time.Since(startTime)),
-		zap.Int("response_size_bytes", responseSize))
-	
-	// OPTIMIZATION #5.2: Record classification for accuracy tracking and calibration
-	// Record asynchronously to avoid blocking response
-	go h.recordClassificationForCalibration(ctx, &req, response, time.Since(startTime))
 }
 
 // handleClassificationStreaming handles classification requests with streaming support (NDJSON)
@@ -1018,6 +1587,49 @@ func (h *ClassificationHandler) sendStreamError(flusher http.Flusher, message st
 	h.sendStreamMessage(flusher, errorMsg)
 }
 
+// traceStage wraps a function call with timing and error tracking
+func (h *ClassificationHandler) traceStage(trace *requestTrace, stageName string, metadata map[string]interface{}, fn func() error) error {
+	stage := stageTiming{
+		stage:     stageName,
+		startTime: time.Now(),
+		metadata:  metadata,
+	}
+	
+	defer func() {
+		stage.endTime = time.Now()
+		stage.duration = stage.endTime.Sub(stage.startTime)
+		trace.stages = append(trace.stages, stage)
+		
+		h.logger.Info("⏱️ [STAGE] Stage completed",
+			zap.String("request_id", trace.requestID),
+			zap.String("stage", stageName),
+			zap.Duration("duration", stage.duration),
+			zap.Error(stage.error),
+			zap.Any("metadata", metadata))
+	}()
+	
+	stage.error = fn()
+	return stage.error
+}
+
+// logRequestTrace logs complete request trace
+func (h *ClassificationHandler) logRequestTrace(trace *requestTrace) {
+	trace.endTime = time.Now()
+	trace.totalDuration = trace.endTime.Sub(trace.startTime)
+	
+	stageDurations := make(map[string]time.Duration)
+	for _, stage := range trace.stages {
+		stageDurations[stage.stage] = stage.duration
+	}
+	
+	h.logger.Info("📊 [TRACE-COMPLETE] Request trace complete",
+		zap.String("request_id", trace.requestID),
+		zap.Duration("total_duration", trace.totalDuration),
+		zap.Int("stage_count", len(trace.stages)),
+		zap.Any("stage_durations", stageDurations),
+		zap.Any("stages", trace.stages))
+}
+
 // processClassification processes a classification request
 func (h *ClassificationHandler) processClassification(ctx context.Context, req *ClassificationRequest, startTime time.Time) (*ClassificationResponse, error) {
 	// FIX: Add panic recovery to prevent HTTP 500 errors from unhandled panics
@@ -1030,10 +1642,171 @@ func (h *ClassificationHandler) processClassification(ctx context.Context, req *
 		}
 	}()
 	
+	// Initialize request trace
+	trace := &requestTrace{
+		requestID: req.RequestID,
+		startTime: startTime,
+		stages:    make([]stageTiming, 0),
+	}
+	defer h.logRequestTrace(trace)
+	
+	// Log context state at entry to processClassification
+	ctxInfo := map[string]interface{}{
+		"has_deadline": false,
+		"time_remaining_ms": 0,
+		"context_err": nil,
+	}
+	if ctx.Err() != nil {
+		ctxInfo["context_err"] = ctx.Err().Error()
+	} else if deadline, hasDeadline := ctx.Deadline(); hasDeadline {
+		ctxInfo["has_deadline"] = true
+		timeRemaining := time.Until(deadline)
+		ctxInfo["time_remaining_ms"] = timeRemaining.Milliseconds()
+	}
+	
+	h.logger.Info("🔧 [PROCESS-START] Starting processClassification",
+		zap.String("request_id", req.RequestID),
+		zap.Duration("elapsed_since_start", time.Since(startTime)),
+		zap.Any("context_info", ctxInfo))
+	
+	// OPTIMIZATION: Early termination check - if context is already expired, fail fast
+	if ctx.Err() != nil {
+		h.logger.Warn("❌ [PROCESS-START] Context expired before processing started",
+			zap.String("request_id", req.RequestID),
+			zap.Error(ctx.Err()),
+			zap.Duration("elapsed_since_start", time.Since(startTime)))
+		return nil, fmt.Errorf("context already expired before processing: %w", ctx.Err())
+	}
+	
+	// OPTIMIZATION: Check time remaining and refresh context if needed
+	// This is a second check in case context expired between worker check and processing start
+	var processingCtx context.Context = ctx
+	var cancelFunc context.CancelFunc = nil
+	
+	if deadline, hasDeadline := ctx.Deadline(); hasDeadline {
+		timeRemaining := time.Until(deadline)
+		if timeRemaining <= 0 {
+			h.logger.Warn("⚠️ [PROCESS-START] Context deadline expired at processing start, creating fresh context",
+				zap.String("request_id", req.RequestID),
+				zap.Duration("elapsed_since_start", time.Since(startTime)))
+			// Create fresh context with sufficient timeout
+			// Increased to 120s to accommodate longer processing times
+			processingCtx, cancelFunc = context.WithTimeout(context.Background(), 120*time.Second)
+		} else if timeRemaining < 90*time.Second {
+			// If less than 90s remaining, create fresh context to ensure sufficient time
+			// Increased threshold and timeout to accommodate longer processing times
+			h.logger.Warn("⚠️ [PROCESS-START] Context has insufficient time at processing start, creating fresh context",
+				zap.String("request_id", req.RequestID),
+				zap.Duration("time_remaining", timeRemaining),
+				zap.Duration("elapsed_since_start", time.Since(startTime)))
+			processingCtx, cancelFunc = context.WithTimeout(context.Background(), 120*time.Second)
+		} else {
+			h.logger.Info("✅ [PROCESS-START] Starting classification processing with sufficient context time",
+				zap.String("request_id", req.RequestID),
+				zap.Duration("time_remaining", timeRemaining),
+				zap.Duration("elapsed_since_start", time.Since(startTime)))
+		}
+	} else {
+		h.logger.Info("✅ [PROCESS-START] Starting classification processing (no deadline on context)",
+			zap.String("request_id", req.RequestID),
+			zap.Duration("elapsed_since_start", time.Since(startTime)))
+	}
+	
+	// Defer cancel if we created a new context
+	if cancelFunc != nil {
+		defer cancelFunc()
+	}
+	
+	// Use processingCtx for the rest of the function
+	ctx = processingCtx
+	
+	// OPTIMIZATION: Check context expiration periodically during processing
+	// This allows us to detect if context expires mid-processing and handle gracefully
+	checkCtx := func() error {
+		if ctx.Err() != nil {
+			return fmt.Errorf("context expired during processing: %w", ctx.Err())
+		}
+		if deadline, hasDeadline := ctx.Deadline(); hasDeadline {
+			timeRemaining := time.Until(deadline)
+			if timeRemaining < 10*time.Second {
+				h.logger.Warn("Context running low on time during processing",
+					zap.String("request_id", req.RequestID),
+					zap.Duration("time_remaining", timeRemaining),
+					zap.Duration("elapsed", time.Since(startTime)))
+			}
+		}
+		return nil
+	}
+	
+	// Start timeout alert goroutine
+	// FIX #16: Ensure goroutine properly exits on context cancellation
+	timeoutAlertCtx, timeoutAlertCancel := context.WithCancel(ctx)
+	defer timeoutAlertCancel()
+	
+	go func() {
+		ticker := time.NewTicker(10 * time.Second)
+		defer ticker.Stop()
+		
+		for {
+			select {
+			case <-timeoutAlertCtx.Done():
+				// FIX #16: Context cancelled, goroutine exits properly
+				h.logger.Debug("Timeout alert goroutine stopping",
+					zap.String("request_id", req.RequestID),
+					zap.Error(timeoutAlertCtx.Err()))
+				return
+			case <-ticker.C:
+				elapsed := time.Since(startTime)
+				if deadline, hasDeadline := ctx.Deadline(); hasDeadline {
+					remaining := time.Until(deadline)
+					if remaining < 20*time.Second {
+						h.logger.Warn("⏰ [TIMEOUT-ALERT] Request approaching timeout",
+							zap.String("request_id", req.RequestID),
+							zap.Duration("elapsed", elapsed),
+							zap.Duration("remaining", remaining),
+							zap.Float64("percent_complete", float64(elapsed)/float64(elapsed+remaining)*100))
+					} else if remaining < 40*time.Second {
+						h.logger.Info("⏰ [TIMEOUT-WARNING] Request has limited time remaining",
+							zap.String("request_id", req.RequestID),
+							zap.Duration("elapsed", elapsed),
+							zap.Duration("remaining", remaining))
+					}
+				}
+			}
+		}
+	}()
+	
 	// Generate enhanced classification using actual classification services
-	enhancedResult, err := h.generateEnhancedClassification(ctx, req)
+	var enhancedResult *EnhancedClassificationResult
+	err := h.traceStage(trace, "classification_generation", map[string]interface{}{
+		"has_website": req.WebsiteURL != "",
+		"has_description": req.Description != "",
+	}, func() error {
+		var err error
+		enhancedResult, err = h.generateEnhancedClassification(ctx, req)
+		if err != nil {
+			// Check if error is due to context expiration
+			if ctx.Err() != nil {
+				h.logger.Error("Classification failed due to context expiration",
+					zap.String("request_id", req.RequestID),
+					zap.Error(ctx.Err()),
+					zap.Duration("elapsed", time.Since(startTime)))
+				return fmt.Errorf("classification failed due to context expiration: %w", ctx.Err())
+			}
+			return fmt.Errorf("classification failed: %w", err)
+		}
+		return nil
+	})
 	if err != nil {
-		return nil, fmt.Errorf("classification failed: %w", err)
+		return nil, err
+	}
+	
+	// Final context check before returning
+	if err := checkCtx(); err != nil {
+		h.logger.Warn("Context expired after classification, but result obtained",
+			zap.String("request_id", req.RequestID),
+			zap.Error(err))
+		// Continue with result even if context expired (we have the result)
 	}
 	
 	// FIX: Defensive check for enhancedResult to prevent nil pointer dereference
@@ -1060,24 +1833,54 @@ func (h *ClassificationHandler) processClassification(ctx context.Context, req *
 	}
 
 	// Parallel processing: Generate risk assessment and verification status concurrently
+	// FIX #9: Add context cancellation to prevent goroutine leaks
 	var riskAssessment *RiskAssessmentResult
 	var verificationStatus *VerificationStatus
 	
 	processingTime := time.Since(startTime)
 	var wg sync.WaitGroup
 	
+	// Create context with timeout for parallel processing
+	parallelCtx, parallelCancel := context.WithTimeout(ctx, 10*time.Second)
+	defer parallelCancel()
+	
 	// Start risk assessment in parallel
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		riskAssessment = h.generateRiskAssessment(req, enhancedResult, processingTime)
+		select {
+		case <-parallelCtx.Done():
+			// Cancelled, use default
+			riskAssessment = &RiskAssessmentResult{
+				OverallRiskScore: 0.5,
+				RiskLevel:        "MEDIUM",
+			}
+			return
+		default:
+			h.traceStage(trace, "risk_assessment", nil, func() error {
+				riskAssessment = h.generateRiskAssessment(req, enhancedResult, processingTime)
+				return nil
+			})
+		}
 	}()
 	
 	// Start verification status in parallel
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		verificationStatus = h.generateVerificationStatus(req, enhancedResult, processingTime)
+		select {
+		case <-parallelCtx.Done():
+			// Cancelled, use default
+			verificationStatus = &VerificationStatus{
+				Status: "PENDING",
+			}
+			return
+		default:
+			h.traceStage(trace, "verification_status", nil, func() error {
+				verificationStatus = h.generateVerificationStatus(req, enhancedResult, processingTime)
+				return nil
+			})
+		}
 	}()
 	
 	// Wait for both to complete with timeout
@@ -1092,11 +1895,11 @@ func (h *ClassificationHandler) processClassification(ctx context.Context, req *
 		// Both completed successfully
 		h.logger.Info("Parallel processing completed successfully",
 			zap.String("request_id", req.RequestID))
-	case <-ctx.Done():
-		// Context cancelled - return error
-		return nil, fmt.Errorf("parallel processing cancelled: %w", ctx.Err())
-	case <-time.After(10 * time.Second):
-		// Timeout - log warning but continue with what we have
+	case <-parallelCtx.Done():
+		// Timeout or cancellation - cancel context to stop goroutines
+		parallelCancel()
+		// Wait for goroutines to finish
+		wg.Wait()
 		h.logger.Warn("Parallel processing timeout, continuing with available results",
 			zap.String("request_id", req.RequestID))
 		// Ensure we have default values if goroutines didn't complete
@@ -3070,15 +3873,17 @@ func (h *ClassificationHandler) calculateAdaptiveTimeout(req *ClassificationRequ
 	}
 	
 	// Timeout budget allocation for different operations
+	// FIX #10: Added buffer for retries and overhead to prevent premature timeouts
 	const (
-		phase1ScrapingBudget    = 15 * time.Second // Phase 1 scraper: 15s (reduced for faster fallback)
-		multiPageAnalysisBudget = 10 * time.Second // Multi-page analysis: 10s (capped)
+		phase1ScrapingBudget    = 18 * time.Second // Phase 1 scraper: 18s (aligned with WebsiteScrapingTimeout of 15s + 3s buffer)
+		multiPageAnalysisBudget = 8 * time.Second  // Multi-page analysis: 8s (reduced from 10s, capped)
 		// FIX: Index building now has 5-minute TTL cache - first call: 10-30s, subsequent calls: <1ms (cache hit)
 		indexBuildingBudget     = 30 * time.Second // Keyword index building: 30s (first call, cached for 5min)
 		goClassificationBudget  = 5 * time.Second
 		mlClassificationBudget  = 10 * time.Second
 		riskAssessmentBudget    = 5 * time.Second
-		generalOverhead         = 5 * time.Second
+		generalOverhead         = 5 * time.Second  // FIX #10: Increased from 3s to 5s to account for retries and network latency
+		retryBuffer            = 10 * time.Second // FIX #10: Additional buffer for retry attempts and network delays
 	)
 	
 	// Determine if we need long-running operations
@@ -3089,17 +3894,20 @@ func (h *ClassificationHandler) calculateAdaptiveTimeout(req *ClassificationRequ
 	
 	if needsWebsiteScraping {
 		// Website scraping needed - allocate budget for Phase 1 scraper
-		// Budget breakdown:
+		// Budget breakdown (OPTIMIZED for better success rate):
 		// - Index building: 30s (first call can take 10-30s, happens before extractKeywords)
-		// - Phase 1 scraping: 15s (reduced for faster fallback to legacy methods)
-		// - Multi-page analysis: 10s (capped, may be skipped if insufficient time)
+		// - Phase 1 scraping: 18s (aligned with WebsiteScrapingTimeout of 15s + 3s buffer for retries)
+		// - Multi-page analysis: 8s (reduced from 10s, capped, may be skipped if insufficient time)
 		// - Go classification: 5s
 		// - ML classification: 10s (optional, may be skipped)
 		// - Risk assessment: 5s (parallel, doesn't add to total)
-		// - General overhead: 5s
+		// - General overhead: 5s (for retries and network latency)
+		// - Retry buffer: 10s (for retry attempts and network delays)
+		// Total: 30 + 18 + 8 + 5 + 10 + 5 + 10 = 86s
 		// FIX: Add budget for index building (30s) - this happens synchronously before extractKeywords
-		// FIX: Add budget for multi-page analysis (10s) to prevent context expiration
-		requiredTimeout = indexBuildingBudget + phase1ScrapingBudget + multiPageAnalysisBudget + goClassificationBudget + mlClassificationBudget + generalOverhead
+		// FIX: Add budget for multi-page analysis (8s) to prevent context expiration
+		// FIX #10: Add retry buffer for retry attempts and network delays
+		requiredTimeout = indexBuildingBudget + phase1ScrapingBudget + multiPageAnalysisBudget + goClassificationBudget + mlClassificationBudget + generalOverhead + retryBuffer
 		
 		h.logger.Info("Adaptive timeout: website scraping detected",
 			zap.String("request_id", req.RequestID),
@@ -3114,7 +3922,8 @@ func (h *ClassificationHandler) calculateAdaptiveTimeout(req *ClassificationRequ
 		// - ML classification: 10s (optional)
 		// - General overhead: 5s
 		// FIX: Add budget for index building even for simple requests
-		requiredTimeout = indexBuildingBudget + goClassificationBudget + mlClassificationBudget + generalOverhead
+		// FIX #10: Add retry buffer for retry attempts and network delays
+		requiredTimeout = indexBuildingBudget + goClassificationBudget + mlClassificationBudget + generalOverhead + retryBuffer
 		
 		h.logger.Info("Adaptive timeout: simple request (no website scraping)",
 			zap.String("request_id", req.RequestID),

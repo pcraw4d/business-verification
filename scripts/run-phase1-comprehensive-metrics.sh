@@ -76,7 +76,7 @@ else
         curl -s -X POST http://localhost:8081/classify \
             -H "Content-Type: application/json" \
             -d "{\"business_name\": \"Test\", \"website_url\": \"$url\"}" \
-            --max-time 60 > /dev/null 2>&1 || true
+            --max-time 180 > /dev/null 2>&1 || true
         sleep 2
     done
     echo -e "${GREEN}✅ Quick test completed${NC}\n"

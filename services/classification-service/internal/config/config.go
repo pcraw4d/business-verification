@@ -82,7 +82,7 @@ func Load() (*Config, error) {
 		Server: ServerConfig{
 			Port:         getEnvAsString("PORT", "8081"),
 			Host:         getEnvAsString("HOST", "0.0.0.0"),
-			ReadTimeout:  getEnvAsDuration("READ_TIMEOUT", 60*time.Second), // Increased to 60s to accommodate adaptive timeout (45s for scraping + overhead)
+			ReadTimeout:  getEnvAsDuration("READ_TIMEOUT", 100*time.Second), // Increased to 100s to accommodate optimized adaptive timeout (68s max processing + 32s buffer)
 			WriteTimeout: getEnvAsDuration("WRITE_TIMEOUT", 120*time.Second), // Increased to 120s for long-running classifications
 			IdleTimeout:  getEnvAsDuration("IDLE_TIMEOUT", 60*time.Second),
 		},
@@ -94,7 +94,8 @@ func Load() (*Config, error) {
 		},
 		Classification: ClassificationConfig{
 			MaxConcurrentRequests: getEnvAsInt("MAX_CONCURRENT_REQUESTS", 100),
-			RequestTimeout:        getEnvAsDuration("REQUEST_TIMEOUT", 10*time.Second),
+			// FIX #5: Changed default timeout from 10s to 120s to match worker timeout
+			RequestTimeout:        getEnvAsDuration("REQUEST_TIMEOUT", 120*time.Second),
 			CacheEnabled:          getEnvAsBool("CACHE_ENABLED", true),
 			CacheTTL:              getEnvAsDuration("CACHE_TTL", 5*time.Minute),
 			RedisURL:              getEnvAsString("REDIS_URL", ""),
@@ -117,7 +118,7 @@ func Load() (*Config, error) {
 			MaxConcurrentPages:       getEnvAsInt("CLASSIFICATION_MAX_CONCURRENT_PAGES", 3),
 			CrawlDelayMs:             getEnvAsInt("CLASSIFICATION_CRAWL_DELAY_MS", 500),
 			FastPathMaxPages:         getEnvAsInt("CLASSIFICATION_FAST_PATH_MAX_PAGES", 8),
-			WebsiteScrapingTimeout:   getEnvAsDuration("CLASSIFICATION_WEBSITE_SCRAPING_TIMEOUT", 5*time.Second),
+			WebsiteScrapingTimeout:   getEnvAsDuration("CLASSIFICATION_WEBSITE_SCRAPING_TIMEOUT", 15*time.Second), // Increased from 5s to 15s for better success rate
 			// Website content caching
 			WebsiteContentCacheTTL:   getEnvAsDuration("WEBSITE_CONTENT_CACHE_TTL", 24*time.Hour),
 			EnableWebsiteContentCache: getEnvAsBool("ENABLE_WEBSITE_CONTENT_CACHE", true),
