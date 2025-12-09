@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -366,7 +365,7 @@ func startMemoryDiagnostics(logger *zap.Logger) {
 				zap.Uint64("heap_alloc_bytes", ms.HeapAlloc),
 				zap.Uint64("heap_sys_bytes", ms.HeapSys),
 				zap.Uint64("heap_inuse_bytes", ms.HeapInuse),
-				zap.Uint64("num_gc", ms.NumGC))
+				zap.Uint64("num_gc", uint64(ms.NumGC)))
 		}
 	}()
 }
