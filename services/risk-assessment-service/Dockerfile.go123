@@ -104,10 +104,10 @@ RUN echo '#!/bin/sh' > /app/start.sh && \
     echo 'fi' >> /app/start.sh && \
     chmod +x /app/start.sh
 
-# Try to copy startup debug script from builder stage (optional)
-# If it doesn't exist, the wrapper script will handle it
-COPY --from=builder /app/startup_debug.sh ./startup_debug.sh 2>/dev/null || echo "startup_debug.sh not found in builder, will use wrapper script"
-RUN if [ -f ./startup_debug.sh ]; then chmod +x ./startup_debug.sh; fi
+# Copy startup debug script from builder stage if it exists
+# The file should exist since it's in the source and copied in builder stage
+COPY --from=builder /app/startup_debug.sh /app/startup_debug.sh
+RUN chmod +x /app/startup_debug.sh
 
 # Copy ONNX Runtime libraries from builder stage (robust copy)
 COPY --from=builder /app/onnxruntime/ /app/onnxruntime/
