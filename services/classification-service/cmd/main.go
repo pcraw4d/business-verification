@@ -354,18 +354,47 @@ func startPprof(logger *zap.Logger) {
 }
 
 // startMemoryDiagnostics logs memory stats periodically to catch leaks/pressure.
+// Enhanced with threshold alerts for memory usage monitoring.
 func startMemoryDiagnostics(logger *zap.Logger) {
+	// Memory threshold constants
+	const (
+		memoryWarningThreshold  = 70.0 // 70% memory usage - warning level
+		memoryCriticalThreshold = 85.0 // 85% memory usage - critical level
+	)
+
 	ticker := time.NewTicker(60 * time.Second)
 	go func() {
 		for range ticker.C {
 			var ms runtime.MemStats
 			runtime.ReadMemStats(&ms)
+
+			// Calculate memory usage percentage
+			memUsagePercent := float64(ms.Alloc) / float64(ms.Sys) * 100
+
+			// Log memory stats
 			logger.Info("memstats",
 				zap.Uint64("alloc_bytes", ms.Alloc),
 				zap.Uint64("heap_alloc_bytes", ms.HeapAlloc),
 				zap.Uint64("heap_sys_bytes", ms.HeapSys),
 				zap.Uint64("heap_inuse_bytes", ms.HeapInuse),
-				zap.Uint64("num_gc", uint64(ms.NumGC)))
+				zap.Uint64("num_gc", uint64(ms.NumGC)),
+				zap.Float64("mem_usage_percent", memUsagePercent))
+
+			// Check memory thresholds and alert
+			if memUsagePercent > memoryCriticalThreshold {
+				logger.Error("CRITICAL: Memory usage exceeds critical threshold",
+					zap.Float64("mem_usage_percent", memUsagePercent),
+					zap.Uint64("alloc_bytes", ms.Alloc),
+					zap.Uint64("sys_bytes", ms.Sys),
+					zap.Uint64("num_gc", uint64(ms.NumGC)),
+					zap.Float64("threshold", memoryCriticalThreshold))
+			} else if memUsagePercent > memoryWarningThreshold {
+				logger.Warn("WARNING: Memory usage exceeds warning threshold",
+					zap.Float64("mem_usage_percent", memUsagePercent),
+					zap.Uint64("alloc_bytes", ms.Alloc),
+					zap.Uint64("sys_bytes", ms.Sys),
+					zap.Float64("threshold", memoryWarningThreshold))
+			}
 		}
 	}()
 }

@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"regexp"
+	"runtime"
 	"runtime/debug"
 	"strings"
 	"sync"
@@ -532,9 +533,16 @@ func (h *ClassificationHandler) cleanupInFlightRequests(ctx context.Context) {
 }
 
 // getCacheKey generates a cache key from the request
+// OPTIMIZATION: Normalize inputs to improve cache hit rates
 func (h *ClassificationHandler) getCacheKey(req *ClassificationRequest) string {
-	// Create a hash of the business name and description for cache key
-	data := fmt.Sprintf("%s|%s|%s", req.BusinessName, req.Description, req.WebsiteURL)
+	// Normalize inputs: trim whitespace, lowercase for case-insensitive matching
+	// This improves cache hit rates by treating "Acme Corp" and "acme corp" as the same
+	businessName := strings.TrimSpace(strings.ToLower(req.BusinessName))
+	description := strings.TrimSpace(strings.ToLower(req.Description))
+	websiteURL := strings.TrimSpace(strings.ToLower(req.WebsiteURL))
+	
+	// Create a hash of the normalized business name, description, and website URL
+	data := fmt.Sprintf("%s|%s|%s", businessName, description, websiteURL)
 	hash := sha256.Sum256([]byte(data))
 	return fmt.Sprintf("%x", hash)
 }
@@ -833,6 +841,37 @@ func (h *ClassificationHandler) HandleClassification(w http.ResponseWriter, r *h
 		req.RequestID = h.generateRequestID()
 	}
 
+	// Request Admission Control: Check memory usage and queue capacity before processing
+	// This prevents OOM kills by rejecting requests when memory is high or queue is full
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+	memUsagePercent := float64(m.Alloc) / float64(m.Sys) * 100
+
+	if memUsagePercent > 80 {
+		h.logger.Warn("Memory usage high, rejecting request",
+			zap.String("request_id", req.RequestID),
+			zap.Float64("mem_usage_percent", memUsagePercent),
+			zap.Uint64("alloc_bytes", m.Alloc),
+			zap.Uint64("sys_bytes", m.Sys))
+		errors.WriteServiceUnavailable(w, r, "Service temporarily unavailable due to high load")
+		return
+	}
+
+	// Check queue capacity
+	if h.requestQueue != nil && h.requestQueue.Size() >= h.config.Classification.MaxConcurrentRequests {
+		h.logger.Warn("Request queue full, rejecting request",
+			zap.String("request_id", req.RequestID),
+			zap.Int("queue_size", h.requestQueue.Size()),
+			zap.Int("max_concurrent", h.config.Classification.MaxConcurrentRequests))
+		errors.WriteServiceUnavailable(w, r, "Service queue full, please retry later")
+		return
+	}
+
+	// Log memory stats before processing
+	var memBefore runtime.MemStats
+	runtime.ReadMemStats(&memBefore)
+	memUsagePercentBefore := float64(memBefore.Alloc) / float64(memBefore.Sys) * 100
+
 	// Log request arrival with detailed information
 	h.logger.Info("📥 [REQUEST-ARRIVAL] Classification request received",
 		zap.String("request_id", req.RequestID),
@@ -842,7 +881,10 @@ func (h *ClassificationHandler) HandleClassification(w http.ResponseWriter, r *h
 		zap.String("user_agent", r.UserAgent()),
 		zap.Time("arrival_time", time.Now()),
 		zap.Int("queue_size", h.requestQueue.Size()),
-		zap.Int("worker_count", h.WorkerPool.workers))
+		zap.Int("worker_count", h.WorkerPool.workers),
+		zap.Float64("mem_usage_percent_before", memUsagePercentBefore),
+		zap.Uint64("alloc_bytes_before", memBefore.Alloc),
+		zap.Uint64("sys_bytes_before", memBefore.Sys))
 
 	// Generate cache key for deduplication
 	cacheKey := h.getCacheKey(&req)
@@ -850,14 +892,23 @@ func (h *ClassificationHandler) HandleClassification(w http.ResponseWriter, r *h
 	// Check cache first if enabled
 	if h.config.Classification.CacheEnabled {
 		if cachedResponse, found := h.getCachedResponse(cacheKey); found {
-			h.logger.Info("Classification served from cache",
+			// Cache hit - log metrics
+			h.logger.Info("✅ [CACHE-HIT] Classification served from cache",
 				zap.String("request_id", req.RequestID),
-				zap.String("business_name", req.BusinessName))
+				zap.String("business_name", req.BusinessName),
+				zap.String("cache_key", cacheKey),
+				zap.Duration("cache_ttl", h.config.Classification.CacheTTL),
+				zap.Duration("response_time", time.Since(startTime)))
 			w.Header().Set("X-Cache", "HIT")
 			w.Header().Set("Cache-Control", fmt.Sprintf("public, max-age=%d", int(h.config.Classification.CacheTTL.Seconds())))
 			json.NewEncoder(w).Encode(cachedResponse)
 			return
 		}
+		// Cache miss - log metrics
+		h.logger.Info("❌ [CACHE-MISS] Cache miss, processing new request",
+			zap.String("request_id", req.RequestID),
+			zap.String("business_name", req.BusinessName),
+			zap.String("cache_key", cacheKey))
 		w.Header().Set("X-Cache", "MISS")
 	}
 
@@ -1133,6 +1184,10 @@ func (h *ClassificationHandler) HandleClassification(w http.ResponseWriter, r *h
 		// Cache the response if enabled
 		if h.config.Classification.CacheEnabled {
 			h.setCachedResponse(cacheKey, response)
+			h.logger.Info("💾 [CACHE-SET] Response cached for future requests",
+				zap.String("request_id", req.RequestID),
+				zap.String("cache_key", cacheKey),
+				zap.Duration("cache_ttl", h.config.Classification.CacheTTL))
 		}
 
 		// Set cache headers for browser caching
@@ -1166,6 +1221,21 @@ func (h *ClassificationHandler) HandleClassification(w http.ResponseWriter, r *h
 				zap.Error(r.Context().Err()))
 			return
 		}
+
+		// Log memory stats after processing
+		var memAfter runtime.MemStats
+		runtime.ReadMemStats(&memAfter)
+		memUsagePercentAfter := float64(memAfter.Alloc) / float64(memAfter.Sys) * 100
+		memDelta := int64(memAfter.Alloc) - int64(memBefore.Alloc)
+
+		h.logger.Info("📤 [RESPONSE-SENT] Classification response sent",
+			zap.String("request_id", req.RequestID),
+			zap.Duration("total_duration", time.Since(startTime)),
+			zap.Float64("mem_usage_percent_after", memUsagePercentAfter),
+			zap.Uint64("alloc_bytes_after", memAfter.Alloc),
+			zap.Uint64("sys_bytes_after", memAfter.Sys),
+			zap.Int64("mem_delta_bytes", memDelta),
+			zap.Float64("mem_usage_delta_percent", memUsagePercentAfter-memUsagePercentBefore))
 
 		// Write response
 		w.WriteHeader(http.StatusOK)
@@ -1312,7 +1382,7 @@ func (h *ClassificationHandler) handleClassificationStreaming(w http.ResponseWri
 	})
 
 	// Step 1: Generate enhanced classification (industry detection)
-	enhancedResult, err := h.generateEnhancedClassification(ctx, &req)
+	enhancedResult, err := h.generateEnhancedClassification(ctx, &req, false, false)
 	if err != nil {
 		h.logger.Error("Classification failed", zap.String("request_id", req.RequestID), zap.Error(err))
 		h.sendStreamError(flusher, fmt.Sprintf("Classification failed: %v", err), http.StatusInternalServerError)
@@ -1684,6 +1754,11 @@ func (h *ClassificationHandler) processClassification(ctx context.Context, req *
 	var processingCtx context.Context = ctx
 	var cancelFunc context.CancelFunc = nil
 
+	// Adaptive Timeout: Check time remaining and decide on operation scope
+	// Skip expensive operations if time is limited to prevent timeouts
+	var skipMultiPageAnalysis bool
+	var skipMLClassification bool
+
 	if deadline, hasDeadline := ctx.Deadline(); hasDeadline {
 		timeRemaining := time.Until(deadline)
 		if timeRemaining <= 0 {
@@ -1700,8 +1775,20 @@ func (h *ClassificationHandler) processClassification(ctx context.Context, req *
 				zap.String("request_id", req.RequestID),
 				zap.Duration("time_remaining", timeRemaining),
 				zap.Duration("elapsed_since_start", time.Since(startTime)))
-			processingCtx, cancelFunc = context.WithTimeout(context.Background(), 120*time.Second)
 		} else {
+			// Check time remaining to decide on operation scope
+			if timeRemaining < 30*time.Second {
+				h.logger.Warn("Insufficient time remaining, using quick classification path",
+					zap.String("request_id", req.RequestID),
+					zap.Duration("time_remaining", timeRemaining))
+				skipMultiPageAnalysis = true
+				skipMLClassification = true
+			} else if timeRemaining < 60*time.Second {
+				h.logger.Info("Limited time remaining, skipping multi-page analysis",
+					zap.String("request_id", req.RequestID),
+					zap.Duration("time_remaining", timeRemaining))
+				skipMultiPageAnalysis = true
+			}
 			h.logger.Info("✅ [PROCESS-START] Starting classification processing with sufficient context time",
 				zap.String("request_id", req.RequestID),
 				zap.Duration("time_remaining", timeRemaining),
@@ -1784,7 +1871,7 @@ func (h *ClassificationHandler) processClassification(ctx context.Context, req *
 		"has_description": req.Description != "",
 	}, func() error {
 		var err error
-		enhancedResult, err = h.generateEnhancedClassification(ctx, req)
+		enhancedResult, err = h.generateEnhancedClassification(ctx, req, skipMultiPageAnalysis, skipMLClassification)
 		if err != nil {
 			// Check if error is due to context expiration
 			if ctx.Err() != nil {
@@ -2504,7 +2591,7 @@ type WebsiteAnalysisData struct {
 }
 
 // generateEnhancedClassification generates enhanced classification using actual classification services
-func (h *ClassificationHandler) generateEnhancedClassification(ctx context.Context, req *ClassificationRequest) (*EnhancedClassificationResult, error) {
+func (h *ClassificationHandler) generateEnhancedClassification(ctx context.Context, req *ClassificationRequest, skipMultiPageAnalysis bool, skipMLClassification bool) (*EnhancedClassificationResult, error) {
 	// PROFILING: Track time at function entry
 	funcStartTime := time.Now()
 	if deadline, hasDeadline := ctx.Deadline(); hasDeadline {
@@ -2610,8 +2697,9 @@ func (h *ClassificationHandler) generateEnhancedClassification(ctx context.Conte
 	goResult, goErr := h.runGoClassification(ctx, req, classificationCtx)
 
 	// Early termination: Skip ML if Go classification has high confidence (Task 1.5)
-	skipML := false
-	if h.config.Classification.EnableEarlyTermination && goErr == nil && goResult != nil {
+	// Also skip if skipMLClassification flag is set (adaptive timeout)
+	skipML := skipMLClassification
+	if !skipML && h.config.Classification.EnableEarlyTermination && goErr == nil && goResult != nil {
 		threshold := h.config.Classification.EarlyTerminationConfidenceThreshold
 		if threshold == 0 {
 			threshold = 0.85 // Default threshold
@@ -2623,6 +2711,10 @@ func (h *ClassificationHandler) generateEnhancedClassification(ctx context.Conte
 				zap.Float64("confidence", goResult.ConfidenceScore),
 				zap.Float64("threshold", threshold))
 		}
+	}
+	if skipMLClassification {
+		h.logger.Info("Skipping ML classification due to time constraints (adaptive timeout)",
+			zap.String("request_id", req.RequestID))
 	}
 
 	// Ensemble Voting: Run Python ML and Go classification in parallel
@@ -2659,10 +2751,16 @@ func (h *ClassificationHandler) generateEnhancedClassification(ctx context.Conte
 	var pythonMLResult *EnhancedClassificationResult
 	var pythonMLErr error
 
-	if useEnsembleVoting {
+	if useEnsembleVoting && !skipMLClassification {
 		// Run ML classification (can run in parallel with other operations if needed)
 		// Since Go is already done, this runs sequentially but the structure supports parallel execution
+		// Skip if skipMLClassification flag is set (adaptive timeout)
 		pythonMLResult, pythonMLErr = h.runPythonMLClassification(ctx, pms, req)
+	} else if skipMLClassification {
+		h.logger.Info("Skipping ML classification due to time constraints (adaptive timeout), using Go classification only",
+			zap.String("request_id", req.RequestID))
+		pythonMLResult = nil
+		pythonMLErr = nil
 	}
 
 	// Handle errors
@@ -2828,12 +2926,39 @@ func (h *ClassificationHandler) runGoClassification(ctx context.Context, req *Cl
 	}
 
 	// Step 1: Detect industry using IndustryDetectionService
-	h.logger.Info("Starting industry detection",
-		zap.String("request_id", req.RequestID),
-		zap.String("business_name", req.BusinessName),
-		zap.String("description", req.Description))
-
-	industryResult, err := h.industryDetector.DetectIndustry(ctx, req.BusinessName, req.Description, req.WebsiteURL)
+	// OPTIMIZATION: Check timeout before expensive industry detection
+	var industryResult *classification.IndustryDetectionResult
+	var err error
+	
+	if deadline, hasDeadline := ctx.Deadline(); hasDeadline {
+		timeRemaining := time.Until(deadline)
+		if timeRemaining < 5*time.Second {
+			h.logger.Warn("Insufficient time remaining for industry detection, using fallback",
+				zap.String("request_id", req.RequestID),
+				zap.Duration("time_remaining", timeRemaining))
+			// Use fallback result instead of calling DetectIndustry
+			industryResult = &classification.IndustryDetectionResult{
+				IndustryName: "General Business",
+				Confidence:   0.30,
+				Keywords:     []string{},
+				Reasoning:    "Insufficient time for industry detection",
+			}
+			err = nil // No error, just using fallback
+		} else {
+			h.logger.Info("Starting industry detection",
+				zap.String("request_id", req.RequestID),
+				zap.String("business_name", req.BusinessName),
+				zap.String("description", req.Description),
+				zap.Duration("time_remaining", timeRemaining))
+			industryResult, err = h.industryDetector.DetectIndustry(ctx, req.BusinessName, req.Description, req.WebsiteURL)
+		}
+	} else {
+		h.logger.Info("Starting industry detection",
+			zap.String("request_id", req.RequestID),
+			zap.String("business_name", req.BusinessName),
+			zap.String("description", req.Description))
+		industryResult, err = h.industryDetector.DetectIndustry(ctx, req.BusinessName, req.Description, req.WebsiteURL)
+	}
 
 	// OPTIMIZATION #13: Store keywords in shared context for reuse
 	// FIX: Add defensive check for industryResult.Keywords to prevent nil pointer dereference

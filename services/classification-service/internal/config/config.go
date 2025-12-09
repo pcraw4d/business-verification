@@ -94,7 +94,8 @@ func Load() (*Config, error) {
 		},
 		Classification: ClassificationConfig{
 			// Lower default concurrency to reduce memory pressure in production.
-			MaxConcurrentRequests: getEnvAsInt("MAX_CONCURRENT_REQUESTS", 40),
+			// Reduced from 40 to 20 to prevent OOM kills (50% reduction in memory pressure)
+			MaxConcurrentRequests: getEnvAsInt("MAX_CONCURRENT_REQUESTS", 20),
 			// FIX #5: Changed default timeout from 10s to 120s to match worker timeout
 			RequestTimeout:       getEnvAsDuration("REQUEST_TIMEOUT", 120*time.Second),
 			CacheEnabled:         getEnvAsBool("CACHE_ENABLED", true),

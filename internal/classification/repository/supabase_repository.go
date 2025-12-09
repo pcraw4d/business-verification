@@ -115,11 +115,11 @@ type IndustryCodeCacheConfig struct {
 
 // SupabaseKeywordRepository implements KeywordRepository using Supabase
 type SupabaseKeywordRepository struct {
-	client       *database.SupabaseClient
+	client          *database.SupabaseClient
 	clientInterface SupabaseClientInterface // Store interface for methods that need it
-	logger       *log.Logger
-	keywordIndex *KeywordIndex
-	cacheMutex   sync.RWMutex
+	logger          *log.Logger
+	keywordIndex    *KeywordIndex
+	cacheMutex      sync.RWMutex
 
 	// Industry code caching
 	industryCodeCache *cache.IntelligentCache
@@ -128,11 +128,11 @@ type SupabaseKeywordRepository struct {
 	statsMutex        sync.RWMutex
 
 	// Industry caching (5-minute TTL)
-	industryCache     map[int]*industryCacheEntry
+	industryCache      map[int]*industryCacheEntry
 	industryCacheMutex sync.RWMutex
 
 	// Website content caching (5-minute TTL) - OPTIMIZATION: Priority 4
-	websiteContentCache map[string]*websiteContentCacheEntry
+	websiteContentCache      map[string]*websiteContentCacheEntry
 	websiteContentCacheMutex sync.RWMutex
 
 	// Brand matcher for MCC 3000-3831 (hotels)
@@ -145,7 +145,7 @@ type SupabaseKeywordRepository struct {
 	// Phase 9.1: Content size limit for processing (50KB)
 
 	// Word segmentation for compound domain names
-	segmenter *word_segmentation.Segmenter
+	segmenter      *word_segmentation.Segmenter
 	maxContentSize int64
 
 	// NLP components for enhanced keyword extraction
@@ -172,7 +172,7 @@ type SupabaseKeywordRepository struct {
 	websiteScraper WebsiteScraperInterface
 
 	// Enhanced scoring algorithm (reused instance for performance)
-	enhancedScorer *EnhancedScoringAlgorithm
+	enhancedScorer      *EnhancedScoringAlgorithm
 	enhancedScorerMutex sync.RWMutex // Thread-safe access to enhanced scorer
 }
 
@@ -182,17 +182,17 @@ func (r *SupabaseKeywordRepository) timedQuery(ctx context.Context, queryName st
 	defer func() {
 		duration := time.Since(start)
 		r.logger.Printf("⏱️ [DB-QUERY] %s took %v", queryName, duration)
-		
+
 		if duration > 5*time.Second {
 			r.logger.Printf("⚠️ [SLOW-QUERY] %s took %v (threshold: 5s)", queryName, duration)
 		}
-		
+
 		if deadline, hasDeadline := ctx.Deadline(); hasDeadline {
 			remaining := time.Until(deadline)
 			r.logger.Printf("⏱️ [DB-QUERY] %s - time remaining: %v", queryName, remaining)
 		}
 	}()
-	
+
 	return fn()
 }
 
@@ -222,10 +222,10 @@ func (r *SupabaseKeywordRepository) ensureValidContext(ctx context.Context, http
 
 // scrapingSessionManager manages scraping sessions (duplicate to avoid import cycles)
 type scrapingSessionManager struct {
-	enabled     bool
-	sessions    map[string]*scrapingSession
+	enabled      bool
+	sessions     map[string]*scrapingSession
 	sessionMutex sync.RWMutex
-	maxAge      time.Duration
+	maxAge       time.Duration
 }
 
 // scrapingSession represents a scraping session (duplicate to avoid import cycles)
@@ -360,7 +360,7 @@ func (ssm *scrapingSessionManager) updateReferer(domain string, referer string) 
 // dnsCacheEntry represents a cached DNS resolution with TTL
 // industryCacheEntry holds cached industry data with TTL
 type industryCacheEntry struct {
-	industry *Industry
+	industry  *Industry
 	expiresAt time.Time
 }
 
@@ -428,7 +428,7 @@ func getRandomizedHeaders(baseUserAgent string, referer string) map[string]strin
 
 	// Use a simple randomizer (full implementation in classification package)
 	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
-	
+
 	// Randomize Accept
 	acceptVariants := []string{
 		"text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
@@ -502,7 +502,7 @@ func detectCAPTCHA(resp *http.Response, body []byte) (bool, string) {
 	// Check response body if available
 	if len(body) > 0 {
 		bodyLower := strings.ToLower(string(body))
-		
+
 		// Check for specific CAPTCHA types
 		if strings.Contains(bodyLower, "recaptcha") || strings.Contains(bodyLower, "g-recaptcha") {
 			return true, "recaptcha"
@@ -511,13 +511,13 @@ func detectCAPTCHA(resp *http.Response, body []byte) (bool, string) {
 			return true, "hcaptcha"
 		}
 		if strings.Contains(bodyLower, "cloudflare") || strings.Contains(bodyLower, "cf-browser-verification") ||
-		   strings.Contains(bodyLower, "checking your browser") || strings.Contains(bodyLower, "just a moment") {
+			strings.Contains(bodyLower, "checking your browser") || strings.Contains(bodyLower, "just a moment") {
 			return true, "cloudflare"
 		}
 		if strings.Contains(bodyLower, "turnstile") {
 			return true, "turnstile"
 		}
-		
+
 		// Generic CAPTCHA patterns
 		captchaPatterns := []string{"captcha", "challenge", "verify you are human", "prove you are not a robot"}
 		for _, pattern := range captchaPatterns {
@@ -666,26 +666,26 @@ func NewSupabaseKeywordRepositoryWithScraper(client *database.SupabaseClient, lo
 			IndustryToKeywords:  make(map[int][]*KeywordWeight),
 			LastUpdated:         0,
 		},
-		industryCodeCache: intelligentCache,
-		cacheConfig:       cacheConfig,
-		cacheStats:        &IndustryCodeCacheStats{},
-		brandMatcher:      NewBrandMatcher(logger),
-		regexCache:        make(map[string]*regexp.Regexp),
-		regexMutex:        sync.RWMutex{},
-		maxContentSize:    50 * 1024,
-		dnsCache:          make(map[string]dnsCacheEntry),
-		dnsMutex:          sync.RWMutex{},
-		rateLimiter:       make(map[string]time.Time),
-		rateMutex:         sync.Mutex{},
-		minDelay:          getRateLimitDelay(),
-		sessionManager:    newScrapingSessionManager(),
-		segmenter:         word_segmentation.NewSegmenter(),
-		entityRecognizer:  nlp.NewEntityRecognizer(),
-		topicModeler:      nlp.NewTopicModeler(),
-		keywordMatcher:    NewKeywordMatcher(),
-		websiteScraper:    websiteScraper, // Phase 1: Enhanced scraper with multi-tier strategies
+		industryCodeCache:   intelligentCache,
+		cacheConfig:         cacheConfig,
+		cacheStats:          &IndustryCodeCacheStats{},
+		brandMatcher:        NewBrandMatcher(logger),
+		regexCache:          make(map[string]*regexp.Regexp),
+		regexMutex:          sync.RWMutex{},
+		maxContentSize:      50 * 1024,
+		dnsCache:            make(map[string]dnsCacheEntry),
+		dnsMutex:            sync.RWMutex{},
+		rateLimiter:         make(map[string]time.Time),
+		rateMutex:           sync.Mutex{},
+		minDelay:            getRateLimitDelay(),
+		sessionManager:      newScrapingSessionManager(),
+		segmenter:           word_segmentation.NewSegmenter(),
+		entityRecognizer:    nlp.NewEntityRecognizer(),
+		topicModeler:        nlp.NewTopicModeler(),
+		keywordMatcher:      NewKeywordMatcher(),
+		websiteScraper:      websiteScraper,                             // Phase 1: Enhanced scraper with multi-tier strategies
 		websiteContentCache: make(map[string]*websiteContentCacheEntry), // OPTIMIZATION: Priority 4 - Website content caching
-		industryCache:     make(map[int]*industryCacheEntry),
+		industryCache:       make(map[int]*industryCacheEntry),
 	}
 }
 
@@ -739,7 +739,7 @@ func NewSupabaseKeywordRepositoryWithInterface(client SupabaseClientInterface, l
 		dnsCache: make(map[string]dnsCacheEntry),
 		dnsMutex: sync.RWMutex{},
 		// Industry caching (5-minute TTL)
-		industryCache:     make(map[int]*industryCacheEntry),
+		industryCache:      make(map[int]*industryCacheEntry),
 		industryCacheMutex: sync.RWMutex{},
 		// Phase 9.3: Initialize rate limiter
 		rateLimiter: make(map[string]time.Time),
@@ -755,7 +755,7 @@ func NewSupabaseKeywordRepositoryWithInterface(client SupabaseClientInterface, l
 		// Enhanced keyword matching
 		keywordMatcher: NewKeywordMatcher(),
 		// Initialize enhanced scoring algorithm (reused instance)
-		enhancedScorer: NewEnhancedScoringAlgorithm(logger, DefaultEnhancedScoringConfig()),
+		enhancedScorer:      NewEnhancedScoringAlgorithm(logger, DefaultEnhancedScoringConfig()),
 		enhancedScorerMutex: sync.RWMutex{},
 	}
 }
@@ -773,20 +773,20 @@ func (r *SupabaseKeywordRepository) BuildKeywordIndex(ctx context.Context) error
 		timeRemaining := time.Until(deadline)
 		r.logger.Printf("⏱️ [PROFILING] BuildKeywordIndex entry - time remaining: %v", timeRemaining)
 	}
-	
+
 	// FIX: Check cache first (TTL: 5 minutes)
 	r.cacheMutex.RLock()
 	indexAge := time.Since(time.Unix(r.keywordIndex.LastUpdated, 0))
 	cacheValid := r.keywordIndex.LastUpdated > 0 && indexAge < 5*time.Minute
 	keywordCount := len(r.keywordIndex.KeywordToIndustries)
 	r.cacheMutex.RUnlock()
-	
+
 	if cacheValid && keywordCount > 0 {
-		r.logger.Printf("✅ [CACHE HIT] Using cached keyword index (age: %v, keywords: %d, industries: %d)", 
+		r.logger.Printf("✅ [CACHE HIT] Using cached keyword index (age: %v, keywords: %d, industries: %d)",
 			indexAge, keywordCount, len(r.keywordIndex.IndustryToKeywords))
 		return nil
 	}
-	
+
 	if keywordCount > 0 {
 		r.logger.Printf("🔍 Building optimized keyword index... (cache expired, age: %v, keywords: %d)", indexAge, keywordCount)
 	} else {
@@ -890,7 +890,7 @@ func (r *SupabaseKeywordRepository) BuildKeywordIndex(ctx context.Context) error
 		timeRemaining := time.Until(deadline)
 		r.logger.Printf("⏱️ [PROFILING] BuildKeywordIndex complete - time remaining: %v, build_duration: %v", timeRemaining, buildDuration)
 	}
-	
+
 	r.logger.Printf("✅ Built keyword index with %d keywords across %d industries (query: %v, unmarshal: %v, build: %v, sort: %v)",
 		len(r.keywordIndex.KeywordToIndustries), len(r.keywordIndex.IndustryToKeywords),
 		queryDuration, unmarshalDuration, indexBuildDuration, sortDuration)
@@ -1030,13 +1030,13 @@ func (r *SupabaseKeywordRepository) storeWebsiteContentCache(cacheKey string, ke
 		// Don't cache empty results
 		return
 	}
-	
+
 	const cacheTTL = 5 * time.Minute
 	now := time.Now()
-	
+
 	r.websiteContentCacheMutex.Lock()
 	defer r.websiteContentCacheMutex.Unlock()
-	
+
 	// Limit cache size to prevent memory issues (max 1000 entries)
 	if len(r.websiteContentCache) >= 1000 {
 		// Remove oldest entry (simple eviction - could be improved with LRU)
@@ -1046,13 +1046,13 @@ func (r *SupabaseKeywordRepository) storeWebsiteContentCache(cacheKey string, ke
 		}
 		r.logger.Printf("🧹 [CACHE] [storeWebsiteContentCache] Cache full, evicted oldest entry")
 	}
-	
+
 	r.websiteContentCache[cacheKey] = &websiteContentCacheEntry{
 		keywords:  keywords,
 		expiresAt: now.Add(cacheTTL),
 		cachedAt:  now,
 	}
-	
+
 	r.logger.Printf("✅ [CACHE] [storeWebsiteContentCache] Stored %d keywords in cache for %s (TTL: %v)", len(keywords), cacheKey, cacheTTL)
 }
 
@@ -1341,7 +1341,7 @@ func (r *SupabaseKeywordRepository) GetBatchKeywords(ctx context.Context, indust
 // GetIndustryByID retrieves an industry by its ID with caching (5-minute TTL)
 func (r *SupabaseKeywordRepository) GetIndustryByID(ctx context.Context, id int) (*Industry, error) {
 	const cacheTTL = 5 * time.Minute
-	
+
 	// Check cache first
 	r.industryCacheMutex.RLock()
 	if cached, exists := r.industryCache[id]; exists {
@@ -1355,7 +1355,7 @@ func (r *SupabaseKeywordRepository) GetIndustryByID(ctx context.Context, id int)
 		delete(r.industryCache, id)
 	}
 	r.industryCacheMutex.RUnlock()
-	
+
 	// Cache miss - fetch from database
 	r.logger.Printf("🔍 [CACHE MISS] Getting industry by ID: %d", id)
 
@@ -1386,7 +1386,7 @@ func (r *SupabaseKeywordRepository) GetIndustryByID(ctx context.Context, id int)
 		expiresAt: time.Now().Add(cacheTTL),
 	}
 	r.industryCacheMutex.Unlock()
-	
+
 	r.logger.Printf("✅ Cached industry %d (expires in %v)", id, cacheTTL)
 
 	return &industry, nil
@@ -1540,8 +1540,8 @@ func (r *SupabaseKeywordRepository) SearchKeywords(ctx context.Context, query st
 	// Use trigram-based search via RPC for better performance
 	// This leverages trigram indexes instead of ILIKE queries
 	payload := map[string]interface{}{
-		"p_query":              query,
-		"p_limit":              limit,
+		"p_query":                query,
+		"p_limit":                limit,
 		"p_similarity_threshold": 0.3,
 	}
 
@@ -1583,11 +1583,11 @@ func (r *SupabaseKeywordRepository) SearchKeywords(ctx context.Context, query st
 
 	// Parse response
 	var results []struct {
-		ID             int     `json:"id"`
-		IndustryID     int     `json:"industry_id"`
-		Keyword        string  `json:"keyword"`
-		Weight         float64 `json:"weight"`
-		IsActive       bool    `json:"is_active"`
+		ID              int     `json:"id"`
+		IndustryID      int     `json:"industry_id"`
+		Keyword         string  `json:"keyword"`
+		Weight          float64 `json:"weight"`
+		IsActive        bool    `json:"is_active"`
 		SimilarityScore float64 `json:"similarity_score"`
 	}
 
@@ -1702,7 +1702,7 @@ func (r *SupabaseKeywordRepository) GetClassificationCodesByIndustry(ctx context
 			Order("code_type", &postgrest.OrderOpts{Ascending: true}).
 			Order("code", &postgrest.OrderOpts{Ascending: true}).
 			Execute()
-		
+
 		if err != nil {
 			return nil, fmt.Errorf("failed to get classification codes for industry %d: %w", industryID, err)
 		}
@@ -1727,7 +1727,7 @@ func (r *SupabaseKeywordRepository) GetClassificationCodesByIndustry(ctx context
 		for ct := range codeTypes {
 			typeList = append(typeList, ct)
 		}
-		r.logger.Printf("✅ Retrieved %d classification codes for industry %d (types: %v)", 
+		r.logger.Printf("✅ Retrieved %d classification codes for industry %d (types: %v)",
 			len(codes), industryID, typeList)
 	}
 	return codes, nil
@@ -1757,11 +1757,11 @@ func (r *SupabaseKeywordRepository) GetClassificationCodesByKeywords(
 	// Use trigram-based search via RPC for better performance
 	// This leverages trigram indexes instead of in-memory matching
 	payload := map[string]interface{}{
-		"p_keywords":            keywords,
-		"p_code_type":           codeType,
-		"p_min_relevance":       minRelevance,
+		"p_keywords":             keywords,
+		"p_code_type":            codeType,
+		"p_min_relevance":        minRelevance,
 		"p_similarity_threshold": 0.3,
-		"p_limit":               3,
+		"p_limit":                3,
 	}
 
 	url := fmt.Sprintf("%s/rest/v1/rpc/find_codes_by_keywords_trigram", r.client.GetURL())
@@ -1946,12 +1946,12 @@ func (r *SupabaseKeywordRepository) FindCodesByFullTextSearch(
 
 	// Parse response
 	var results []struct {
-		ID          int    `json:"id"`
-		IndustryID  int    `json:"industry_id"`
-		CodeType    string `json:"code_type"`
-		Code        string `json:"code"`
-		Description string `json:"description"`
-		IsActive    bool   `json:"is_active"`
+		ID          int     `json:"id"`
+		IndustryID  int     `json:"industry_id"`
+		CodeType    string  `json:"code_type"`
+		Code        string  `json:"code"`
+		Description string  `json:"description"`
+		IsActive    bool    `json:"is_active"`
 		Relevance   float64 `json:"relevance"`
 	}
 
@@ -2058,7 +2058,7 @@ func (r *SupabaseKeywordRepository) ClassifyBusiness(ctx context.Context, busine
 		timeRemaining := time.Until(deadline)
 		r.logger.Printf("⏱️ [PROFILING] ClassifyBusiness entry - time remaining: %v", timeRemaining)
 	}
-	
+
 	r.logger.Printf("🔍 Classifying business: %s", businessName)
 
 	// Extract contextual keywords from business information (excluding description for security)
@@ -2068,9 +2068,9 @@ func (r *SupabaseKeywordRepository) ClassifyBusiness(ctx context.Context, busine
 		timeRemaining := time.Until(deadline)
 		r.logger.Printf("⏱️ [PROFILING] Before extractKeywords - time remaining: %v, elapsed: %v", timeRemaining, time.Since(funcStartTime))
 	}
-	
+
 	contextualKeywords := r.extractKeywords(ctx, businessName, websiteURL)
-	
+
 	extractDuration := time.Since(extractStartTime)
 	if deadline, hasDeadline := ctx.Deadline(); hasDeadline {
 		timeRemaining := time.Until(deadline)
@@ -2083,15 +2083,15 @@ func (r *SupabaseKeywordRepository) ClassifyBusiness(ctx context.Context, busine
 		timeRemaining := time.Until(deadline)
 		r.logger.Printf("⏱️ [PROFILING] Before ClassifyBusinessByContextualKeywords - time remaining: %v, elapsed: %v", timeRemaining, time.Since(funcStartTime))
 	}
-	
+
 	result, err := r.ClassifyBusinessByContextualKeywords(ctx, contextualKeywords)
-	
+
 	classifyDuration := time.Since(classifyStartTime)
 	if deadline, hasDeadline := ctx.Deadline(); hasDeadline {
 		timeRemaining := time.Until(deadline)
 		r.logger.Printf("⏱️ [PROFILING] After ClassifyBusinessByContextualKeywords - time remaining: %v, classify_duration: %v, elapsed: %v", timeRemaining, classifyDuration, time.Since(funcStartTime))
 	}
-	
+
 	return result, err
 }
 
@@ -2120,15 +2120,15 @@ func (r *SupabaseKeywordRepository) ClassifyBusinessByKeywordsTrigram(
 
 	// Prepare RPC call payload
 	payload := map[string]interface{}{
-		"p_keywords":            keywords,
-		"p_business_name":       businessName,
+		"p_keywords":             keywords,
+		"p_business_name":        businessName,
 		"p_similarity_threshold": similarityThreshold,
 	}
 
 	// Use HTTP client to call RPC endpoint
 	// Note: PostgREST client doesn't have direct RPC support, so we use HTTP
 	url := fmt.Sprintf("%s/rest/v1/rpc/classify_business_by_keywords_trigram", r.client.GetURL())
-	
+
 	jsonPayload, err := json.Marshal(payload)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal RPC payload: %w", err)
@@ -2138,7 +2138,7 @@ func (r *SupabaseKeywordRepository) ClassifyBusinessByKeywordsTrigram(
 	rpcCtx := ctx
 	var rpcCancel context.CancelFunc
 	httpTimeout := 2 * time.Second
-	
+
 	if deadline, hasDeadline := ctx.Deadline(); hasDeadline {
 		timeRemaining := time.Until(deadline)
 		if timeRemaining <= 0 {
@@ -2181,10 +2181,10 @@ func (r *SupabaseKeywordRepository) ClassifyBusinessByKeywordsTrigram(
 
 	// Parse response
 	var results []struct {
-		IndustryID     int      `json:"industry_id"`
-		IndustryName   string   `json:"industry_name"`
-		Score          float64  `json:"score"`
-		MatchCount     int      `json:"match_count"`
+		IndustryID      int      `json:"industry_id"`
+		IndustryName    string   `json:"industry_name"`
+		Score           float64  `json:"score"`
+		MatchCount      int      `json:"match_count"`
 		MatchedKeywords []string `json:"matched_keywords"`
 	}
 
@@ -2198,7 +2198,7 @@ func (r *SupabaseKeywordRepository) ClassifyBusinessByKeywordsTrigram(
 
 	// Get top result
 	topResult := results[0]
-	
+
 	// Normalize score to confidence (0.0-1.0)
 	// Score is sum of weighted similarities, normalize by dividing by max possible score
 	// Max possible score would be sum of all base_weights for matched keywords
@@ -2208,7 +2208,7 @@ func (r *SupabaseKeywordRepository) ClassifyBusinessByKeywordsTrigram(
 		maxPossibleScore = 1.0 // Avoid division by zero
 	}
 	confidence := math.Min(topResult.Score/maxPossibleScore, 1.0)
-	
+
 	// Apply minimum confidence threshold
 	if confidence < 0.35 {
 		confidence = 0.35 // Minimum confidence
@@ -2334,7 +2334,7 @@ func (r *SupabaseKeywordRepository) ClassifyBusinessByKeywords(ctx context.Conte
 	for industryID, score := range industryScores {
 		// Normalize score by number of input keywords
 		normalizedScore := score / float64(len(keywords))
-		
+
 		// Phase 7.1: Weight by number of unique keyword matches (multi-keyword requirement)
 		matchCount := industryMatchCounts[industryID]
 		matchCountBoost := 1.0
@@ -2343,13 +2343,13 @@ func (r *SupabaseKeywordRepository) ClassifyBusinessByKeywords(ctx context.Conte
 		} else if matchCount >= 2 {
 			matchCountBoost = 1.1 // 10% boost for 2 keyword matches
 		}
-		
+
 		// Apply co-occurrence boost (Phase 7.3)
 		// Apply as a multiplier to maintain proper scaling
 		if boost, exists := coOccurrenceBoost[industryID]; exists {
 			normalizedScore *= (1.0 + boost) // Convert absolute boost to multiplier
 		}
-		
+
 		// Apply match count boost
 		normalizedScore *= matchCountBoost
 
@@ -2391,7 +2391,7 @@ func (r *SupabaseKeywordRepository) ClassifyBusinessByKeywords(ctx context.Conte
 	// Phase 7.2: Industry confidence thresholds (adaptive)
 	// Lower thresholds for better industry detection
 	const (
-		MinKeywordCount    = 2  // Minimum keywords required for high confidence (reduced from 3)
+		MinKeywordCount    = 2    // Minimum keywords required for high confidence (reduced from 3)
 		MinConfidenceScore = 0.35 // Minimum confidence threshold (reduced from 0.6 for better detection)
 	)
 
@@ -2434,22 +2434,22 @@ func (r *SupabaseKeywordRepository) ClassifyBusinessByKeywords(ctx context.Conte
 	// Use trigram when: confidence < 0.6 OR uniqueMatchCount < 2
 	const trigramConfidenceThreshold = 0.6
 	const trigramMatchCountThreshold = 2
-	
+
 	if confidence < trigramConfidenceThreshold || uniqueMatchCount < trigramMatchCountThreshold {
 		r.logger.Printf("📊 Confidence %.2f or match count %d below threshold, supplementing with trigram fuzzy matching", confidence, uniqueMatchCount)
-		
+
 		// Try trigram classification to find fuzzy matches
 		trigramResult, err := r.ClassifyBusinessByKeywordsTrigram(ctx, keywords, "", 0.3)
 		if err == nil && trigramResult != nil {
 			// Merge trigram results with exact match results
 			trigramScore := trigramResult.Confidence
 			trigramIndustryID := trigramResult.Industry.ID
-			
+
 			// If trigram found a better match (higher confidence or different industry with good confidence)
 			if trigramScore > confidence && trigramIndustryID != 26 {
-				r.logger.Printf("✅ Trigram found better match: industry %d with confidence %.2f (vs exact match %.2f)", 
+				r.logger.Printf("✅ Trigram found better match: industry %d with confidence %.2f (vs exact match %.2f)",
 					trigramIndustryID, trigramScore, confidence)
-				
+
 				// Use trigram result but boost it slightly if exact matches also found this industry
 				if trigramIndustryID == bestIndustryID {
 					// Both methods agree - boost confidence
@@ -2561,11 +2561,11 @@ func (r *SupabaseKeywordRepository) fallbackClassification(keywords []string, re
 // Can be overridden by parent context if shorter
 func (r *SupabaseKeywordRepository) ClassifyBusinessByContextualKeywords(ctx context.Context, contextualKeywords []ContextualKeyword) (*ClassificationResult, error) {
 	const defaultClassificationTimeout = 30 * time.Second
-	
+
 	// Create context with timeout if parent context doesn't have a deadline or has a longer deadline
 	var classificationCtx context.Context
 	var cancel context.CancelFunc
-	
+
 	if deadline, hasDeadline := ctx.Deadline(); hasDeadline {
 		timeRemaining := time.Until(deadline)
 		if timeRemaining < defaultClassificationTimeout {
@@ -2584,14 +2584,14 @@ func (r *SupabaseKeywordRepository) ClassifyBusinessByContextualKeywords(ctx con
 		r.logger.Printf("⏱️ [TIMEOUT] Created classification context with timeout: %v (parent has no deadline)", defaultClassificationTimeout)
 	}
 	defer cancel()
-	
+
 	// PROFILING: Track time at function entry
 	funcStartTime := time.Now()
 	if deadline, hasDeadline := classificationCtx.Deadline(); hasDeadline {
 		timeRemaining := time.Until(deadline)
 		r.logger.Printf("⏱️ [PROFILING] ClassifyBusinessByContextualKeywords entry - time remaining: %v", timeRemaining)
 	}
-	
+
 	r.logger.Printf("🔍 Classifying business by contextual keywords with enhanced scoring: %d keywords", len(contextualKeywords))
 
 	if len(contextualKeywords) == 0 {
@@ -2615,7 +2615,7 @@ func (r *SupabaseKeywordRepository) ClassifyBusinessByContextualKeywords(ctx con
 	indexCheckStart := time.Now()
 	index := r.GetKeywordIndex()
 	indexCheckDuration := time.Since(indexCheckStart)
-	
+
 	// Enhanced logging for index state
 	indexState := "empty"
 	indexAge := time.Duration(0)
@@ -2632,14 +2632,14 @@ func (r *SupabaseKeywordRepository) ClassifyBusinessByContextualKeywords(ctx con
 			indexState = "populated (no timestamp)"
 		}
 	}
-	r.logger.Printf("📊 [INDEX STATE] Keyword index: %s, keywords: %d, industries: %d", 
+	r.logger.Printf("📊 [INDEX STATE] Keyword index: %s, keywords: %d, industries: %d",
 		indexState, keywordCount, len(index.IndustryToKeywords))
-	
+
 	if deadline, hasDeadline := classificationCtx.Deadline(); hasDeadline {
 		timeRemaining := time.Until(deadline)
 		r.logger.Printf("⏱️ [PROFILING] After GetKeywordIndex - time remaining: %v, index_check_duration: %v, elapsed: %v", timeRemaining, indexCheckDuration, time.Since(funcStartTime))
 	}
-	
+
 	if len(index.KeywordToIndustries) == 0 {
 		r.logger.Printf("⚠️ Keyword index is empty, building it now...")
 		buildStartTime := time.Now()
@@ -2647,7 +2647,7 @@ func (r *SupabaseKeywordRepository) ClassifyBusinessByContextualKeywords(ctx con
 			timeRemaining := time.Until(deadline)
 			r.logger.Printf("⏱️ [PROFILING] Before BuildKeywordIndex - time remaining: %v, elapsed: %v", timeRemaining, time.Since(funcStartTime))
 		}
-		
+
 		if err := r.BuildKeywordIndex(classificationCtx); err != nil {
 			r.logger.Printf("⚠️ Failed to build keyword index: %v", err)
 			// Convert contextual keywords to strings for fallback
@@ -2657,15 +2657,15 @@ func (r *SupabaseKeywordRepository) ClassifyBusinessByContextualKeywords(ctx con
 			}
 			return r.fallbackClassification(keywords, "Failed to build keyword index"), nil
 		}
-		
+
 		buildDuration := time.Since(buildStartTime)
 		if deadline, hasDeadline := classificationCtx.Deadline(); hasDeadline {
 			timeRemaining := time.Until(deadline)
 			r.logger.Printf("⏱️ [PROFILING] After BuildKeywordIndex - time remaining: %v, build_duration: %v, elapsed: %v", timeRemaining, buildDuration, time.Since(funcStartTime))
 		}
-		
+
 		index = r.GetKeywordIndex()
-		r.logger.Printf("✅ [INDEX BUILT] Keyword index built successfully: %d keywords, %d industries", 
+		r.logger.Printf("✅ [INDEX BUILT] Keyword index built successfully: %d keywords, %d industries",
 			len(index.KeywordToIndustries), len(index.IndustryToKeywords))
 	} else if indexAge >= 5*time.Minute {
 		r.logger.Printf("⚠️ Keyword index expired (age: %v), but using it anyway to avoid rebuild during request", indexAge)
@@ -2676,7 +2676,7 @@ func (r *SupabaseKeywordRepository) ClassifyBusinessByContextualKeywords(ctx con
 	const defaultEnhancedScoreTimeout = 8 * time.Second
 	var enhancedScoreCtx context.Context
 	var enhancedScoreCancel context.CancelFunc
-	
+
 	if deadline, hasDeadline := classificationCtx.Deadline(); hasDeadline {
 		timeRemaining := time.Until(deadline)
 		if timeRemaining < defaultEnhancedScoreTimeout {
@@ -2692,18 +2692,18 @@ func (r *SupabaseKeywordRepository) ClassifyBusinessByContextualKeywords(ctx con
 		r.logger.Printf("⏱️ [TIMEOUT] Created enhanced scoring context with timeout: %v", defaultEnhancedScoreTimeout)
 	}
 	defer enhancedScoreCancel()
-	
+
 	enhancedScorerStart := time.Now()
 	if deadline, hasDeadline := enhancedScoreCtx.Deadline(); hasDeadline {
 		timeRemaining := time.Until(deadline)
 		r.logger.Printf("⏱️ [PROFILING] Before CalculateEnhancedScore - time remaining: %v, elapsed: %v", timeRemaining, time.Since(funcStartTime))
 	}
-	
+
 	// Use reused enhanced scoring algorithm instance (thread-safe)
 	r.enhancedScorerMutex.RLock()
 	enhancedScorer := r.enhancedScorer
 	r.enhancedScorerMutex.RUnlock()
-	
+
 	// Initialize if not already initialized (shouldn't happen, but safety check)
 	if enhancedScorer == nil {
 		r.enhancedScorerMutex.Lock()
@@ -2713,15 +2713,15 @@ func (r *SupabaseKeywordRepository) ClassifyBusinessByContextualKeywords(ctx con
 		enhancedScorer = r.enhancedScorer
 		r.enhancedScorerMutex.Unlock()
 	}
-	
+
 	enhancedResult, err := enhancedScorer.CalculateEnhancedScore(enhancedScoreCtx, contextualKeywords, index)
-	
+
 	enhancedScorerDuration := time.Since(enhancedScorerStart)
 	if deadline, hasDeadline := enhancedScoreCtx.Deadline(); hasDeadline {
 		timeRemaining := time.Until(deadline)
 		r.logger.Printf("⏱️ [PROFILING] After CalculateEnhancedScore - time remaining: %v, calculate_enhanced_score_duration: %v, elapsed: %v", timeRemaining, enhancedScorerDuration, time.Since(funcStartTime))
 	}
-	
+
 	if err != nil {
 		// Check if error is due to timeout
 		if enhancedScoreCtx.Err() == context.DeadlineExceeded {
@@ -2741,11 +2741,11 @@ func (r *SupabaseKeywordRepository) ClassifyBusinessByContextualKeywords(ctx con
 		industryDuration time.Duration
 		codesDuration    time.Duration
 	}
-	
+
 	var bestIndustry *Industry
 	var codesPtr []*ClassificationCode
 	var getIndustryDuration, getCodesDuration time.Duration
-	
+
 	queryStart := time.Now()
 	if deadline, hasDeadline := classificationCtx.Deadline(); hasDeadline {
 		timeRemaining := time.Until(deadline)
@@ -2762,98 +2762,98 @@ func (r *SupabaseKeywordRepository) ClassifyBusinessByContextualKeywords(ctx con
 			getIndustryDuration = 0
 			getCodesDuration = 0
 		} else if enhancedResult.IndustryID != 26 {
-		// Execute queries in parallel
-		resultsChan := make(chan queryResults, 2)
-		var wg sync.WaitGroup
-		
-		// Get industry information in parallel
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			var industry *Industry
-			var err error
-			industryDuration := time.Duration(0)
-			
-			err = r.timedQuery(classificationCtx, "GetIndustryByID", map[string]interface{}{
-				"industry_id": enhancedResult.IndustryID,
-			}, func() error {
-				industryStart := time.Now()
-				industry, err = r.GetIndustryByID(classificationCtx, enhancedResult.IndustryID)
-				industryDuration = time.Since(industryStart)
-				return err
-			})
-			
-			resultsChan <- queryResults{
-				industry:         industry,
-				industryErr:      err,
-				industryDuration: industryDuration,
+			// Execute queries in parallel
+			resultsChan := make(chan queryResults, 2)
+			var wg sync.WaitGroup
+
+			// Get industry information in parallel
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				var industry *Industry
+				var err error
+				industryDuration := time.Duration(0)
+
+				err = r.timedQuery(classificationCtx, "GetIndustryByID", map[string]interface{}{
+					"industry_id": enhancedResult.IndustryID,
+				}, func() error {
+					industryStart := time.Now()
+					industry, err = r.GetIndustryByID(classificationCtx, enhancedResult.IndustryID)
+					industryDuration = time.Since(industryStart)
+					return err
+				})
+
+				resultsChan <- queryResults{
+					industry:         industry,
+					industryErr:      err,
+					industryDuration: industryDuration,
+				}
+			}()
+
+			// Get classification codes in parallel
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				var codes []*ClassificationCode
+				var err error
+				codesDuration := time.Duration(0)
+
+				err = r.timedQuery(classificationCtx, "GetCachedClassificationCodes", map[string]interface{}{
+					"industry_id": enhancedResult.IndustryID,
+				}, func() error {
+					codesStart := time.Now()
+					codes, err = r.GetCachedClassificationCodes(classificationCtx, enhancedResult.IndustryID)
+					codesDuration = time.Since(codesStart)
+					return err
+				})
+
+				resultsChan <- queryResults{
+					codes:         codes,
+					codesErr:      err,
+					codesDuration: codesDuration,
+				}
+			}()
+
+			// Wait for both queries to complete
+			wg.Wait()
+			close(resultsChan)
+
+			// Collect results (each goroutine sends one result with either industry or codes)
+			var industryResult, codesResult queryResults
+			for result := range resultsChan {
+				// Check which type of result this is
+				if result.industry != nil || result.industryErr != nil {
+					industryResult = result
+				}
+				if result.codes != nil || result.codesErr != nil {
+					codesResult = result
+				}
 			}
-		}()
-		
-		// Get classification codes in parallel
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			var codes []*ClassificationCode
-			var err error
-			codesDuration := time.Duration(0)
-			
-			err = r.timedQuery(classificationCtx, "GetCachedClassificationCodes", map[string]interface{}{
-				"industry_id": enhancedResult.IndustryID,
-			}, func() error {
-				codesStart := time.Now()
-				codes, err = r.GetCachedClassificationCodes(classificationCtx, enhancedResult.IndustryID)
-				codesDuration = time.Since(codesStart)
-				return err
-			})
-			
-			resultsChan <- queryResults{
-				codes:         codes,
-				codesErr:      err,
-				codesDuration: codesDuration,
+
+			// Process industry result
+			getIndustryDuration = industryResult.industryDuration
+			if industryResult.industryErr != nil {
+				r.logger.Printf("⚠️ Failed to get industry %d: %v", enhancedResult.IndustryID, industryResult.industryErr)
+				bestIndustry = &Industry{Name: "General Business", ID: 26}
+			} else {
+				bestIndustry = industryResult.industry
 			}
-		}()
-		
-		// Wait for both queries to complete
-		wg.Wait()
-		close(resultsChan)
-		
-		// Collect results (each goroutine sends one result with either industry or codes)
-		var industryResult, codesResult queryResults
-		for result := range resultsChan {
-			// Check which type of result this is
-			if result.industry != nil || result.industryErr != nil {
-				industryResult = result
+
+			// Process codes result
+			getCodesDuration = codesResult.codesDuration
+			if codesResult.codesErr != nil {
+				r.logger.Printf("⚠️ Failed to get classification codes for industry %d: %v", enhancedResult.IndustryID, codesResult.codesErr)
+				codesPtr = []*ClassificationCode{}
+			} else {
+				codesPtr = codesResult.codes
 			}
-			if result.codes != nil || result.codesErr != nil {
-				codesResult = result
+
+			totalQueryDuration := time.Since(queryStart)
+			if deadline, hasDeadline := classificationCtx.Deadline(); hasDeadline {
+				timeRemaining := time.Until(deadline)
+				r.logger.Printf("⏱️ [PROFILING] After parallel queries - time remaining: %v, total_query_duration: %v (industry: %v, codes: %v), elapsed: %v",
+					timeRemaining, totalQueryDuration, getIndustryDuration, getCodesDuration, time.Since(funcStartTime))
 			}
-		}
-		
-		// Process industry result
-		getIndustryDuration = industryResult.industryDuration
-		if industryResult.industryErr != nil {
-			r.logger.Printf("⚠️ Failed to get industry %d: %v", enhancedResult.IndustryID, industryResult.industryErr)
-			bestIndustry = &Industry{Name: "General Business", ID: 26}
-		} else {
-			bestIndustry = industryResult.industry
-		}
-		
-		// Process codes result
-		getCodesDuration = codesResult.codesDuration
-		if codesResult.codesErr != nil {
-			r.logger.Printf("⚠️ Failed to get classification codes for industry %d: %v", enhancedResult.IndustryID, codesResult.codesErr)
-			codesPtr = []*ClassificationCode{}
-		} else {
-			codesPtr = codesResult.codes
-		}
-		
-		totalQueryDuration := time.Since(queryStart)
-		if deadline, hasDeadline := classificationCtx.Deadline(); hasDeadline {
-			timeRemaining := time.Until(deadline)
-			r.logger.Printf("⏱️ [PROFILING] After parallel queries - time remaining: %v, total_query_duration: %v (industry: %v, codes: %v), elapsed: %v", 
-				timeRemaining, totalQueryDuration, getIndustryDuration, getCodesDuration, time.Since(funcStartTime))
-		}
 		}
 	} else {
 		bestIndustry = &Industry{Name: "General Business", ID: 26}
@@ -2892,12 +2892,12 @@ func (r *SupabaseKeywordRepository) ClassifyBusinessByContextualKeywords(ctx con
 		r.logger.Printf("⏱️ [PROFILING] Duration breakdown - GetKeywordIndex: %v, CalculateEnhancedScore: %v, GetIndustryByID: %v, GetCachedClassificationCodes: %v",
 			indexCheckDuration, enhancedScorerDuration, getIndustryDuration, getCodesDuration)
 	}
-	
+
 	// Check if timeout was exceeded
 	if classificationCtx.Err() == context.DeadlineExceeded {
 		r.logger.Printf("⚠️ [TIMEOUT] Classification timeout exceeded after %v", totalDuration)
 	}
-	
+
 	reasoning := fmt.Sprintf("Enhanced classification as %s with confidence %.3f based on %d contextual keywords. "+
 		"Score breakdown: Direct(%.3f), Phrase(%.3f), Partial(%.3f), Context(%.3f). "+
 		"Quality indicators: Diversity(%.3f), Relevance(%.3f), Overall(%.3f). "+
@@ -3155,7 +3155,7 @@ func (r *SupabaseKeywordRepository) CleanupInactiveData(ctx context.Context) err
 func (r *SupabaseKeywordRepository) extractKeywords(ctx context.Context, businessName, websiteURL string) []ContextualKeyword {
 	extractionStartTime := time.Now()
 	r.logger.Printf("🔍 [KeywordExtraction] Starting extraction for: %s (business: %s)", websiteURL, businessName)
-	
+
 	// PROFILING: Detailed profiling for extractKeywords optimization
 	funcStartTime := time.Now()
 	if deadline, ok := ctx.Deadline(); ok {
@@ -3164,7 +3164,7 @@ func (r *SupabaseKeywordRepository) extractKeywords(ctx context.Context, busines
 	} else {
 		r.logger.Printf("⏱️ [PROFILING] [extractKeywords] Entry - no deadline")
 	}
-	
+
 	// Log parent context state for debugging
 	if deadline, ok := ctx.Deadline(); ok {
 		timeRemaining := time.Until(deadline)
@@ -3172,28 +3172,28 @@ func (r *SupabaseKeywordRepository) extractKeywords(ctx context.Context, busines
 	} else {
 		r.logger.Printf("⏱️ [KeywordExtraction] Parent context has no deadline")
 	}
-	
+
 	var keywords []ContextualKeyword
 	seen := make(map[string]bool)
-	
+
 	// Track metrics for observability (Phase 8.2)
 	// Note: Error counts are logged in nested functions but not tracked here
 	// as they occur in separate function scopes. Errors are properly categorized
 	// and logged in each extraction method (Phase 8.3).
 	metrics := struct {
-		startTime          time.Time
-		level1Time         time.Duration
-		level2Time         time.Duration
-		level3Time         time.Duration
-		level4Time         time.Duration
-		level1Keywords     int
-		level2Keywords     int
-		level3Keywords     int
-		level4Keywords     int
-		level1Success      bool
-		level2Success      bool
-		level3Success      bool
-		level4Success      bool
+		startTime      time.Time
+		level1Time     time.Duration
+		level2Time     time.Duration
+		level3Time     time.Duration
+		level4Time     time.Duration
+		level1Keywords int
+		level2Keywords int
+		level3Keywords int
+		level4Keywords int
+		level1Success  bool
+		level2Success  bool
+		level3Success  bool
+		level4Success  bool
 	}{
 		startTime: extractionStartTime,
 	}
@@ -3203,14 +3203,14 @@ func (r *SupabaseKeywordRepository) extractKeywords(ctx context.Context, busines
 	if websiteURL != "" {
 		analysisMethod := "none"
 		confidenceLevel := "high"
-		
+
 		// OPTIMIZATION: Reduced timeout requirement (was 18s, now 15s)
 		// Phase 1 scraper: 10s max (reduced from 12s), overhead: 5s buffer
 		// This allows faster failure and reduces overall extractKeywords duration
 		const requiredTimeout = 15 * time.Second
 		var extractionCtx context.Context
 		var cancel context.CancelFunc
-		
+
 		if deadline, hasDeadline := ctx.Deadline(); hasDeadline {
 			timeRemaining := time.Until(deadline)
 			if timeRemaining < requiredTimeout {
@@ -3229,7 +3229,7 @@ func (r *SupabaseKeywordRepository) extractKeywords(ctx context.Context, busines
 			extractionCtx, cancel = context.WithTimeout(ctx, requiredTimeout)
 		}
 		defer cancel()
-		
+
 		// OPTIMIZATION: Try Level 2 (single-page) FIRST - it's faster than multi-page
 		// Level 2: Single-page analysis (homepage only) - requires 3+ keywords for success
 		// FIX: Check context deadline before starting single-page analysis
@@ -3249,7 +3249,7 @@ func (r *SupabaseKeywordRepository) extractKeywords(ctx context.Context, busines
 		} else {
 			r.logger.Printf("📊 [KeywordExtraction] Level 2: Starting single-page website analysis (homepage only) - trying fastest method first (no deadline on context)")
 		}
-		
+
 		if hasEnoughTimeForLevel2 {
 			level2Start := time.Now()
 			if deadline, ok := extractionCtx.Deadline(); ok {
@@ -3259,14 +3259,14 @@ func (r *SupabaseKeywordRepository) extractKeywords(ctx context.Context, busines
 			singlePageKeywords := r.extractKeywordsFromWebsite(extractionCtx, websiteURL)
 			metrics.level2Time = time.Since(level2Start)
 			metrics.level2Keywords = len(singlePageKeywords)
-			
+
 			if deadline, ok := extractionCtx.Deadline(); ok {
 				timeRemaining := time.Until(deadline)
 				r.logger.Printf("⏱️ [PROFILING] [extractKeywords] After extractKeywordsFromWebsite (Level 2) - time remaining: %v, level2_duration: %v, elapsed: %v", timeRemaining, metrics.level2Time, time.Since(funcStartTime))
 			}
-			
+
 			r.logger.Printf("📊 [KeywordExtraction] Level 2 completed in %v: extracted %d keywords", metrics.level2Time, len(singlePageKeywords))
-			
+
 			if len(singlePageKeywords) >= 3 {
 				// Success: enough keywords from single-page
 				for _, keyword := range singlePageKeywords {
@@ -3287,16 +3287,16 @@ func (r *SupabaseKeywordRepository) extractKeywords(ctx context.Context, busines
 				r.logger.Printf("🚀 [KeywordExtraction] Early termination: Level 2 success, skipping Levels 1/3/4")
 				return keywords
 			} else if len(singlePageKeywords) > 0 {
-			// Partial success: some keywords but not enough
-			for _, keyword := range singlePageKeywords {
-				if !seen[keyword] {
-					seen[keyword] = true
-					keywords = append(keywords, ContextualKeyword{
-						Keyword: keyword,
-						Context: "website_content",
-					})
+				// Partial success: some keywords but not enough
+				for _, keyword := range singlePageKeywords {
+					if !seen[keyword] {
+						seen[keyword] = true
+						keywords = append(keywords, ContextualKeyword{
+							Keyword: keyword,
+							Context: "website_content",
+						})
+					}
 				}
-			}
 				analysisMethod = "single_page_partial"
 				confidenceLevel = "low"
 				metrics.level2Success = false
@@ -3309,7 +3309,7 @@ func (r *SupabaseKeywordRepository) extractKeywords(ctx context.Context, busines
 			// Not enough time for Level 2, skip it
 			r.logger.Printf("⚠️ [KeywordExtraction] Level 2 SKIPPED: Insufficient time remaining for single-page analysis")
 		}
-		
+
 		// Level 1: Multi-page analysis (15 pages) - requires 5+ keywords for success
 		// Only try if Level 2 didn't get enough keywords
 		// FIX: Check context deadline before starting expensive multi-page analysis
@@ -3331,15 +3331,15 @@ func (r *SupabaseKeywordRepository) extractKeywords(ctx context.Context, busines
 			} else {
 				r.logger.Printf("📊 [KeywordExtraction] Level 1: Starting multi-page website analysis (max 15 pages, timeout: capped at 10s, no deadline on context)")
 			}
-			
+
 			if hasEnoughTime {
 				level1Start := time.Now()
 				multiPageKeywords := r.extractKeywordsFromMultiPageWebsite(extractionCtx, websiteURL)
 				metrics.level1Time = time.Since(level1Start)
 				metrics.level1Keywords = len(multiPageKeywords)
-				
+
 				r.logger.Printf("📊 [KeywordExtraction] Level 1 completed in %v: extracted %d keywords", metrics.level1Time, len(multiPageKeywords))
-				
+
 				if len(multiPageKeywords) >= 5 {
 					// Success: enough keywords from multi-page analysis
 					for _, keyword := range multiPageKeywords {
@@ -3382,26 +3382,26 @@ func (r *SupabaseKeywordRepository) extractKeywords(ctx context.Context, busines
 				}
 			}
 		}
-		
+
 		// OPTIMIZATION: Priority 5 - Parallel extraction from multiple sources
 		// Level 3 and Level 4 can run in parallel since they're independent
 		needsLevel3 := len(keywords) < 3
 		needsLevel4 := len(keywords) < 2
-		
+
 		if needsLevel3 && needsLevel4 {
 			// Run Level 3 and Level 4 in parallel
 			r.logger.Printf("🚀 [OPTIMIZATION] [extractKeywords] Running Level 3 and Level 4 in parallel")
-			
+
 			type levelResult struct {
-				level    int
-				keywords []string
+				level       int
+				keywords    []string
 				urlKeywords []ContextualKeyword
-				duration time.Duration
+				duration    time.Duration
 			}
-			
+
 			resultsChan := make(chan levelResult, 2)
 			var wg sync.WaitGroup
-			
+
 			// Level 3: Homepage retry (needs context)
 			wg.Add(1)
 			go func() {
@@ -3416,7 +3416,7 @@ func (r *SupabaseKeywordRepository) extractKeywords(ctx context.Context, busines
 					duration: level3Duration,
 				}
 			}()
-			
+
 			// Level 4: URL extraction (no context needed, very fast)
 			wg.Add(1)
 			go func() {
@@ -3431,18 +3431,18 @@ func (r *SupabaseKeywordRepository) extractKeywords(ctx context.Context, busines
 					duration:    level4Duration,
 				}
 			}()
-			
+
 			// Wait for both to complete
 			wg.Wait()
 			close(resultsChan)
-			
+
 			// Process results
 			for result := range resultsChan {
 				if result.level == 3 {
 					metrics.level3Time = result.duration
 					metrics.level3Keywords = len(result.keywords)
 					r.logger.Printf("📊 [KeywordExtraction] Level 3 (parallel) completed in %v: extracted %d keywords", metrics.level3Time, len(result.keywords))
-					
+
 					if len(result.keywords) >= 2 {
 						// Success: enough keywords from retry
 						for _, keyword := range result.keywords {
@@ -3482,7 +3482,7 @@ func (r *SupabaseKeywordRepository) extractKeywords(ctx context.Context, busines
 					metrics.level4Time = result.duration
 					metrics.level4Keywords = len(result.urlKeywords)
 					r.logger.Printf("📊 [KeywordExtraction] Level 4 (parallel) completed in %v: extracted %d keywords", metrics.level4Time, len(result.urlKeywords))
-					
+
 					if len(result.urlKeywords) >= 1 {
 						for _, keyword := range result.urlKeywords {
 							if !seen[keyword.Keyword] {
@@ -3499,7 +3499,7 @@ func (r *SupabaseKeywordRepository) extractKeywords(ctx context.Context, busines
 					}
 				}
 			}
-			
+
 			r.logger.Printf("✅ [OPTIMIZATION] [extractKeywords] Parallel extraction completed (Level 3: %v, Level 4: %v)", metrics.level3Time, metrics.level4Time)
 		} else {
 			// Sequential execution (only one level needed)
@@ -3509,9 +3509,9 @@ func (r *SupabaseKeywordRepository) extractKeywords(ctx context.Context, busines
 				homepageKeywords := r.extractKeywordsFromHomepageWithRetry(extractionCtx, websiteURL)
 				metrics.level3Time = time.Since(level3Start)
 				metrics.level3Keywords = len(homepageKeywords)
-				
+
 				r.logger.Printf("📊 [KeywordExtraction] Level 3 completed in %v: extracted %d keywords", metrics.level3Time, len(homepageKeywords))
-				
+
 				if len(homepageKeywords) >= 2 {
 					// Success: enough keywords from retry
 					for _, keyword := range homepageKeywords {
@@ -3552,16 +3552,16 @@ func (r *SupabaseKeywordRepository) extractKeywords(ctx context.Context, busines
 					}
 				}
 			}
-			
+
 			if needsLevel4 {
 				r.logger.Printf("📊 [KeywordExtraction] Level 4: Starting enhanced URL text extraction")
 				level4Start := time.Now()
 				urlKeywords := r.extractKeywordsFromURLEnhanced(websiteURL)
 				metrics.level4Time = time.Since(level4Start)
 				metrics.level4Keywords = len(urlKeywords)
-				
+
 				r.logger.Printf("📊 [KeywordExtraction] Level 4 completed in %v: extracted %d keywords", metrics.level4Time, len(urlKeywords))
-				
+
 				if len(urlKeywords) >= 1 {
 					for _, keyword := range urlKeywords {
 						if !seen[keyword.Keyword] {
@@ -3579,10 +3579,10 @@ func (r *SupabaseKeywordRepository) extractKeywords(ctx context.Context, busines
 				}
 			}
 		}
-		
+
 		// Level 5: Business name analysis (if brand match) - already handled below
 		// Level 6: Default to "General Business" with low confidence - handled by returning empty keywords
-		
+
 		// Phase 8.2: Log performance metrics
 		totalExtractionTime := time.Since(extractionStartTime)
 		totalFuncTime := time.Since(funcStartTime)
@@ -3598,7 +3598,7 @@ func (r *SupabaseKeywordRepository) extractKeywords(ctx context.Context, busines
 		r.logger.Printf("   - Level 3 (homepage-retry): %v, keywords: %d, success: %v", metrics.level3Time, metrics.level3Keywords, metrics.level3Success)
 		r.logger.Printf("   - Level 4 (URL-only): %v, keywords: %d, success: %v", metrics.level4Time, metrics.level4Keywords, metrics.level4Success)
 		r.logger.Printf("   - Note: Errors are logged in individual extraction methods with categorization (DNS, HTTP, Parsing)")
-		
+
 		// Phase 3.3: Integrate NER and topic modeling with keyword extraction
 		// Apply NER to extract entities from collected keywords and enhance with entity-based keywords
 		if len(keywords) > 0 {
@@ -3607,7 +3607,7 @@ func (r *SupabaseKeywordRepository) extractKeywords(ctx context.Context, busines
 			if combinedText != "" {
 				r.logger.Printf("🔍 [KeywordExtraction] [NLP] Applying Named Entity Recognition to extracted keywords")
 				entities := r.entityRecognizer.ExtractEntities(combinedText)
-				
+
 				// Extract keywords from entities
 				entityKeywords := r.entityRecognizer.GetEntityKeywords(entities)
 				for _, entityKw := range entityKeywords {
@@ -3619,21 +3619,21 @@ func (r *SupabaseKeywordRepository) extractKeywords(ctx context.Context, busines
 						})
 					}
 				}
-				
+
 				if len(entities) > 0 {
 					r.logger.Printf("✅ [KeywordExtraction] [NLP] Extracted %d entities, added %d entity-based keywords", len(entities), len(entityKeywords))
 				}
 			}
-			
+
 			// Apply topic modeling to identify industry topics and enhance keyword relevance
 			keywordStrings := make([]string, 0, len(keywords))
 			for _, kw := range keywords {
 				keywordStrings = append(keywordStrings, kw.Keyword)
 			}
-			
+
 			r.logger.Printf("🔍 [KeywordExtraction] [NLP] Applying topic modeling to identify industry topics")
 			topicScores := r.topicModeler.IdentifyTopics(keywordStrings)
-			
+
 			if len(topicScores) > 0 {
 				// Log top industry topics
 				maxIndustries := 3
@@ -3650,9 +3650,9 @@ func (r *SupabaseKeywordRepository) extractKeywords(ctx context.Context, busines
 				r.logger.Printf("📊 [KeywordExtraction] [NLP] Topic modeling identified %d industries with scores: %v", len(topicScores), topicScores)
 			}
 		}
-		
+
 		r.logger.Printf("📊 [KeywordExtraction] Final result: method=%s, confidence=%s, total_unique_keywords=%d", analysisMethod, confidenceLevel, len(keywords))
-		
+
 		// Log top keywords for observability
 		if len(keywords) > 0 {
 			maxKeywords := 10
@@ -3700,7 +3700,7 @@ func (r *SupabaseKeywordRepository) combineKeywordsForNER(keywords []ContextualK
 	if len(keywords) == 0 {
 		return ""
 	}
-	
+
 	var builder strings.Builder
 	for i, kw := range keywords {
 		if i > 0 {
@@ -3738,14 +3738,14 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromHomepageWithRetry(ctx con
 
 	// Try multiple DNS servers with retry logic
 	dnsServers := []string{"8.8.8.8:53", "1.1.1.1:53", "8.8.4.4:53"}
-	
+
 	maxRetries := 3
-	
+
 	for attempt := 1; attempt <= maxRetries; attempt++ {
 		// Try each DNS server
 		for _, dnsServer := range dnsServers {
 			r.logger.Printf("🔄 [KeywordExtraction] [HomepageRetry] Attempt %d/%d using DNS server %s", attempt, maxRetries, dnsServer)
-			
+
 			// Create custom DNS resolver that forces IPv4 and prevents fallback to system DNS
 			dnsResolver := &net.Resolver{
 				PreferGo: true,
@@ -3814,7 +3814,7 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromHomepageWithRetry(ctx con
 			if parsedURL != nil {
 				domain = parsedURL.Hostname()
 				r.applyRateLimit(domain)
-				
+
 				// Get or create session for this domain
 				sess, err := r.sessionManager.getOrCreateSession(domain)
 				if err != nil {
@@ -3828,12 +3828,12 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromHomepageWithRetry(ctx con
 			client := &http.Client{
 				Timeout: 60 * time.Second,
 				Transport: &http.Transport{
-					DialContext:          customDialContext,
-					MaxIdleConns:        10,
-					IdleConnTimeout:     30 * time.Second,
-					DisableCompression:  false,
-					MaxIdleConnsPerHost: 2,
-					TLSHandshakeTimeout: 15 * time.Second,
+					DialContext:           customDialContext,
+					MaxIdleConns:          10,
+					IdleConnTimeout:       30 * time.Second,
+					DisableCompression:    false,
+					MaxIdleConnsPerHost:   2,
+					TLSHandshakeTimeout:   15 * time.Second,
 					ResponseHeaderTimeout: 30 * time.Second,
 				},
 			}
@@ -3920,10 +3920,10 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromHomepageWithRetry(ctx con
 			// Extract keywords from content
 			content := string(body)
 			textContent := r.extractTextFromHTML(content)
-			
+
 			// Extract keywords using business patterns
 			extractedKeywords := r.extractBusinessKeywords(textContent)
-			
+
 			// Also extract from structured elements
 			// Phase 9.1: Use cached compiled regex pattern
 			titleRegex := r.getCachedRegex(`(?i)<title[^>]*>([^<]+)</title>`)
@@ -3936,20 +3936,20 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromHomepageWithRetry(ctx con
 			if len(extractedKeywords) > 0 {
 				duration := time.Since(startTime)
 				// Phase 8.2: Log performance metrics
-				r.logger.Printf("✅ [KeywordExtraction] [HomepageRetry] SUCCESS: Extracted %d keywords in %v (attempt %d, DNS %s)", 
+				r.logger.Printf("✅ [KeywordExtraction] [HomepageRetry] SUCCESS: Extracted %d keywords in %v (attempt %d, DNS %s)",
 					len(extractedKeywords), duration, attempt, dnsServer)
-				r.logger.Printf("📊 [KeywordExtraction] [HomepageRetry] Performance: time=%v, keywords=%d, attempt=%d, dns_server=%s", 
+				r.logger.Printf("📊 [KeywordExtraction] [HomepageRetry] Performance: time=%v, keywords=%d, attempt=%d, dns_server=%s",
 					duration, len(extractedKeywords), attempt, dnsServer)
 				return extractedKeywords
 			}
-			
+
 			// If we got here, we got a response but no keywords - try next DNS server
 			r.logger.Printf("⚠️ [KeywordExtraction] [HomepageRetry] WARNING: Got response but no keywords extracted (attempt %d, DNS %s), trying next DNS server", attempt, dnsServer)
 		}
 
 		// Exponential backoff before next retry (with jitter to avoid thundering herd)
 		if attempt < maxRetries {
-			baseBackoff := time.Duration(attempt) * 2 * time.Second // Increased base backoff
+			baseBackoff := time.Duration(attempt) * 2 * time.Second     // Increased base backoff
 			jitter := time.Duration(rand.Intn(1000)) * time.Millisecond // Random jitter 0-1s
 			backoff := baseBackoff + jitter
 			r.logger.Printf("⏳ [KeywordExtraction] [HomepageRetry] Waiting %v before retry %d/%d", backoff, attempt+1, maxRetries)
@@ -4017,7 +4017,7 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromWebsite(ctx context.Conte
 
 	// Phase 1: Use enhanced scraper if available (with multi-tier strategies)
 	r.logger.Printf("🔍 [Phase1] [KeywordExtraction] Checking Phase 1 scraper availability for: %s (scraper is nil: %v)", websiteURL, r.websiteScraper == nil)
-	
+
 	// Log parent context state for debugging
 	if deadline, ok := ctx.Deadline(); ok {
 		parentTimeUntilDeadline := time.Until(deadline)
@@ -4026,19 +4026,19 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromWebsite(ctx context.Conte
 		r.logger.Printf("⏱️ [Phase1] [KeywordExtraction] Parent context has no deadline")
 	}
 	r.logger.Printf("🔍 [Phase1] [KeywordExtraction] Parent context error state: %v", ctx.Err())
-	
+
 	if r.websiteScraper != nil {
 		r.logger.Printf("✅ [Phase1] [KeywordExtraction] Using Phase 1 enhanced scraper for: %s", websiteURL)
-		
+
 		// OPTIMIZATION: Reduced Phase 1 scraper timeout (was 12s, now 10s)
 		// This allows faster failure and reduces overall extractKeywords duration
 		// Early termination will prevent waiting for slow websites
 		const phase1RequiredTimeout = 10 * time.Second
-		
+
 		var phase1Ctx context.Context
 		var phase1Cancel context.CancelFunc
 		var useSeparateContext bool
-		
+
 		// Check parent context deadline
 		deadline, hasDeadline := ctx.Deadline()
 		if hasDeadline {
@@ -4050,7 +4050,7 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromWebsite(ctx context.Conte
 				r.logger.Printf("🔧 [Phase1] [KeywordExtraction] Parent context has insufficient time (%v < %v), creating separate context from Background", timeRemaining, phase1RequiredTimeout)
 				phase1Ctx, phase1Cancel = context.WithTimeout(context.Background(), phase1RequiredTimeout)
 				useSeparateContext = true
-				
+
 				// Note: We do NOT monitor parent context cancellation here because:
 				// 1. The parent context had insufficient time to begin with
 				// 2. The Phase 1 scraper needs the full 15s to complete
@@ -4069,98 +4069,98 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromWebsite(ctx context.Conte
 			phase1Ctx, phase1Cancel = context.WithTimeout(ctx, phase1RequiredTimeout)
 			useSeparateContext = false
 		}
-		
+
 		// Only defer cancel if we created a separate context
 		if useSeparateContext {
 			defer phase1Cancel()
 		}
-		
+
 		// Log context deadline for debugging
 		if deadline, ok := phase1Ctx.Deadline(); ok {
 			timeUntilDeadline := time.Until(deadline)
-			r.logger.Printf("⏱️ [Phase1] [KeywordExtraction] Phase 1 context deadline: %v from now (deadline: %v, separate_context: %v)", 
+			r.logger.Printf("⏱️ [Phase1] [KeywordExtraction] Phase 1 context deadline: %v from now (deadline: %v, separate_context: %v)",
 				timeUntilDeadline, deadline, useSeparateContext)
 		}
-		
+
 		// Verify context is valid before passing
 		ctxErr := phase1Ctx.Err()
 		if ctxErr != nil {
 			r.logger.Printf("❌ [Phase1] [KeywordExtraction] ERROR: Context already cancelled: %v", ctxErr)
 			return []string{} // Fall back to legacy method
 		}
-		
+
 		// Use Phase 1 enhanced scraper with multi-tier strategies
-		r.logger.Printf("🚀 [Phase1] [KeywordExtraction] Calling Phase 1 scraper.ScrapeWebsite() for: %s (timeout: %v, separate_context: %v)", 
+		r.logger.Printf("🚀 [Phase1] [KeywordExtraction] Calling Phase 1 scraper.ScrapeWebsite() for: %s (timeout: %v, separate_context: %v)",
 			websiteURL, phase1RequiredTimeout, useSeparateContext)
 		scrapingResultInterface := r.websiteScraper.ScrapeWebsite(phase1Ctx, websiteURL)
 		r.logger.Printf("📥 [Phase1] [KeywordExtraction] Phase 1 scraper returned result (nil: %v)", scrapingResultInterface == nil)
-		
+
 		// Type assert to get the actual ScrapingResult
 		// We use reflection to access fields to avoid import cycle
 		if scrapingResultInterface != nil {
 			// Use type assertion with a helper function to extract fields
 			scrapingResult := r.extractScrapingResultFields(scrapingResultInterface)
-			
+
 			if scrapingResult != nil && scrapingResult.Success {
 				// Extract keywords from the scraped content
 				htmlContent := scrapingResult.Content
 				if htmlContent == "" {
 					htmlContent = scrapingResult.TextContent
 				}
-			
-			if htmlContent != "" {
-				// Use existing keyword extraction logic
-				textContent := r.extractTextFromHTML(htmlContent)
-				keywords := r.extractBusinessKeywords(textContent)
-				
-				// Also extract from structured data if available (same logic as legacy method)
-				if NewStructuredDataExtractorAdapter != nil {
-					structuredDataExtractor := NewStructuredDataExtractorAdapter(r.logger)
-					structuredDataResult := structuredDataExtractor.ExtractStructuredData(htmlContent)
-					
-					// Extract structured keywords using same logic as legacy method
-					structuredKeywordMap := make(map[string]float64)
-					if structuredDataResult.BusinessInfo.Industry != "" {
-						structuredKeywordMap[strings.ToLower(structuredDataResult.BusinessInfo.Industry)] = 2.0
-					}
-					if structuredDataResult.BusinessInfo.BusinessType != "" {
-						structuredKeywordMap[strings.ToLower(structuredDataResult.BusinessInfo.BusinessType)] = 2.0
-					}
-					for _, service := range structuredDataResult.BusinessInfo.Services {
-						structuredKeywordMap[strings.ToLower(service)] = 2.0
-					}
-					for _, product := range structuredDataResult.BusinessInfo.Products {
-						structuredKeywordMap[strings.ToLower(product)] = 2.0
-					}
-					
-					// Merge structured keywords with text keywords (weighted)
-					allKeywords := make(map[string]float64)
-					for _, kw := range keywords {
-						allKeywords[strings.ToLower(kw)] = 1.0
-					}
-					for kw, weight := range structuredKeywordMap {
-						if allKeywords[kw] < weight {
-							allKeywords[kw] = weight
+
+				if htmlContent != "" {
+					// Use existing keyword extraction logic
+					textContent := r.extractTextFromHTML(htmlContent)
+					keywords := r.extractBusinessKeywords(textContent)
+
+					// Also extract from structured data if available (same logic as legacy method)
+					if NewStructuredDataExtractorAdapter != nil {
+						structuredDataExtractor := NewStructuredDataExtractorAdapter(r.logger)
+						structuredDataResult := structuredDataExtractor.ExtractStructuredData(htmlContent)
+
+						// Extract structured keywords using same logic as legacy method
+						structuredKeywordMap := make(map[string]float64)
+						if structuredDataResult.BusinessInfo.Industry != "" {
+							structuredKeywordMap[strings.ToLower(structuredDataResult.BusinessInfo.Industry)] = 2.0
+						}
+						if structuredDataResult.BusinessInfo.BusinessType != "" {
+							structuredKeywordMap[strings.ToLower(structuredDataResult.BusinessInfo.BusinessType)] = 2.0
+						}
+						for _, service := range structuredDataResult.BusinessInfo.Services {
+							structuredKeywordMap[strings.ToLower(service)] = 2.0
+						}
+						for _, product := range structuredDataResult.BusinessInfo.Products {
+							structuredKeywordMap[strings.ToLower(product)] = 2.0
+						}
+
+						// Merge structured keywords with text keywords (weighted)
+						allKeywords := make(map[string]float64)
+						for _, kw := range keywords {
+							allKeywords[strings.ToLower(kw)] = 1.0
+						}
+						for kw, weight := range structuredKeywordMap {
+							if allKeywords[kw] < weight {
+								allKeywords[kw] = weight
+							}
+						}
+
+						// Convert back to slice
+						keywords = make([]string, 0, len(allKeywords))
+						for kw := range allKeywords {
+							keywords = append(keywords, kw)
 						}
 					}
-					
-					// Convert back to slice
-					keywords = make([]string, 0, len(allKeywords))
-					for kw := range allKeywords {
-						keywords = append(keywords, kw)
-					}
+
+					duration := time.Since(startTime)
+					r.logger.Printf("✅ [Phase1] [KeywordExtraction] Successfully extracted %d keywords in %v", len(keywords), duration)
+
+					// OPTIMIZATION: Store in cache (Priority 4)
+					r.storeWebsiteContentCache(cacheKey, keywords)
+
+					return keywords
 				}
-				
-				duration := time.Since(startTime)
-				r.logger.Printf("✅ [Phase1] [KeywordExtraction] Successfully extracted %d keywords in %v", len(keywords), duration)
-				
-				// OPTIMIZATION: Store in cache (Priority 4)
-				r.storeWebsiteContentCache(cacheKey, keywords)
-				
-				return keywords
 			}
-			}
-			
+
 			// If Phase 1 scraper failed, log and fall through to legacy method
 			if scrapingResult != nil && !scrapingResult.Success {
 				r.logger.Printf("⚠️ [Phase1] [KeywordExtraction] Phase 1 scraper failed: %s, falling back to legacy method", scrapingResult.Error)
@@ -4251,11 +4251,11 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromWebsite(ctx context.Conte
 	client := &http.Client{
 		Timeout: 45 * time.Second, // Increased from 15s to 45s for slow websites
 		Transport: &http.Transport{
-			DialContext:         customDialContext,
-			MaxIdleConns:       10,
-			IdleConnTimeout:    30 * time.Second,
-			DisableCompression: false,
-			TLSHandshakeTimeout: 15 * time.Second,
+			DialContext:           customDialContext,
+			MaxIdleConns:          10,
+			IdleConnTimeout:       30 * time.Second,
+			DisableCompression:    false,
+			TLSHandshakeTimeout:   15 * time.Second,
 			ResponseHeaderTimeout: 30 * time.Second,
 		},
 	}
@@ -4267,7 +4267,7 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromWebsite(ctx context.Conte
 	if parsedURL != nil {
 		domain = parsedURL.Hostname()
 		r.applyRateLimit(domain)
-		
+
 		// Get or create session for this domain
 		sess, err := r.sessionManager.getOrCreateSession(domain)
 		if err != nil {
@@ -4340,14 +4340,14 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromWebsite(ctx context.Conte
 		for retryAttempt := 1; retryAttempt <= maxRetries; retryAttempt++ {
 			backoffDelay := time.Duration(retryAttempt) * 2 * time.Second // 2s, 4s, 6s
 			r.logger.Printf("⚠️ [SinglePage] Service unavailable (503) for %s (retry %d/%d), waiting %v", websiteURL, retryAttempt, maxRetries, backoffDelay)
-			
+
 			// Wait for backoff delay
 			select {
 			case <-ctx.Done():
 				return []string{}
 			case <-time.After(backoffDelay):
 			}
-			
+
 			// Retry request
 			retryReq, err := http.NewRequestWithContext(ctx, "GET", websiteURL, nil)
 			if err != nil {
@@ -4358,13 +4358,13 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromWebsite(ctx context.Conte
 			for key, value := range retryHeaders {
 				retryReq.Header.Set(key, value)
 			}
-			
+
 			retryResp, err := client.Do(retryReq)
 			if err != nil {
 				continue // Try next retry
 			}
 			defer retryResp.Body.Close()
-			
+
 			if retryResp.StatusCode == 200 {
 				// Success on retry
 				resp = retryResp
@@ -4413,13 +4413,13 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromWebsite(ctx context.Conte
 	// Read response body with size limit and handle decompression
 	maxSize := int64(5 * 1024 * 1024) // 5MB limit
 	var reader io.Reader = io.LimitReader(resp.Body, maxSize)
-	
+
 	// Handle content encoding (gzip, deflate, br)
 	contentEncoding := resp.Header.Get("Content-Encoding")
 	if contentEncoding != "" {
 		r.logger.Printf("📦 [KeywordExtraction] [SinglePage] Content-Encoding: %s", contentEncoding)
 	}
-	
+
 	switch contentEncoding {
 	case "gzip":
 		gzipReader, err := gzip.NewReader(reader)
@@ -4437,7 +4437,7 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromWebsite(ctx context.Conte
 		// Brotli compression - Go's http package doesn't handle this automatically
 		r.logger.Printf("⚠️ [KeywordExtraction] [SinglePage] Brotli compression detected but not supported, may result in garbled text")
 	}
-	
+
 	body, err := io.ReadAll(reader)
 	if err != nil {
 		r.logger.Printf("❌ [KeywordExtraction] [SinglePage] PARSING ERROR: Failed to read response body from %s: %v (type: %T)", websiteURL, err, err)
@@ -4492,15 +4492,15 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromWebsite(ctx context.Conte
 		r.logger.Printf("⚠️ [KeywordExtraction] [SinglePage] WARNING: StructuredDataExtractor adapter not initialized - skipping structured data extraction")
 		// Fallback to text-only extraction
 		keywords := r.extractBusinessKeywords(textContent)
-		
+
 		// OPTIMIZATION: Store in cache (Priority 4)
 		r.storeWebsiteContentCache(cacheKey, keywords)
-		
+
 		return keywords
 	}
 	structuredDataExtractor := NewStructuredDataExtractorAdapter(r.logger)
 	structuredDataResult := structuredDataExtractor.ExtractStructuredData(string(body))
-	
+
 	var structuredKeywords []string
 	structuredKeywordMap := make(map[string]float64) // Track keywords with confidence scores
 
@@ -4513,11 +4513,11 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromWebsite(ctx context.Conte
 	}
 	for _, service := range structuredDataResult.BusinessInfo.Services {
 		serviceLower := strings.ToLower(service)
-			structuredKeywordMap[serviceLower] = 2.0 // OPTIMIZATION #15: 2x weight for structured data
+		structuredKeywordMap[serviceLower] = 2.0 // OPTIMIZATION #15: 2x weight for structured data
 	}
 	for _, product := range structuredDataResult.BusinessInfo.Products {
 		productLower := strings.ToLower(product)
-			structuredKeywordMap[productLower] = 2.0 // OPTIMIZATION #15: 2x weight for structured data
+		structuredKeywordMap[productLower] = 2.0 // OPTIMIZATION #15: 2x weight for structured data
 	}
 
 	// Extract keywords from ProductInfo
@@ -4559,12 +4559,12 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromWebsite(ctx context.Conte
 		if schemaItem.Type != "" {
 			typeLower := strings.ToLower(schemaItem.Type)
 			// Focus on business-relevant types
-			if strings.Contains(typeLower, "organization") || 
-			   strings.Contains(typeLower, "business") || 
-			   strings.Contains(typeLower, "localbusiness") ||
-			   strings.Contains(typeLower, "store") ||
-			   strings.Contains(typeLower, "restaurant") ||
-			   strings.Contains(typeLower, "service") {
+			if strings.Contains(typeLower, "organization") ||
+				strings.Contains(typeLower, "business") ||
+				strings.Contains(typeLower, "localbusiness") ||
+				strings.Contains(typeLower, "store") ||
+				strings.Contains(typeLower, "restaurant") ||
+				strings.Contains(typeLower, "service") {
 				structuredKeywordMap[typeLower] = 1.5
 			}
 		}
@@ -4591,7 +4591,7 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromWebsite(ctx context.Conte
 
 	// Combine text keywords and structured keywords
 	allKeywords := make(map[string]float64)
-	
+
 	// Add text keywords with weight 1.0
 	for _, kw := range textKeywords {
 		kwLower := strings.ToLower(kw)
@@ -4599,7 +4599,7 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromWebsite(ctx context.Conte
 			allKeywords[kwLower] = 1.0
 		}
 	}
-	
+
 	// Add structured keywords with weight 2.0 (higher priority - OPTIMIZATION #15)
 	for kw, weight := range structuredKeywordMap {
 		if allKeywords[kw] < weight {
@@ -4616,18 +4616,18 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromWebsite(ctx context.Conte
 	for kw, weight := range allKeywords {
 		keywordList = append(keywordList, keywordWeight{keyword: kw, weight: weight})
 	}
-	
+
 	// Sort by weight descending
 	sort.Slice(keywordList, func(i, j int) bool {
 		return keywordList[i].weight > keywordList[j].weight
 	})
-	
+
 	// Limit to top 30 keywords
 	maxKeywords := 30
 	if len(keywordList) > maxKeywords {
 		keywordList = keywordList[:maxKeywords]
 	}
-	
+
 	keywords := make([]string, len(keywordList))
 	for i, kw := range keywordList {
 		keywords[i] = kw.keyword
@@ -4675,16 +4675,16 @@ func (r *SupabaseKeywordRepository) extractScrapingResultFields(result interface
 	if result == nil {
 		return nil
 	}
-	
+
 	resultValue := reflect.ValueOf(result)
 	if resultValue.Kind() == reflect.Ptr {
 		resultValue = resultValue.Elem()
 	}
-	
+
 	if !resultValue.IsValid() {
 		return nil
 	}
-	
+
 	extracted := &struct {
 		URL           string
 		StatusCode    int
@@ -4701,7 +4701,7 @@ func (r *SupabaseKeywordRepository) extractScrapingResultFields(result interface
 		Success       bool
 		Title         string
 	}{}
-	
+
 	if field := resultValue.FieldByName("URL"); field.IsValid() && field.Kind() == reflect.String {
 		extracted.URL = field.String()
 	}
@@ -4763,7 +4763,7 @@ func (r *SupabaseKeywordRepository) extractScrapingResultFields(result interface
 	if field := resultValue.FieldByName("Title"); field.IsValid() && field.Kind() == reflect.String {
 		extracted.Title = field.String()
 	}
-	
+
 	return extracted
 }
 
@@ -4785,45 +4785,63 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromMultiPageWebsite(ctx cont
 		return []string{} // Return empty to trigger fallback
 	}
 	crawler := NewSmartWebsiteCrawlerAdapter(r.logger)
-	
+
 	// Use fast-path mode if timeout is short (5s or less), otherwise use regular crawl
 	// Fast-path: 5s timeout, 8 pages max, 3 concurrent
 	// Regular: capped at 10s to reserve time for other operations (Phase 1 scraping, classification, etc.)
 	// FIX: Don't use full remaining context time - cap at 10s to prevent consuming entire deadline
 	// FIX: Handle negative timeouts (expired context) gracefully
+	// OPTIMIZATION: Add timeout checks and early termination for multi-page analysis
 	const maxMultiPageTimeout = 10 * time.Second
 	timeoutDuration := 5 * time.Second // Default from calling function (5s to enable fast-path)
+	maxConcurrentPages := 3            // Default concurrent pages
+	maxPages := 8                      // Default max pages for fast-path
+
 	if deadline, ok := analysisCtx.Deadline(); ok {
 		remainingTime := time.Until(deadline)
 		// FIX: Handle expired context (negative remaining time)
 		if remainingTime <= 0 {
-			// Context already expired, use fast-path with minimal timeout
-			r.logger.Printf("⚠️ [KeywordExtraction] [MultiPage] Context already expired, using fast-path with 1s timeout")
-			timeoutDuration = 1 * time.Second
+			// Context already expired, skip multi-page analysis
+			r.logger.Printf("⚠️ [KeywordExtraction] [MultiPage] Context already expired, skipping multi-page analysis")
+			return []string{} // Return empty to trigger fallback
+		} else if remainingTime < 10*time.Second {
+			// Very little time remaining, skip multi-page analysis
+			r.logger.Printf("⚠️ [KeywordExtraction] [MultiPage] Insufficient time remaining (%v < 10s), skipping multi-page analysis", remainingTime)
+			return []string{} // Return empty to trigger fallback
+		} else if remainingTime < 30*time.Second {
+			// Limited time - reduce concurrent pages and max pages
+			maxConcurrentPages = 1
+			maxPages = 3
+			timeoutDuration = remainingTime - 5*time.Second
+			r.logger.Printf("📊 [KeywordExtraction] [MultiPage] Limited time remaining (%v), reducing concurrency: maxPages=%d, concurrent=%d", remainingTime, maxPages, maxConcurrentPages)
+		} else if remainingTime < 60*time.Second {
+			// Moderate time - reduce concurrent pages
+			maxConcurrentPages = 2
+			maxPages = 5
+			timeoutDuration = remainingTime - 5*time.Second
+			r.logger.Printf("📊 [KeywordExtraction] [MultiPage] Moderate time remaining (%v), reducing concurrency: maxPages=%d, concurrent=%d", remainingTime, maxPages, maxConcurrentPages)
 		} else if remainingTime > maxMultiPageTimeout+5*time.Second {
 			// Cap timeout to maxMultiPageTimeout to reserve time for other operations
 			timeoutDuration = maxMultiPageTimeout
-		} else if remainingTime > 5*time.Second {
+		} else {
 			// Use remaining time minus 5s buffer for other operations
 			timeoutDuration = remainingTime - 5*time.Second
-		} else {
-			// Very little time remaining, use fast-path
-			timeoutDuration = remainingTime
 		}
 	}
-	
+
 	r.logger.Printf("📊 [KeywordExtraction] [MultiPage] Timeout duration: %v (threshold: 5s, max: 10s)", timeoutDuration)
-	
+
 	var crawlResult CrawlResultInterface
 	var err error
-	
+
 	if timeoutDuration <= 5*time.Second {
 		// Use fast-path mode for short timeouts
-		r.logger.Printf("🚀 [KeywordExtraction] [MultiPage] [FAST-PATH] Using fast-path mode (timeout: %v, max pages: 8, concurrent: 3)", timeoutDuration)
-		crawlResult, err = crawler.CrawlWebsiteFast(analysisCtx, websiteURL, timeoutDuration, 8, 3)
+		r.logger.Printf("🚀 [KeywordExtraction] [MultiPage] [FAST-PATH] Using fast-path mode (timeout: %v, max pages: %d, concurrent: %d)", timeoutDuration, maxPages, maxConcurrentPages)
+		crawlResult, err = crawler.CrawlWebsiteFast(analysisCtx, websiteURL, timeoutDuration, maxPages, maxConcurrentPages)
 	} else {
-		// Use regular crawl for longer timeouts
-		r.logger.Printf("🔍 [KeywordExtraction] [MultiPage] [REGULAR] Using regular crawl mode (timeout: %v, concurrent: 3)", timeoutDuration)
+		// Use regular crawl for longer timeouts, but with reduced concurrency if time is limited
+		r.logger.Printf("🔍 [KeywordExtraction] [MultiPage] [REGULAR] Using regular crawl mode (timeout: %v, concurrent: %d)", timeoutDuration, maxConcurrentPages)
+		// Note: CrawlWebsite doesn't accept maxConcurrentPages parameter, but the crawler will respect the timeout
 		crawlResult, err = crawler.CrawlWebsite(analysisCtx, websiteURL)
 	}
 	if err != nil {
@@ -4838,14 +4856,17 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromMultiPageWebsite(ctx cont
 
 	pagesAnalyzed := crawlResult.GetPagesAnalyzed()
 	r.logger.Printf("📊 [KeywordExtraction] [MultiPage] Discovered %d pages for analysis", len(pagesAnalyzed))
-	
+
 	if len(pagesAnalyzed) == 0 {
 		r.logger.Printf("⚠️ [KeywordExtraction] [MultiPage] WARNING: No pages analyzed - falling back to single page")
 		return []string{} // Return empty to trigger fallback
 	}
 
 	// Limit to top 15 pages by priority (they're already sorted by CrawlWebsite)
-	maxPages := 15
+	// Note: maxPages may have been set earlier based on time remaining, but cap at 15
+	if maxPages > 15 {
+		maxPages = 15
+	}
 	pagesToAnalyze := pagesAnalyzed
 	if len(pagesToAnalyze) > maxPages {
 		pagesToAnalyze = pagesToAnalyze[:maxPages]
@@ -4858,35 +4879,35 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromMultiPageWebsite(ctx cont
 		statusCode := page.GetStatusCode()
 		relevanceScore := page.GetRelevanceScore()
 		pageURL := page.GetURL()
-		
+
 		// Detailed logging for each page (Phase 8.1)
-		r.logger.Printf("🔍 [KeywordExtraction] [MultiPage] Page %d/%d: URL=%s, Status=%d, Relevance=%.2f", 
+		r.logger.Printf("🔍 [KeywordExtraction] [MultiPage] Page %d/%d: URL=%s, Status=%d, Relevance=%.2f",
 			i+1, len(pagesToAnalyze), pageURL, statusCode, relevanceScore)
-		
+
 		if statusCode == 200 && relevanceScore > 0 {
 			successfulPages++
-			r.logger.Printf("✅ [KeywordExtraction] [MultiPage] Page %d/%d SUCCESS: URL=%s, Status=%d, Relevance=%.2f", 
+			r.logger.Printf("✅ [KeywordExtraction] [MultiPage] Page %d/%d SUCCESS: URL=%s, Status=%d, Relevance=%.2f",
 				i+1, len(pagesToAnalyze), pageURL, statusCode, relevanceScore)
 		} else {
 			// Phase 8.3: Categorize errors
 			if statusCode != 200 {
-				r.logger.Printf("⚠️ [KeywordExtraction] [MultiPage] Page %d/%d HTTP ERROR: Status=%d (expected 200), URL=%s", 
+				r.logger.Printf("⚠️ [KeywordExtraction] [MultiPage] Page %d/%d HTTP ERROR: Status=%d (expected 200), URL=%s",
 					i+1, len(pagesToAnalyze), statusCode, pageURL)
 			}
 			if relevanceScore <= 0 {
-				r.logger.Printf("⚠️ [KeywordExtraction] [MultiPage] Page %d/%d RELEVANCE ERROR: Relevance=%.2f (expected >0), URL=%s", 
+				r.logger.Printf("⚠️ [KeywordExtraction] [MultiPage] Page %d/%d RELEVANCE ERROR: Relevance=%.2f (expected >0), URL=%s",
 					i+1, len(pagesToAnalyze), relevanceScore, pageURL)
 			}
 		}
 	}
 
 	if successfulPages < 3 {
-		r.logger.Printf("⚠️ [KeywordExtraction] [MultiPage] WARNING: Only %d/%d pages successfully analyzed (< 3 required) - falling back to single page", 
+		r.logger.Printf("⚠️ [KeywordExtraction] [MultiPage] WARNING: Only %d/%d pages successfully analyzed (< 3 required) - falling back to single page",
 			successfulPages, len(pagesToAnalyze))
 		return []string{} // Return empty to trigger fallback
 	}
-	
-	r.logger.Printf("✅ [KeywordExtraction] [MultiPage] %d/%d pages successfully analyzed, proceeding with keyword extraction", 
+
+	r.logger.Printf("✅ [KeywordExtraction] [MultiPage] %d/%d pages successfully analyzed, proceeding with keyword extraction",
 		successfulPages, len(pagesToAnalyze))
 
 	// Weight keywords by page relevance score
@@ -4904,20 +4925,20 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromMultiPageWebsite(ctx cont
 	for _, page := range pagesToAnalyze {
 		if page.GetStatusCode() == 200 && page.GetRelevanceScore() > 0 && totalRelevance > 0 {
 			weight := page.GetRelevanceScore() / totalRelevance // Normalize by total relevance
-			
+
 			// Extract keywords from page
 			pageKeywords := r.extractKeywordsFromPageData(page)
-			
+
 			// Weight keywords by page relevance
 			for _, keyword := range pageKeywords {
 				keywordLower := strings.ToLower(keyword)
 				keywordWeights[keywordLower] += weight
 			}
-			
-			r.logger.Printf("✅ [KeywordExtraction] [MultiPage] Page analyzed: URL=%s, relevance=%.2f, keywords_extracted=%d, weighted_keywords=%d", 
+
+			r.logger.Printf("✅ [KeywordExtraction] [MultiPage] Page analyzed: URL=%s, relevance=%.2f, keywords_extracted=%d, weighted_keywords=%d",
 				page.GetURL(), page.GetRelevanceScore(), len(pageKeywords), len(keywordWeights))
 		} else {
-			r.logger.Printf("⚠️ [KeywordExtraction] [MultiPage] Page skipped: URL=%s, status=%d, relevance=%.2f", 
+			r.logger.Printf("⚠️ [KeywordExtraction] [MultiPage] Page skipped: URL=%s, status=%d, relevance=%.2f",
 				page.GetURL(), page.GetStatusCode(), page.GetRelevanceScore())
 		}
 	}
@@ -4995,15 +5016,15 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromPageData(page PageAnalysi
 	structuredData := page.GetStructuredData()
 	// Extract from the structured data map directly (ranging over nil map is safe in Go)
 	for _, value := range structuredData {
-			if strValue, ok := value.(string); ok && strValue != "" {
-				// Extract keywords from structured data values
-				extracted := r.extractBusinessKeywords(strValue)
-				for _, kw := range extracted {
-					kwLower := strings.ToLower(kw)
-					if !seen[kwLower] {
-						seen[kwLower] = true
-						keywords = append(keywords, kwLower)
-					}
+		if strValue, ok := value.(string); ok && strValue != "" {
+			// Extract keywords from structured data values
+			extracted := r.extractBusinessKeywords(strValue)
+			for _, kw := range extracted {
+				kwLower := strings.ToLower(kw)
+				if !seen[kwLower] {
+					seen[kwLower] = true
+					keywords = append(keywords, kwLower)
+				}
 			}
 		}
 	}
@@ -5121,7 +5142,7 @@ func (r *SupabaseKeywordRepository) getCachedDNSResolutionWithKey(cacheKey, host
 	// Cache the result with TTL (default 5 minutes, or use DNS TTL if available)
 	ttl := 5 * time.Minute
 	r.dnsMutex.Lock()
-	
+
 	// Clean up expired entries periodically (when cache grows large)
 	// This prevents unbounded memory growth
 	if len(r.dnsCache) > 1000 {
@@ -5137,7 +5158,7 @@ func (r *SupabaseKeywordRepository) getCachedDNSResolutionWithKey(cacheKey, host
 			r.logger.Printf("🧹 [Performance] Cleaned up %d expired DNS cache entries", cleanedCount)
 		}
 	}
-	
+
 	r.dnsCache[cacheKey] = dnsCacheEntry{
 		ips:       ips,
 		expiresAt: time.Now().Add(ttl),
@@ -5219,77 +5240,77 @@ func (r *SupabaseKeywordRepository) extractBusinessKeywords(textContent string) 
 		`\b(wine|wines|winery|vineyard|vintner|sommelier|tasting|cellar|bottle|vintage|grape|grapes|grapevine|oenology|alcohol|spirits|liquor|beer|brewery|distillery|beverage|beverages|restaurant|cafe|coffee|food|dining|kitchen|catering|bakery|bar|pub|bistro|eatery|diner|tavern|gastropub|brewpub)\b`,
 		`\b(wine shop|wine store|wine bar|wine merchant|wine retailer|wine tasting|wine cellar|wine selection|fine wine|premium wine)\b`,
 		`\b(food service|dining establishment|restaurant chain|fast food|casual dining|fine dining|takeout|delivery|food truck)\b`,
-		
+
 		// Retail (expanded) - single words first, then phrases
 		`\b(retail|retailer|storefront|merchandise|inventory|POS|checkout|showroom|boutique|outlet|marketplace|vendor|seller|selling|commerce|store|shop|boutique|emporium|mart|bazaar|market|retailer|merchant|dealer|reseller)\b`,
 		`\b(retail store|retail shop|brick and mortar|brick-and-mortar|physical store|point of sale|cash register|sales floor|retail location|store location|retail outlet|retail chain)\b`,
 		`\b(merchandise sales|product sales|consumer goods|retail goods|store merchandise|inventory management|stock management)\b`,
-		
+
 		// E-commerce (expanded) - single words first, then phrases
 		`\b(ecommerce|e-commerce|online|digital|web|internet|cyber)\b`,
 		`\b(online store|online shop|digital storefront|web store|internet retailer|online marketplace|digital commerce|online sales|web sales|internet sales|online retail|ecommerce platform|online shopping|web commerce|digital retail)\b`,
 		`\b(online business|digital business|web business|internet business|ecommerce business|online merchant|digital merchant)\b`,
-		
+
 		// Technology (expanded)
 		`\b(technology|software|tech|app|application|digital|web|mobile|cloud|ai|artificial intelligence|ml|machine learning|data|cyber|security|programming|development|IT|information technology|computer|internet|online|platform|api|database|saas|software as a service|paas|iaas|devops|automation|digitalization)\b`,
 		`\b(software development|software engineering|web development|mobile development|app development|cloud computing|data science|cybersecurity|IT services|tech services|digital solutions|software solutions)\b`,
 		`\b(technology company|tech company|software company|IT company|digital agency|tech startup|software firm)\b`,
-		
+
 		// Healthcare (expanded)
 		`\b(healthcare|health care|medical|clinic|hospital|doctor|physician|dentist|therapy|wellness|pharmacy|medicine|patient|treatment|health|care|nurse|practitioner|surgeon|specialist|therapist|wellness|rehabilitation|diagnosis|treatment)\b`,
 		`\b(medical services|healthcare services|medical care|health services|patient care|medical treatment|healthcare provider|medical provider|healthcare facility|medical facility)\b`,
 		`\b(primary care|specialty care|urgent care|emergency care|preventive care|healthcare system|medical system)\b`,
-		
+
 		// Legal (expanded)
 		`\b(legal|law|attorney|lawyer|attorney at law|counsel|counselor|barrister|solicitor|court|litigation|patent|trademark|copyright|legal services|advocacy|justice|legal advice|law firm|legal counsel|legal representation|legal practice)\b`,
 		`\b(law firm|legal firm|attorney firm|law office|legal office|legal services|legal counsel|legal representation|legal practice|litigation services)\b`,
 		`\b(legal advice|legal consultation|legal assistance|legal support|legal guidance|legal expertise)\b`,
-		
+
 		// Finance (expanded)
 		`\b(finance|banking|investment|insurance|accounting|tax|financial|credit|loan|money|capital|funding|payment|transaction|wealth|asset|portfolio|brokerage|trading|securities|bank|credit union|savings|checking|mortgage|lending)\b`,
 		`\b(financial services|banking services|investment services|financial institution|financial advisor|financial planning|wealth management|asset management|portfolio management)\b`,
 		`\b(commercial banking|retail banking|investment banking|private banking|corporate banking|online banking|digital banking)\b`,
-		
+
 		// Real Estate (expanded) - single words first, then phrases
 		`\b(property|construction|building|architecture|design|interior|home|house|apartment|rental|rent|lease|mortgage|realty|realtor|broker|developer|contractor|builder|architect|designer)\b`,
 		`\b(real estate|property management|real estate agent|real estate broker|property development|real estate development|property investment|real estate investment)\b`,
 		`\b(home sales|property sales|real estate sales|home buying|property buying|home selling|property selling|real estate transaction)\b`,
-		
+
 		// Education (expanded)
 		`\b(education|school|university|college|academy|institute|training|learning|course|curriculum|student|teacher|instructor|professor|teaching|academic|degree|certification|diploma|certificate|tuition|enrollment|admission)\b`,
 		`\b(educational services|education services|training services|learning services|educational institution|educational facility|training center|learning center)\b`,
 		`\b(higher education|continuing education|professional education|vocational training|skills training|online education|distance learning)\b`,
-		
+
 		// Consulting (expanded)
 		`\b(consulting|advisory|strategy|management|business|corporate|professional|services|expert|specialist|consultant|advisor|strategist|manager|executive|leadership|coaching|mentoring)\b`,
 		`\b(consulting services|advisory services|management consulting|business consulting|strategy consulting|professional services|consulting firm|advisory firm)\b`,
 		`\b(business consulting|management consulting|strategy consulting|IT consulting|financial consulting|marketing consulting)\b`,
-		
+
 		// Manufacturing (expanded)
 		`\b(manufacturing|production|factory|plant|facility|industrial|automotive|machinery|equipment|assembly|fabrication|processing|quality control|supply chain|logistics|warehouse|distribution)\b`,
 		`\b(manufacturing company|manufacturing facility|production facility|manufacturing plant|industrial manufacturing|custom manufacturing)\b`,
 		`\b(production line|assembly line|manufacturing process|production process|quality assurance|manufacturing operations)\b`,
-		
+
 		// Transportation & Logistics (expanded)
 		`\b(transportation|logistics|shipping|delivery|freight|warehouse|supply chain|trucking|hauling|courier|parcel|package|cargo|freight|logistics|distribution|fulfillment|warehousing|inventory)\b`,
 		`\b(transportation services|logistics services|shipping services|delivery services|freight services|supply chain management|logistics management)\b`,
 		`\b(trucking company|shipping company|delivery company|logistics company|freight company|transportation company)\b`,
-		
+
 		// Entertainment & Media (expanded)
 		`\b(entertainment|media|marketing|advertising|design|creative|art|music|film|movie|television|TV|broadcast|streaming|content|production|publishing|journalism|news|media|social media|digital media)\b`,
 		`\b(entertainment industry|media industry|entertainment company|media company|entertainment services|media services)\b`,
 		`\b(content creation|content production|media production|entertainment production|creative services|advertising services)\b`,
-		
+
 		// Energy (expanded)
 		`\b(energy|utilities|renewable|solar|wind|hydro|geothermal|oil|gas|petroleum|power|electricity|electrical|utility|energy services|power generation|energy production)\b`,
 		`\b(energy company|utility company|power company|energy services|utility services|renewable energy|solar energy|wind energy)\b`,
 		`\b(energy production|power generation|energy distribution|utility services|energy management|energy efficiency)\b`,
-		
+
 		// Agriculture (expanded)
 		`\b(agriculture|farming|farm|ranch|ranching|food production|crop|crops|livestock|organic|sustainable|agricultural|farming|harvest|cultivation|agricultural services)\b`,
 		`\b(agricultural services|farming services|agricultural production|food production|organic farming|sustainable agriculture)\b`,
 		`\b(crop production|livestock production|agricultural products|farm products|organic products|sustainable farming)\b`,
-		
+
 		// Travel & Hospitality (expanded)
 		`\b(travel|tourism|hospitality|hotel|motel|resort|accommodation|vacation|booking|trip|tour|travel agency|travel services|hospitality services|lodging|accommodations)\b`,
 		`\b(travel services|tourism services|hospitality services|hotel services|accommodation services|travel agency|tour operator)\b`,
@@ -5350,7 +5371,7 @@ func (r *SupabaseKeywordRepository) extractBusinessKeywords(textContent string) 
 // Uses pattern detection and n-gram validation similar to smart_website_crawler
 func (r *SupabaseKeywordRepository) filterGibberishKeywords(keywords []string) []string {
 	var filtered []string
-	
+
 	// Common English bigrams for validation
 	commonBigrams := map[string]bool{
 		"th": true, "in": true, "er": true, "ed": true, "an": true, "re": true,
@@ -5363,7 +5384,7 @@ func (r *SupabaseKeywordRepository) filterGibberishKeywords(keywords []string) [
 		"ma": true, "ha": true, "ca": true, "la": true, "pa": true, "ta": true,
 		"sa": true, "na": true, "ga": true, "fa": true, "da": true, "ba": true,
 	}
-	
+
 	// Suspicious bigrams that rarely appear in English
 	// Enhanced to catch patterns from gibberish words: "ivdi", "fays", "yilp", "dioy", "ukxa"
 	suspiciousBigrams := map[string]bool{
@@ -5379,44 +5400,44 @@ func (r *SupabaseKeywordRepository) filterGibberishKeywords(keywords []string) [
 		"yh": true, "hn": true, "nh": true, "hy": true, "uj": true, "jm": true,
 		"mj": true, "ju": true,
 	}
-	
+
 	// Known gibberish words to filter
 	knownGibberish := map[string]bool{
 		"ivdi": true, "fays": true, "yilp": true, "dioy": true, "ukxa": true,
 		"ivd": true, "fay": true, "yil": true, "dio": true, "ukx": true,
 	}
-	
+
 	for _, keyword := range keywords {
 		// Skip multi-word phrases (they're likely valid)
 		if strings.Contains(keyword, " ") {
 			filtered = append(filtered, keyword)
 			continue
 		}
-		
+
 		// Skip if too short
 		if len(keyword) < 4 {
 			continue
 		}
-		
+
 		// Check for known gibberish words first
 		if knownGibberish[keyword] {
 			continue
 		}
-		
+
 		// Check for suspicious patterns
 		if r.hasSuspiciousPattern(keyword) {
 			continue
 		}
-		
+
 		// Check n-gram patterns
 		if !r.hasValidNgramPattern(keyword, commonBigrams, suspiciousBigrams) {
 			continue
 		}
-		
+
 		// Passed all checks
 		filtered = append(filtered, keyword)
 	}
-	
+
 	return filtered
 }
 
@@ -5428,7 +5449,7 @@ func (r *SupabaseKeywordRepository) hasSuspiciousPattern(word string) bool {
 			return true
 		}
 	}
-	
+
 	// Check for unusual consonant clusters
 	// Enhanced to catch specific gibberish words: "ivdi", "fays", "yilp", "dioy", "ukxa"
 	suspiciousClusters := []string{
@@ -5443,7 +5464,7 @@ func (r *SupabaseKeywordRepository) hasSuspiciousPattern(word string) bool {
 			return true
 		}
 	}
-	
+
 	// Check for specific known gibberish words
 	knownGibberish := map[string]bool{
 		"ivdi": true, "fays": true, "yilp": true, "dioy": true, "ukxa": true,
@@ -5452,7 +5473,7 @@ func (r *SupabaseKeywordRepository) hasSuspiciousPattern(word string) bool {
 	if knownGibberish[word] {
 		return true
 	}
-	
+
 	// Check for too many rare letters
 	rareLetters := map[rune]bool{'q': true, 'x': true, 'z': true, 'j': true}
 	rareCount := 0
@@ -5464,7 +5485,7 @@ func (r *SupabaseKeywordRepository) hasSuspiciousPattern(word string) bool {
 	if float64(rareCount)/float64(len(word)) > 0.3 {
 		return true
 	}
-	
+
 	return false
 }
 
@@ -5482,11 +5503,11 @@ func (r *SupabaseKeywordRepository) hasValidNgramPattern(word string, commonBigr
 			hasCommonBigram = true
 		}
 	}
-	
+
 	if !hasCommonBigram && len(word) >= 4 {
 		return false
 	}
-	
+
 	return true
 }
 
@@ -5576,7 +5597,7 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromURLEnhanced(websiteURL st
 			return keywords
 		}
 	}
-	
+
 	// Remove port if present
 	if strings.Contains(domain, ":") {
 		domain = strings.Split(domain, ":")[0]
@@ -5588,7 +5609,7 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromURLEnhanced(websiteURL st
 		r.logger.Printf("⚠️ [URL] No domain parts extracted from: %s", domain)
 		return keywords
 	}
-	
+
 	// 3. Extract individual words (filter stop words)
 	words := r.filterStopWords(domainParts)
 	for _, word := range words {
@@ -5776,7 +5797,7 @@ func (r *SupabaseKeywordRepository) generatePhrases(parts []string, n int) []str
 func (r *SupabaseKeywordRepository) extractTLDHints(parsedURL *url.URL) []string {
 	var hints []string
 	host := parsedURL.Host
-	
+
 	// Extract TLD
 	parts := strings.Split(host, ".")
 	if len(parts) < 2 {
@@ -5786,27 +5807,27 @@ func (r *SupabaseKeywordRepository) extractTLDHints(parsedURL *url.URL) []string
 
 	// TLD to industry mapping
 	tldHints := map[string][]string{
-		"shop":    {"retail", "ecommerce", "store", "shop"},
-		"store":   {"retail", "ecommerce", "store", "shop"},
+		"shop":       {"retail", "ecommerce", "store", "shop"},
+		"store":      {"retail", "ecommerce", "store", "shop"},
 		"restaurant": {"restaurant", "food", "dining"},
-		"cafe":    {"cafe", "coffee", "food", "dining"},
-		"bar":     {"bar", "beverage", "alcohol", "drinks"},
-		"wine":    {"wine", "beverage", "alcohol", "winery"},
-		"beer":    {"beer", "beverage", "alcohol", "brewery"},
-		"tech":    {"technology", "tech", "software"},
-		"app":     {"app", "application", "software", "technology"},
-		"dev":     {"development", "software", "technology"},
-		"design":  {"design", "creative", "art"},
-		"photo":   {"photography", "photo", "creative"},
-		"art":     {"art", "creative", "design"},
-		"music":   {"music", "entertainment", "creative"},
-		"film":    {"film", "entertainment", "media"},
-		"news":    {"news", "media", "journalism"},
-		"blog":    {"blog", "content", "media"},
-		"edu":     {"education", "school", "learning"},
-		"health":  {"health", "healthcare", "medical"},
-		"law":     {"law", "legal", "attorney"},
-		"finance": {"finance", "financial", "banking"},
+		"cafe":       {"cafe", "coffee", "food", "dining"},
+		"bar":        {"bar", "beverage", "alcohol", "drinks"},
+		"wine":       {"wine", "beverage", "alcohol", "winery"},
+		"beer":       {"beer", "beverage", "alcohol", "brewery"},
+		"tech":       {"technology", "tech", "software"},
+		"app":        {"app", "application", "software", "technology"},
+		"dev":        {"development", "software", "technology"},
+		"design":     {"design", "creative", "art"},
+		"photo":      {"photography", "photo", "creative"},
+		"art":        {"art", "creative", "design"},
+		"music":      {"music", "entertainment", "creative"},
+		"film":       {"film", "entertainment", "media"},
+		"news":       {"news", "media", "journalism"},
+		"blog":       {"blog", "content", "media"},
+		"edu":        {"education", "school", "learning"},
+		"health":     {"health", "healthcare", "medical"},
+		"law":        {"law", "legal", "attorney"},
+		"finance":    {"finance", "financial", "banking"},
 		"realestate": {"real estate", "property", "realty"},
 	}
 
@@ -5825,11 +5846,11 @@ func (r *SupabaseKeywordRepository) inferIndustryFromDomain(domain string) []str
 	// Industry inference patterns
 	industryPatterns := map[string][]string{
 		// Wine & Beverage
-		"wine":     {"wine", "beverage", "alcohol", "retail"},
-		"grape":    {"wine", "grape", "beverage", "retail"},
-		"vineyard": {"vineyard", "wine", "winery", "beverage"},
-		"vintner":  {"vintner", "wine", "winery", "beverage"},
-		"brewery":  {"brewery", "beer", "beverage", "alcohol"},
+		"wine":       {"wine", "beverage", "alcohol", "retail"},
+		"grape":      {"wine", "grape", "beverage", "retail"},
+		"vineyard":   {"vineyard", "wine", "winery", "beverage"},
+		"vintner":    {"vintner", "wine", "winery", "beverage"},
+		"brewery":    {"brewery", "beer", "beverage", "alcohol"},
 		"distillery": {"distillery", "spirits", "alcohol", "beverage"},
 
 		// Retail
@@ -6227,7 +6248,7 @@ func (r *SupabaseKeywordRepository) calculateMatchDiversityFactor(matchedKeyword
 // Phase 7.3: Implements industry co-occurrence analysis
 func (r *SupabaseKeywordRepository) calculateIndustryCoOccurrenceBoost(industryMatches map[int][]string, inputKeywords []string) map[int]float64 {
 	boosts := make(map[int]float64)
-	
+
 	// Define common industry co-occurrence patterns
 	// Format: map[industryID][]coOccurringKeywords
 	coOccurrencePatterns := map[int][]string{
@@ -6240,16 +6261,16 @@ func (r *SupabaseKeywordRepository) calculateIndustryCoOccurrenceBoost(industryM
 		// Technology + Professional Services
 		1: {"software", "technology", "professional", "service", "consulting", "development"},
 	}
-	
+
 	// Analyze co-occurrence for each industry
 	for industryID, patternKeywords := range coOccurrencePatterns {
 		coOccurrenceCount := 0
 		matchedPatternKeywords := make(map[string]bool)
-		
+
 		// Check how many pattern keywords appear in input
 		for _, patternKw := range patternKeywords {
 			patternKwLower := strings.ToLower(patternKw)
-			
+
 			// Check if pattern keyword appears in input keywords
 			// Use word boundary matching to avoid substring false positives
 			for _, inputKw := range inputKeywords {
@@ -6260,7 +6281,7 @@ func (r *SupabaseKeywordRepository) calculateIndustryCoOccurrenceBoost(industryM
 						coOccurrenceCount++
 						matchedPatternKeywords[patternKwLower] = true
 					}
-				} else if strings.Contains(inputKwLower, " "+patternKwLower+" ") || 
+				} else if strings.Contains(inputKwLower, " "+patternKwLower+" ") ||
 					strings.HasPrefix(inputKwLower, patternKwLower+" ") ||
 					strings.HasSuffix(inputKwLower, " "+patternKwLower) {
 					// Word boundary match (space-separated)
@@ -6271,7 +6292,7 @@ func (r *SupabaseKeywordRepository) calculateIndustryCoOccurrenceBoost(industryM
 				}
 			}
 		}
-		
+
 		// Calculate boost based on co-occurrence count
 		// More pattern keywords matched = higher boost
 		if coOccurrenceCount >= 3 {
@@ -6281,12 +6302,12 @@ func (r *SupabaseKeywordRepository) calculateIndustryCoOccurrenceBoost(industryM
 		} else if coOccurrenceCount >= 1 {
 			boosts[industryID] = 0.05 // 5% boost for 1 co-occurring keyword
 		}
-		
+
 		if coOccurrenceCount > 0 {
 			r.logger.Printf("📊 [Phase 7.3] Industry %d co-occurrence: %d pattern keywords matched", industryID, coOccurrenceCount)
 		}
 	}
-	
+
 	// Additional analysis: check for cross-industry keyword co-occurrence
 	// Example: "wine" (Food & Beverage) + "retail" (Retail) + "shop" (Retail)
 	// This suggests Retail industry with Food & Beverage subcategory
@@ -6297,7 +6318,7 @@ func (r *SupabaseKeywordRepository) calculateIndustryCoOccurrenceBoost(industryM
 			hasRetailKeywords := false
 			hasFoodKeywords := false
 			hasTechKeywords := false
-			
+
 			for _, kw := range matchedKeywords {
 				kwLower := strings.ToLower(kw)
 				if strings.Contains(kwLower, "retail") || strings.Contains(kwLower, "shop") || strings.Contains(kwLower, "store") {
@@ -6310,13 +6331,13 @@ func (r *SupabaseKeywordRepository) calculateIndustryCoOccurrenceBoost(industryM
 					hasTechKeywords = true
 				}
 			}
-			
+
 			// Boost for Retail + Food & Beverage co-occurrence (e.g., wine shop)
 			if industryID == 4 && hasRetailKeywords && hasFoodKeywords {
 				boosts[industryID] += 0.10
 				r.logger.Printf("📊 [Phase 7.3] Retail + Food & Beverage co-occurrence detected for industry %d", industryID)
 			}
-			
+
 			// Boost for Retail + Technology co-occurrence (e.g., electronics store)
 			if industryID == 4 && hasRetailKeywords && hasTechKeywords {
 				boosts[industryID] += 0.10
@@ -6324,7 +6345,7 @@ func (r *SupabaseKeywordRepository) calculateIndustryCoOccurrenceBoost(industryM
 			}
 		}
 	}
-	
+
 	return boosts
 }
 
@@ -6385,7 +6406,7 @@ func (r *SupabaseKeywordRepository) getIndustryTopicsByKeywordsFallback(ctx cont
 	// Query for each keyword individually (fallback)
 	for _, keyword := range keywords {
 		keywordLower := strings.ToLower(strings.TrimSpace(keyword))
-		
+
 		// Query industry_topics table
 		// Note: Order method expects *map[string]string, but we'll skip ordering in fallback
 		// to avoid type issues - relevance_score ordering is handled by batch function
@@ -6395,7 +6416,7 @@ func (r *SupabaseKeywordRepository) getIndustryTopicsByKeywordsFallback(ctx cont
 			Ilike("topic", fmt.Sprintf("%%%s%%", keywordLower)).
 			Limit(10, "").
 			Execute()
-		
+
 		if err != nil {
 			r.logger.Printf("⚠️ Failed to query industry_topics for keyword '%s': %v", keyword, err)
 			continue
@@ -6494,12 +6515,12 @@ func (r *SupabaseKeywordRepository) FindIndustriesByPatterns(ctx context.Context
 	}
 
 	url := fmt.Sprintf("%s/rest/v1/rpc/find_industries_by_patterns", r.client.GetURL())
-	
+
 	// FIX: Check if context is expired and create fresh context if needed
 	rpcCtx := ctx
 	var rpcCancel context.CancelFunc
 	httpTimeout := 5 * time.Second
-	
+
 	if deadline, hasDeadline := ctx.Deadline(); hasDeadline {
 		timeRemaining := time.Until(deadline)
 		if timeRemaining <= 0 {
@@ -6517,7 +6538,7 @@ func (r *SupabaseKeywordRepository) FindIndustriesByPatterns(ctx context.Context
 		rpcCtx, rpcCancel = context.WithTimeout(ctx, httpTimeout)
 		defer rpcCancel()
 	}
-	
+
 	req, err := http.NewRequestWithContext(rpcCtx, "POST", url, bytes.NewBuffer(jsonPayload))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create RPC request: %w", err)
@@ -6541,10 +6562,10 @@ func (r *SupabaseKeywordRepository) FindIndustriesByPatterns(ctx context.Context
 	}
 
 	var results []struct {
-		IndustryID     int      `json:"industry_id"`
-		IndustryName   string   `json:"industry_name"`
-		PatternMatches int      `json:"pattern_matches"`
-		AvgScore       float64  `json:"avg_score"`
+		IndustryID      int      `json:"industry_id"`
+		IndustryName    string   `json:"industry_name"`
+		PatternMatches  int      `json:"pattern_matches"`
+		AvgScore        float64  `json:"avg_score"`
 		MatchedPatterns []string `json:"matched_patterns"`
 	}
 
@@ -6590,14 +6611,14 @@ func (r *SupabaseKeywordRepository) GetPatternMatches(ctx context.Context, indus
 	}
 
 	var patternsData []struct {
-		ID               int     `json:"id"`
-		IndustryID       int     `json:"industry_id"`
-		KeywordPair      string  `json:"keyword_pair"`
-		Keyword1         string  `json:"keyword1"`
-		Keyword2         string  `json:"keyword2"`
+		ID                int     `json:"id"`
+		IndustryID        int     `json:"industry_id"`
+		KeywordPair       string  `json:"keyword_pair"`
+		Keyword1          string  `json:"keyword1"`
+		Keyword2          string  `json:"keyword2"`
 		CoOccurrenceScore float64 `json:"co_occurrence_score"`
-		PatternType      string  `json:"pattern_type"`
-		Frequency        int     `json:"frequency"`
+		PatternType       string  `json:"pattern_type"`
+		Frequency         int     `json:"frequency"`
 	}
 
 	if err := json.Unmarshal(data, &patternsData); err != nil {
@@ -6607,14 +6628,14 @@ func (r *SupabaseKeywordRepository) GetPatternMatches(ctx context.Context, indus
 	keywordPatterns := make([]*KeywordPattern, 0, len(patternsData))
 	for _, p := range patternsData {
 		keywordPatterns = append(keywordPatterns, &KeywordPattern{
-			ID:               p.ID,
-			IndustryID:       p.IndustryID,
-			KeywordPair:      p.KeywordPair,
-			Keyword1:         p.Keyword1,
-			Keyword2:         p.Keyword2,
+			ID:                p.ID,
+			IndustryID:        p.IndustryID,
+			KeywordPair:       p.KeywordPair,
+			Keyword1:          p.Keyword1,
+			Keyword2:          p.Keyword2,
 			CoOccurrenceScore: p.CoOccurrenceScore,
-			PatternType:      p.PatternType,
-			Frequency:        p.Frequency,
+			PatternType:       p.PatternType,
+			Frequency:         p.Frequency,
 		})
 	}
 
@@ -6649,12 +6670,12 @@ func (r *SupabaseKeywordRepository) BatchFindKeywords(ctx context.Context, keywo
 	}
 
 	url := fmt.Sprintf("%s/rest/v1/rpc/batch_find_keywords", r.client.GetURL())
-	
+
 	// FIX: Ensure context has sufficient time for HTTP request
 	httpTimeout := 3 * time.Second
 	rpcCtx, rpcCancel := r.ensureValidContext(ctx, httpTimeout)
 	defer rpcCancel()
-	
+
 	req, err := http.NewRequestWithContext(rpcCtx, "POST", url, bytes.NewBuffer(jsonPayload))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create RPC request: %w", err)
@@ -6678,10 +6699,10 @@ func (r *SupabaseKeywordRepository) BatchFindKeywords(ctx context.Context, keywo
 	}
 
 	var results []struct {
-		Keyword        string  `json:"keyword"`
-		IndustryID     int     `json:"industry_id"`
-		IndustryName   string  `json:"industry_name"`
-		BaseWeight     float64 `json:"base_weight"`
+		Keyword         string  `json:"keyword"`
+		IndustryID      int     `json:"industry_id"`
+		IndustryName    string  `json:"industry_name"`
+		BaseWeight      float64 `json:"base_weight"`
 		SimilarityScore float64 `json:"similarity_score"`
 	}
 
@@ -6728,12 +6749,12 @@ func (r *SupabaseKeywordRepository) BatchFindIndustryTopics(ctx context.Context,
 	}
 
 	url := fmt.Sprintf("%s/rest/v1/rpc/batch_find_industry_topics", r.client.GetURL())
-	
+
 	// FIX: Ensure context has sufficient time for HTTP request
 	httpTimeout := 3 * time.Second
 	rpcCtx, rpcCancel := r.ensureValidContext(ctx, httpTimeout)
 	defer rpcCancel()
-	
+
 	req, err := http.NewRequestWithContext(rpcCtx, "POST", url, bytes.NewBuffer(jsonPayload))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create RPC request: %w", err)
