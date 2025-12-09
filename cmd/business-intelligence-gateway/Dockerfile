@@ -33,3 +33,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 
 # Run the application
 CMD ["./kyb-business-intelligence-gateway"]
+# Force rebuild - 2025-12-09
