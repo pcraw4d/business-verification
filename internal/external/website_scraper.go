@@ -1035,32 +1035,36 @@ func (s *PlaywrightScraper) Scrape(ctx context.Context, targetURL string) (*Scra
 			return nil, lastErr
 		}
 
-	var result struct {
-		HTML    string `json:"html"`
-		Error   string `json:"error"`
-		Success bool   `json:"success"`
-	}
+		var result struct {
+			HTML    string `json:"html"`
+			Error   string `json:"error"`
+			Success bool   `json:"success"`
+		}
 
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, err
-	}
+		if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+			return nil, err
+		}
 
-	if result.Error != "" {
-		return nil, fmt.Errorf("playwright error: %s", result.Error)
-	}
+		if result.Error != "" {
+			return nil, fmt.Errorf("playwright error: %s", result.Error)
+		}
 
-	if !result.Success {
-		return nil, fmt.Errorf("playwright service returned failure")
-	}
+		if !result.Success {
+			return nil, fmt.Errorf("playwright service returned failure")
+		}
 
-	// Parse HTML from Playwright
-	doc, err := html.Parse(strings.NewReader(result.HTML))
-	if err != nil {
-		return nil, err
-	}
+		// Parse HTML from Playwright
+		doc, err := html.Parse(strings.NewReader(result.HTML))
+		if err != nil {
+			return nil, err
+		}
 
-	content := extractStructuredContent(doc, result.HTML, targetURL)
-	return content, nil
+		content := extractStructuredContent(doc, result.HTML, targetURL)
+		return content, nil
+	}
+	
+	// If we get here, all retries failed
+	return nil, fmt.Errorf("playwright scrape failed after %d attempts: %w", maxRetries+1, lastErr)
 }
 
 // isRetryableError checks if an error is retryable (network errors, timeouts, but not context cancellation)
