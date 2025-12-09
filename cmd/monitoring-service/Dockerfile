@@ -11,10 +11,7 @@ COPY go.mod ./
 # Download dependencies (this will create go.sum if missing)
 RUN go mod download
 
-# Copy go.sum if it exists (optional, helps with caching)
-COPY go.sum* ./
-
-# Copy source code
+# Copy source code (go.sum will be included if it exists)
 COPY . .
 
 # Build the application

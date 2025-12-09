@@ -44,14 +44,14 @@ ENV CGO_LDFLAGS="-L/app/onnxruntime/lib"
 ENV CGO_CFLAGS="-I/app/onnxruntime/include"
 ENV GOWORK=off
 
-# Copy the entire repository structure (needed for module resolution)
-COPY . .
-
-# Change to service directory where go.mod is located
-WORKDIR /app/services/risk-assessment-service
+# Copy go.mod first for better caching
+COPY go.mod ./
 
 # Download dependencies for the risk-assessment-service module
 RUN go mod download
+
+# Copy the rest of the source code
+COPY . .
 
 # Copy startup script to a known location in builder stage
 # Try both possible locations depending on build context
@@ -64,14 +64,14 @@ RUN if [ -f ./startup_debug.sh ]; then \
     fi
 
 # Debug: List copied files including models
-RUN echo "Files in /app after COPY . .:" && \
+RUN echo "Files in /app:" && \
     ls -la /app/ && \
-    echo "Model files in service directory:" && \
-    ls -la ./models/ 2>/dev/null || echo "No models directory found in service directory" && \
-    ls -la /app/services/risk-assessment-service/models/ 2>/dev/null || echo "No models directory found at /app/services/risk-assessment-service/models/"
+    echo "Model files:" && \
+    ls -la ./models/ 2>/dev/null || echo "No models directory found" && \
+    echo "Cmd directory:" && \
+    ls -la ./cmd/ 2>/dev/null || echo "No cmd directory found"
 
-# Build the application with ONNX Runtime support from the service directory
-# This ensures Go can find the go.mod file and resolve imports correctly
+# Build the application with ONNX Runtime support
 # Build the cmd package (build tags will exclude test files)
 RUN GOOS=linux GOARCH=amd64 GOWORK=off go build \
     -a -installsuffix cgo \
@@ -92,8 +92,8 @@ RUN adduser -D -s /bin/sh appuser
 RUN mkdir -p /app/logs /app/models /app/onnxruntime/lib
 WORKDIR /app
 
-# Copy binary from builder stage (built in /app/services/risk-assessment-service)
-COPY --from=builder /app/services/risk-assessment-service/risk-assessment-service .
+# Copy binary from builder stage
+COPY --from=builder /app/risk-assessment-service .
 
 # Create a startup wrapper script that will use startup_debug.sh if available, otherwise run binary directly
 RUN echo '#!/bin/sh' > /app/start.sh && \
@@ -119,9 +119,9 @@ RUN echo "Copied ONNX Runtime libraries:" && \
     echo "Library path contents:" && \
     find /app/onnxruntime -name "*.so*" -o -name "*.a" | head -10
 
-# Copy model files explicitly (models are in services/risk-assessment-service/models/)
-COPY --from=builder /app/services/risk-assessment-service/models/risk_lstm_v1.onnx /app/models/risk_lstm_v1.onnx
-COPY --from=builder /app/services/risk-assessment-service/models/xgb_model.json /app/models/xgb_model.json
+# Copy model files explicitly
+COPY --from=builder /app/models/risk_lstm_v1.onnx /app/models/risk_lstm_v1.onnx
+COPY --from=builder /app/models/xgb_model.json /app/models/xgb_model.json
 
 # Debug: List copied model files
 RUN echo "Copied model files:" && \

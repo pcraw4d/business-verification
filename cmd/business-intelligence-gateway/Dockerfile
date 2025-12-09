@@ -9,13 +9,10 @@ RUN apk add --no-cache git ca-certificates wget
 # Copy go.mod first for better caching
 COPY go.mod ./
 
-# Download dependencies
+# Download dependencies (creates go.sum if missing)
 RUN go mod download
 
-# Copy go.sum if it exists
-COPY go.sum* ./
-
-# Copy source code
+# Copy source code (includes go.sum if it exists)
 COPY . .
 
 # Build the application
@@ -34,3 +31,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 # Run the application
 CMD ["./kyb-business-intelligence-gateway"]
 # Force rebuild - 2025-12-09
+# BI-SERVICE DOCKERFILE - DO NOT USE ROOT DOCKERFILE
