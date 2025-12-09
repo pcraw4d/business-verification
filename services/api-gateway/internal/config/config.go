@@ -20,11 +20,12 @@ type Config struct {
 
 // ServerConfig holds server configuration
 type ServerConfig struct {
-	Port         string
-	Host         string
-	ReadTimeout  time.Duration
-	WriteTimeout time.Duration
-	IdleTimeout  time.Duration
+	Port              string
+	Host              string
+	ReadTimeout       time.Duration
+	WriteTimeout      time.Duration
+	IdleTimeout       time.Duration
+	HTTPClientTimeout time.Duration // Timeout for HTTP client requests to backend services
 }
 
 // SupabaseConfig holds Supabase configuration
@@ -68,9 +69,10 @@ func Load() (*Config, error) {
 			Port: getEnvAsString("PORT", "8080"),
 			Host: getEnvAsString("HOST", "0.0.0.0"),
 			// Increase timeouts to accommodate long-running classification requests
-			ReadTimeout:  getEnvAsDuration("READ_TIMEOUT", 120*time.Second),
-			WriteTimeout: getEnvAsDuration("WRITE_TIMEOUT", 120*time.Second),
-			IdleTimeout:  getEnvAsDuration("IDLE_TIMEOUT", 60*time.Second),
+			ReadTimeout:       getEnvAsDuration("READ_TIMEOUT", 120*time.Second),
+			WriteTimeout:      getEnvAsDuration("WRITE_TIMEOUT", 120*time.Second),
+			IdleTimeout:       getEnvAsDuration("IDLE_TIMEOUT", 60*time.Second),
+			HTTPClientTimeout: getEnvAsDuration("HTTP_CLIENT_TIMEOUT", 120*time.Second), // Match server timeout for backend requests
 		},
 		Supabase: SupabaseConfig{
 			URL:            getEnvAsString("SUPABASE_URL", ""),

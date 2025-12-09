@@ -70,12 +70,19 @@ func NewGatewayHandler(supabaseClient *supabase.Client, logger *zap.Logger, cfg 
 		ForceAttemptHTTP2: false,
 	}
 
+	// Use configurable HTTP client timeout (default 120s to match server timeouts)
+	// This allows long-running classification requests to complete
+	clientTimeout := cfg.Server.HTTPClientTimeout
+	if clientTimeout == 0 {
+		clientTimeout = 120 * time.Second // Fallback to 120s if not set
+	}
+
 	return &GatewayHandler{
 		supabaseClient: supabaseClient,
 		logger:         logger,
 		config:         cfg,
 		httpClient: &http.Client{
-			Timeout:   30 * time.Second,
+			Timeout:   clientTimeout,
 			Transport: transport,
 		},
 	}
