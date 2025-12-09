@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -14,6 +15,9 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
+	"runtime"
+	"runtime/debug"
+	"strconv"
 
 	"kyb-platform/internal/classification"
 	classificationAdapters "kyb-platform/internal/classification/adapters"
@@ -63,6 +67,9 @@ func main() {
 		zap.Duration("read_timeout", cfg.Server.ReadTimeout),
 		zap.Duration("write_timeout", cfg.Server.WriteTimeout))
 
+	// Apply Go memory limit if provided (helps avoid OOM kills on Railway)
+	applyMemoryLimit(logger)
+
 	// Initialize Supabase client
 	supabaseClient, err := supabase.NewClient(&cfg.Supabase, logger)
 	if err != nil {
@@ -93,7 +100,7 @@ func main() {
 
 	// Create adapter to bridge EnhancedWebsiteScraper to WebsiteScraperInterface
 	scraperAdapter := &websiteScraperAdapter{scraper: enhancedScraper}
-	
+
 	// Initialize classification repository with Phase 1 enhanced scraper
 	keywordRepoInstance := keywordRepo.NewSupabaseKeywordRepositoryWithScraper(dbClient, stdLogger, scraperAdapter)
 	logger.Info("✅ Classification repository initialized with Phase 1 enhanced scraper")
@@ -129,7 +136,7 @@ func main() {
 	// Initialize classification services
 	industryDetector := classification.NewIndustryDetectionService(keywordRepoInstance, stdLogger)
 	codeGenerator := classification.NewClassificationCodeGenerator(keywordRepoInstance, stdLogger)
-	
+
 	// Set website content cache on industry detector's multi-method classifier if available
 	if websiteContentCache != nil && industryDetector != nil {
 		// Create adapter to bridge cache package and classification package
@@ -169,7 +176,7 @@ func main() {
 				return websiteContentCache.IsEnabled()
 			},
 		)
-		
+
 		// Set cache on industry detector's multi-method classifier
 		industryDetector.SetContentCache(cacheAdapter)
 		logger.Info("✅ Website content cache set on classification services")
@@ -182,7 +189,7 @@ func main() {
 		logger.Info("🐍 Initializing Python ML Service",
 			zap.String("url", pythonMLServiceURL))
 		pythonMLService = infrastructure.NewPythonMLService(pythonMLServiceURL, stdLogger)
-		
+
 		// Initialize the service with retry logic for resilience (3 retries with exponential backoff)
 		// This handles transient ML service startup issues gracefully
 		initCtx, initCancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -211,7 +218,7 @@ func main() {
 		industryDetector,
 		codeGenerator,
 		keywordRepoInstance, // OPTIMIZATION #5.2: Pass repository for accuracy tracking
-		pythonMLService, // Pass Python ML service (can be nil)
+		pythonMLService,     // Pass Python ML service (can be nil)
 	)
 
 	// Setup router
@@ -239,6 +246,11 @@ func main() {
 		WriteTimeout: cfg.Server.WriteTimeout,
 		IdleTimeout:  cfg.Server.IdleTimeout,
 	}
+
+	// Optional pprof (guarded by env)
+	startPprof(logger)
+	// Lightweight periodic memory diagnostics
+	startMemoryDiagnostics(logger)
 
 	// Start server in a goroutine
 	go func() {
@@ -282,6 +294,81 @@ func main() {
 	}
 
 	logger.Info("✅ Classification Service exited gracefully")
+}
+
+// applyMemoryLimit sets a memory limit based on environment variables.
+// Priority:
+// 1) GOMEMLIMIT_BYTES (bytes)
+// 2) GOMEMLIMIT_MB (megabytes)
+// 3) GOMEMLIMIT (already handled by Go runtime if set)
+// 4) Default: 768 MiB
+func applyMemoryLimit(logger *zap.Logger) {
+	if val := os.Getenv("GOMEMLIMIT"); val != "" {
+		logger.Info("Using GOMEMLIMIT from environment", zap.String("GOMEMLIMIT", val))
+		return
+	}
+
+	if bytesStr := os.Getenv("GOMEMLIMIT_BYTES"); bytesStr != "" {
+		if bytesVal, err := strconv.ParseInt(bytesStr, 10, 64); err == nil && bytesVal > 0 {
+			debug.SetMemoryLimit(bytesVal)
+			logger.Info("GOMEMLIMIT applied from GOMEMLIMIT_BYTES",
+				zap.Int64("bytes", bytesVal))
+			return
+		}
+	}
+
+	if mbStr := os.Getenv("GOMEMLIMIT_MB"); mbStr != "" {
+		if mbVal, err := strconv.ParseInt(mbStr, 10, 64); err == nil && mbVal > 0 {
+			bytesVal := mbVal * 1024 * 1024
+			debug.SetMemoryLimit(bytesVal)
+			logger.Info("GOMEMLIMIT applied from GOMEMLIMIT_MB",
+				zap.Int64("mb", mbVal),
+				zap.Int64("bytes", bytesVal))
+			return
+		}
+	}
+
+	// Default to 768 MiB to reduce OOM risk on small Railway instances
+	defaultLimit := int64(768 * 1024 * 1024)
+	debug.SetMemoryLimit(defaultLimit)
+	logger.Info("GOMEMLIMIT applied with default",
+		zap.Int64("bytes", defaultLimit))
+}
+
+// startPprof starts a pprof server if PPROF_ENABLED=true.
+// Uses PPROF_ADDR (default :6060). Intended for staging/production only if access-controlled.
+func startPprof(logger *zap.Logger) {
+	if strings.ToLower(os.Getenv("PPROF_ENABLED")) != "true" {
+		return
+	}
+	addr := os.Getenv("PPROF_ADDR")
+	if addr == "" {
+		addr = ":6060"
+	}
+	go func() {
+		logger.Info("pprof server starting", zap.String("addr", addr))
+		//nolint:gosec // pprof intended for trusted access only
+		if err := http.ListenAndServe(addr, nil); err != nil {
+			logger.Warn("pprof server stopped", zap.Error(err))
+		}
+	}()
+}
+
+// startMemoryDiagnostics logs memory stats periodically to catch leaks/pressure.
+func startMemoryDiagnostics(logger *zap.Logger) {
+	ticker := time.NewTicker(60 * time.Second)
+	go func() {
+		for range ticker.C {
+			var ms runtime.MemStats
+			runtime.ReadMemStats(&ms)
+			logger.Info("memstats",
+				zap.Uint64("alloc_bytes", ms.Alloc),
+				zap.Uint64("heap_alloc_bytes", ms.HeapAlloc),
+				zap.Uint64("heap_sys_bytes", ms.HeapSys),
+				zap.Uint64("heap_inuse_bytes", ms.HeapInuse),
+				zap.Uint64("num_gc", ms.NumGC))
+		}
+	}()
 }
 
 // loggingMiddleware logs HTTP requests

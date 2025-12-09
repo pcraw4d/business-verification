@@ -65,10 +65,11 @@ type ServicesConfig struct {
 func Load() (*Config, error) {
 	cfg := &Config{
 		Server: ServerConfig{
-			Port:         getEnvAsString("PORT", "8080"),
-			Host:         getEnvAsString("HOST", "0.0.0.0"),
-			ReadTimeout:  getEnvAsDuration("READ_TIMEOUT", 30*time.Second),
-			WriteTimeout: getEnvAsDuration("WRITE_TIMEOUT", 30*time.Second),
+			Port: getEnvAsString("PORT", "8080"),
+			Host: getEnvAsString("HOST", "0.0.0.0"),
+			// Increase timeouts to accommodate long-running classification requests
+			ReadTimeout:  getEnvAsDuration("READ_TIMEOUT", 120*time.Second),
+			WriteTimeout: getEnvAsDuration("WRITE_TIMEOUT", 120*time.Second),
 			IdleTimeout:  getEnvAsDuration("IDLE_TIMEOUT", 60*time.Second),
 		},
 		Supabase: SupabaseConfig{

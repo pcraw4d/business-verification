@@ -29,8 +29,8 @@ import (
 
 // cacheEntry represents a cached classification result
 type cacheEntry struct {
-	response   *ClassificationResponse
-	expiresAt  time.Time
+	response  *ClassificationResponse
+	expiresAt time.Time
 }
 
 // inFlightRequest represents a request that is currently being processed
@@ -39,7 +39,7 @@ type inFlightRequest struct {
 	startTime  time.Time
 	timeout    time.Duration // Maximum time to wait for this request
 	// FIX #13: Use sync.Once to prevent double-close panic
-	closeOnce  sync.Once
+	closeOnce sync.Once
 }
 
 // inFlightResult represents the result of an in-flight request
@@ -50,10 +50,10 @@ type inFlightResult struct {
 
 // queuedRequest represents a request in the processing queue
 type queuedRequest struct {
-	req      *ClassificationRequest
-	ctx      context.Context
-	response chan *ClassificationResponse
-	errChan  chan error
+	req       *ClassificationRequest
+	ctx       context.Context
+	response  chan *ClassificationResponse
+	errChan   chan error
 	startTime time.Time
 }
 
@@ -78,12 +78,12 @@ func NewRequestQueue(maxSize int) *requestQueue {
 func (rq *requestQueue) Enqueue(req *queuedRequest) error {
 	rq.mu.Lock()
 	defer rq.mu.Unlock()
-	
+
 	currentSize := int(atomic.LoadInt32(&rq.currentSize))
 	if currentSize >= rq.maxSize {
 		return fmt.Errorf("request queue is full")
 	}
-	
+
 	select {
 	case rq.queue <- req:
 		atomic.AddInt32(&rq.currentSize, 1)
@@ -171,7 +171,7 @@ func (wp *workerPool) Stop() {
 // worker processes requests from the queue
 func (wp *workerPool) worker(id int) {
 	defer wp.wg.Done()
-	
+
 	// Initialize worker stats
 	wp.statsMutex.Lock()
 	wp.workerStats[id] = &workerStats{
@@ -179,11 +179,11 @@ func (wp *workerPool) worker(id int) {
 		lastActivity: time.Now(),
 	}
 	wp.statsMutex.Unlock()
-	
+
 	wp.logger.Info("🔧 [WORKER-START] Worker started",
 		zap.Int("worker_id", id),
 		zap.Time("start_time", time.Now()))
-	
+
 	// Check for blocked workers periodically (only worker 0 does this)
 	if id == 0 {
 		go func() {
@@ -199,7 +199,7 @@ func (wp *workerPool) worker(id int) {
 			}
 		}()
 	}
-	
+
 	for {
 		select {
 		case <-wp.ctx.Done():
@@ -214,22 +214,22 @@ func (wp *workerPool) worker(id int) {
 				time.Sleep(100 * time.Millisecond)
 				continue
 			}
-			
+
 			startTime := queuedReq.startTime
 			if startTime.IsZero() {
 				startTime = time.Now()
 			}
-			
+
 			// Calculate queue wait time
 			queueWaitTime := time.Since(startTime)
-			
+
 			// ALWAYS create fresh context to avoid expiration issues
 			// This eliminates the need for complex checks and ensures sufficient time
 			// Increased to 120s to accommodate longer processing times (scraping, classification, etc.)
 			freshTimeout := 120 * time.Second
 			processingCtx, cancel := context.WithTimeout(context.Background(), freshTimeout)
 			defer cancel()
-			
+
 			// Log original context state for debugging
 			originalTimeRemaining := time.Duration(0)
 			originalExpired := false
@@ -241,7 +241,7 @@ func (wp *workerPool) worker(id int) {
 					originalExpired = true
 				}
 			}
-			
+
 			wp.logger.Info("🔧 [WORKER-CONTEXT] Worker creating fresh context for processing",
 				zap.Int("worker_id", id),
 				zap.String("request_id", queuedReq.req.RequestID),
@@ -250,7 +250,7 @@ func (wp *workerPool) worker(id int) {
 				zap.Duration("original_time_remaining", originalTimeRemaining),
 				zap.Bool("original_expired", originalExpired),
 				zap.Duration("time_since_enqueue", time.Since(queuedReq.startTime)))
-			
+
 			// Update worker stats - processing started
 			wp.statsMutex.Lock()
 			stats := wp.workerStats[id]
@@ -258,7 +258,7 @@ func (wp *workerPool) worker(id int) {
 			stats.currentRequestID = queuedReq.req.RequestID
 			stats.isBlocked = false
 			wp.statsMutex.Unlock()
-			
+
 			// Process request
 			wp.logger.Info("🔧 [WORKER-PROCESSING] Worker processing request",
 				zap.Int("worker_id", id),
@@ -266,9 +266,9 @@ func (wp *workerPool) worker(id int) {
 				zap.Int("queue_size", wp.queue.Size()),
 				zap.Duration("queue_wait", queueWaitTime),
 				zap.Int("active_workers", wp.getActiveWorkerCount()))
-			
+
 			response, err := wp.handler.processClassification(processingCtx, queuedReq.req, startTime)
-			
+
 			// Update worker stats - processing completed
 			processingDuration := time.Since(startTime)
 			wp.statsMutex.Lock()
@@ -281,7 +281,7 @@ func (wp *workerPool) worker(id int) {
 			stats.lastActivity = time.Now()
 			stats.currentRequestID = ""
 			wp.statsMutex.Unlock()
-			
+
 			if err != nil {
 				wp.logger.Error("Request processing failed",
 					zap.Int("worker_id", id),
@@ -320,7 +320,7 @@ func (wp *workerPool) worker(id int) {
 func (wp *workerPool) getActiveWorkerCount() int {
 	wp.statsMutex.RLock()
 	defer wp.statsMutex.RUnlock()
-	
+
 	active := 0
 	for _, stats := range wp.workerStats {
 		if stats.currentRequestID != "" {
@@ -334,7 +334,7 @@ func (wp *workerPool) getActiveWorkerCount() int {
 func (wp *workerPool) checkBlockedWorkers() {
 	wp.statsMutex.RLock()
 	defer wp.statsMutex.RUnlock()
-	
+
 	now := time.Now()
 	for id, stats := range wp.workerStats {
 		if stats.currentRequestID != "" {
@@ -353,25 +353,25 @@ func (wp *workerPool) checkBlockedWorkers() {
 
 // ClassificationHandler handles classification requests
 type ClassificationHandler struct {
-	supabaseClient        *supabase.Client
-	logger                *zap.Logger
-	config                *config.Config
-	industryDetector       *classification.IndustryDetectionService
-	codeGenerator         *classification.ClassificationCodeGenerator
-	keywordRepo           repository.KeywordRepository // OPTIMIZATION #5.2: For accuracy tracking
-	pythonMLService       interface{} // *infrastructure.PythonMLService - using interface to avoid import cycle
-	industryThresholds    *classification.IndustryThresholds // OPTIMIZATION #16: Industry-specific thresholds
-	confidenceCalibrator  *classification.ConfidenceCalibrator // OPTIMIZATION #5.2: Confidence calibration
-	cache                 map[string]*cacheEntry
-	cacheMutex            sync.RWMutex
-	redisCache            *cache.RedisCache // Distributed Redis cache (optional)
-	inFlightRequests      map[string]*inFlightRequest
-	inFlightMutex         sync.RWMutex
-	requestQueue          *requestQueue // Request queue for managing concurrent requests
-	WorkerPool            *workerPool   // Worker pool for processing queued requests (exported for shutdown)
+	supabaseClient       *supabase.Client
+	logger               *zap.Logger
+	config               *config.Config
+	industryDetector     *classification.IndustryDetectionService
+	codeGenerator        *classification.ClassificationCodeGenerator
+	keywordRepo          repository.KeywordRepository         // OPTIMIZATION #5.2: For accuracy tracking
+	pythonMLService      interface{}                          // *infrastructure.PythonMLService - using interface to avoid import cycle
+	industryThresholds   *classification.IndustryThresholds   // OPTIMIZATION #16: Industry-specific thresholds
+	confidenceCalibrator *classification.ConfidenceCalibrator // OPTIMIZATION #5.2: Confidence calibration
+	cache                map[string]*cacheEntry
+	cacheMutex           sync.RWMutex
+	redisCache           *cache.RedisCache // Distributed Redis cache (optional)
+	inFlightRequests     map[string]*inFlightRequest
+	inFlightMutex        sync.RWMutex
+	requestQueue         *requestQueue // Request queue for managing concurrent requests
+	WorkerPool           *workerPool   // Worker pool for processing queued requests (exported for shutdown)
 	// FIX #7: Shutdown context for cleanup goroutines (exported for shutdown)
-	ShutdownCtx           context.Context
-	ShutdownCancel        context.CancelFunc
+	ShutdownCtx    context.Context
+	ShutdownCancel context.CancelFunc
 }
 
 // NewClassificationHandler creates a new classification handler
@@ -386,37 +386,37 @@ func NewClassificationHandler(
 ) *ClassificationHandler {
 	// OPTIMIZATION #16: Initialize industry-specific thresholds
 	industryThresholds := classification.NewIndustryThresholds()
-	
+
 	// OPTIMIZATION #5.2: Initialize confidence calibrator for accuracy tracking
 	// Create a std logger adapter for the calibrator (it uses log.Logger, not zap.Logger)
 	stdLogger := log.New(&zapLoggerAdapter{logger: logger}, "", 0)
 	confidenceCalibrator := classification.NewConfidenceCalibrator(stdLogger)
-	
+
 	// Initialize request queue (default max size: 50, or use MaxConcurrentRequests config)
 	maxQueueSize := 50
 	if config.Classification.MaxConcurrentRequests > 0 {
 		maxQueueSize = config.Classification.MaxConcurrentRequests
 	}
 	requestQueue := NewRequestQueue(maxQueueSize)
-	
+
 	handler := &ClassificationHandler{
-		supabaseClient:  supabaseClient,
-		logger:          logger,
-		config:          config,
-		industryDetector: industryDetector,
-		codeGenerator:   codeGenerator,
-		keywordRepo:    keywordRepo, // OPTIMIZATION #5.2: For accuracy tracking
-		industryThresholds: industryThresholds,
+		supabaseClient:       supabaseClient,
+		logger:               logger,
+		config:               config,
+		industryDetector:     industryDetector,
+		codeGenerator:        codeGenerator,
+		keywordRepo:          keywordRepo, // OPTIMIZATION #5.2: For accuracy tracking
+		industryThresholds:   industryThresholds,
 		confidenceCalibrator: confidenceCalibrator,
-		pythonMLService: pythonMLService,
-		cache:           make(map[string]*cacheEntry),
-		inFlightRequests: make(map[string]*inFlightRequest),
-		requestQueue:    requestQueue,
+		pythonMLService:      pythonMLService,
+		cache:                make(map[string]*cacheEntry),
+		inFlightRequests:     make(map[string]*inFlightRequest),
+		requestQueue:         requestQueue,
 	}
-	
+
 	logger.Info("Request queue initialized",
 		zap.Int("max_size", maxQueueSize))
-	
+
 	// Initialize worker pool (default: 10 workers, or 20% of MaxConcurrentRequests)
 	// OPTIMIZATION: Increased worker count to handle burst traffic better
 	workerCount := 10
@@ -426,23 +426,24 @@ func NewClassificationHandler(
 		if workerCount < 1 {
 			workerCount = 1
 		}
-		if workerCount > 40 {
-			workerCount = 40 // Cap at 40 workers (increased from 20)
+		if workerCount > 20 {
+			// Cap worker count to reduce memory pressure in production
+			workerCount = 20
 		}
 	} else {
-		// Default to 30 workers if no config (increased from 10)
-		workerCount = 30
+		// Default to 15 workers if no config (reduced to control memory)
+		workerCount = 15
 	}
-	
+
 	workerPool := NewWorkerPool(workerCount, requestQueue, handler, logger)
 	handler.WorkerPool = workerPool
-	
+
 	// Start worker pool
 	workerPool.Start()
-	
+
 	logger.Info("Worker pool initialized",
 		zap.Int("workers", workerCount))
-	
+
 	// Initialize Redis cache if enabled
 	if config.Classification.RedisEnabled && config.Classification.RedisURL != "" {
 		handler.redisCache = cache.NewRedisCache(
@@ -454,18 +455,18 @@ func NewClassificationHandler(
 	} else {
 		logger.Info("Using in-memory cache only (Redis not enabled or URL not provided)")
 	}
-	
+
 	// FIX #7: Initialize shutdown context for cleanup goroutines
 	handler.ShutdownCtx, handler.ShutdownCancel = context.WithCancel(context.Background())
-	
+
 	// Start cache cleanup goroutine (for in-memory cache only)
 	if config.Classification.CacheEnabled {
 		go handler.cleanupCache(handler.ShutdownCtx)
 	}
-	
+
 	// Start in-flight requests cleanup goroutine (Task 1.4: Request Deduplication)
 	go handler.cleanupInFlightRequests(handler.ShutdownCtx)
-	
+
 	return handler
 }
 
@@ -474,7 +475,7 @@ func NewClassificationHandler(
 func (h *ClassificationHandler) cleanupCache(ctx context.Context) {
 	ticker := time.NewTicker(1 * time.Minute)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -498,7 +499,7 @@ func (h *ClassificationHandler) cleanupCache(ctx context.Context) {
 func (h *ClassificationHandler) cleanupInFlightRequests(ctx context.Context) {
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -511,8 +512,8 @@ func (h *ClassificationHandler) cleanupInFlightRequests(ctx context.Context) {
 			if maxAge == 0 {
 				maxAge = 2 * time.Minute // Default max age
 			}
-			
-				for key, req := range h.inFlightRequests {
+
+			for key, req := range h.inFlightRequests {
 				age := now.Sub(req.startTime)
 				if age > maxAge {
 					h.logger.Warn("Removing stale in-flight request",
@@ -543,12 +544,12 @@ func (h *ClassificationHandler) getCachedResponse(key string) (*ClassificationRe
 	if !h.config.Classification.CacheEnabled {
 		return nil, false
 	}
-	
+
 	// Try Redis cache first if enabled
 	if h.redisCache != nil {
 		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 		defer cancel()
-		
+
 		data, found := h.redisCache.Get(ctx, key)
 		if found {
 			var response ClassificationResponse
@@ -559,20 +560,20 @@ func (h *ClassificationHandler) getCachedResponse(key string) (*ClassificationRe
 			}
 		}
 	}
-	
+
 	// Fallback to in-memory cache
 	h.cacheMutex.RLock()
 	defer h.cacheMutex.RUnlock()
-	
+
 	entry, exists := h.cache[key]
 	if !exists {
 		return nil, false
 	}
-	
+
 	if time.Now().After(entry.expiresAt) {
 		return nil, false
 	}
-	
+
 	return entry.response, true
 }
 
@@ -581,12 +582,12 @@ func (h *ClassificationHandler) setCachedResponse(key string, response *Classifi
 	if !h.config.Classification.CacheEnabled {
 		return
 	}
-	
+
 	// Store in Redis cache if enabled
 	if h.redisCache != nil {
 		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 		defer cancel()
-		
+
 		data, err := json.Marshal(response)
 		if err == nil {
 			h.redisCache.Set(ctx, key, data, h.config.Classification.CacheTTL)
@@ -600,11 +601,11 @@ func (h *ClassificationHandler) setCachedResponse(key string, response *Classifi
 		}
 		cancel()
 	}
-	
+
 	// Always store in in-memory cache as fallback
 	h.cacheMutex.Lock()
 	defer h.cacheMutex.Unlock()
-	
+
 	h.cache[key] = &cacheEntry{
 		response:  response,
 		expiresAt: time.Now().Add(h.config.Classification.CacheTTL),
@@ -621,24 +622,24 @@ type ClassificationRequest struct {
 
 // ClassificationResponse represents a classification response
 type ClassificationResponse struct {
-	RequestID          string                 `json:"request_id"`
-	BusinessName       string                 `json:"business_name"`
-	Description        string                 `json:"description"`
-	PrimaryIndustry    string                 `json:"primary_industry,omitempty"` // Added for merchant service compatibility
-	Classification     *ClassificationResult  `json:"classification"`
-	RiskAssessment     *RiskAssessmentResult  `json:"risk_assessment"`
-	VerificationStatus *VerificationStatus    `json:"verification_status"`
-	ConfidenceScore    float64                `json:"confidence_score"`
-	Explanation        string                 `json:"explanation,omitempty"`        // DistilBART explanation
-	ContentSummary     string                 `json:"contentSummary,omitempty"`     // DistilBART content summary
-	QuantizationEnabled bool                  `json:"quantizationEnabled,omitempty"` // Quantization status
-	ModelVersion       string                 `json:"modelVersion,omitempty"`        // Model version
-	DataSource         string                 `json:"data_source"`
-	Status             string                 `json:"status"`
-	Success            bool                   `json:"success"`
-	Timestamp          time.Time              `json:"timestamp"`
-	ProcessingTime     time.Duration          `json:"processing_time"`
-	Metadata           map[string]interface{} `json:"metadata,omitempty"`
+	RequestID           string                 `json:"request_id"`
+	BusinessName        string                 `json:"business_name"`
+	Description         string                 `json:"description"`
+	PrimaryIndustry     string                 `json:"primary_industry,omitempty"` // Added for merchant service compatibility
+	Classification      *ClassificationResult  `json:"classification"`
+	RiskAssessment      *RiskAssessmentResult  `json:"risk_assessment"`
+	VerificationStatus  *VerificationStatus    `json:"verification_status"`
+	ConfidenceScore     float64                `json:"confidence_score"`
+	Explanation         string                 `json:"explanation,omitempty"`         // DistilBART explanation
+	ContentSummary      string                 `json:"contentSummary,omitempty"`      // DistilBART content summary
+	QuantizationEnabled bool                   `json:"quantizationEnabled,omitempty"` // Quantization status
+	ModelVersion        string                 `json:"modelVersion,omitempty"`        // Model version
+	DataSource          string                 `json:"data_source"`
+	Status              string                 `json:"status"`
+	Success             bool                   `json:"success"`
+	Timestamp           time.Time              `json:"timestamp"`
+	ProcessingTime      time.Duration          `json:"processing_time"`
+	Metadata            map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // requestTrace tracks detailed timing for a single request
@@ -690,14 +691,14 @@ type ClassificationResult struct {
 
 // IndustryCode represents an industry classification code
 type IndustryCode struct {
-	Code            string   `json:"code"`
-	Description     string   `json:"description"`
-	Confidence      float64  `json:"confidence"`
-	Source          []string `json:"source,omitempty"`          // ["industry", "keyword", "both"]
-	MatchType       string   `json:"matchType,omitempty"`       // "exact", "partial", "synonym"
-	RelevanceScore  float64  `json:"relevanceScore,omitempty"`  // From code_keywords table
-	Industries      []string `json:"industries,omitempty"`      // Industries that contributed this code
-	IsPrimary       bool     `json:"isPrimary,omitempty"`      // From classification_codes.is_primary
+	Code           string   `json:"code"`
+	Description    string   `json:"description"`
+	Confidence     float64  `json:"confidence"`
+	Source         []string `json:"source,omitempty"`         // ["industry", "keyword", "both"]
+	MatchType      string   `json:"matchType,omitempty"`      // "exact", "partial", "synonym"
+	RelevanceScore float64  `json:"relevanceScore,omitempty"` // From code_keywords table
+	Industries     []string `json:"industries,omitempty"`     // Industries that contributed this code
+	IsPrimary      bool     `json:"isPrimary,omitempty"`      // From classification_codes.is_primary
 }
 
 // WebsiteContent represents website content analysis
@@ -737,21 +738,21 @@ type RiskAssessmentResult struct {
 // HandleClassification handles classification requests
 func (h *ClassificationHandler) HandleClassification(w http.ResponseWriter, r *http.Request) {
 	startTime := time.Now()
-	
+
 	// CRITICAL FIX: Check context state IMMEDIATELY and create fresh context if needed
 	// This must happen before any processing to ensure sufficient time for operations
 	parentCtx := r.Context()
 	ctxInfo := map[string]interface{}{
-		"has_deadline": false,
+		"has_deadline":      false,
 		"time_remaining_ms": 0,
-		"context_err": nil,
+		"context_err":       nil,
 	}
-	
+
 	if deadline, hasDeadline := parentCtx.Deadline(); hasDeadline {
 		ctxInfo["has_deadline"] = true
 		timeRemaining := time.Until(deadline)
 		ctxInfo["time_remaining_ms"] = timeRemaining.Milliseconds()
-		
+
 		// If context has insufficient time (<90s), create fresh context IMMEDIATELY
 		// Increased threshold to 90s to match worker context timeout expectations
 		if timeRemaining < 90*time.Second {
@@ -762,7 +763,7 @@ func (h *ClassificationHandler) HandleClassification(w http.ResponseWriter, r *h
 			ctxInfo["fresh_context_created"] = true
 		}
 	}
-	
+
 	if parentCtx.Err() != nil {
 		ctxInfo["context_err"] = parentCtx.Err().Error()
 		h.logger.Warn("⚠️ [CONTEXT-FIX] Parent context expired, creating fresh context",
@@ -770,7 +771,7 @@ func (h *ClassificationHandler) HandleClassification(w http.ResponseWriter, r *h
 		parentCtx = context.Background()
 		ctxInfo["fresh_context_created"] = true
 	}
-	
+
 	// Entry-point logging with context information
 	// FIX #17: Logging verbosity - Consider reducing in production for performance
 	// Current logging is verbose for debugging but may impact performance at scale
@@ -783,7 +784,7 @@ func (h *ClassificationHandler) HandleClassification(w http.ResponseWriter, r *h
 
 	// Check if streaming is requested
 	stream := r.URL.Query().Get("stream") == "true"
-	
+
 	if stream {
 		h.handleClassificationStreaming(w, r, startTime)
 		return
@@ -795,9 +796,9 @@ func (h *ClassificationHandler) HandleClassification(w http.ResponseWriter, r *h
 	// Parse request body with timeout protection
 	h.logger.Info("📥 [PARSE] Starting request body parsing",
 		zap.String("content_length", r.Header.Get("Content-Length")))
-	
+
 	parseStart := time.Now()
-	
+
 	var req ClassificationRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		h.logger.Error("❌ [PARSE] Failed to decode request",
@@ -806,7 +807,7 @@ func (h *ClassificationHandler) HandleClassification(w http.ResponseWriter, r *h
 		errors.WriteBadRequest(w, r, "Invalid request body: Please provide valid JSON")
 		return
 	}
-	
+
 	h.logger.Info("✅ [PARSE] Request body parsed successfully",
 		zap.Duration("parse_duration", time.Since(parseStart)),
 		zap.String("business_name", req.BusinessName),
@@ -845,7 +846,7 @@ func (h *ClassificationHandler) HandleClassification(w http.ResponseWriter, r *h
 
 	// Generate cache key for deduplication
 	cacheKey := h.getCacheKey(&req)
-	
+
 	// Check cache first if enabled
 	if h.config.Classification.CacheEnabled {
 		if cachedResponse, found := h.getCachedResponse(cacheKey); found {
@@ -859,10 +860,10 @@ func (h *ClassificationHandler) HandleClassification(w http.ResponseWriter, r *h
 		}
 		w.Header().Set("X-Cache", "MISS")
 	}
-	
+
 	// Calculate adaptive timeout based on request characteristics (Hybrid Approach)
 	requestTimeout := h.calculateAdaptiveTimeout(&req)
-	
+
 	// CONTEXT FLOW DOCUMENTATION (FIX #11):
 	// 1. Entry point (line ~728): Checks parentCtx (r.Context()) for sufficient time
 	//    - If <90s remaining, creates fresh context.Background()
@@ -896,12 +897,12 @@ func (h *ClassificationHandler) HandleClassification(w http.ResponseWriter, r *h
 			zap.String("request_id", req.RequestID),
 			zap.Duration("request_timeout", requestTimeout))
 	}
-	
+
 	// PROFILING: Track time at context creation
 	contextCreationStart := time.Now()
-	
+
 	ctx, contentCache := reqcache.WithContentCache(parentCtx)
-	
+
 	// FIX #1: Only add timeout if parent has no deadline or insufficient time
 	// This prevents overwriting a context that already has sufficient time
 	var cancel context.CancelFunc
@@ -923,9 +924,9 @@ func (h *ClassificationHandler) HandleClassification(w http.ResponseWriter, r *h
 			zap.Duration("parent_time_remaining", time.Until(deadline)),
 			zap.Duration("request_timeout", requestTimeout))
 	}
-	
+
 	contextCreationDuration := time.Since(contextCreationStart)
-	
+
 	// Log created context state
 	if deadline, hasDeadline := ctx.Deadline(); hasDeadline {
 		timeRemaining := time.Until(deadline)
@@ -935,15 +936,15 @@ func (h *ClassificationHandler) HandleClassification(w http.ResponseWriter, r *h
 			zap.Duration("context_creation_duration", contextCreationDuration),
 			zap.Duration("request_timeout", requestTimeout))
 	}
-	
+
 	// Store cache reference for later use (if needed)
 	_ = contentCache
-	
+
 	// Check if identical request is already in-flight
 	h.inFlightMutex.RLock()
 	inFlight, exists := h.inFlightRequests[cacheKey]
 	h.inFlightMutex.RUnlock()
-	
+
 	if exists {
 		// Check if in-flight request has timed out
 		elapsed := time.Since(inFlight.startTime)
@@ -964,16 +965,16 @@ func (h *ClassificationHandler) HandleClassification(w http.ResponseWriter, r *h
 				zap.String("cache_key", cacheKey),
 				zap.Duration("elapsed", elapsed),
 				zap.Duration("max_wait", requestTimeout))
-			
+
 			// Wait for the in-flight request to complete with timeout
 			waitTimeout := requestTimeout - elapsed
 			if waitTimeout <= 0 {
 				waitTimeout = 5 * time.Second // Minimum wait time
 			}
-			
+
 			waitCtx, waitCancel := context.WithTimeout(ctx, waitTimeout)
 			defer waitCancel()
-			
+
 			select {
 			case result := <-inFlight.resultChan:
 				if result.err != nil {
@@ -1007,7 +1008,7 @@ func (h *ClassificationHandler) HandleClassification(w http.ResponseWriter, r *h
 			}
 		}
 	}
-	
+
 	// Check if queue is full before enqueuing
 	queueSize := h.requestQueue.Size()
 	if queueSize >= h.requestQueue.maxSize {
@@ -1018,7 +1019,7 @@ func (h *ClassificationHandler) HandleClassification(w http.ResponseWriter, r *h
 		errors.WriteServiceUnavailable(w, r, "Service temporarily unavailable, request queue is full")
 		return
 	}
-	
+
 	// Estimate queue wait time based on current queue size and average processing time
 	// OPTIMIZATION: Improved estimation based on worker count and actual processing times
 	// Average processing time: 15-20 seconds (conservative estimate)
@@ -1029,13 +1030,13 @@ func (h *ClassificationHandler) HandleClassification(w http.ResponseWriter, r *h
 	if workerCount == 0 {
 		workerCount = 30 // Default if not initialized
 	}
-	
+
 	// More accurate estimation: divide queue size by worker count
 	estimatedQueueWait := time.Duration(queueSize) * avgProcessingTime / time.Duration(workerCount)
 	if estimatedQueueWait > 60*time.Second {
 		estimatedQueueWait = 60 * time.Second // Cap at 60 seconds (increased from 30s)
 	}
-	
+
 	// OPTIMIZATION: Check if parent context is expired or has insufficient time
 	// If so, use Background context instead of inheriting expired deadline
 	useBackgroundForQueue := false
@@ -1056,7 +1057,7 @@ func (h *ClassificationHandler) HandleClassification(w http.ResponseWriter, r *h
 			useBackgroundForQueue = true
 		}
 	}
-	
+
 	// FIX #2: Create context with sufficient time accounting for queue wait
 	// Match worker timeout (120s) + queue wait + buffer to ensure HTTP doesn't timeout before worker completes
 	// Worker creates fresh 120s context, so queue context needs at least that + queue wait + buffer
@@ -1068,7 +1069,7 @@ func (h *ClassificationHandler) HandleClassification(w http.ResponseWriter, r *h
 	}
 	queueCtx, queueCancel := context.WithTimeout(queueCtxParent, queueAwareTimeout)
 	defer queueCancel()
-	
+
 	// Create queued request
 	// FIX #14: Response channels are buffered (size 1) and used for one-time communication
 	// They don't need explicit closing - garbage collection will handle cleanup
@@ -1080,7 +1081,7 @@ func (h *ClassificationHandler) HandleClassification(w http.ResponseWriter, r *h
 		errChan:   make(chan error, 1),
 		startTime: time.Now(),
 	}
-	
+
 	// Enqueue request
 	if err := h.requestQueue.Enqueue(queuedReq); err != nil {
 		h.logger.Warn("Failed to enqueue request",
@@ -1089,7 +1090,7 @@ func (h *ClassificationHandler) HandleClassification(w http.ResponseWriter, r *h
 		errors.WriteServiceUnavailable(w, r, "Service temporarily unavailable")
 		return
 	}
-	
+
 	h.logger.Info("📋 [QUEUE-ENQUEUE] Request enqueued for processing",
 		zap.String("request_id", req.RequestID),
 		zap.Int("queue_size", h.requestQueue.Size()),
@@ -1098,7 +1099,7 @@ func (h *ClassificationHandler) HandleClassification(w http.ResponseWriter, r *h
 		zap.Duration("queue_aware_timeout", queueAwareTimeout),
 		zap.Bool("using_background_context", useBackgroundForQueue),
 		zap.Time("enqueue_time", time.Now()))
-	
+
 	// Create in-flight request entry with timeout for deduplication
 	resultChan := make(chan *inFlightResult, 1)
 	inFlightReq := &inFlightRequest{
@@ -1106,11 +1107,11 @@ func (h *ClassificationHandler) HandleClassification(w http.ResponseWriter, r *h
 		startTime:  time.Now(),
 		timeout:    requestTimeout,
 	}
-	
+
 	h.inFlightMutex.Lock()
 	h.inFlightRequests[cacheKey] = inFlightReq
 	h.inFlightMutex.Unlock()
-	
+
 	// Clean up in-flight request when done
 	defer func() {
 		h.inFlightMutex.Lock()
@@ -1128,35 +1129,35 @@ func (h *ClassificationHandler) HandleClassification(w http.ResponseWriter, r *h
 		default:
 			// Channel already has a result (shouldn't happen, but safe to ignore)
 		}
-		
+
 		// Cache the response if enabled
 		if h.config.Classification.CacheEnabled {
 			h.setCachedResponse(cacheKey, response)
 		}
-		
+
 		// Set cache headers for browser caching
 		if h.config.Classification.CacheEnabled {
 			w.Header().Set("Cache-Control", fmt.Sprintf("public, max-age=%d", int(h.config.Classification.CacheTTL.Seconds())))
 			w.Header().Set("ETag", fmt.Sprintf(`"%s"`, req.RequestID))
 		}
-		
+
 		// Marshal JSON response to bytes first
 		responseBytes, err := json.Marshal(response)
 		if err != nil {
-			h.logger.Error("Failed to marshal response", 
+			h.logger.Error("Failed to marshal response",
 				zap.String("request_id", req.RequestID),
 				zap.Error(err))
 			errors.WriteInternalError(w, r, fmt.Sprintf("Failed to marshal response: %v", err))
 			return
 		}
-		
+
 		// Log response size for monitoring
 		responseSize := len(responseBytes)
 		h.logger.Info("Response prepared for sending",
 			zap.String("request_id", req.RequestID),
 			zap.Int("response_size_bytes", responseSize),
 			zap.Duration("total_duration", time.Since(startTime)))
-		
+
 		// FIX #15: Check if HTTP connection is still valid before writing response
 		// This prevents HTTP 000 errors from writing to closed connections
 		if r.Context().Err() != nil {
@@ -1165,7 +1166,7 @@ func (h *ClassificationHandler) HandleClassification(w http.ResponseWriter, r *h
 				zap.Error(r.Context().Err()))
 			return
 		}
-		
+
 		// Write response
 		w.WriteHeader(http.StatusOK)
 		if _, err := w.Write(responseBytes); err != nil {
@@ -1174,12 +1175,12 @@ func (h *ClassificationHandler) HandleClassification(w http.ResponseWriter, r *h
 				zap.Error(err))
 		}
 		return
-		
+
 	case err := <-queuedReq.errChan:
 		h.logger.Error("Request processing failed",
 			zap.String("request_id", req.RequestID),
 			zap.Error(err))
-		
+
 		// Send error to waiting duplicate requests (non-blocking)
 		select {
 		case inFlightReq.resultChan <- &inFlightResult{response: nil, err: err}:
@@ -1187,7 +1188,7 @@ func (h *ClassificationHandler) HandleClassification(w http.ResponseWriter, r *h
 		default:
 			// Channel already has a result (shouldn't happen, but safe to ignore)
 		}
-		
+
 		// OPTIMIZATION: Check if HTTP connection is still valid before writing error
 		// This prevents HTTP 000 errors from writing to closed connections
 		if r.Context().Err() != nil {
@@ -1196,30 +1197,30 @@ func (h *ClassificationHandler) HandleClassification(w http.ResponseWriter, r *h
 				zap.Error(r.Context().Err()))
 			return
 		}
-		
+
 		errors.WriteInternalError(w, r, fmt.Sprintf("Classification failed: %v", err))
 		return
-		
+
 	case <-queueCtx.Done():
 		h.logger.Warn("Request context cancelled while waiting for processing",
 			zap.String("request_id", req.RequestID),
 			zap.Error(queueCtx.Err()))
-		
+
 		// OPTIMIZATION: Check if HTTP connection is still valid before writing error
 		if r.Context().Err() != nil {
 			h.logger.Warn("HTTP connection already closed, skipping timeout response",
 				zap.String("request_id", req.RequestID))
 			return
 		}
-		
+
 		errors.WriteRequestTimeout(w, r, "Request timeout while waiting for processing")
 		return
-		
+
 	case <-r.Context().Done():
 		h.logger.Warn("HTTP request context cancelled",
 			zap.String("request_id", req.RequestID),
 			zap.Error(r.Context().Err()))
-		
+
 		// OPTIMIZATION: Connection is already closed, don't try to write
 		// This prevents additional errors from trying to write to closed connections
 		// The client has already timed out, so writing would fail anyway
@@ -1235,7 +1236,7 @@ func (h *ClassificationHandler) handleClassificationStreaming(w http.ResponseWri
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
-	
+
 	// Get flusher for streaming
 	flusher, ok := w.(http.Flusher)
 	if !ok {
@@ -1265,18 +1266,18 @@ func (h *ClassificationHandler) handleClassificationStreaming(w http.ResponseWri
 
 	// Send initial progress message
 	h.sendStreamMessage(flusher, map[string]interface{}{
-		"type":      "progress",
+		"type":       "progress",
 		"request_id": req.RequestID,
-		"status":    "started",
-		"message":   "Classification started",
-		"timestamp": time.Now(),
+		"status":     "started",
+		"message":    "Classification started",
+		"timestamp":  time.Now(),
 	})
 
 	// Create context with timeout
 	ctx, contentCache := reqcache.WithContentCache(r.Context())
 	ctx, cancel := context.WithTimeout(ctx, h.config.Classification.RequestTimeout)
 	defer cancel()
-	
+
 	_ = contentCache
 
 	// Check cache first (streaming mode still benefits from cache)
@@ -1287,15 +1288,15 @@ func (h *ClassificationHandler) handleClassificationStreaming(w http.ResponseWri
 				zap.String("request_id", req.RequestID),
 				zap.String("cache_key", cacheKey))
 			h.sendStreamMessage(flusher, map[string]interface{}{
-				"type":      "progress",
+				"type":       "progress",
 				"request_id": req.RequestID,
-				"status":    "cache_hit",
-				"message":   "Result retrieved from cache",
+				"status":     "cache_hit",
+				"message":    "Result retrieved from cache",
 			})
 			h.sendStreamMessage(flusher, map[string]interface{}{
-				"type":      "complete",
+				"type":       "complete",
 				"request_id": req.RequestID,
-				"data":      cached,
+				"data":       cached,
 			})
 			return
 		}
@@ -1303,11 +1304,11 @@ func (h *ClassificationHandler) handleClassificationStreaming(w http.ResponseWri
 
 	// Send progress: Starting classification
 	h.sendStreamMessage(flusher, map[string]interface{}{
-		"type":      "progress",
+		"type":       "progress",
 		"request_id": req.RequestID,
-		"status":    "classifying",
-		"message":   "Analyzing business and website",
-		"step":      "classification",
+		"status":     "classifying",
+		"message":    "Analyzing business and website",
+		"step":       "classification",
 	})
 
 	// Step 1: Generate enhanced classification (industry detection)
@@ -1320,27 +1321,27 @@ func (h *ClassificationHandler) handleClassificationStreaming(w http.ResponseWri
 
 	// Send progress: Industry detected
 	h.sendStreamMessage(flusher, map[string]interface{}{
-		"type":            "progress",
-		"request_id":      req.RequestID,
-		"status":          "industry_detected",
-		"message":         "Industry detected",
-		"step":            "industry",
+		"type":             "progress",
+		"request_id":       req.RequestID,
+		"status":           "industry_detected",
+		"message":          "Industry detected",
+		"step":             "industry",
 		"primary_industry": enhancedResult.PrimaryIndustry,
 		"confidence":       enhancedResult.ConfidenceScore,
 	})
 
 	// Step 2: Generate classification codes (if needed)
 	var classification *ClassificationResult
-	shouldGenerateCodes := enhancedResult.ConfidenceScore >= 0.5 || 
+	shouldGenerateCodes := enhancedResult.ConfidenceScore >= 0.5 ||
 		(enhancedResult.ConfidenceScore >= h.industryThresholds.GetThreshold(enhancedResult.PrimaryIndustry))
-	
+
 	if shouldGenerateCodes {
 		h.sendStreamMessage(flusher, map[string]interface{}{
-			"type":      "progress",
+			"type":       "progress",
 			"request_id": req.RequestID,
-			"status":    "generating_codes",
-			"message":   "Generating classification codes",
-			"step":      "codes",
+			"status":     "generating_codes",
+			"message":    "Generating classification codes",
+			"step":       "codes",
 		})
 
 		// Generate codes
@@ -1382,13 +1383,13 @@ func (h *ClassificationHandler) handleClassificationStreaming(w http.ResponseWri
 	// Send progress: Codes generated
 	if shouldGenerateCodes {
 		h.sendStreamMessage(flusher, map[string]interface{}{
-			"type":      "progress",
-			"request_id": req.RequestID,
-			"status":    "codes_generated",
-			"message":   "Classification codes generated",
-			"step":      "codes",
-			"mcc_count": len(classification.MCCCodes),
-			"sic_count": len(classification.SICCodes),
+			"type":        "progress",
+			"request_id":  req.RequestID,
+			"status":      "codes_generated",
+			"message":     "Classification codes generated",
+			"step":        "codes",
+			"mcc_count":   len(classification.MCCCodes),
+			"sic_count":   len(classification.SICCodes),
 			"naics_count": len(classification.NAICSCodes),
 		})
 	}
@@ -1397,17 +1398,17 @@ func (h *ClassificationHandler) handleClassificationStreaming(w http.ResponseWri
 	processingTime := time.Since(startTime)
 	var riskAssessment *RiskAssessmentResult
 	var verificationStatus *VerificationStatus
-	
+
 	h.sendStreamMessage(flusher, map[string]interface{}{
-		"type":      "progress",
+		"type":       "progress",
 		"request_id": req.RequestID,
-		"status":    "assessing_risk",
-		"message":   "Assessing business risk",
-		"step":      "risk",
+		"status":     "assessing_risk",
+		"message":    "Assessing business risk",
+		"step":       "risk",
 	})
 
 	var wg sync.WaitGroup
-	
+
 	// Start risk assessment
 	wg.Add(1)
 	go func() {
@@ -1453,22 +1454,22 @@ func (h *ClassificationHandler) handleClassificationStreaming(w http.ResponseWri
 
 	// Send progress: Risk assessed
 	h.sendStreamMessage(flusher, map[string]interface{}{
-		"type":      "progress",
+		"type":       "progress",
 		"request_id": req.RequestID,
-		"status":    "risk_assessed",
-		"message":   "Risk assessment completed",
-		"step":      "risk",
+		"status":     "risk_assessed",
+		"message":    "Risk assessment completed",
+		"step":       "risk",
 		"risk_level": riskAssessment.RiskLevel,
 		"risk_score": riskAssessment.OverallRiskScore,
 	})
 
 	// Send progress: Verification status
 	h.sendStreamMessage(flusher, map[string]interface{}{
-		"type":      "progress",
-		"request_id": req.RequestID,
-		"status":    "verification_complete",
-		"message":   "Verification status generated",
-		"step":      "verification",
+		"type":                "progress",
+		"request_id":          req.RequestID,
+		"status":              "verification_complete",
+		"message":             "Verification status generated",
+		"step":                "verification",
 		"verification_status": verificationStatus.Status,
 	})
 
@@ -1495,23 +1496,23 @@ func (h *ClassificationHandler) handleClassificationStreaming(w http.ResponseWri
 
 	// Build final response
 	response := &ClassificationResponse{
-		RequestID:          req.RequestID,
-		BusinessName:       req.BusinessName,
-		Description:        req.Description,
-		PrimaryIndustry:    enhancedResult.PrimaryIndustry,
-		Classification:     classification,
-		RiskAssessment:     riskAssessment,
-		VerificationStatus: verificationStatus,
-		ConfidenceScore:    enhancedResult.ConfidenceScore,
-		Explanation:        explanation,
-		ContentSummary:     contentSummary,
+		RequestID:           req.RequestID,
+		BusinessName:        req.BusinessName,
+		Description:         req.Description,
+		PrimaryIndustry:     enhancedResult.PrimaryIndustry,
+		Classification:      classification,
+		RiskAssessment:      riskAssessment,
+		VerificationStatus:  verificationStatus,
+		ConfidenceScore:     enhancedResult.ConfidenceScore,
+		Explanation:         explanation,
+		ContentSummary:      contentSummary,
 		QuantizationEnabled: quantizationEnabled,
-		ModelVersion:       modelVersion,
-		DataSource:         "smart_crawling_classification_service",
-		Status:             "success",
-		Success:            true,
-		Timestamp:          time.Now(),
-		ProcessingTime:     time.Since(startTime),
+		ModelVersion:        modelVersion,
+		DataSource:          "smart_crawling_classification_service",
+		Status:              "success",
+		Success:             true,
+		Timestamp:           time.Now(),
+		ProcessingTime:      time.Since(startTime),
 		Metadata: func() map[string]interface{} {
 			metadata := map[string]interface{}{
 				"service":                  "classification-service",
@@ -1543,9 +1544,9 @@ func (h *ClassificationHandler) handleClassificationStreaming(w http.ResponseWri
 
 	// Send final completion message
 	h.sendStreamMessage(flusher, map[string]interface{}{
-		"type":      "complete",
-		"request_id": req.RequestID,
-		"data":      response,
+		"type":               "complete",
+		"request_id":         req.RequestID,
+		"data":               response,
 		"processing_time_ms": time.Since(startTime).Milliseconds(),
 	})
 
@@ -1564,13 +1565,13 @@ func (h *ClassificationHandler) sendStreamMessage(flusher http.Flusher, message 
 		h.logger.Error("Failed to marshal stream message", zap.Error(err))
 		return
 	}
-	
+
 	// Write JSON line followed by newline
 	if _, err := fmt.Fprintf(flusher.(io.Writer), "%s\n", data); err != nil {
 		h.logger.Error("Failed to write stream message", zap.Error(err))
 		return
 	}
-	
+
 	// Flush to send immediately
 	flusher.Flush()
 }
@@ -1578,11 +1579,11 @@ func (h *ClassificationHandler) sendStreamMessage(flusher http.Flusher, message 
 // sendStreamError sends an error message in NDJSON format
 func (h *ClassificationHandler) sendStreamError(flusher http.Flusher, message string, statusCode int) {
 	errorMsg := map[string]interface{}{
-		"type":      "error",
-		"status":    "error",
-		"message":   message,
+		"type":        "error",
+		"status":      "error",
+		"message":     message,
 		"status_code": statusCode,
-		"timestamp": time.Now(),
+		"timestamp":   time.Now(),
 	}
 	h.sendStreamMessage(flusher, errorMsg)
 }
@@ -1594,12 +1595,12 @@ func (h *ClassificationHandler) traceStage(trace *requestTrace, stageName string
 		startTime: time.Now(),
 		metadata:  metadata,
 	}
-	
+
 	defer func() {
 		stage.endTime = time.Now()
 		stage.duration = stage.endTime.Sub(stage.startTime)
 		trace.stages = append(trace.stages, stage)
-		
+
 		h.logger.Info("⏱️ [STAGE] Stage completed",
 			zap.String("request_id", trace.requestID),
 			zap.String("stage", stageName),
@@ -1607,7 +1608,7 @@ func (h *ClassificationHandler) traceStage(trace *requestTrace, stageName string
 			zap.Error(stage.error),
 			zap.Any("metadata", metadata))
 	}()
-	
+
 	stage.error = fn()
 	return stage.error
 }
@@ -1616,12 +1617,12 @@ func (h *ClassificationHandler) traceStage(trace *requestTrace, stageName string
 func (h *ClassificationHandler) logRequestTrace(trace *requestTrace) {
 	trace.endTime = time.Now()
 	trace.totalDuration = trace.endTime.Sub(trace.startTime)
-	
+
 	stageDurations := make(map[string]time.Duration)
 	for _, stage := range trace.stages {
 		stageDurations[stage.stage] = stage.duration
 	}
-	
+
 	h.logger.Info("📊 [TRACE-COMPLETE] Request trace complete",
 		zap.String("request_id", trace.requestID),
 		zap.Duration("total_duration", trace.totalDuration),
@@ -1641,7 +1642,7 @@ func (h *ClassificationHandler) processClassification(ctx context.Context, req *
 				zap.String("stack", string(debug.Stack())))
 		}
 	}()
-	
+
 	// Initialize request trace
 	trace := &requestTrace{
 		requestID: req.RequestID,
@@ -1649,12 +1650,12 @@ func (h *ClassificationHandler) processClassification(ctx context.Context, req *
 		stages:    make([]stageTiming, 0),
 	}
 	defer h.logRequestTrace(trace)
-	
+
 	// Log context state at entry to processClassification
 	ctxInfo := map[string]interface{}{
-		"has_deadline": false,
+		"has_deadline":      false,
 		"time_remaining_ms": 0,
-		"context_err": nil,
+		"context_err":       nil,
 	}
 	if ctx.Err() != nil {
 		ctxInfo["context_err"] = ctx.Err().Error()
@@ -1663,12 +1664,12 @@ func (h *ClassificationHandler) processClassification(ctx context.Context, req *
 		timeRemaining := time.Until(deadline)
 		ctxInfo["time_remaining_ms"] = timeRemaining.Milliseconds()
 	}
-	
+
 	h.logger.Info("🔧 [PROCESS-START] Starting processClassification",
 		zap.String("request_id", req.RequestID),
 		zap.Duration("elapsed_since_start", time.Since(startTime)),
 		zap.Any("context_info", ctxInfo))
-	
+
 	// OPTIMIZATION: Early termination check - if context is already expired, fail fast
 	if ctx.Err() != nil {
 		h.logger.Warn("❌ [PROCESS-START] Context expired before processing started",
@@ -1677,12 +1678,12 @@ func (h *ClassificationHandler) processClassification(ctx context.Context, req *
 			zap.Duration("elapsed_since_start", time.Since(startTime)))
 		return nil, fmt.Errorf("context already expired before processing: %w", ctx.Err())
 	}
-	
+
 	// OPTIMIZATION: Check time remaining and refresh context if needed
 	// This is a second check in case context expired between worker check and processing start
 	var processingCtx context.Context = ctx
 	var cancelFunc context.CancelFunc = nil
-	
+
 	if deadline, hasDeadline := ctx.Deadline(); hasDeadline {
 		timeRemaining := time.Until(deadline)
 		if timeRemaining <= 0 {
@@ -1711,15 +1712,15 @@ func (h *ClassificationHandler) processClassification(ctx context.Context, req *
 			zap.String("request_id", req.RequestID),
 			zap.Duration("elapsed_since_start", time.Since(startTime)))
 	}
-	
+
 	// Defer cancel if we created a new context
 	if cancelFunc != nil {
 		defer cancelFunc()
 	}
-	
+
 	// Use processingCtx for the rest of the function
 	ctx = processingCtx
-	
+
 	// OPTIMIZATION: Check context expiration periodically during processing
 	// This allows us to detect if context expires mid-processing and handle gracefully
 	checkCtx := func() error {
@@ -1737,16 +1738,16 @@ func (h *ClassificationHandler) processClassification(ctx context.Context, req *
 		}
 		return nil
 	}
-	
+
 	// Start timeout alert goroutine
 	// FIX #16: Ensure goroutine properly exits on context cancellation
 	timeoutAlertCtx, timeoutAlertCancel := context.WithCancel(ctx)
 	defer timeoutAlertCancel()
-	
+
 	go func() {
 		ticker := time.NewTicker(10 * time.Second)
 		defer ticker.Stop()
-		
+
 		for {
 			select {
 			case <-timeoutAlertCtx.Done():
@@ -1775,11 +1776,11 @@ func (h *ClassificationHandler) processClassification(ctx context.Context, req *
 			}
 		}
 	}()
-	
+
 	// Generate enhanced classification using actual classification services
 	var enhancedResult *EnhancedClassificationResult
 	err := h.traceStage(trace, "classification_generation", map[string]interface{}{
-		"has_website": req.WebsiteURL != "",
+		"has_website":     req.WebsiteURL != "",
 		"has_description": req.Description != "",
 	}, func() error {
 		var err error
@@ -1800,7 +1801,7 @@ func (h *ClassificationHandler) processClassification(ctx context.Context, req *
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Final context check before returning
 	if err := checkCtx(); err != nil {
 		h.logger.Warn("Context expired after classification, but result obtained",
@@ -1808,7 +1809,7 @@ func (h *ClassificationHandler) processClassification(ctx context.Context, req *
 			zap.Error(err))
 		// Continue with result even if context expired (we have the result)
 	}
-	
+
 	// FIX: Defensive check for enhancedResult to prevent nil pointer dereference
 	if enhancedResult == nil {
 		return nil, fmt.Errorf("classification returned nil result")
@@ -1836,14 +1837,14 @@ func (h *ClassificationHandler) processClassification(ctx context.Context, req *
 	// FIX #9: Add context cancellation to prevent goroutine leaks
 	var riskAssessment *RiskAssessmentResult
 	var verificationStatus *VerificationStatus
-	
+
 	processingTime := time.Since(startTime)
 	var wg sync.WaitGroup
-	
+
 	// Create context with timeout for parallel processing
 	parallelCtx, parallelCancel := context.WithTimeout(ctx, 10*time.Second)
 	defer parallelCancel()
-	
+
 	// Start risk assessment in parallel
 	wg.Add(1)
 	go func() {
@@ -1863,7 +1864,7 @@ func (h *ClassificationHandler) processClassification(ctx context.Context, req *
 			})
 		}
 	}()
-	
+
 	// Start verification status in parallel
 	wg.Add(1)
 	go func() {
@@ -1882,14 +1883,14 @@ func (h *ClassificationHandler) processClassification(ctx context.Context, req *
 			})
 		}
 	}()
-	
+
 	// Wait for both to complete with timeout
 	done := make(chan struct{})
 	go func() {
 		wg.Wait()
 		close(done)
 	}()
-	
+
 	select {
 	case <-done:
 		// Both completed successfully
@@ -1940,23 +1941,23 @@ func (h *ClassificationHandler) processClassification(ctx context.Context, req *
 
 	// Create response with enhanced reasoning
 	response := &ClassificationResponse{
-		RequestID:          req.RequestID,
-		BusinessName:       req.BusinessName,
-		Description:        req.Description,
-		PrimaryIndustry:    enhancedResult.PrimaryIndustry, // Add at top level for merchant service compatibility
-		Classification:     classification,
-		RiskAssessment:     riskAssessment,
-		VerificationStatus: verificationStatus,
-		ConfidenceScore:    enhancedResult.ConfidenceScore,
-		Explanation:        explanation,
-		ContentSummary:     contentSummary,
+		RequestID:           req.RequestID,
+		BusinessName:        req.BusinessName,
+		Description:         req.Description,
+		PrimaryIndustry:     enhancedResult.PrimaryIndustry, // Add at top level for merchant service compatibility
+		Classification:      classification,
+		RiskAssessment:      riskAssessment,
+		VerificationStatus:  verificationStatus,
+		ConfidenceScore:     enhancedResult.ConfidenceScore,
+		Explanation:         explanation,
+		ContentSummary:      contentSummary,
 		QuantizationEnabled: quantizationEnabled,
-		ModelVersion:       modelVersion,
-		DataSource:         "smart_crawling_classification_service",
-		Status:             "success",
-		Success:            true,
-		Timestamp:          time.Now(),
-		ProcessingTime:     time.Since(startTime),
+		ModelVersion:        modelVersion,
+		DataSource:          "smart_crawling_classification_service",
+		Status:              "success",
+		Success:             true,
+		Timestamp:           time.Now(),
+		ProcessingTime:      time.Since(startTime),
 		Metadata: func() map[string]interface{} {
 			metadata := map[string]interface{}{
 				"service":                  "classification-service",
@@ -1981,7 +1982,7 @@ func (h *ClassificationHandler) processClassification(ctx context.Context, req *
 			return metadata
 		}(),
 	}
-	
+
 	// Log the final response for debugging
 	h.logger.Info("Classification response prepared",
 		zap.String("request_id", req.RequestID),
@@ -2050,24 +2051,24 @@ func sanitizeInput(input string) string {
 	if input == "" {
 		return input
 	}
-	
+
 	// Trim whitespace
 	sanitized := strings.TrimSpace(input)
-	
+
 	// Remove HTML tags (basic implementation)
 	htmlTagRegex := regexp.MustCompile(`<[^>]*>`)
 	sanitized = htmlTagRegex.ReplaceAllString(sanitized, "")
-	
+
 	// Remove potentially dangerous SQL patterns (basic protection)
 	// Note: Since we use parameterized queries, this is defense-in-depth
 	dangerousPatterns := []string{
 		"';", "\";", "--", "/*", "*/",
 	}
-	
+
 	for _, pattern := range dangerousPatterns {
 		sanitized = strings.ReplaceAll(sanitized, pattern, "")
 	}
-	
+
 	return sanitized
 }
 
@@ -2512,7 +2513,7 @@ func (h *ClassificationHandler) generateEnhancedClassification(ctx context.Conte
 			zap.String("request_id", req.RequestID),
 			zap.Duration("time_remaining", timeRemaining))
 	}
-	
+
 	// Check if classification services are initialized
 	if h.industryDetector == nil {
 		h.logger.Error("Industry detector is nil - classification services not initialized",
@@ -2530,14 +2531,14 @@ func (h *ClassificationHandler) generateEnhancedClassification(ctx context.Conte
 	// This prevents redundant keyword extraction (40-60% CPU savings)
 	classificationCtx := classification.NewClassificationContext(req.BusinessName, req.WebsiteURL)
 	ctx = classification.WithClassificationContext(ctx, classificationCtx)
-	
+
 	// Extract keywords once using the repository (if available)
 	// This is the single point of keyword extraction for the entire pipeline
 	h.logger.Info("Extracting keywords once for reuse throughout pipeline",
 		zap.String("request_id", req.RequestID),
 		zap.String("business_name", req.BusinessName),
 		zap.String("website_url", req.WebsiteURL))
-	
+
 	// Extract keywords from database/repository (most comprehensive method)
 	// Use ClassifyBusiness which returns keywords as part of the result
 	if h.keywordRepo != nil {
@@ -2550,9 +2551,9 @@ func (h *ClassificationHandler) generateEnhancedClassification(ctx context.Conte
 				zap.Duration("time_remaining", timeRemaining),
 				zap.Duration("elapsed_since_func_start", time.Since(funcStartTime)))
 		}
-		
+
 		classifyResult, err := h.keywordRepo.ClassifyBusiness(ctx, req.BusinessName, req.WebsiteURL)
-		
+
 		// PROFILING: Track time after ClassifyBusiness
 		classifyDuration := time.Since(classifyStartTime)
 		if deadline, hasDeadline := ctx.Deadline(); hasDeadline {
@@ -2574,7 +2575,7 @@ func (h *ClassificationHandler) generateEnhancedClassification(ctx context.Conte
 				zap.Error(err))
 		}
 	}
-	
+
 	// If no keywords from repository, extract from text as fallback
 	if !classificationCtx.HasKeywords() {
 		combinedText := strings.TrimSpace(req.BusinessName + " " + req.Description)
@@ -2603,11 +2604,11 @@ func (h *ClassificationHandler) generateEnhancedClassification(ctx context.Conte
 		}
 	}
 	_ = useFastPath // Used in model selection logic below
-	
+
 	// Run Go classification first to check for early termination
 	// This allows us to skip ML if keyword-based classification has high confidence
 	goResult, goErr := h.runGoClassification(ctx, req, classificationCtx)
-	
+
 	// Early termination: Skip ML if Go classification has high confidence (Task 1.5)
 	skipML := false
 	if h.config.Classification.EnableEarlyTermination && goErr == nil && goResult != nil {
@@ -2623,7 +2624,7 @@ func (h *ClassificationHandler) generateEnhancedClassification(ctx context.Conte
 				zap.Float64("threshold", threshold))
 		}
 	}
-	
+
 	// Ensemble Voting: Run Python ML and Go classification in parallel
 	// Check if we should use ensemble voting (Python ML available, sufficient content, and not skipped)
 	useEnsembleVoting := false
@@ -2636,7 +2637,7 @@ func (h *ClassificationHandler) generateEnhancedClassification(ctx context.Conte
 			const minContentLength = 50
 			combinedContent := strings.TrimSpace(req.BusinessName + " " + req.Description)
 			contentLength := len(combinedContent)
-			
+
 			if contentLength >= minContentLength {
 				useEnsembleVoting = true
 				h.logger.Info("Using ensemble voting: Python ML + Go classification in parallel",
@@ -2651,19 +2652,19 @@ func (h *ClassificationHandler) generateEnhancedClassification(ctx context.Conte
 			}
 		}
 	}
-	
+
 	// Run Python ML classification in parallel if ensemble voting is enabled (Task 2.1)
 	// Note: Go classification already completed above for early termination check
 	// Now run ML in parallel if needed (though Go is done, this maintains the parallel structure)
 	var pythonMLResult *EnhancedClassificationResult
 	var pythonMLErr error
-	
+
 	if useEnsembleVoting {
 		// Run ML classification (can run in parallel with other operations if needed)
 		// Since Go is already done, this runs sequentially but the structure supports parallel execution
 		pythonMLResult, pythonMLErr = h.runPythonMLClassification(ctx, pms, req)
 	}
-	
+
 	// Handle errors
 	if goErr != nil {
 		h.logger.Error("Go classification failed",
@@ -2675,7 +2676,7 @@ func (h *ClassificationHandler) generateEnhancedClassification(ctx context.Conte
 		}
 		return nil, fmt.Errorf("both classification methods failed: Go: %w", goErr)
 	}
-	
+
 	// If ensemble voting was enabled and Python ML succeeded, combine results
 	if useEnsembleVoting && pythonMLResult != nil && pythonMLErr == nil {
 		h.logger.Info("Combining Python ML and Go classification results with ensemble voting",
@@ -2684,15 +2685,15 @@ func (h *ClassificationHandler) generateEnhancedClassification(ctx context.Conte
 			zap.Float64("python_ml_confidence", pythonMLResult.ConfidenceScore),
 			zap.String("go_industry", goResult.PrimaryIndustry),
 			zap.Float64("go_confidence", goResult.ConfidenceScore))
-		
+
 		return h.combineEnsembleResults(pythonMLResult, goResult, req), nil
 	}
-	
+
 	// Fallback to Go classification result
 	if goResult != nil {
 		return goResult, nil
 	}
-	
+
 	return nil, fmt.Errorf("classification failed: no results available")
 }
 
@@ -2706,10 +2707,10 @@ func (h *ClassificationHandler) runPythonMLClassification(ctx context.Context, p
 		MaxResults:       5,
 		MaxContentLength: 1024,
 	}
-	
+
 	// Model selection logic (Task 3.1): Choose lightweight or full model
 	useLightweight := false
-	
+
 	// Check if we should use lightweight model:
 	// 1. Fast-path mode (context deadline < 5s)
 	deadline, hasDeadline := ctx.Deadline()
@@ -2722,7 +2723,7 @@ func (h *ClassificationHandler) runPythonMLClassification(ctx context.Context, p
 				zap.Duration("time_remaining", timeRemaining))
 		}
 	}
-	
+
 	// 2. Short content (<256 tokens ~ 1024 chars)
 	combinedContent := strings.TrimSpace(req.BusinessName + " " + req.Description + " " + req.WebsiteURL)
 	if !useLightweight && len(combinedContent) < 1024 {
@@ -2731,7 +2732,7 @@ func (h *ClassificationHandler) runPythonMLClassification(ctx context.Context, p
 			zap.String("request_id", req.RequestID),
 			zap.Int("content_length", len(combinedContent)))
 	}
-	
+
 	// 3. High keyword confidence (already checked in early termination, but double-check)
 	if !useLightweight {
 		// Check classification context for keyword confidence
@@ -2746,11 +2747,11 @@ func (h *ClassificationHandler) runPythonMLClassification(ctx context.Context, p
 			}
 		}
 	}
-	
+
 	// Call appropriate Python ML service endpoint
 	var enhancedResp *infrastructure.EnhancedClassificationResponse
 	var err error
-	
+
 	if useLightweight {
 		// Use fast classification endpoint
 		enhancedReq.MaxContentLength = 256 // Shorter for fast path
@@ -2777,23 +2778,23 @@ func (h *ClassificationHandler) runPythonMLClassification(ctx context.Context, p
 	if !enhancedResp.Success {
 		return nil, fmt.Errorf("Python ML classification failed: success=false")
 	}
-	
+
 	// FIX: Defensive check for Classifications array to prevent index out of range
 	primaryIndustry := "Unknown"
 	if enhancedResp.Classifications != nil && len(enhancedResp.Classifications) > 0 {
 		// ClassificationPrediction is a struct, not a pointer, so we can access it directly
 		primaryIndustry = enhancedResp.Classifications[0].Label
 	}
-	
+
 	h.logger.Info("Python ML service enhanced classification successful",
 		zap.String("request_id", req.RequestID),
 		zap.String("industry", primaryIndustry),
 		zap.Float64("confidence", enhancedResp.Confidence),
 		zap.Bool("quantization_enabled", enhancedResp.QuantizationEnabled))
-	
+
 	// Extract keywords from explanation and summary
 	keywords := h.extractKeywordsFromText(enhancedResp.Explanation + " " + enhancedResp.Summary)
-	
+
 	// Generate classification codes
 	codesInfo, err := h.codeGenerator.GenerateClassificationCodes(
 		ctx,
@@ -2811,7 +2812,7 @@ func (h *ClassificationHandler) runPythonMLClassification(ctx context.Context, p
 			NAICS: []classification.NAICSCode{},
 		}
 	}
-	
+
 	// Build enhanced result with Python ML service data
 	return h.buildEnhancedResultFromPythonML(enhancedResp, codesInfo, req, keywords), nil
 }
@@ -2825,15 +2826,15 @@ func (h *ClassificationHandler) runGoClassification(ctx context.Context, req *Cl
 			zap.String("request_id", req.RequestID))
 		return nil, fmt.Errorf("industry detector is nil")
 	}
-	
+
 	// Step 1: Detect industry using IndustryDetectionService
 	h.logger.Info("Starting industry detection",
 		zap.String("request_id", req.RequestID),
 		zap.String("business_name", req.BusinessName),
 		zap.String("description", req.Description))
-	
+
 	industryResult, err := h.industryDetector.DetectIndustry(ctx, req.BusinessName, req.Description, req.WebsiteURL)
-	
+
 	// OPTIMIZATION #13: Store keywords in shared context for reuse
 	// FIX: Add defensive check for industryResult.Keywords to prevent nil pointer dereference
 	if classificationCtx != nil && industryResult != nil {
@@ -2864,7 +2865,7 @@ func (h *ClassificationHandler) runGoClassification(ctx context.Context, req *Cl
 			zap.String("industry", industryResult.IndustryName),
 			zap.Float64("confidence", industryResult.Confidence),
 			zap.Int("keywords_count", len(industryResult.Keywords)))
-		
+
 		// Detailed logging for debugging "General Business" issue
 		h.logger.Info("Industry detection result",
 			zap.String("request_id", req.RequestID),
@@ -2872,7 +2873,7 @@ func (h *ClassificationHandler) runGoClassification(ctx context.Context, req *Cl
 			zap.Float64("confidence", industryResult.Confidence),
 			zap.Int("keywords_count", len(industryResult.Keywords)),
 			zap.String("reasoning", industryResult.Reasoning))
-		
+
 		// OPTIMIZATION #16: Early termination using industry-specific thresholds
 		industryThreshold := h.industryThresholds.GetThreshold(industryResult.IndustryName)
 		shouldTerminate := h.industryThresholds.ShouldTerminateEarly(
@@ -2880,7 +2881,7 @@ func (h *ClassificationHandler) runGoClassification(ctx context.Context, req *Cl
 			industryResult.Confidence,
 			len(industryResult.Keywords),
 		)
-		
+
 		if shouldTerminate {
 			h.logger.Info("Early termination: Low confidence and insufficient keywords, returning partial results",
 				zap.String("request_id", req.RequestID),
@@ -2888,26 +2889,26 @@ func (h *ClassificationHandler) runGoClassification(ctx context.Context, req *Cl
 				zap.Float64("confidence", industryResult.Confidence),
 				zap.Float64("industry_threshold", industryThreshold),
 				zap.Int("keywords_count", len(industryResult.Keywords)))
-			
+
 			// Return partial result with low confidence flag
 			return &EnhancedClassificationResult{
-				BusinessName:            req.BusinessName,
-				PrimaryIndustry:         industryResult.IndustryName,
-				IndustryConfidence:      industryResult.Confidence,
-				BusinessType:            "Unknown",
-				BusinessTypeConfidence:  0.0,
-				MCCCodes:                []IndustryCode{},
-				SICCodes:                []IndustryCode{},
-				NAICSCodes:              []IndustryCode{},
-				Keywords:                industryResult.Keywords,
-				ConfidenceScore:         industryResult.Confidence,
-				ClassificationReasoning: fmt.Sprintf("Early termination: Low confidence (%.2f) and insufficient keywords (%d). %s", 
+				BusinessName:           req.BusinessName,
+				PrimaryIndustry:        industryResult.IndustryName,
+				IndustryConfidence:     industryResult.Confidence,
+				BusinessType:           "Unknown",
+				BusinessTypeConfidence: 0.0,
+				MCCCodes:               []IndustryCode{},
+				SICCodes:               []IndustryCode{},
+				NAICSCodes:             []IndustryCode{},
+				Keywords:               industryResult.Keywords,
+				ConfidenceScore:        industryResult.Confidence,
+				ClassificationReasoning: fmt.Sprintf("Early termination: Low confidence (%.2f) and insufficient keywords (%d). %s",
 					industryResult.Confidence, len(industryResult.Keywords), industryResult.Reasoning),
-				WebsiteAnalysis:         nil,
-				MethodWeights:           map[string]float64{"early_termination": 1.0},
-				Timestamp:               time.Now(),
+				WebsiteAnalysis: nil,
+				MethodWeights:   map[string]float64{"early_termination": 1.0},
+				Timestamp:       time.Now(),
 				Metadata: map[string]interface{}{
-					"early_termination": true,
+					"early_termination":  true,
 					"termination_reason": "low_confidence_insufficient_keywords",
 				},
 			}, nil
@@ -2922,17 +2923,17 @@ func (h *ClassificationHandler) runGoClassification(ctx context.Context, req *Cl
 		industryResult.IndustryName,
 		industryResult.Confidence,
 	)
-	
+
 	var codesInfo *classification.ClassificationCodesInfo
 	var codeGenErr error
-	
+
 	if !shouldGenerateCodes {
 		h.logger.Info("Skipping code generation: Confidence below industry threshold",
 			zap.String("request_id", req.RequestID),
 			zap.String("industry", industryResult.IndustryName),
 			zap.Float64("confidence", industryResult.Confidence),
 			zap.Float64("industry_threshold", industryThreshold))
-		
+
 		// Return empty codes with flag indicating skipped
 		codesInfo = &classification.ClassificationCodesInfo{
 			MCC:   []classification.MCCCode{},
@@ -2952,21 +2953,21 @@ func (h *ClassificationHandler) runGoClassification(ctx context.Context, req *Cl
 					zap.Int("keywords_count", len(keywordsForCodeGen)))
 			}
 		}
-		
+
 		h.logger.Info("Starting code generation",
 			zap.String("request_id", req.RequestID),
 			zap.String("industry", industryResult.IndustryName),
 			zap.Float64("confidence", industryResult.Confidence),
 			zap.Float64("industry_threshold", industryThreshold),
 			zap.Int("keywords_count", len(keywordsForCodeGen)))
-		
+
 		codesInfo, codeGenErr = h.codeGenerator.GenerateClassificationCodes(
 			ctx,
 			keywordsForCodeGen,
 			industryResult.IndustryName,
 			industryResult.Confidence,
 		)
-		
+
 		if codeGenErr != nil {
 			h.logger.Warn("Code generation failed, using empty codes",
 				zap.String("request_id", req.RequestID),
@@ -2989,7 +2990,7 @@ func (h *ClassificationHandler) runGoClassification(ctx context.Context, req *Cl
 	// Step 3: Convert classification codes to handler format with enhanced metadata
 	// Limit to top 3 codes per type as requested
 	const maxCodesPerType = 3
-	
+
 	mccLimit := len(codesInfo.MCC)
 	if mccLimit > maxCodesPerType {
 		mccLimit = maxCodesPerType
@@ -2997,7 +2998,7 @@ func (h *ClassificationHandler) runGoClassification(ctx context.Context, req *Cl
 	mccCodes := make([]IndustryCode, 0, mccLimit)
 	keywordMatchCount := 0
 	industryMatchCount := 0
-	
+
 	// Process MCC codes (limit to top 3)
 	for i, code := range codesInfo.MCC {
 		if i >= maxCodesPerType {
@@ -3008,7 +3009,7 @@ func (h *ClassificationHandler) runGoClassification(ctx context.Context, req *Cl
 			Description: code.Description,
 			Confidence:  code.Confidence,
 		}
-		
+
 		// Infer source from keywords presence
 		if len(code.Keywords) > 0 {
 			industryCode.Source = []string{"keyword"}
@@ -3017,7 +3018,7 @@ func (h *ClassificationHandler) runGoClassification(ctx context.Context, req *Cl
 			industryCode.Source = []string{"industry"}
 			industryMatchCount++
 		}
-		
+
 		mccCodes = append(mccCodes, industryCode)
 	}
 
@@ -3036,7 +3037,7 @@ func (h *ClassificationHandler) runGoClassification(ctx context.Context, req *Cl
 			Description: code.Description,
 			Confidence:  code.Confidence,
 		}
-		
+
 		if len(code.Keywords) > 0 {
 			industryCode.Source = []string{"keyword"}
 			keywordMatchCount++
@@ -3044,7 +3045,7 @@ func (h *ClassificationHandler) runGoClassification(ctx context.Context, req *Cl
 			industryCode.Source = []string{"industry"}
 			industryMatchCount++
 		}
-		
+
 		sicCodes = append(sicCodes, industryCode)
 	}
 
@@ -3063,7 +3064,7 @@ func (h *ClassificationHandler) runGoClassification(ctx context.Context, req *Cl
 			Description: code.Description,
 			Confidence:  code.Confidence,
 		}
-		
+
 		if len(code.Keywords) > 0 {
 			industryCode.Source = []string{"keyword"}
 			keywordMatchCount++
@@ -3071,10 +3072,10 @@ func (h *ClassificationHandler) runGoClassification(ctx context.Context, req *Cl
 			industryCode.Source = []string{"industry"}
 			industryMatchCount++
 		}
-		
+
 		naicsCodes = append(naicsCodes, industryCode)
 	}
-	
+
 	// Determine code generation method
 	codeGenMethod := "hybrid"
 	if keywordMatchCount == 0 {
@@ -3082,9 +3083,9 @@ func (h *ClassificationHandler) runGoClassification(ctx context.Context, req *Cl
 	} else if industryMatchCount == 0 {
 		codeGenMethod = "keyword_only"
 	}
-	
+
 	totalCodesGenerated := len(mccCodes) + len(sicCodes) + len(naicsCodes)
-	
+
 	// Log code generation for debugging
 	h.logger.Info("Code generation completed",
 		zap.String("request_id", req.RequestID),
@@ -3120,7 +3121,7 @@ func (h *ClassificationHandler) runGoClassification(ctx context.Context, req *Cl
 	}
 
 	// Step 6: Build reasoning
-	reasoning := fmt.Sprintf("Primary industry identified as '%s' with %.0f%% confidence. ", 
+	reasoning := fmt.Sprintf("Primary industry identified as '%s' with %.0f%% confidence. ",
 		industryResult.IndustryName, industryResult.Confidence*100)
 	reasoning += industryResult.Reasoning
 	if req.WebsiteURL != "" {
@@ -3135,7 +3136,7 @@ func (h *ClassificationHandler) runGoClassification(ctx context.Context, req *Cl
 	// DetectIndustry uses expanded keywords and correctly identifies the industry (e.g., "Wineries")
 	// ClassifyBusiness may return "General Business" if only URL keywords are available
 	primaryIndustry := industryResult.IndustryName
-	
+
 	// Log the industry detection result for debugging
 	h.logger.Info("Industry detection result",
 		zap.String("request_id", req.RequestID),
@@ -3143,7 +3144,7 @@ func (h *ClassificationHandler) runGoClassification(ctx context.Context, req *Cl
 		zap.Float64("confidence", industryResult.Confidence),
 		zap.Int("keywords_count", len(industryResult.Keywords)),
 		zap.String("reasoning", industryResult.Reasoning))
-	
+
 	if primaryIndustry == "" || primaryIndustry == "General Business" {
 		// Log warning if we're falling back to General Business when we shouldn't
 		if len(industryResult.Keywords) > 0 && industryResult.Confidence > 0.5 {
@@ -3154,7 +3155,7 @@ func (h *ClassificationHandler) runGoClassification(ctx context.Context, req *Cl
 				zap.String("reasoning", industryResult.Reasoning))
 		}
 	}
-	
+
 	result := &EnhancedClassificationResult{
 		BusinessName:            req.BusinessName,
 		PrimaryIndustry:         primaryIndustry, // Use industry from DetectIndustry (e.g., "Wineries")
@@ -3171,7 +3172,7 @@ func (h *ClassificationHandler) runGoClassification(ctx context.Context, req *Cl
 		MethodWeights:           methodWeights,
 		Timestamp:               time.Now(),
 	}
-	
+
 	// Log the final result for debugging
 	h.logger.Info("Enhanced classification result",
 		zap.String("request_id", req.RequestID),
@@ -3180,7 +3181,7 @@ func (h *ClassificationHandler) runGoClassification(ctx context.Context, req *Cl
 		zap.Int("mcc_codes", len(result.MCCCodes)),
 		zap.Int("sic_codes", len(result.SICCodes)),
 		zap.Int("naics_codes", len(result.NAICSCodes)))
-	
+
 	// Add code generation metadata
 	if result.Metadata == nil {
 		result.Metadata = make(map[string]interface{})
@@ -3189,11 +3190,11 @@ func (h *ClassificationHandler) runGoClassification(ctx context.Context, req *Cl
 		"method":              codeGenMethod,
 		"sources":             []string{"industry", "keyword"},
 		"industriesAnalyzed":  []string{industryResult.IndustryName},
-		"keywordMatches":     keywordMatchCount,
-		"industryMatches":    industryMatchCount,
+		"keywordMatches":      keywordMatchCount,
+		"industryMatches":     industryMatchCount,
 		"totalCodesGenerated": totalCodesGenerated,
 	}
-	
+
 	return result, nil
 }
 
@@ -3202,19 +3203,19 @@ func (h *ClassificationHandler) runGoClassification(ctx context.Context, req *Cl
 func (h *ClassificationHandler) combineEnsembleResults(pythonMLResult, goResult *EnhancedClassificationResult, req *ClassificationRequest) *EnhancedClassificationResult {
 	const pythonMLWeight = 0.60
 	const goWeight = 0.40
-	
+
 	h.logger.Info("Combining ensemble results",
 		zap.String("request_id", req.RequestID),
 		zap.String("python_ml_industry", pythonMLResult.PrimaryIndustry),
 		zap.Float64("python_ml_confidence", pythonMLResult.ConfidenceScore),
 		zap.String("go_industry", goResult.PrimaryIndustry),
 		zap.Float64("go_confidence", goResult.ConfidenceScore))
-	
+
 	// Determine primary industry based on consensus and weighted confidence
 	var primaryIndustry string
 	var confidenceScore float64
 	var consensusBoost float64 = 0.0
-	
+
 	// Check for consensus (same industry)
 	if strings.EqualFold(pythonMLResult.PrimaryIndustry, goResult.PrimaryIndustry) {
 		primaryIndustry = pythonMLResult.PrimaryIndustry
@@ -3227,7 +3228,7 @@ func (h *ClassificationHandler) combineEnsembleResults(pythonMLResult, goResult 
 		// No consensus - use weighted selection based on confidence
 		pythonMLScore := pythonMLResult.ConfidenceScore * pythonMLWeight
 		goScore := goResult.ConfidenceScore * goWeight
-		
+
 		if pythonMLScore >= goScore {
 			primaryIndustry = pythonMLResult.PrimaryIndustry
 		} else {
@@ -3239,13 +3240,13 @@ func (h *ClassificationHandler) combineEnsembleResults(pythonMLResult, goResult 
 			zap.Float64("python_ml_weighted_score", pythonMLScore),
 			zap.Float64("go_weighted_score", goScore))
 	}
-	
+
 	// Calculate weighted confidence score
 	confidenceScore = (pythonMLResult.ConfidenceScore * pythonMLWeight) + (goResult.ConfidenceScore * goWeight) + consensusBoost
 	if confidenceScore > 1.0 {
 		confidenceScore = 1.0
 	}
-	
+
 	// Merge keywords (deduplicate)
 	keywordMap := make(map[string]bool)
 	var mergedKeywords []string
@@ -3263,13 +3264,13 @@ func (h *ClassificationHandler) combineEnsembleResults(pythonMLResult, goResult 
 			mergedKeywords = append(mergedKeywords, kw)
 		}
 	}
-	
+
 	// Merge codes (prefer Python ML codes, fallback to Go codes)
 	// For each code type, combine and deduplicate by code value
 	mergedMCC := h.mergeCodes(pythonMLResult.MCCCodes, goResult.MCCCodes)
 	mergedSIC := h.mergeCodes(pythonMLResult.SICCodes, goResult.SICCodes)
 	mergedNAICS := h.mergeCodes(pythonMLResult.NAICSCodes, goResult.NAICSCodes)
-	
+
 	// Build reasoning
 	reasoning := fmt.Sprintf("Ensemble classification combining Python ML (%.0f%% confidence, %s) and Go classification (%.0f%% confidence, %s). ",
 		pythonMLResult.ConfidenceScore*100, pythonMLResult.PrimaryIndustry,
@@ -3280,20 +3281,20 @@ func (h *ClassificationHandler) combineEnsembleResults(pythonMLResult, goResult 
 		reasoning += fmt.Sprintf("Selected '%s' based on weighted voting (Python ML: %.0f%%, Go: %.0f%%). ", primaryIndustry, pythonMLWeight*100, goWeight*100)
 	}
 	reasoning += fmt.Sprintf("Final confidence: %.0f%%.", confidenceScore*100)
-	
+
 	// Build method weights
 	methodWeights := map[string]float64{
 		"python_ml_service": pythonMLWeight * 100,
-		"go_classification":  goWeight * 100,
+		"go_classification": goWeight * 100,
 		"ensemble_voting":   100.0,
 	}
-	
+
 	// Use Python ML website analysis if available, otherwise use Go
 	websiteAnalysis := pythonMLResult.WebsiteAnalysis
 	if websiteAnalysis == nil {
 		websiteAnalysis = goResult.WebsiteAnalysis
 	}
-	
+
 	// Build metadata
 	metadata := make(map[string]interface{})
 	if pythonMLResult.Metadata != nil {
@@ -3311,7 +3312,7 @@ func (h *ClassificationHandler) combineEnsembleResults(pythonMLResult, goResult 
 	metadata["python_ml_industry"] = pythonMLResult.PrimaryIndustry
 	metadata["go_industry"] = goResult.PrimaryIndustry
 	metadata["final_confidence"] = confidenceScore
-	
+
 	return &EnhancedClassificationResult{
 		BusinessName:            req.BusinessName,
 		PrimaryIndustry:         primaryIndustry,
@@ -3334,25 +3335,25 @@ func (h *ClassificationHandler) combineEnsembleResults(pythonMLResult, goResult 
 // mergeCodes merges two code slices, preferring codes from the first slice and deduplicating by code value
 func (h *ClassificationHandler) mergeCodes(primary, secondary []IndustryCode) []IndustryCode {
 	codeMap := make(map[string]*IndustryCode)
-	
+
 	// Add primary codes first (higher priority)
 	for _, code := range primary {
 		codeMap[code.Code] = &code
 	}
-	
+
 	// Add secondary codes only if not already present
 	for _, code := range secondary {
 		if _, exists := codeMap[code.Code]; !exists {
 			codeMap[code.Code] = &code
 		}
 	}
-	
+
 	// Convert map back to slice, limit to top 3
 	result := make([]IndustryCode, 0, len(codeMap))
 	for _, code := range codeMap {
 		result = append(result, *code)
 	}
-	
+
 	// Sort by confidence (descending) and limit to top 3
 	if len(result) > 3 {
 		// Simple sort by confidence
@@ -3365,7 +3366,7 @@ func (h *ClassificationHandler) mergeCodes(primary, secondary []IndustryCode) []
 		}
 		result = result[:3]
 	}
-	
+
 	return result
 }
 
@@ -3437,14 +3438,14 @@ func (h *ClassificationHandler) recordClassificationForCalibration(
 			PredictedConfidence:  confidence,
 			ConfidenceBin:        binIndex,
 			ClassificationMethod: "multi_strategy", // Could be enhanced to track actual method used
-			KeywordsCount:        func() int {
+			KeywordsCount: func() int {
 				if response.Classification.WebsiteContent != nil {
 					return response.Classification.WebsiteContent.KeywordsFound
 				}
 				return 0
 			}(),
-			ProcessingTimeMs:     int(processingTime.Milliseconds()),
-			CreatedAt:            time.Now(),
+			ProcessingTimeMs: int(processingTime.Milliseconds()),
+			CreatedAt:        time.Now(),
 		}
 
 		if err := h.keywordRepo.SaveClassificationAccuracy(ctx, tracking); err != nil {
@@ -3454,7 +3455,7 @@ func (h *ClassificationHandler) recordClassificationForCalibration(
 			// Continue even if database save fails - in-memory tracking still works
 		}
 	}
-	
+
 	h.logger.Debug("Classification recorded for calibration",
 		zap.String("request_id", req.RequestID),
 		zap.Float64("confidence", confidence),
@@ -3465,7 +3466,7 @@ func (h *ClassificationHandler) recordClassificationForCalibration(
 	if h.confidenceCalibrator.ShouldRecalibrate() {
 		h.logger.Info("Recalibration needed, starting calibration analysis",
 			zap.String("request_id", req.RequestID))
-		
+
 		calibrationResult, err := h.confidenceCalibrator.Calibrate(ctx)
 		if err != nil {
 			h.logger.Warn("Calibration failed",
@@ -3552,19 +3553,19 @@ func (h *ClassificationHandler) buildEnhancedResultFromPythonML(
 	if len(enhancedResp.Classifications) > 0 {
 		primaryIndustry = enhancedResp.Classifications[0].Label
 	}
-	
+
 	// Build all industry scores map from classifications array
 	allIndustryScores := make(map[string]float64)
 	for _, classification := range enhancedResp.Classifications {
 		allIndustryScores[classification.Label] = classification.Confidence
 	}
-	
+
 	// Convert codes to handler format (limit to top 3 per type)
 	const maxCodesPerType = 3
 	mccCodes := h.convertMCCCodes(codesInfo.MCC, maxCodesPerType)
 	sicCodes := h.convertSICCodes(codesInfo.SIC, maxCodesPerType)
 	naicsCodes := h.convertNAICSCodes(codesInfo.NAICS, maxCodesPerType)
-	
+
 	// Build website analysis
 	websiteAnalysis := &WebsiteAnalysisData{
 		Success:           req.WebsiteURL != "",
@@ -3579,15 +3580,15 @@ func (h *ClassificationHandler) buildEnhancedResultFromPythonML(
 		StructuredData: map[string]interface{}{
 			"business_type": "Business",
 			"industry":      primaryIndustry,
-			"summary":      enhancedResp.Summary,
+			"summary":       enhancedResp.Summary,
 		},
 	}
-	
+
 	// Build method weights
 	methodWeights := map[string]float64{
 		"python_ml_service": 100.0,
 	}
-	
+
 	// Build result
 	result := &EnhancedClassificationResult{
 		BusinessName:            req.BusinessName,
@@ -3605,15 +3606,15 @@ func (h *ClassificationHandler) buildEnhancedResultFromPythonML(
 		MethodWeights:           methodWeights,
 		Timestamp:               enhancedResp.Timestamp,
 		Metadata: map[string]interface{}{
-			"explanation":            enhancedResp.Explanation,
-			"content_summary":        enhancedResp.Summary,
-			"quantization_enabled":   enhancedResp.QuantizationEnabled,
-			"model_version":          enhancedResp.ModelVersion,
-			"processing_time":        enhancedResp.ProcessingTime,
-			"all_industry_scores":    allIndustryScores,
+			"explanation":          enhancedResp.Explanation,
+			"content_summary":      enhancedResp.Summary,
+			"quantization_enabled": enhancedResp.QuantizationEnabled,
+			"model_version":        enhancedResp.ModelVersion,
+			"processing_time":      enhancedResp.ProcessingTime,
+			"all_industry_scores":  allIndustryScores,
 		},
 	}
-	
+
 	return result
 }
 
@@ -3630,7 +3631,7 @@ func (h *ClassificationHandler) extractKeywordsFromText(text string) []string {
 		"should": true, "could": true, "may": true, "might": true, "must": true,
 		"this": true, "that": true, "these": true, "those": true, "it": true, "its": true,
 	}
-	
+
 	keywords := make([]string, 0)
 	seen := make(map[string]bool)
 	for _, word := range words {
@@ -3730,7 +3731,7 @@ func (h *ClassificationHandler) HandleHealth(w http.ResponseWriter, r *http.Requ
 			var cbMetrics interface{}
 			var cbStateErr error
 			var cbMetricsErr error
-			
+
 			// Use recover to handle potential panics from nil circuit breaker
 			func() {
 				defer func() {
@@ -3740,7 +3741,7 @@ func (h *ClassificationHandler) HandleHealth(w http.ResponseWriter, r *http.Requ
 				}()
 				cbState = pms.GetCircuitBreakerState()
 			}()
-			
+
 			func() {
 				defer func() {
 					if r := recover(); r != nil {
@@ -3749,14 +3750,14 @@ func (h *ClassificationHandler) HandleHealth(w http.ResponseWriter, r *http.Requ
 				}()
 				cbMetrics = pms.GetCircuitBreakerMetrics()
 			}()
-			
+
 			// Try to get health with circuit breaker info (with timeout)
 			healthCtx, healthCancel := context.WithTimeout(ctx, 3*time.Second)
 			defer healthCancel()
-			
+
 			var cbHealth interface{}
 			var healthErr error
-			
+
 			// Safely call HealthCheckWithCircuitBreaker with panic recovery
 			func() {
 				defer func() {
@@ -3766,12 +3767,12 @@ func (h *ClassificationHandler) HandleHealth(w http.ResponseWriter, r *http.Requ
 				}()
 				cbHealth, healthErr = pms.HealthCheckWithCircuitBreaker(healthCtx)
 			}()
-			
+
 			// Build mlServiceStatus safely
 			mlServiceStatus = map[string]interface{}{
 				"available": true,
 			}
-			
+
 			// Add circuit breaker state if available
 			if cbStateErr == nil && cbState != nil {
 				if stateStr, ok := cbState.(fmt.Stringer); ok {
@@ -3783,19 +3784,19 @@ func (h *ClassificationHandler) HandleHealth(w http.ResponseWriter, r *http.Requ
 				mlServiceStatus["circuit_breaker_state_error"] = cbStateErr.Error()
 				mlServiceStatus["circuit_breaker_state"] = "unavailable"
 			}
-			
+
 			// Add circuit breaker metrics if available
 			if cbMetricsErr == nil && cbMetrics != nil {
 				// Type assert to CircuitBreakerMetrics
 				if metrics, ok := cbMetrics.(infrastructure.CircuitBreakerMetrics); ok {
 					mlServiceStatus["circuit_breaker_metrics"] = map[string]interface{}{
-						"state":              metrics.State,
-						"failure_count":      metrics.FailureCount,
-						"success_count":      metrics.SuccessCount,
-						"state_change_time":  metrics.StateChangeTime,
-						"last_failure_time":  metrics.LastFailureTime,
-						"total_requests":     metrics.TotalRequests,
-						"rejected_requests":  metrics.RejectedRequests,
+						"state":             metrics.State,
+						"failure_count":     metrics.FailureCount,
+						"success_count":     metrics.SuccessCount,
+						"state_change_time": metrics.StateChangeTime,
+						"last_failure_time": metrics.LastFailureTime,
+						"total_requests":    metrics.TotalRequests,
+						"rejected_requests": metrics.RejectedRequests,
 					}
 				} else {
 					// Fallback: just include the metrics as-is
@@ -3804,7 +3805,7 @@ func (h *ClassificationHandler) HandleHealth(w http.ResponseWriter, r *http.Requ
 			} else if cbMetricsErr != nil {
 				mlServiceStatus["circuit_breaker_metrics_error"] = cbMetricsErr.Error()
 			}
-			
+
 			// Add health check result if available
 			if healthErr == nil && cbHealth != nil {
 				if healthStatus, ok := cbHealth.(*infrastructure.HealthStatus); ok {
@@ -3842,7 +3843,7 @@ func (h *ClassificationHandler) HandleHealth(w http.ResponseWriter, r *http.Requ
 			"url":       h.config.Supabase.URL,
 			"error":     supabaseError,
 		},
-		"ml_service_status": mlServiceStatus,
+		"ml_service_status":   mlServiceStatus,
 		"classification_data": classificationData,
 		"features": map[string]interface{}{
 			"ml_enabled":             h.config.Classification.MLEnabled,
@@ -3871,27 +3872,27 @@ func (h *ClassificationHandler) calculateAdaptiveTimeout(req *ClassificationRequ
 	if h.config.Classification.OverallTimeout > 0 {
 		baseTimeout = h.config.Classification.OverallTimeout
 	}
-	
+
 	// Timeout budget allocation for different operations
 	// FIX #10: Added buffer for retries and overhead to prevent premature timeouts
 	const (
 		phase1ScrapingBudget    = 18 * time.Second // Phase 1 scraper: 18s (aligned with WebsiteScrapingTimeout of 15s + 3s buffer)
 		multiPageAnalysisBudget = 8 * time.Second  // Multi-page analysis: 8s (reduced from 10s, capped)
 		// FIX: Index building now has 5-minute TTL cache - first call: 10-30s, subsequent calls: <1ms (cache hit)
-		indexBuildingBudget     = 30 * time.Second // Keyword index building: 30s (first call, cached for 5min)
-		goClassificationBudget  = 5 * time.Second
-		mlClassificationBudget  = 10 * time.Second
-		riskAssessmentBudget    = 5 * time.Second
-		generalOverhead         = 5 * time.Second  // FIX #10: Increased from 3s to 5s to account for retries and network latency
+		indexBuildingBudget    = 30 * time.Second // Keyword index building: 30s (first call, cached for 5min)
+		goClassificationBudget = 5 * time.Second
+		mlClassificationBudget = 10 * time.Second
+		riskAssessmentBudget   = 5 * time.Second
+		generalOverhead        = 5 * time.Second  // FIX #10: Increased from 3s to 5s to account for retries and network latency
 		retryBuffer            = 10 * time.Second // FIX #10: Additional buffer for retry attempts and network delays
 	)
-	
+
 	// Determine if we need long-running operations
 	needsWebsiteScraping := req.WebsiteURL != "" && req.WebsiteURL != "N/A"
-	
+
 	// Calculate required timeout based on operation needs
 	var requiredTimeout time.Duration
-	
+
 	if needsWebsiteScraping {
 		// Website scraping needed - allocate budget for Phase 1 scraper
 		// Budget breakdown (OPTIMIZED for better success rate):
@@ -3908,7 +3909,7 @@ func (h *ClassificationHandler) calculateAdaptiveTimeout(req *ClassificationRequ
 		// FIX: Add budget for multi-page analysis (8s) to prevent context expiration
 		// FIX #10: Add retry buffer for retry attempts and network delays
 		requiredTimeout = indexBuildingBudget + phase1ScrapingBudget + multiPageAnalysisBudget + goClassificationBudget + mlClassificationBudget + generalOverhead + retryBuffer
-		
+
 		h.logger.Info("Adaptive timeout: website scraping detected",
 			zap.String("request_id", req.RequestID),
 			zap.String("website_url", req.WebsiteURL),
@@ -3924,13 +3925,13 @@ func (h *ClassificationHandler) calculateAdaptiveTimeout(req *ClassificationRequ
 		// FIX: Add budget for index building even for simple requests
 		// FIX #10: Add retry buffer for retry attempts and network delays
 		requiredTimeout = indexBuildingBudget + goClassificationBudget + mlClassificationBudget + generalOverhead + retryBuffer
-		
+
 		h.logger.Info("Adaptive timeout: simple request (no website scraping)",
 			zap.String("request_id", req.RequestID),
 			zap.Duration("calculated_timeout", requiredTimeout),
 			zap.Duration("base_timeout", baseTimeout))
 	}
-	
+
 	// FIX: Use the calculated requiredTimeout when it's determined
 	// The adaptive timeout calculation allocates budget for specific operations
 	// We should use this calculated value, not the base timeout
@@ -3945,7 +3946,7 @@ func (h *ClassificationHandler) calculateAdaptiveTimeout(req *ClassificationRequ
 		}
 		return requiredTimeout
 	}
-	
+
 	// Fallback to baseTimeout if requiredTimeout wasn't calculated (shouldn't happen)
 	h.logger.Warn("Required timeout not calculated, using base timeout",
 		zap.String("request_id", req.RequestID),
