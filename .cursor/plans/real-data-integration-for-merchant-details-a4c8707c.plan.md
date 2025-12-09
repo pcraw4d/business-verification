@@ -1,4 +1,57 @@
-<!-- a4c8707c-0d81-4ca9-8d42-07355a6e4b4e 8d721528-3c80-4177-8bd0-18aac41ab3cc -->
+---
+name: "Implementation Plan: Fix Classification Priority & Enhance Multi-Page Website Analysis"
+overview: ""
+todos:
+  - id: 6fd9e87f-94d3-4bc1-8cba-3dce42bdf4d0
+    content: Verify merchant_analytics table schema supports classification_data with status tracking
+    status: pending
+  - id: 6cd1db46-32c8-4f00-b901-899539ad7904
+    content: Create ClassificationJob struct and Process() method that calls classification service and saves to Supabase
+    status: pending
+  - id: 853ab475-ecdb-40a6-baf9-1ac593a8982a
+    content: Create job processor with worker pool for async classification job processing
+    status: pending
+  - id: 87249547-a287-449f-bf97-1eab133e416d
+    content: Integrate classification job trigger into createMerchant() function (async, non-blocking)
+    status: pending
+  - id: 2d24a85f-5af1-41ee-a531-544465e71d39
+    content: Update HandleMerchantSpecificAnalytics to read from merchant_analytics table instead of hardcoded values
+    status: pending
+  - id: 0eb7256e-a58f-4137-9215-2e177ccdf518
+    content: Create GET /api/v1/merchants/{id}/analytics/status endpoint for processing status
+    status: pending
+  - id: 2bedb026-181b-4392-9cf3-991dcc8833cf
+    content: Add website_analysis_data and website_analysis_status columns to merchant_analytics table
+    status: pending
+  - id: ed812263-6542-4942-884e-e0352a7e3890
+    content: Create WebsiteAnalysisJob struct and Process() method that calls website analysis service
+    status: pending
+  - id: 0259f418-7a11-4b86-ad2b-4358babb49cc
+    content: Add conditional website analysis job trigger in createMerchant() (only when website URL provided)
+    status: pending
+  - id: c77b5562-d9f1-4a91-9471-0f0207d490f5
+    content: Update HandleMerchantWebsiteAnalysis to read from merchant_analytics table with status checking
+    status: pending
+  - id: b023775f-3f21-4ec8-a098-7d0c1ab65b2c
+    content: Update HandleMerchantRiskScore to read from risk_assessments table instead of hardcoded mapping
+    status: pending
+  - id: e9c6f494-a655-4e95-9a4a-9fa54bb9e461
+    content: Update HandleMerchantStatistics to query real data from Supabase merchants and risk_assessments tables
+    status: pending
+  - id: 23b6c871-2f74-4675-97b6-652bfcdc0d39
+    content: Create AnalyticsStatusIndicator React component for showing processing status in UI
+    status: pending
+  - id: 9e2204a2-d009-4154-8879-e6399be4c839
+    content: Add status indicators to BusinessAnalyticsTab component
+    status: pending
+  - id: 55406f6d-b7e5-401c-9f75-d770fa48c3bf
+    content: Add getMerchantAnalyticsStatus() function to frontend API client
+    status: pending
+  - id: 404968ed-861f-483d-bf1e-bde059a3b75d
+    content: Initialize job processor in main.go with worker pool and graceful shutdown
+    status: pending
+---
+
 # Implementation Plan: Fix Classification Priority & Enhance Multi-Page Website Analysis
 
 ## Overview
@@ -769,22 +822,3 @@ If critical issues arise in production:
 ### Supabase Migrations
 
 1. `supabase-migrations/020_add_page_analysis_metadata.sql` (documentation only - metadata stored in JSONB)
-
-### To-dos
-
-- [ ] Verify merchant_analytics table schema supports classification_data with status tracking
-- [ ] Create ClassificationJob struct and Process() method that calls classification service and saves to Supabase
-- [ ] Create job processor with worker pool for async classification job processing
-- [ ] Integrate classification job trigger into createMerchant() function (async, non-blocking)
-- [ ] Update HandleMerchantSpecificAnalytics to read from merchant_analytics table instead of hardcoded values
-- [ ] Create GET /api/v1/merchants/{id}/analytics/status endpoint for processing status
-- [ ] Add website_analysis_data and website_analysis_status columns to merchant_analytics table
-- [ ] Create WebsiteAnalysisJob struct and Process() method that calls website analysis service
-- [ ] Add conditional website analysis job trigger in createMerchant() (only when website URL provided)
-- [ ] Update HandleMerchantWebsiteAnalysis to read from merchant_analytics table with status checking
-- [ ] Update HandleMerchantRiskScore to read from risk_assessments table instead of hardcoded mapping
-- [ ] Update HandleMerchantStatistics to query real data from Supabase merchants and risk_assessments tables
-- [ ] Create AnalyticsStatusIndicator React component for showing processing status in UI
-- [ ] Add status indicators to BusinessAnalyticsTab component
-- [ ] Add getMerchantAnalyticsStatus() function to frontend API client
-- [ ] Initialize job processor in main.go with worker pool and graceful shutdown

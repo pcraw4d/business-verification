@@ -1,4 +1,48 @@
-<!-- ee83128a-be09-4118-8410-b27412d1f4a1 136903b8-47b2-4a9c-8c52-657517c27f50 -->
+---
+name: Accuracy Plan Enhancements Implementation Plan
+overview: ""
+todos:
+  - id: fbd8bfd3-3800-44a4-8e90-d1a88d092f91
+    content: Expand code metadata from 150 to 500+ codes covering all major industries. Create expand_code_metadata_phase1.sql with 350+ additional codes from official sources (Census Bureau, IRS, payment processors). Include unit and integration tests verifying 500+ codes exist with official descriptions.
+    status: pending
+  - id: b8d95703-4117-42d1-97f0-47b83586cacd
+    content: Expand keyword population to 90%+ of codes having 15+ keywords. Create expand_keywords_phase1.sql and implement keyword_extractor.go for automated extraction. Include unit and integration tests verifying keyword coverage and matching accuracy > 85%.
+    status: pending
+  - id: b347835f-818f-4caf-a0e1-db3569c2d282
+    content: Expand MCC crosswalk coverage from 10.61% to 45%+ (30+ MCC codes). Create expand_mcc_crosswalks.sql using payment processor data. Include unit and integration tests verifying crosswalk coverage and accuracy > 95%.
+    status: pending
+  - id: f32e72e1-ec25-4ff7-a836-0c1d75d2e19c
+    content: Expand SIC crosswalk coverage from 22.86% to 57%+ (20+ SIC codes). Create expand_sic_crosswalks.sql using Census Bureau data. Include unit and integration tests verifying crosswalk coverage.
+    status: pending
+  - id: c0bf56f6-f961-4519-a293-8162153dfdb1
+    content: Enhance NAICS crosswalk coverage from 44.90% to 61%+ (30+ NAICS codes). Create expand_naics_crosswalks.sql. Include unit and integration tests verifying crosswalk coverage.
+    status: pending
+  - id: 2148fbec-a124-436c-8537-7e5fb3a2c51f
+    content: Expand NAICS hierarchy coverage from 15.33% to 30%+ (30+ codes). Create expand_naics_hierarchy.sql with parent/child relationships. Include unit and integration tests verifying hierarchy accuracy > 98%.
+    status: pending
+  - id: dcd26032-7579-41bd-9b8b-dc717dfcf648
+    content: Expand industry mapping coverage from 59.33% to 80%+ (120+ codes). Create expand_industry_mappings.sql with primary/secondary industries and categories. Include unit and integration tests verifying mapping accuracy > 90%.
+    status: pending
+  - id: 8d440b3f-b4d8-4a37-a9e2-84189f317cad
+    content: Create comprehensive test dataset with 1000+ known business classifications. Create populate_accuracy_test_dataset.sql and accuracy_test_dataset.go for test data management. Include unit and integration tests verifying 1000+ test cases across 10+ industries.
+    status: pending
+  - id: 9b0abc59-9e30-4e33-8c61-96b66df361fb
+    content: Implement comprehensive accuracy test suite validating 95% accuracy target. Create comprehensive_accuracy_tester.go and accuracy_report.go. Include unit and integration tests verifying 95%+ industry accuracy and 90%+ code accuracy.
+    status: pending
+  - id: ec8787f6-ff95-4b0c-b6c0-95f849725fae
+    content: Enhance metadata completeness to 80%+ of codes having additional metadata (aliases, usage frequency, regulatory info). Create enhance_code_metadata.sql and metadata_validator.go. Include unit and integration tests verifying metadata completeness.
+    status: pending
+  - id: ad257055-fb5e-48d0-b91b-bc1a2a7a3c52
+    content: Implement code validation system for periodic validation against official sources. Create code_validator.go and code_validation_job.go. Include unit and integration tests verifying validation functionality.
+    status: pending
+  - id: 392be01f-dd61-451c-a8dc-f6fd421ca30d
+    content: Optimize queries to reduce metadata retrieval time by 30%+. Create materialized views, implement metadata_cache.go, and optimize JSONB queries. Include integration tests with performance benchmarks verifying 30%+ improvement.
+    status: pending
+  - id: 6013ec46-fae2-411b-8eed-79f6ec4e9a3e
+    content: "Implement advanced NLP features: enhanced word segmentation, advanced NER, and advanced topic modeling. Enhance existing segmenter.go, entity_recognizer.go, and topic_modeler.go. Include unit and integration tests for each enhancement."
+    status: pending
+---
+
 # Accuracy Plan Enhancements Implementation Plan
 
 ## Overview
@@ -637,19 +681,3 @@ All features must include integration tests:
 - Rollback procedures for database changes
 - Data validation before and after migrations
 - Performance monitoring during implementation
-
-### To-dos
-
-- [ ] Expand code metadata from 150 to 500+ codes covering all major industries. Create expand_code_metadata_phase1.sql with 350+ additional codes from official sources (Census Bureau, IRS, payment processors). Include unit and integration tests verifying 500+ codes exist with official descriptions.
-- [ ] Expand keyword population to 90%+ of codes having 15+ keywords. Create expand_keywords_phase1.sql and implement keyword_extractor.go for automated extraction. Include unit and integration tests verifying keyword coverage and matching accuracy > 85%.
-- [ ] Expand MCC crosswalk coverage from 10.61% to 45%+ (30+ MCC codes). Create expand_mcc_crosswalks.sql using payment processor data. Include unit and integration tests verifying crosswalk coverage and accuracy > 95%.
-- [ ] Expand SIC crosswalk coverage from 22.86% to 57%+ (20+ SIC codes). Create expand_sic_crosswalks.sql using Census Bureau data. Include unit and integration tests verifying crosswalk coverage.
-- [ ] Enhance NAICS crosswalk coverage from 44.90% to 61%+ (30+ NAICS codes). Create expand_naics_crosswalks.sql. Include unit and integration tests verifying crosswalk coverage.
-- [ ] Expand NAICS hierarchy coverage from 15.33% to 30%+ (30+ codes). Create expand_naics_hierarchy.sql with parent/child relationships. Include unit and integration tests verifying hierarchy accuracy > 98%.
-- [ ] Expand industry mapping coverage from 59.33% to 80%+ (120+ codes). Create expand_industry_mappings.sql with primary/secondary industries and categories. Include unit and integration tests verifying mapping accuracy > 90%.
-- [ ] Create comprehensive test dataset with 1000+ known business classifications. Create populate_accuracy_test_dataset.sql and accuracy_test_dataset.go for test data management. Include unit and integration tests verifying 1000+ test cases across 10+ industries.
-- [ ] Implement comprehensive accuracy test suite validating 95% accuracy target. Create comprehensive_accuracy_tester.go and accuracy_report.go. Include unit and integration tests verifying 95%+ industry accuracy and 90%+ code accuracy.
-- [ ] Enhance metadata completeness to 80%+ of codes having additional metadata (aliases, usage frequency, regulatory info). Create enhance_code_metadata.sql and metadata_validator.go. Include unit and integration tests verifying metadata completeness.
-- [ ] Implement code validation system for periodic validation against official sources. Create code_validator.go and code_validation_job.go. Include unit and integration tests verifying validation functionality.
-- [ ] Optimize queries to reduce metadata retrieval time by 30%+. Create materialized views, implement metadata_cache.go, and optimize JSONB queries. Include integration tests with performance benchmarks verifying 30%+ improvement.
-- [ ] Implement advanced NLP features: enhanced word segmentation, advanced NER, and advanced topic modeling. Enhance existing segmenter.go, entity_recognizer.go, and topic_modeler.go. Include unit and integration tests for each enhancement.

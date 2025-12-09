@@ -1,4 +1,51 @@
-<!-- 1964c9f8-2681-4cd0-9aa7-9e6ba31bbcd1 3f51398b-9aeb-4006-87df-90fd50761317 -->
+---
+name: Week 1 Merchant Details Implementation Plan
+overview: ""
+todos:
+  - id: 4136c5fe-91ac-4b00-be9a-ed2bd6943610
+    content: Set up API testing environment with Postman/Insomnia collections, environment variables, and test scripts
+    status: pending
+  - id: d1d0c5a2-0e9c-4428-ba8e-8f6dd0ca9cb6
+    content: Create OpenAPI 3.0 specification for all merchant-details endpoints with request/response schemas and examples
+    status: pending
+  - id: fb9fb3d4-d7e4-40cd-9c82-dbc8974ef148
+    content: Create merchant analytics repository with methods to fetch classification, security, and quality data from database
+    status: pending
+  - id: 78facea2-b53d-4797-9c61-3fd4429fc746
+    content: Implement MerchantAnalyticsService to aggregate data from multiple sources and return AnalyticsData
+    status: pending
+  - id: 74a04688-bf4f-4298-8344-5d0988d33d26
+    content: Create MerchantAnalyticsHandler with GetMerchantAnalytics and GetWebsiteAnalysis endpoints
+    status: pending
+  - id: eaf7c328-c9f5-4650-a124-0efc144f647d
+    content: Register analytics routes in merchant_routes.go with proper middleware (auth, rate limiting)
+    status: pending
+  - id: 80fb45c9-3e6a-45a8-88f6-6d5c67015a34
+    content: Create risk assessment repository for storing and retrieving assessment records
+    status: pending
+  - id: 9e612f13-641b-4071-b154-984cc269cc7e
+    content: Implement background job system for processing risk assessments asynchronously
+    status: pending
+  - id: 24395c13-1b37-4959-b235-56a1ba2089ad
+    content: Enhance risk assessment service with StartAssessment, GetAssessmentStatus, and ProcessAssessment methods
+    status: pending
+  - id: a9a62f4f-b493-4192-8661-c0c2b8391c5c
+    content: Enhance risk assessment handler to implement async pattern (202 Accepted) and status checking endpoint
+    status: pending
+  - id: 130d58aa-d8e8-46d4-900e-1924cbae8150
+    content: Create test data fixtures (JSON, SQL) for merchants, analytics, and risk assessments with various scenarios
+    status: pending
+  - id: 2dd6fadd-ae08-4679-83a7-63775e84de9d
+    content: Create E2E tests for merchant-details page navigation, tab switching, data loading, and error handling
+    status: pending
+  - id: bf5f12ce-7aaa-4d5b-86d6-53a7ba84c030
+    content: Create API integration tests for analytics and risk assessment endpoints with various test scenarios
+    status: pending
+  - id: 8261f440-9566-463d-a3ee-a8dc03e15bcc
+    content: Enhance CI/CD pipeline to run merchant-details tests on PRs and report results
+    status: pending
+---
+
 # Week 1 Merchant Details Implementation Plan
 
 ## Overview
@@ -245,20 +292,3 @@ Implement all technical tasks from Plan 1 Week 1, focusing on backend API develo
 - [ ] API integration tests for new endpoints passing
 - [ ] CI/CD pipeline runs merchant-details tests on PRs
 - [ ] Test data fixtures prepared and documented
-
-### To-dos
-
-- [ ] Set up API testing environment with Postman/Insomnia collections, environment variables, and test scripts
-- [ ] Create OpenAPI 3.0 specification for all merchant-details endpoints with request/response schemas and examples
-- [ ] Create merchant analytics repository with methods to fetch classification, security, and quality data from database
-- [ ] Implement MerchantAnalyticsService to aggregate data from multiple sources and return AnalyticsData
-- [ ] Create MerchantAnalyticsHandler with GetMerchantAnalytics and GetWebsiteAnalysis endpoints
-- [ ] Register analytics routes in merchant_routes.go with proper middleware (auth, rate limiting)
-- [ ] Create risk assessment repository for storing and retrieving assessment records
-- [ ] Implement background job system for processing risk assessments asynchronously
-- [ ] Enhance risk assessment service with StartAssessment, GetAssessmentStatus, and ProcessAssessment methods
-- [ ] Enhance risk assessment handler to implement async pattern (202 Accepted) and status checking endpoint
-- [ ] Create test data fixtures (JSON, SQL) for merchants, analytics, and risk assessments with various scenarios
-- [ ] Create E2E tests for merchant-details page navigation, tab switching, data loading, and error handling
-- [ ] Create API integration tests for analytics and risk assessment endpoints with various test scenarios
-- [ ] Enhance CI/CD pipeline to run merchant-details tests on PRs and report results

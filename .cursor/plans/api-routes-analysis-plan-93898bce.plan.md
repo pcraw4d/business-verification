@@ -1,4 +1,63 @@
-<!-- 93898bce-c272-46c2-af38-d4e77e188c75 96101168-1cf2-4701-a471-0d912c475c37 -->
+---
+name: Route Testing and Remediation Plan
+overview: ""
+todos:
+  - id: 084d7857-b8fb-4482-b793-5bfba2e385b0
+    content: Review all modified files for syntax errors, route registration order, UUID validation, CORS config, auth login handler, 404 handler, and port configs
+    status: pending
+  - id: 7b37bade-603e-4628-b231-76b09829390e
+    content: Build all services locally (API Gateway, Merchant, Service Discovery, Frontend) and verify no compilation errors
+    status: pending
+  - id: 870fb212-992d-420d-870a-27a3c2b42ea9
+    content: Test health endpoints for all 9 services and verify all return 200 OK with proper status
+    status: pending
+  - id: 07e70402-6c0c-4504-a894-b1ed5f4d6259
+    content: Verify Merchant Service uses port 8080 (not 8082) and Service Discovery uses port 8080 (not 8086) by checking Railway logs and health checks
+    status: pending
+  - id: 6c591b62-c601-430d-8258-f5a47681ac4d
+    content: Test POST /api/v1/auth/register and POST /api/v1/auth/login with valid data, invalid credentials, and error scenarios
+    status: pending
+  - id: eb664419-bf0d-4e73-9e65-fcc0213197f7
+    content: Test GET /api/v1/risk/indicators/{uuid} with valid UUID, invalid UUID, and edge cases to verify UUID validation and path transformation
+    status: pending
+  - id: 34f01ce7-42bb-4e51-9145-c92816717f26
+    content: Test OPTIONS preflight requests and cross-origin requests to verify CORS uses specific frontend origin (not wildcard) with credentials
+    status: pending
+  - id: 4d8f75f2-c59f-4f55-9b91-69b7d38225eb
+    content: Test merchant and risk route precedence to verify specific routes match before PathPrefix catch-all routes
+    status: pending
+  - id: ecf2b0d1-4afa-40b7-bdbc-8827b3c6366a
+    content: Test all path transformations (risk assess, risk metrics, risk indicators, sessions, BI) to verify correct path forwarding to backend services
+    status: pending
+  - id: bf630ca9-b5be-4f3d-9726-5c451273b43f
+    content: Test 404 handler with invalid routes to verify helpful error messages, suggestions, and logging. Test UUID validation error responses
+    status: pending
+  - id: c65ce29f-aa66-4d5a-95ec-9c25126161da
+    content: Test frontend API calls in browser to verify auth endpoints use /api/v1/auth/* paths, API base URL configured correctly, and no CORS errors
+    status: pending
+  - id: 6c96a290-e8d4-445c-a82b-afd5c6f9286c
+    content: Verify NEXT_PUBLIC_API_BASE_URL set for Frontend, CORS_ALLOWED_ORIGINS set correctly for API Gateway, and risk-assessment-service restart retries is 10
+    status: pending
+  - id: cb97c948-91e7-4858-a858-369bfa1f0222
+    content: Test all routes from comprehensive analysis report including health, classification, merchant, risk, auth, session, BI, and compliance routes
+    status: pending
+  - id: 0ec90f94-d6a3-4aa9-825d-72794bcf9d0c
+    content: Verify response times meet targets (health <1s, classification <5s, merchant <2s, risk <10s, auth <2s) and check logging for route matching and transformations
+    status: pending
+  - id: ee565c90-4f46-4a62-a7a8-c1211104b39a
+    content: Test input validation (SQL injection, XSS, path traversal), authentication requirements, and verify invalid UUIDs are rejected
+    status: pending
+  - id: 1f792914-4337-4b2f-8326-dca5c3757b9d
+    content: Verify all previously working routes still work, no new 404 errors introduced, path transformations still correct, and CORS still works
+    status: pending
+  - id: 2286131d-592a-4061-b451-e8e522b612db
+    content: Test end-to-end user flows (registration→login→merchant operations) and analyze Railway logs for errors (UUID parsing, route not found, CORS, path transformation)
+    status: pending
+  - id: 9bee3a25-01f4-4654-9f13-de1678bbc180
+    content: Document all test results, track issues found, create remediation plans, and generate final status report for all routes
+    status: pending
+---
+
 # Route Testing and Remediation Plan
 
 ## Overview
@@ -859,24 +918,3 @@ cd frontend && npm run build
 - Document for later
 - Continue testing other routes
 - Address in follow-up session
-
-### To-dos
-
-- [ ] Review all modified files for syntax errors, route registration order, UUID validation, CORS config, auth login handler, 404 handler, and port configs
-- [ ] Build all services locally (API Gateway, Merchant, Service Discovery, Frontend) and verify no compilation errors
-- [ ] Test health endpoints for all 9 services and verify all return 200 OK with proper status
-- [ ] Verify Merchant Service uses port 8080 (not 8082) and Service Discovery uses port 8080 (not 8086) by checking Railway logs and health checks
-- [ ] Test POST /api/v1/auth/register and POST /api/v1/auth/login with valid data, invalid credentials, and error scenarios
-- [ ] Test GET /api/v1/risk/indicators/{uuid} with valid UUID, invalid UUID, and edge cases to verify UUID validation and path transformation
-- [ ] Test OPTIONS preflight requests and cross-origin requests to verify CORS uses specific frontend origin (not wildcard) with credentials
-- [ ] Test merchant and risk route precedence to verify specific routes match before PathPrefix catch-all routes
-- [ ] Test all path transformations (risk assess, risk metrics, risk indicators, sessions, BI) to verify correct path forwarding to backend services
-- [ ] Test 404 handler with invalid routes to verify helpful error messages, suggestions, and logging. Test UUID validation error responses
-- [ ] Test frontend API calls in browser to verify auth endpoints use /api/v1/auth/* paths, API base URL configured correctly, and no CORS errors
-- [ ] Verify NEXT_PUBLIC_API_BASE_URL set for Frontend, CORS_ALLOWED_ORIGINS set correctly for API Gateway, and risk-assessment-service restart retries is 10
-- [ ] Test all routes from comprehensive analysis report including health, classification, merchant, risk, auth, session, BI, and compliance routes
-- [ ] Verify response times meet targets (health <1s, classification <5s, merchant <2s, risk <10s, auth <2s) and check logging for route matching and transformations
-- [ ] Test input validation (SQL injection, XSS, path traversal), authentication requirements, and verify invalid UUIDs are rejected
-- [ ] Verify all previously working routes still work, no new 404 errors introduced, path transformations still correct, and CORS still works
-- [ ] Test end-to-end user flows (registration→login→merchant operations) and analyze Railway logs for errors (UUID parsing, route not found, CORS, path transformation)
-- [ ] Document all test results, track issues found, create remediation plans, and generate final status report for all routes

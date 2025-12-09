@@ -49,6 +49,8 @@ func NewSupabaseClient(cfg *SupabaseConfig, logger *log.Logger) (*SupabaseClient
 
 	// Create PostgREST client for direct database operations
 	// Use service role key for better access to all tables
+	// Note: Supabase uses HTTP/REST, not direct PostgreSQL connections
+	// Connection pooling is handled by the HTTP client (Go's default HTTP client)
 	postgrestClient := postgrest.NewClient(
 		cfg.URL+"/rest/v1",
 		"public",
@@ -61,6 +63,9 @@ func NewSupabaseClient(cfg *SupabaseConfig, logger *log.Logger) (*SupabaseClient
 	if logger == nil {
 		logger = log.Default()
 	}
+
+	// Log HTTP client configuration note
+	logger.Printf("ℹ️ [CONNECTION-POOL] Supabase client uses HTTP/REST (connection pooling handled by Go HTTP client)")
 
 	return &SupabaseClient{
 		client:     client,

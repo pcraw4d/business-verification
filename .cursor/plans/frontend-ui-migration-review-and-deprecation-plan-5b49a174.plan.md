@@ -1,4 +1,54 @@
-<!-- 5b49a174-4656-4ca3-960b-cc9e27a2f993 4f3371f6-e24c-4fc1-82b9-168affedb2a1 -->
+---
+name: Frontend UI Migration Review and Deprecation Plan
+overview: ""
+todos:
+  - id: 8158bcbc-3067-4634-8e8c-c0eb6235df55
+    content: Complete audit of current UI state - document all shadcn UI components vs legacy HTML pages
+    status: pending
+  - id: afe2551a-7ceb-4ff3-92a7-0186667f4507
+    content: Install missing shadcn UI components (input, select, textarea, checkbox, radio-group, label, form, table, pagination, dropdown-menu, navigation-menu, breadcrumb, separator, sheet, scroll-area)
+    status: pending
+  - id: 9e9e7e36-8fa5-458a-bb27-21b2ecd274c1
+    content: Create shared layout components (AppLayout, Sidebar, Header, Breadcrumbs)
+    status: pending
+  - id: 3f072892-aed5-461b-8f5b-a99228ddb54f
+    content: Create form components (MerchantForm, FormField, FormValidation)
+    status: pending
+  - id: 0a6f0b18-8b6e-42ea-be14-13b5b9edf04e
+    content: Migrate Priority 1 pages (add-merchant, merchant-portfolio, dashboard-hub, index, register)
+    status: pending
+  - id: 36b1a827-8cf1-41c5-b2e5-9e91d103cf45
+    content: Create dashboard components (DashboardCard, MetricCard, ChartContainer, DataTable)
+    status: pending
+  - id: 33158fe4-a875-4128-bfd2-1ead38f984e4
+    content: Migrate Priority 2 pages (dashboard, risk-dashboard, risk-indicators, compliance, admin, merchant-hub, business-intelligence, monitoring)
+    status: pending
+  - id: 2ec66a49-6f78-4d57-b8fd-484e5d05d8d9
+    content: Migrate Priority 3 pages (all compliance, merchant management, market intelligence, admin pages)
+    status: pending
+  - id: 9211c16f-c976-4825-a26e-60baa7c94b8e
+    content: Migrate Priority 4 pages (utility and testing pages)
+    status: pending
+  - id: cbe9ce90-2eb4-4da0-92ec-ad92b72de7c3
+    content: Set up parallel operation - configure routing to support both old and new UI
+    status: pending
+  - id: 92bfffa7-bc1e-41d0-93a2-e1ca5c2fd719
+    content: Execute gradual migration - enable new UI page by page with monitoring
+    status: pending
+  - id: d1f92645-fdf8-41dc-8d40-29af900053ab
+    content: Add deprecation warnings to legacy HTML pages and update documentation
+    status: pending
+  - id: 6a45f065-868a-442e-a347-ea40c181428e
+    content: Archive legacy UI files to archive/legacy-ui/ directory
+    status: pending
+  - id: 034b6e65-5100-4e36-84e6-157f92ed7242
+    content: Remove legacy HTML, JavaScript, and CSS files from deployment directory
+    status: pending
+  - id: 6f78c452-d5cd-4f71-80c4-dcb147bf5193
+    content: Update all documentation to reflect new UI only, remove references to legacy UI
+    status: pending
+---
+
 # Frontend UI Migration Review and Deprecation Plan
 
 ## Executive Summary
@@ -572,21 +622,3 @@ npx shadcn@latest add scroll-area
 3. Begin Phase 1: Install missing shadcn components
 4. Create shared layout components
 5. Start migrating Priority 1 pages
-
-### To-dos
-
-- [ ] Complete audit of current UI state - document all shadcn UI components vs legacy HTML pages
-- [ ] Install missing shadcn UI components (input, select, textarea, checkbox, radio-group, label, form, table, pagination, dropdown-menu, navigation-menu, breadcrumb, separator, sheet, scroll-area)
-- [ ] Create shared layout components (AppLayout, Sidebar, Header, Breadcrumbs)
-- [ ] Create form components (MerchantForm, FormField, FormValidation)
-- [ ] Migrate Priority 1 pages (add-merchant, merchant-portfolio, dashboard-hub, index, register)
-- [ ] Create dashboard components (DashboardCard, MetricCard, ChartContainer, DataTable)
-- [ ] Migrate Priority 2 pages (dashboard, risk-dashboard, risk-indicators, compliance, admin, merchant-hub, business-intelligence, monitoring)
-- [ ] Migrate Priority 3 pages (all compliance, merchant management, market intelligence, admin pages)
-- [ ] Migrate Priority 4 pages (utility and testing pages)
-- [ ] Set up parallel operation - configure routing to support both old and new UI
-- [ ] Execute gradual migration - enable new UI page by page with monitoring
-- [ ] Add deprecation warnings to legacy HTML pages and update documentation
-- [ ] Archive legacy UI files to archive/legacy-ui/ directory
-- [ ] Remove legacy HTML, JavaScript, and CSS files from deployment directory
-- [ ] Update all documentation to reflect new UI only, remove references to legacy UI

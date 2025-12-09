@@ -1,4 +1,45 @@
-<!-- 715e4fa9-6da8-499c-b826-badc59d82634 083fb47d-d0b1-4fa7-b6bb-3f8f9f83ecbb -->
+---
+name: Web Scraping Legal Compliance Improvements
+overview: ""
+todos:
+  - id: d1531e74-c335-470d-bb90-ad5b12b57945
+    content: Add github.com/temoto/robotstxt library to go.mod
+    status: pending
+  - id: b27005ed-c8d5-40d3-9361-f6cf9fcd000a
+    content: Replace simplified robots.txt parser in smart_website_crawler.go with proper implementation using robotstxt library
+    status: pending
+  - id: e9a9eacd-35aa-462e-bece-f86c272a0b84
+    content: Create centralized user_agent.go file with identifiable User-Agent function including contact information
+    status: pending
+  - id: 06542fe8-ff9a-47cf-b6ca-48bd2b782f5c
+    content: Replace all hardcoded User-Agent strings in 5 files with calls to centralized function
+    status: pending
+  - id: ef7a0d97-2895-4c32-992e-7beb74f90d83
+    content: Increase rate limiting from 1s to 3s minimum delay, make configurable via environment variable
+    status: pending
+  - id: eb60bd57-77f9-4b1a-a7f0-81f63afaa8a3
+    content: Integrate robots.txt Crawl-Delay directive with rate limiting system
+    status: pending
+  - id: 2166bc8f-1d66-481a-90a5-b4bfd8f062b2
+    content: Add specific handling for 429 (stop immediately), 403 (stop immediately), 503 (exponential backoff) in all scraping functions
+    status: pending
+  - id: 1e04468f-666a-4fad-a78b-badf3cb57cac
+    content: Create comprehensive SCRAPING_POLICY.md documentation covering compliance measures, legal basis, and contact information
+    status: pending
+  - id: 43ab4975-a926-4c85-af02-2a8e50dea290
+    content: Update any robots.txt checks in repository to use improved parser or shared utility
+    status: pending
+  - id: d84cce2a-28b2-40b5-863b-909331d0d104
+    content: Add configuration options for scraping behavior (rate limit delay, respect robots, contact URL)
+    status: pending
+  - id: 635ecdb9-6257-4966-af36-b5334a20bf5d
+    content: Write unit tests for robots.txt parser, User-Agent format, rate limiting, and status code handling
+    status: pending
+  - id: 4896cfec-fddd-4e58-9336-d1786bdfbada
+    content: Write integration tests with real websites and mock HTTP responses for status codes
+    status: pending
+---
+
 # Web Scraping Legal Compliance Improvements
 
 ## Overview
@@ -243,18 +284,3 @@ Add configuration options:
 - **Testing**: 2-3 hours
 
 **Total**: ~10-15 hours
-
-### To-dos
-
-- [ ] Add github.com/temoto/robotstxt library to go.mod
-- [ ] Replace simplified robots.txt parser in smart_website_crawler.go with proper implementation using robotstxt library
-- [ ] Create centralized user_agent.go file with identifiable User-Agent function including contact information
-- [ ] Replace all hardcoded User-Agent strings in 5 files with calls to centralized function
-- [ ] Increase rate limiting from 1s to 3s minimum delay, make configurable via environment variable
-- [ ] Integrate robots.txt Crawl-Delay directive with rate limiting system
-- [ ] Add specific handling for 429 (stop immediately), 403 (stop immediately), 503 (exponential backoff) in all scraping functions
-- [ ] Create comprehensive SCRAPING_POLICY.md documentation covering compliance measures, legal basis, and contact information
-- [ ] Update any robots.txt checks in repository to use improved parser or shared utility
-- [ ] Add configuration options for scraping behavior (rate limit delay, respect robots, contact URL)
-- [ ] Write unit tests for robots.txt parser, User-Agent format, rate limiting, and status code handling
-- [ ] Write integration tests with real websites and mock HTTP responses for status codes

@@ -3,6 +3,7 @@
 ## Summary
 
 Five services are showing warning indicators in Railway dashboard:
+
 1. **service-discovery** - ▲ 10 warnings (health check failures for other services)
 2. **pipeline-service** - ▲ 10 warnings (502 errors from service-discovery)
 3. **bi-service** - ▲ 10 warnings
@@ -12,6 +13,7 @@ Five services are showing warning indicators in Railway dashboard:
 ## Root Cause Analysis
 
 ### Services Status
+
 - ✅ All services **build successfully**
 - ✅ All services **start correctly** and bind to ports
 - ✅ Services use `PORT` environment variable correctly
@@ -21,6 +23,7 @@ Five services are showing warning indicators in Railway dashboard:
   - `monitoring-service`
 
 ### Findings
+
 1. **risk-assessment-service** is actually healthy - logs show 200 responses
 2. **pipeline-service** and **monitoring-service** started on Dec 2, but service-discovery continues to report 502s
 3. No recent error logs found for failing services
@@ -29,20 +32,25 @@ Five services are showing warning indicators in Railway dashboard:
 ## Likely Issues
 
 ### 1. Service Restart Loop
+
 Services may be crashing and restarting, causing intermittent 502s during restarts.
 
 ### 2. Network Connectivity
+
 service-discovery may not be able to reach other services due to:
+
 - Network policies
 - Service discovery configuration
 - Internal service URLs
 
 ### 3. Health Check Timeout
+
 Health check timeouts may be too short for services that take time to start.
 
 ## Recommended Fixes
 
 ### Fix 1: Redeploy Services
+
 Redeploy the failing services to ensure they're running the latest code:
 
 ```bash
@@ -53,10 +61,13 @@ railway redeploy --service bi-service
 ```
 
 ### Fix 2: Verify Service URLs in service-discovery
+
 Check that service-discovery is using correct internal URLs for health checks.
 
 ### Fix 3: Increase Health Check Timeout
+
 Current timeouts:
+
 - pipeline-service: 300s (5 minutes) ✅
 - monitoring-service: Not specified in railway.json (may default to 30s) ⚠️
 - bi-service: 300s ✅
@@ -73,6 +84,7 @@ Current timeouts:
 ```
 
 ### Fix 4: Check Service Discovery Configuration
+
 Verify service-discovery is correctly configured to find and check other services.
 
 ## Immediate Actions
@@ -95,4 +107,3 @@ Verify service-discovery is correctly configured to find and check other service
 2. Redeploy all failing services
 3. Monitor logs after redeploy
 4. Verify health check endpoints are accessible
-

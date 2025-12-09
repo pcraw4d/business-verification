@@ -1,4 +1,48 @@
-<!-- 456c0d6a-f19f-4ad9-afc0-f9d21abf4540 4bad98a4-de2f-473a-95de-28423169615e -->
+---
+name: Comprehensive Frontend Testing and Debugging Plan
+overview: ""
+todos:
+  - id: df2c6c7c-9df3-4dcb-86f5-c2072a1b0cd2
+    content: Create centralized API configuration utility and refactor all API calls to use it
+    status: pending
+  - id: e7c8821a-9277-41bf-a534-726c29e6a634
+    content: Verify NEXT_PUBLIC_API_BASE_URL is set in Railway and create build verification script
+    status: pending
+  - id: d25ab1da-552e-4913-ae1f-3d9628fd6891
+    content: Fix React Server Component 404 errors for compliance and risk-assessment routes
+    status: pending
+  - id: c008c4c6-cf41-49e1-b79c-a41ed916f1cc
+    content: Rebuild frontend service in Railway with correct environment variables
+    status: pending
+  - id: 4ad30bf4-ecf0-4234-a9e3-aa3d06e53c1b
+    content: Test all platform pages (home, dashboard-hub) for functionality and API calls
+    status: pending
+  - id: 0011eb64-b62b-48a8-84c8-0ce14c3d214e
+    content: Test all merchant-related pages including add-merchant, portfolio, details, and bulk operations
+    status: pending
+  - id: 57c189f2-0e2e-47ab-b772-204b577764e2
+    content: Test all compliance pages including gap-analysis and progress-tracking (fix 404s first)
+    status: pending
+  - id: e53e7021-9614-453c-b7c4-19e6d0dd8957
+    content: Test all risk assessment pages including dashboard, indicators, and portfolio
+    status: pending
+  - id: 270b82e0-9876-4736-9c7d-b89656f5cbf5
+    content: Test all administration pages including admin dashboard, models, queue, and sessions
+    status: pending
+  - id: 67c51678-0076-4616-adf6-64769148d0eb
+    content: Verify all API endpoints are accessible and properly routed through API Gateway
+    status: pending
+  - id: 937c2f8a-6699-4e58-ba01-85d526c4d95f
+    content: Test all core components including forms, data tables, charts, and enhanced features
+    status: pending
+  - id: 2b7646e7-efd9-41ad-ae48-b5809b3ddfe8
+    content: Create automated testing script to verify all pages and API calls
+    status: pending
+  - id: d014842b-07bb-4d06-883b-2750d66cff69
+    content: Create comprehensive testing documentation and deployment checklist
+    status: pending
+---
+
 # Comprehensive Frontend Testing and Debugging Plan
 
 ## Phase 1: Fix Critical API Configuration Issues
@@ -277,19 +321,3 @@ Document all API endpoints used by frontend:
 15. **Code Consolidation**: All API calls use centralized config (0 direct fetch calls with hardcoded URLs)
 16. **Legacy Code**: No references to deprecated legacy UI code
 17. **Documentation**: All changes documented with migration guides
-
-### To-dos
-
-- [ ] Create centralized API configuration utility and refactor all API calls to use it
-- [ ] Verify NEXT_PUBLIC_API_BASE_URL is set in Railway and create build verification script
-- [ ] Fix React Server Component 404 errors for compliance and risk-assessment routes
-- [ ] Rebuild frontend service in Railway with correct environment variables
-- [ ] Test all platform pages (home, dashboard-hub) for functionality and API calls
-- [ ] Test all merchant-related pages including add-merchant, portfolio, details, and bulk operations
-- [ ] Test all compliance pages including gap-analysis and progress-tracking (fix 404s first)
-- [ ] Test all risk assessment pages including dashboard, indicators, and portfolio
-- [ ] Test all administration pages including admin dashboard, models, queue, and sessions
-- [ ] Verify all API endpoints are accessible and properly routed through API Gateway
-- [ ] Test all core components including forms, data tables, charts, and enhanced features
-- [ ] Create automated testing script to verify all pages and API calls
-- [ ] Create comprehensive testing documentation and deployment checklist

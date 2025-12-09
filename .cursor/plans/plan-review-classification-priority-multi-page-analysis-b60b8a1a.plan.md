@@ -1,4 +1,9 @@
-<!-- b60b8a1a-ba14-43a9-bbdf-5fdc2b4b8059 1e3648be-d1c9-4263-8355-fb2f076c8089 -->
+---
+name: Hybrid Code Generation Implementation Plan
+overview: ""
+todos: []
+---
+
 # Hybrid Code Generation Implementation Plan
 
 ## Overview

@@ -1,4 +1,45 @@
-<!-- 5eb6e4b7-b4aa-4192-8012-c430f713b689 d2e64be5-aa47-4b12-b5da-c39ea1a48bc2 -->
+---
+name: "Classification Accuracy Improvement Plan - Target: 95%"
+overview: ""
+todos:
+  - id: fd702771-b0e9-4ee2-927b-d384273478ed
+    content: Fix incorrect NAICS codes and add missing SIC codes for Food & Beverage (industry_id=10)
+    status: pending
+  - id: e18d060c-f44a-4149-8eb1-303e956fea31
+    content: Create comprehensive script to populate ALL MCC, SIC, and NAICS codes for all industries
+    status: pending
+  - id: 806f7f02-5b51-4d7c-b7ae-17998d01774b
+    content: Populate code_keywords table with 15-20 keywords per code (10-20x current coverage)
+    status: pending
+  - id: acca6b6f-9c3c-41ff-8167-7d93a3cb8b0c
+    content: "Implement word segmentation library for compound domain names (hybrid: dictionary + heuristics)"
+    status: pending
+  - id: eafc20d2-7149-42f3-9d8d-18328a4a9191
+    content: Integrate word segmentation with domain name extraction in extractKeywordsFromURLEnhanced()
+    status: pending
+  - id: bfe82cb0-fc89-4056-b1f9-bc6248955d7b
+    content: "Implement Named Entity Recognition (hybrid: pattern-based + library-based)"
+    status: pending
+  - id: a6c87dc3-1840-44ea-b9c2-d50074a10b45
+    content: Implement topic modeling using TF-IDF for industry classification
+    status: pending
+  - id: a7b6586e-e43f-4e7e-bae3-8d57c977a7af
+    content: Integrate NER and topic modeling with keyword extraction pipeline
+    status: pending
+  - id: 38bf1951-fb96-4851-a477-9ddb628f90b9
+    content: Add synonym matching, stemming, and fuzzy matching to GetClassificationCodesByKeywords()
+    status: pending
+  - id: cdc5932a-39c4-46a3-ad46-f6a06a392135
+    content: Implement multi-strategy classification combining keywords, entities, topics, and co-occurrence
+    status: pending
+  - id: 0f262264-2344-48b3-a0c5-e4e6f2d60285
+    content: Implement confidence calibration to ensure 95% accuracy target
+    status: pending
+  - id: 9f25941e-c240-4ab1-9f24-525b4892f08b
+    content: Create comprehensive accuracy tests and validate 95% target is met
+    status: pending
+---
+
 # Classification Accuracy Improvement Plan - Target: 95%
 
 ## Overview
@@ -532,18 +573,3 @@ finalScore = (
 2. **NLP Performance**: Start with pattern-based, add library later
 3. **Accuracy Target**: Implement gradual improvements with validation
 4. **Breaking Changes**: Feature flags for new functionality
-
-### To-dos
-
-- [ ] Fix incorrect NAICS codes and add missing SIC codes for Food & Beverage (industry_id=10)
-- [ ] Create comprehensive script to populate ALL MCC, SIC, and NAICS codes for all industries
-- [ ] Populate code_keywords table with 15-20 keywords per code (10-20x current coverage)
-- [ ] Implement word segmentation library for compound domain names (hybrid: dictionary + heuristics)
-- [ ] Integrate word segmentation with domain name extraction in extractKeywordsFromURLEnhanced()
-- [ ] Implement Named Entity Recognition (hybrid: pattern-based + library-based)
-- [ ] Implement topic modeling using TF-IDF for industry classification
-- [ ] Integrate NER and topic modeling with keyword extraction pipeline
-- [ ] Add synonym matching, stemming, and fuzzy matching to GetClassificationCodesByKeywords()
-- [ ] Implement multi-strategy classification combining keywords, entities, topics, and co-occurrence
-- [ ] Implement confidence calibration to ensure 95% accuracy target
-- [ ] Create comprehensive accuracy tests and validate 95% target is met

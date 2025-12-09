@@ -1,4 +1,9 @@
-<!-- 2684d7f9-f5e6-4320-a7d3-de7da184fc51 9ecf6e8b-e874-4130-a1a2-040d8bb5a57b -->
+---
+name: Classification Website Scraping Optimization Plan
+overview: ""
+todos: []
+---
+
 # Classification Website Scraping Optimization Plan
 
 ## Problem Statement

@@ -176,6 +176,50 @@ type SupabaseKeywordRepository struct {
 	enhancedScorerMutex sync.RWMutex // Thread-safe access to enhanced scorer
 }
 
+// timedQuery wraps a database query with timing and logging
+func (r *SupabaseKeywordRepository) timedQuery(ctx context.Context, queryName string, metadata map[string]interface{}, fn func() error) error {
+	start := time.Now()
+	defer func() {
+		duration := time.Since(start)
+		r.logger.Printf("⏱️ [DB-QUERY] %s took %v", queryName, duration)
+		
+		if duration > 5*time.Second {
+			r.logger.Printf("⚠️ [SLOW-QUERY] %s took %v (threshold: 5s)", queryName, duration)
+		}
+		
+		if deadline, hasDeadline := ctx.Deadline(); hasDeadline {
+			remaining := time.Until(deadline)
+			r.logger.Printf("⏱️ [DB-QUERY] %s - time remaining: %v", queryName, remaining)
+		}
+	}()
+	
+	return fn()
+}
+
+// ensureValidContext ensures the context has sufficient time for an HTTP request
+// If the context is expired or has insufficient time, creates a fresh context with the specified timeout
+func (r *SupabaseKeywordRepository) ensureValidContext(ctx context.Context, httpTimeout time.Duration) (context.Context, context.CancelFunc) {
+	if deadline, hasDeadline := ctx.Deadline(); hasDeadline {
+		timeRemaining := time.Until(deadline)
+		if timeRemaining <= 0 {
+			// Context already expired, create fresh context with HTTP timeout
+			r.logger.Printf("⚠️ [RPC] Context expired, creating fresh context with %v timeout", httpTimeout)
+			rpcCtx, cancel := context.WithTimeout(context.Background(), httpTimeout)
+			return rpcCtx, cancel
+		} else if timeRemaining < httpTimeout {
+			// Context has less time than HTTP timeout, use remaining time
+			r.logger.Printf("⚠️ [RPC] Context has insufficient time (%v < %v), using remaining time", timeRemaining, httpTimeout)
+			rpcCtx, cancel := context.WithTimeout(context.Background(), timeRemaining)
+			return rpcCtx, cancel
+		}
+		// Context has sufficient time, use it as-is
+		return ctx, func() {} // No-op cancel
+	}
+	// No deadline, create context with HTTP timeout
+	rpcCtx, cancel := context.WithTimeout(ctx, httpTimeout)
+	return rpcCtx, cancel
+}
+
 // scrapingSessionManager manages scraping sessions (duplicate to avoid import cycles)
 type scrapingSessionManager struct {
 	enabled     bool
@@ -1507,7 +1551,12 @@ func (r *SupabaseKeywordRepository) SearchKeywords(ctx context.Context, query st
 		return nil, fmt.Errorf("failed to marshal RPC payload: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonPayload))
+	// FIX: Ensure context has sufficient time for HTTP request
+	httpTimeout := 2 * time.Second
+	rpcCtx, rpcCancel := r.ensureValidContext(ctx, httpTimeout)
+	defer rpcCancel()
+
+	req, err := http.NewRequestWithContext(rpcCtx, "POST", url, bytes.NewBuffer(jsonPayload))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create RPC request: %w", err)
 	}
@@ -1517,7 +1566,7 @@ func (r *SupabaseKeywordRepository) SearchKeywords(ctx context.Context, query st
 	req.Header.Set("Authorization", "Bearer "+r.client.GetServiceKey())
 	req.Header.Set("Prefer", "return=representation")
 
-	httpClient := &http.Client{Timeout: 2 * time.Second}
+	httpClient := &http.Client{Timeout: httpTimeout}
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		// Fallback to ILIKE if RPC fails
@@ -1721,7 +1770,12 @@ func (r *SupabaseKeywordRepository) GetClassificationCodesByKeywords(
 		return nil, fmt.Errorf("failed to marshal RPC payload: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonPayload))
+	// FIX: Ensure context has sufficient time for HTTP request
+	httpTimeout := 5 * time.Second
+	rpcCtx, rpcCancel := r.ensureValidContext(ctx, httpTimeout)
+	defer rpcCancel()
+
+	req, err := http.NewRequestWithContext(rpcCtx, "POST", url, bytes.NewBuffer(jsonPayload))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create RPC request: %w", err)
 	}
@@ -1731,7 +1785,7 @@ func (r *SupabaseKeywordRepository) GetClassificationCodesByKeywords(
 	req.Header.Set("Authorization", "Bearer "+r.client.GetServiceKey())
 	req.Header.Set("Prefer", "return=representation")
 
-	httpClient := &http.Client{Timeout: 5 * time.Second}
+	httpClient := &http.Client{Timeout: httpTimeout}
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		r.logger.Printf("⚠️ Trigram code search failed, falling back to in-memory matching: %v", err)
@@ -1863,7 +1917,12 @@ func (r *SupabaseKeywordRepository) FindCodesByFullTextSearch(
 		return nil, fmt.Errorf("failed to marshal RPC payload: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonPayload))
+	// FIX: Ensure context has sufficient time for HTTP request
+	httpTimeout := 5 * time.Second
+	rpcCtx, rpcCancel := r.ensureValidContext(ctx, httpTimeout)
+	defer rpcCancel()
+
+	req, err := http.NewRequestWithContext(rpcCtx, "POST", url, bytes.NewBuffer(jsonPayload))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create RPC request: %w", err)
 	}
@@ -1873,7 +1932,7 @@ func (r *SupabaseKeywordRepository) FindCodesByFullTextSearch(
 	req.Header.Set("Authorization", "Bearer "+r.client.GetServiceKey())
 	req.Header.Set("Prefer", "return=representation")
 
-	httpClient := &http.Client{Timeout: 5 * time.Second}
+	httpClient := &http.Client{Timeout: httpTimeout}
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("full-text search RPC call failed: %w", err)
@@ -2075,7 +2134,30 @@ func (r *SupabaseKeywordRepository) ClassifyBusinessByKeywordsTrigram(
 		return nil, fmt.Errorf("failed to marshal RPC payload: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonPayload))
+	// FIX: Check if context is expired and create fresh context if needed
+	rpcCtx := ctx
+	var rpcCancel context.CancelFunc
+	httpTimeout := 2 * time.Second
+	
+	if deadline, hasDeadline := ctx.Deadline(); hasDeadline {
+		timeRemaining := time.Until(deadline)
+		if timeRemaining <= 0 {
+			// Context already expired, create fresh context with HTTP timeout
+			rpcCtx, rpcCancel = context.WithTimeout(context.Background(), httpTimeout)
+			defer rpcCancel()
+		} else if timeRemaining < httpTimeout {
+			// Context has less time than HTTP timeout, use remaining time
+			rpcCtx, rpcCancel = context.WithTimeout(context.Background(), timeRemaining)
+			defer rpcCancel()
+		}
+		// If context has sufficient time, use it as-is
+	} else {
+		// No deadline, create context with HTTP timeout
+		rpcCtx, rpcCancel = context.WithTimeout(ctx, httpTimeout)
+		defer rpcCancel()
+	}
+
+	req, err := http.NewRequestWithContext(rpcCtx, "POST", url, bytes.NewBuffer(jsonPayload))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create RPC request: %w", err)
 	}
@@ -2085,7 +2167,7 @@ func (r *SupabaseKeywordRepository) ClassifyBusinessByKeywordsTrigram(
 	req.Header.Set("Authorization", "Bearer "+r.client.GetServiceKey())
 	req.Header.Set("Prefer", "return=representation")
 
-	httpClient := &http.Client{Timeout: 2 * time.Second}
+	httpClient := &http.Client{Timeout: httpTimeout}
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("RPC call failed: %w", err)
@@ -2688,9 +2770,19 @@ func (r *SupabaseKeywordRepository) ClassifyBusinessByContextualKeywords(ctx con
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			industryStart := time.Now()
-			industry, err := r.GetIndustryByID(classificationCtx, enhancedResult.IndustryID)
-			industryDuration := time.Since(industryStart)
+			var industry *Industry
+			var err error
+			industryDuration := time.Duration(0)
+			
+			err = r.timedQuery(classificationCtx, "GetIndustryByID", map[string]interface{}{
+				"industry_id": enhancedResult.IndustryID,
+			}, func() error {
+				industryStart := time.Now()
+				industry, err = r.GetIndustryByID(classificationCtx, enhancedResult.IndustryID)
+				industryDuration = time.Since(industryStart)
+				return err
+			})
+			
 			resultsChan <- queryResults{
 				industry:         industry,
 				industryErr:      err,
@@ -2702,9 +2794,19 @@ func (r *SupabaseKeywordRepository) ClassifyBusinessByContextualKeywords(ctx con
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			codesStart := time.Now()
-			codes, err := r.GetCachedClassificationCodes(classificationCtx, enhancedResult.IndustryID)
-			codesDuration := time.Since(codesStart)
+			var codes []*ClassificationCode
+			var err error
+			codesDuration := time.Duration(0)
+			
+			err = r.timedQuery(classificationCtx, "GetCachedClassificationCodes", map[string]interface{}{
+				"industry_id": enhancedResult.IndustryID,
+			}, func() error {
+				codesStart := time.Now()
+				codes, err = r.GetCachedClassificationCodes(classificationCtx, enhancedResult.IndustryID)
+				codesDuration = time.Since(codesStart)
+				return err
+			})
+			
 			resultsChan <- queryResults{
 				codes:         codes,
 				codesErr:      err,
@@ -3102,10 +3204,10 @@ func (r *SupabaseKeywordRepository) extractKeywords(ctx context.Context, busines
 		analysisMethod := "none"
 		confidenceLevel := "high"
 		
-		// OPTIMIZATION: Reduced timeout requirement (was 25s, now 18s)
-		// Phase 1 scraper: 12s max (reduced from 15s), overhead: 6s buffer
+		// OPTIMIZATION: Reduced timeout requirement (was 18s, now 15s)
+		// Phase 1 scraper: 10s max (reduced from 12s), overhead: 5s buffer
 		// This allows faster failure and reduces overall extractKeywords duration
-		const requiredTimeout = 18 * time.Second
+		const requiredTimeout = 15 * time.Second
 		var extractionCtx context.Context
 		var cancel context.CancelFunc
 		
@@ -3138,9 +3240,9 @@ func (r *SupabaseKeywordRepository) extractKeywords(ctx context.Context, busines
 			if timeRemaining < 0 {
 				hasEnoughTimeForLevel2 = false
 				r.logger.Printf("⚠️ [KeywordExtraction] Level 2 SKIPPED: Context already expired (time remaining: %v)", timeRemaining)
-			} else if timeRemaining < 13*time.Second {
+			} else if timeRemaining < 11*time.Second {
 				hasEnoughTimeForLevel2 = false
-				r.logger.Printf("⚠️ [KeywordExtraction] Level 2 SKIPPED: Insufficient time remaining (%v < 13s required for Phase 1 scraper)", timeRemaining)
+				r.logger.Printf("⚠️ [KeywordExtraction] Level 2 SKIPPED: Insufficient time remaining (%v < 11s required for Phase 1 scraper)", timeRemaining)
 			} else {
 				r.logger.Printf("📊 [KeywordExtraction] Level 2: Starting single-page website analysis (homepage only) - trying fastest method first (time remaining: %v)", timeRemaining)
 			}
@@ -3220,9 +3322,9 @@ func (r *SupabaseKeywordRepository) extractKeywords(ctx context.Context, busines
 				if timeRemaining < 0 {
 					hasEnoughTime = false
 					r.logger.Printf("⚠️ [KeywordExtraction] Level 1 SKIPPED: Context already expired (time remaining: %v)", timeRemaining)
-				} else if timeRemaining < 6*time.Second {
+				} else if timeRemaining < 5*time.Second {
 					hasEnoughTime = false
-					r.logger.Printf("⚠️ [KeywordExtraction] Level 1 SKIPPED: Insufficient time remaining (%v < 6s required for multi-page analysis)", timeRemaining)
+					r.logger.Printf("⚠️ [KeywordExtraction] Level 1 SKIPPED: Insufficient time remaining (%v < 5s required for multi-page analysis)", timeRemaining)
 				} else {
 					r.logger.Printf("✅ [KeywordExtraction] Level 1: Starting multi-page website analysis (max 15 pages, timeout: capped at 10s, time remaining: %v)", timeRemaining)
 				}
@@ -3928,10 +4030,10 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromWebsite(ctx context.Conte
 	if r.websiteScraper != nil {
 		r.logger.Printf("✅ [Phase1] [KeywordExtraction] Using Phase 1 enhanced scraper for: %s", websiteURL)
 		
-		// OPTIMIZATION: Reduced Phase 1 scraper timeout (was 15s, now 12s)
+		// OPTIMIZATION: Reduced Phase 1 scraper timeout (was 12s, now 10s)
 		// This allows faster failure and reduces overall extractKeywords duration
 		// Early termination will prevent waiting for slow websites
-		const phase1RequiredTimeout = 12 * time.Second
+		const phase1RequiredTimeout = 10 * time.Second
 		
 		var phase1Ctx context.Context
 		var phase1Cancel context.CancelFunc
@@ -6392,7 +6494,31 @@ func (r *SupabaseKeywordRepository) FindIndustriesByPatterns(ctx context.Context
 	}
 
 	url := fmt.Sprintf("%s/rest/v1/rpc/find_industries_by_patterns", r.client.GetURL())
-	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonPayload))
+	
+	// FIX: Check if context is expired and create fresh context if needed
+	rpcCtx := ctx
+	var rpcCancel context.CancelFunc
+	httpTimeout := 5 * time.Second
+	
+	if deadline, hasDeadline := ctx.Deadline(); hasDeadline {
+		timeRemaining := time.Until(deadline)
+		if timeRemaining <= 0 {
+			// Context already expired, create fresh context with HTTP timeout
+			rpcCtx, rpcCancel = context.WithTimeout(context.Background(), httpTimeout)
+			defer rpcCancel()
+		} else if timeRemaining < httpTimeout {
+			// Context has less time than HTTP timeout, use remaining time
+			rpcCtx, rpcCancel = context.WithTimeout(context.Background(), timeRemaining)
+			defer rpcCancel()
+		}
+		// If context has sufficient time, use it as-is
+	} else {
+		// No deadline, create context with HTTP timeout
+		rpcCtx, rpcCancel = context.WithTimeout(ctx, httpTimeout)
+		defer rpcCancel()
+	}
+	
+	req, err := http.NewRequestWithContext(rpcCtx, "POST", url, bytes.NewBuffer(jsonPayload))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create RPC request: %w", err)
 	}
@@ -6402,7 +6528,7 @@ func (r *SupabaseKeywordRepository) FindIndustriesByPatterns(ctx context.Context
 	req.Header.Set("Authorization", "Bearer "+r.client.GetServiceKey())
 	req.Header.Set("Prefer", "return=representation")
 
-	httpClient := &http.Client{Timeout: 5 * time.Second}
+	httpClient := &http.Client{Timeout: httpTimeout}
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("RPC call failed: %w", err)
@@ -6523,7 +6649,13 @@ func (r *SupabaseKeywordRepository) BatchFindKeywords(ctx context.Context, keywo
 	}
 
 	url := fmt.Sprintf("%s/rest/v1/rpc/batch_find_keywords", r.client.GetURL())
-	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonPayload))
+	
+	// FIX: Ensure context has sufficient time for HTTP request
+	httpTimeout := 3 * time.Second
+	rpcCtx, rpcCancel := r.ensureValidContext(ctx, httpTimeout)
+	defer rpcCancel()
+	
+	req, err := http.NewRequestWithContext(rpcCtx, "POST", url, bytes.NewBuffer(jsonPayload))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create RPC request: %w", err)
 	}
@@ -6533,7 +6665,7 @@ func (r *SupabaseKeywordRepository) BatchFindKeywords(ctx context.Context, keywo
 	req.Header.Set("Authorization", "Bearer "+r.client.GetServiceKey())
 	req.Header.Set("Prefer", "return=representation")
 
-	httpClient := &http.Client{Timeout: 3 * time.Second}
+	httpClient := &http.Client{Timeout: httpTimeout}
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("RPC call failed: %w", err)
@@ -6596,7 +6728,13 @@ func (r *SupabaseKeywordRepository) BatchFindIndustryTopics(ctx context.Context,
 	}
 
 	url := fmt.Sprintf("%s/rest/v1/rpc/batch_find_industry_topics", r.client.GetURL())
-	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonPayload))
+	
+	// FIX: Ensure context has sufficient time for HTTP request
+	httpTimeout := 3 * time.Second
+	rpcCtx, rpcCancel := r.ensureValidContext(ctx, httpTimeout)
+	defer rpcCancel()
+	
+	req, err := http.NewRequestWithContext(rpcCtx, "POST", url, bytes.NewBuffer(jsonPayload))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create RPC request: %w", err)
 	}
@@ -6606,7 +6744,7 @@ func (r *SupabaseKeywordRepository) BatchFindIndustryTopics(ctx context.Context,
 	req.Header.Set("Authorization", "Bearer "+r.client.GetServiceKey())
 	req.Header.Set("Prefer", "return=representation")
 
-	httpClient := &http.Client{Timeout: 3 * time.Second}
+	httpClient := &http.Client{Timeout: httpTimeout}
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("RPC call failed: %w", err)

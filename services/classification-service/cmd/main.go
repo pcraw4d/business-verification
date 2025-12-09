@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -261,6 +262,18 @@ func main() {
 	<-quit
 	logger.Info("🛑 Classification Service shutting down...")
 
+	// FIX #3: Stop worker pool first to prevent new requests from being processed
+	if classificationHandler.WorkerPool != nil {
+		logger.Info("Stopping worker pool...")
+		classificationHandler.WorkerPool.Stop()
+	}
+
+	// Stop cleanup goroutines (FIX #7)
+	if classificationHandler.ShutdownCancel != nil {
+		logger.Info("Stopping cleanup goroutines...")
+		classificationHandler.ShutdownCancel()
+	}
+
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer shutdownCancel()
 
@@ -350,15 +363,19 @@ func securityHeadersMiddleware() func(http.Handler) http.Handler {
 }
 
 // rateLimitMiddleware adds basic rate limiting
+// FIX #4: Added mutex protection to prevent race conditions
 func rateLimitMiddleware() func(http.Handler) http.Handler {
-	// Simple in-memory rate limiter
-	requests := make(map[string][]time.Time)
+	var (
+		requests = make(map[string][]time.Time)
+		mu       sync.RWMutex
+	)
 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			clientIP := r.RemoteAddr
 			now := time.Now()
 
+			mu.Lock()
 			// Clean old requests (older than 1 minute)
 			if clientRequests, exists := requests[clientIP]; exists {
 				var validRequests []time.Time
@@ -372,12 +389,14 @@ func rateLimitMiddleware() func(http.Handler) http.Handler {
 
 			// Check rate limit (100 requests per minute)
 			if len(requests[clientIP]) >= 100 {
+				mu.Unlock()
 				errors.WriteError(w, r, http.StatusTooManyRequests, "RATE_LIMIT_EXCEEDED", "Rate limit exceeded", "Too many requests from this IP address")
 				return
 			}
 
 			// Add current request
 			requests[clientIP] = append(requests[clientIP], now)
+			mu.Unlock()
 
 			next.ServeHTTP(w, r)
 		})

@@ -1,4 +1,9 @@
-<!-- aca1c262-05c3-4b54-85d8-79bea25a21ce c50f8e7e-7d57-4158-a73e-38f770e56e46 -->
+---
+name: "Detailed Implementation Plan: Restore Functionality"
+overview: ""
+todos: []
+---
+
 # Detailed Implementation Plan: Restore Functionality
 
 ## Overview

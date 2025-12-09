@@ -1,4 +1,78 @@
-<!-- 8ee2a96a-9066-4cd7-b5b9-3c1ff9975969 cad57eb3-e578-4268-b1fe-32d3ab7ae324 -->
+---
+name: "Merchant Details: Data Display, Debugging & Enhancement Plan"
+overview: ""
+todos:
+  - id: b24e87c1-d8be-4e51-abbb-15a1627a3501
+    content: Update TypeScript Merchant and Address interfaces to include all backend fields (foundedDate, employeeCount, annualRevenue, metadata, createdBy, street1, street2, countryCode)
+    status: pending
+  - id: a0d62c46-3afa-43b7-84d2-1322d0548303
+    content: Update getMerchant() API function to map all backend fields to frontend types with validation and development logging
+    status: pending
+  - id: ba43501a-4a87-42ae-a469-2d3ebf693924
+    content: Add Financial Information card to MerchantOverviewTab displaying foundedDate, employeeCount, and annualRevenue with proper formatting
+    status: pending
+  - id: 3c266635-06fb-4b0c-b85b-6e037db2b221
+    content: Enhance Address card to display street1, street2, and countryCode separately with proper formatting
+    status: pending
+  - id: 0f53e624-36e4-4b84-a356-fbab5d39d335
+    content: Enhance Metadata card to display createdBy and metadata JSONB with expandable JSON viewer and syntax highlighting
+    status: pending
+  - id: d79aac18-474b-47ee-a47f-340ddf1f0dc5
+    content: Add data completeness indicator showing percentage of available fields with color-coded badge
+    status: pending
+  - id: b725a348-3175-4375-a08c-f7eae3ef55fa
+    content: Review BusinessAnalyticsTab to ensure all intelligence data (businessAge, employeeCount, annualRevenue) is displayed
+    status: pending
+  - id: 6e21a2ca-31d9-446d-a08d-3ebe98984121
+    content: Verify RiskAssessmentTab displays all risk data including explainability and recommendations sections
+    status: pending
+  - id: 5d5b07a4-8169-4c38-a0c6-4a58177c9511
+    content: Fix PortfolioComparisonCard missing data errors with improved validation, type guards, and partial data display support
+    status: pending
+  - id: 0055d466-2127-4209-a2a0-b50468a6332d
+    content: Add actionable CTAs to all error states (Run Assessment, Enrich Data, Refresh buttons) with specific error messages
+    status: pending
+  - id: d32d77c6-dcb2-4845-9c9c-8aa6ee3c45e9
+    content: Investigate all remaining hydration error sources in merchant detail components and identify fixes needed ✅ COMPLETE
+    status: completed
+  - id: 4cbee280-e749-4178-b895-449a98990ba7
+    content: Fix all date formatting hydration issues by ensuring client-side only formatting with useState + useEffect pattern ✅ COMPLETE
+    status: completed
+  - id: e228a8bf-13dc-461c-b430-6f2438f6b26d
+    content: Ensure RiskExplainabilitySection is integrated into RiskAssessmentTab and displays all SHAP values and feature importance ✅ COMPLETE
+    status: completed
+  - id: 099ab715-5a4f-4433-a569-8b18a9a408c8
+    content: Ensure RiskRecommendationsSection is integrated into RiskAssessmentTab and displays all recommendations grouped by priority ✅ COMPLETE
+    status: completed
+  - id: 61c45908-3700-4454-9bb8-1688036c17c4
+    content: Ensure RiskAlertsSection is integrated into RiskIndicatorsTab and displays all alerts grouped by severity ✅ COMPLETE
+    status: completed
+  - id: 8c67e3b4-6fb4-44f7-9e81-468f0b8149c9
+    content: Enhance EnrichmentButton/DataEnrichment components to support third-party vendor selection (BVD, Open Corporates), job tracking, and results display ✅ COMPLETE
+    status: completed
+  - id: f997feea-41a7-45e3-877e-72d1416a5ae1
+    content: Add runtime API response validation using Zod schemas or type guards with development logging for type mismatches ✅ COMPLETE
+    status: completed
+  - id: dc20a432-b544-4a6d-9bcc-a60ffd6a61db
+    content: Add per-tab error boundaries to merchant details page with error fallback components and retry functionality ✅ COMPLETE
+    status: completed
+  - id: e70f95ce-d500-450d-a455-a9f61f93e704
+    content: Add refresh buttons to all data-fetching components with optimistic updates, pull-to-refresh, and last refresh timestamps ✅ COMPLETE (pull-to-refresh optional, deferred)
+    status: completed
+  - id: 3af63358-1374-407f-93ce-91d678d9cb16
+    content: Add ARIA labels, keyboard navigation, screen reader support, and ensure WCAG AA color contrast compliance for all components ✅ COMPLETE (manual screen reader testing deferred to Phase 6)
+    status: completed
+  - id: 4c60dbfc-382b-413c-a82d-1cd34a83ca4f
+    content: Write unit tests for all new components, API functions, and comparison logic with minimum 80% code coverage ✅ COMPLETE (tests created, coverage report pending execution)
+    status: completed
+  - id: 3389d988-3b2a-4970-969e-23b4bbc65bd3
+    content: Write integration tests for data display, error handling, user interactions, and accessibility requirements ✅ COMPLETE (automated tests complete, accessibility manual testing deferred)
+    status: completed
+  - id: a5ac331a-716d-4e56-9bd8-fc1b36612df5
+    content: "Test in Chrome, Firefox, and Safari production builds to verify no hydration errors and all data displays correctly ✅ COMPLETE (Phase 3: 30/30 hydration tests passed, data display covered in integration tests)"
+    status: completed
+---
+
 # Merchant Details: Data Display, Debugging & Enhancement Plan
 
 ## Executive Summary
@@ -1870,29 +1944,3 @@ Comprehensive testing of all implemented features with focus on data display, er
   - ⏸️ Pull-to-Refresh Mobile Testing - deferred to Phase 6 (optional enhancement)
 
 **Owner:** Development Team
-
-### To-dos
-
-- [ ] Update TypeScript Merchant and Address interfaces to include all backend fields (foundedDate, employeeCount, annualRevenue, metadata, createdBy, street1, street2, countryCode)
-- [ ] Update getMerchant() API function to map all backend fields to frontend types with validation and development logging
-- [ ] Add Financial Information card to MerchantOverviewTab displaying foundedDate, employeeCount, and annualRevenue with proper formatting
-- [ ] Enhance Address card to display street1, street2, and countryCode separately with proper formatting
-- [ ] Enhance Metadata card to display createdBy and metadata JSONB with expandable JSON viewer and syntax highlighting
-- [ ] Add data completeness indicator showing percentage of available fields with color-coded badge
-- [ ] Review BusinessAnalyticsTab to ensure all intelligence data (businessAge, employeeCount, annualRevenue) is displayed
-- [ ] Verify RiskAssessmentTab displays all risk data including explainability and recommendations sections
-- [ ] Fix PortfolioComparisonCard missing data errors with improved validation, type guards, and partial data display support
-- [ ] Add actionable CTAs to all error states (Run Assessment, Enrich Data, Refresh buttons) with specific error messages
-- [x] Investigate all remaining hydration error sources in merchant detail components and identify fixes needed ✅ COMPLETE
-- [x] Fix all date formatting hydration issues by ensuring client-side only formatting with useState + useEffect pattern ✅ COMPLETE
-- [x] Ensure RiskExplainabilitySection is integrated into RiskAssessmentTab and displays all SHAP values and feature importance ✅ COMPLETE
-- [x] Ensure RiskRecommendationsSection is integrated into RiskAssessmentTab and displays all recommendations grouped by priority ✅ COMPLETE
-- [x] Ensure RiskAlertsSection is integrated into RiskIndicatorsTab and displays all alerts grouped by severity ✅ COMPLETE
-- [x] Enhance EnrichmentButton/DataEnrichment components to support third-party vendor selection (BVD, Open Corporates), job tracking, and results display ✅ COMPLETE
-- [x] Add runtime API response validation using Zod schemas or type guards with development logging for type mismatches ✅ COMPLETE
-- [x] Add per-tab error boundaries to merchant details page with error fallback components and retry functionality ✅ COMPLETE
-- [x] Add refresh buttons to all data-fetching components with optimistic updates, pull-to-refresh, and last refresh timestamps ✅ COMPLETE (pull-to-refresh optional, deferred)
-- [x] Add ARIA labels, keyboard navigation, screen reader support, and ensure WCAG AA color contrast compliance for all components ✅ COMPLETE (manual screen reader testing deferred to Phase 6)
-- [x] Write unit tests for all new components, API functions, and comparison logic with minimum 80% code coverage ✅ COMPLETE (tests created, coverage report pending execution)
-- [x] Write integration tests for data display, error handling, user interactions, and accessibility requirements ✅ COMPLETE (automated tests complete, accessibility manual testing deferred)
-- [x] Test in Chrome, Firefox, and Safari production builds to verify no hydration errors and all data displays correctly ✅ COMPLETE (Phase 3: 30/30 hydration tests passed, data display covered in integration tests)
