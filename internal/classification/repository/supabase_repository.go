@@ -1848,6 +1848,519 @@ func (r *SupabaseKeywordRepository) getClassificationCodesByKeywordsFallback(
 	return []*ClassificationCodeWithMetadata{}, nil
 }
 
+// GetCodesByKeywords returns codes matching keywords with their weights (Phase 2)
+// This is a simpler version that returns codes directly from code_keywords table
+func (r *SupabaseKeywordRepository) GetCodesByKeywords(
+	ctx context.Context,
+	codeType string,
+	keywords []string,
+) []struct {
+	Code        string
+	Description string
+	Weight      float64
+} {
+	if len(keywords) == 0 {
+		return []struct {
+			Code        string
+			Description string
+			Weight      float64
+		}{}
+	}
+
+	r.logger.Printf("🔍 Getting codes by keywords: type=%s, keywords=%d", codeType, len(keywords))
+
+	if r.client == nil {
+		r.logger.Printf("⚠️ Database client not available")
+		return []struct {
+			Code        string
+			Description string
+			Weight      float64
+		}{}
+	}
+
+	// Query code_keywords table via PostgREST
+	postgrestClient := r.client.GetPostgrestClient()
+	if postgrestClient == nil {
+		r.logger.Printf("⚠️ PostgREST client not available")
+		return []struct {
+			Code        string
+			Description string
+			Weight      float64
+		}{}
+	}
+
+	// Build query: SELECT DISTINCT ck.code, cc.description, MAX(ck.weight) as max_weight
+	// FROM code_keywords ck
+	// JOIN classification_codes cc ON cc.code = ck.code AND cc.code_type = ck.code_type
+	// WHERE ck.code_type = $1 AND ck.keyword = ANY($2)
+	// GROUP BY ck.code, cc.description
+	// ORDER BY max_weight DESC LIMIT 10
+
+	// Use RPC function if available, otherwise use direct query
+	payload := map[string]interface{}{
+		"p_code_type": codeType,
+		"p_keywords":  keywords,
+		"p_limit":     10,
+	}
+
+	url := fmt.Sprintf("%s/rest/v1/rpc/get_codes_by_keywords", r.client.GetURL())
+	jsonPayload, err := json.Marshal(payload)
+	if err != nil {
+		r.logger.Printf("⚠️ Failed to marshal RPC payload: %v", err)
+		return []struct {
+			Code        string
+			Description string
+			Weight      float64
+		}{}
+	}
+
+	httpTimeout := 5 * time.Second
+	rpcCtx, rpcCancel := r.ensureValidContext(ctx, httpTimeout)
+	defer rpcCancel()
+
+	req, err := http.NewRequestWithContext(rpcCtx, "POST", url, bytes.NewBuffer(jsonPayload))
+	if err != nil {
+		r.logger.Printf("⚠️ Failed to create RPC request: %v", err)
+		return []struct {
+			Code        string
+			Description string
+			Weight      float64
+		}{}
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("apikey", r.client.GetServiceKey())
+	req.Header.Set("Authorization", "Bearer "+r.client.GetServiceKey())
+	req.Header.Set("Prefer", "return=representation")
+
+	httpClient := &http.Client{Timeout: httpTimeout}
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		r.logger.Printf("⚠️ GetCodesByKeywords RPC failed: %v", err)
+		return []struct {
+			Code        string
+			Description string
+			Weight      float64
+		}{}
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		r.logger.Printf("⚠️ GetCodesByKeywords returned status %d: %s", resp.StatusCode, string(body))
+		return []struct {
+			Code        string
+			Description string
+			Weight      float64
+		}{}
+	}
+
+	var results []struct {
+		Code        string  `json:"code"`
+		Description string  `json:"description"`
+		Weight      float64 `json:"max_weight"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&results); err != nil {
+		r.logger.Printf("⚠️ Failed to decode GetCodesByKeywords response: %v", err)
+		return []struct {
+			Code        string
+			Description string
+			Weight      float64
+		}{}
+	}
+
+	r.logger.Printf("✅ Retrieved %d codes by keywords for type %s", len(results), codeType)
+	
+	// Convert to return type (matching interface signature)
+	returnResults := make([]struct {
+		Code        string
+		Description string
+		Weight      float64
+	}, len(results))
+	for i, res := range results {
+		returnResults[i] = struct {
+			Code        string
+			Description string
+			Weight      float64
+		}{
+			Code:        res.Code,
+			Description: res.Description,
+			Weight:      res.Weight,
+		}
+	}
+	return returnResults
+}
+
+// GetCodesByTrigramSimilarity returns codes with similarity scores using trigram matching (Phase 2)
+func (r *SupabaseKeywordRepository) GetCodesByTrigramSimilarity(
+	ctx context.Context,
+	codeType string,
+	industryName string,
+	threshold float64,
+	limit int,
+) []struct {
+	Code        string
+	Description string
+	Similarity  float64
+} {
+	if industryName == "" {
+		return []struct {
+			Code        string
+			Description string
+			Similarity  float64
+		}{}
+	}
+
+	r.logger.Printf("🔍 Getting codes by trigram similarity: type=%s, threshold=%.2f, limit=%d", codeType, threshold, limit)
+
+	if r.client == nil {
+		return []struct {
+			Code        string
+			Description string
+			Similarity  float64
+		}{}
+	}
+
+	// Use RPC function for trigram similarity
+	payload := map[string]interface{}{
+		"p_code_type":      codeType,
+		"p_industry_name":  industryName,
+		"p_threshold":      threshold,
+		"p_limit":          limit,
+	}
+
+	url := fmt.Sprintf("%s/rest/v1/rpc/get_codes_by_trigram_similarity", r.client.GetURL())
+	jsonPayload, err := json.Marshal(payload)
+	if err != nil {
+		r.logger.Printf("⚠️ Failed to marshal trigram RPC payload: %v", err)
+		return []struct {
+			Code        string
+			Description string
+			Similarity  float64
+		}{}
+	}
+
+	httpTimeout := 5 * time.Second
+	rpcCtx, rpcCancel := r.ensureValidContext(ctx, httpTimeout)
+	defer rpcCancel()
+
+	req, err := http.NewRequestWithContext(rpcCtx, "POST", url, bytes.NewBuffer(jsonPayload))
+	if err != nil {
+		r.logger.Printf("⚠️ Failed to create trigram RPC request: %v", err)
+		return []struct {
+			Code        string
+			Description string
+			Similarity  float64
+		}{}
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("apikey", r.client.GetServiceKey())
+	req.Header.Set("Authorization", "Bearer "+r.client.GetServiceKey())
+	req.Header.Set("Prefer", "return=representation")
+
+	httpClient := &http.Client{Timeout: httpTimeout}
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		r.logger.Printf("⚠️ GetCodesByTrigramSimilarity RPC failed: %v", err)
+		return []struct {
+			Code        string
+			Description string
+			Similarity  float64
+		}{}
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		r.logger.Printf("⚠️ GetCodesByTrigramSimilarity returned status %d: %s", resp.StatusCode, string(body))
+		return []struct {
+			Code        string
+			Description string
+			Similarity  float64
+		}{}
+	}
+
+	var results []struct {
+		Code        string  `json:"code"`
+		Description string  `json:"description"`
+		Similarity  float64 `json:"similarity"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&results); err != nil {
+		r.logger.Printf("⚠️ Failed to decode trigram similarity response: %v", err)
+		return []struct {
+			Code        string
+			Description string
+			Similarity  float64
+		}{}
+	}
+
+	r.logger.Printf("✅ Retrieved %d codes by trigram similarity for type %s", len(results), codeType)
+	
+	// Convert to return type (matching interface signature)
+	returnResults := make([]struct {
+		Code        string
+		Description string
+		Similarity  float64
+	}, len(results))
+	for i, res := range results {
+		returnResults[i] = struct {
+			Code        string
+			Description string
+			Similarity  float64
+		}{
+			Code:        res.Code,
+			Description: res.Description,
+			Similarity:  res.Similarity,
+		}
+	}
+	return returnResults
+}
+
+// GetCrosswalks retrieves crosswalk relationships between code types (Phase 2)
+func (r *SupabaseKeywordRepository) GetCrosswalks(
+	ctx context.Context,
+	fromCodeType string,
+	fromCode string,
+	toCodeType string,
+) []struct {
+	ToCode        string
+	ToDescription string
+} {
+	if fromCodeType == "" || fromCode == "" || toCodeType == "" {
+		return []struct {
+			ToCode        string
+			ToDescription string
+		}{}
+	}
+
+	r.logger.Printf("🔍 Getting crosswalks: %s %s -> %s", fromCodeType, fromCode, toCodeType)
+
+	if r.client == nil {
+		return []struct {
+			ToCode        string
+			ToDescription string
+		}{}
+	}
+
+	// Try to use code_metadata table first (via CodeMetadataRepository pattern)
+	// If that doesn't work, fall back to industry_code_crosswalks table
+	// For now, we'll use a simple query pattern
+
+	postgrestClient := r.client.GetPostgrestClient()
+	if postgrestClient == nil {
+		return []struct {
+			ToCode        string
+			ToDescription string
+		}{}
+	}
+
+	// Query code_metadata for crosswalk data
+	// Use Limit(1) instead of Single() to handle cases where no results exist
+	response, _, err := postgrestClient.
+		From("code_metadata").
+		Select("crosswalk_data", "", false).
+		Eq("code_type", fromCodeType).
+		Eq("code", fromCode).
+		Eq("is_active", "true").
+		Limit(1, "").
+		Execute()
+
+	if err != nil {
+		r.logger.Printf("⚠️ Failed to get crosswalk data: %v", err)
+		return []struct {
+			ToCode        string
+			ToDescription string
+		}{}
+	}
+
+	// Handle array response (even with Limit(1), PostgREST returns an array)
+	var metadataArray []struct {
+		CrosswalkData map[string]interface{} `json:"crosswalk_data"`
+	}
+
+	if err := json.Unmarshal(response, &metadataArray); err != nil {
+		r.logger.Printf("⚠️ Failed to unmarshal crosswalk data as array: %v", err)
+		// Try as single object (fallback for older PostgREST versions)
+		var singleMetadata struct {
+			CrosswalkData map[string]interface{} `json:"crosswalk_data"`
+		}
+		if err2 := json.Unmarshal(response, &singleMetadata); err2 != nil {
+			r.logger.Printf("⚠️ Failed to unmarshal crosswalk data as single object: %v", err2)
+			return []struct {
+				ToCode        string
+				ToDescription string
+			}{}
+		}
+		metadataArray = []struct {
+			CrosswalkData map[string]interface{} `json:"crosswalk_data"`
+		}{singleMetadata}
+	}
+
+	// Check if we have any results
+	if len(metadataArray) == 0 {
+		r.logger.Printf("⚠️ No crosswalk data found for %s %s", fromCodeType, fromCode)
+		return []struct {
+			ToCode        string
+			ToDescription string
+		}{}
+	}
+
+	metadata := metadataArray[0]
+
+	// Extract codes for the target type
+	var results []struct {
+		ToCode        string
+		ToDescription string
+	}
+
+	// Look for the target code type in crosswalk_data (e.g., "naics", "sic", "mcc")
+	targetKey := strings.ToLower(toCodeType)
+	if codes, ok := metadata.CrosswalkData[targetKey].([]interface{}); ok {
+		for _, codeVal := range codes {
+			if codeStr, ok := codeVal.(string); ok {
+				// Get description for the code
+				// Use Limit(1) instead of Single() to handle array responses
+				descResp, _, err := postgrestClient.
+					From("classification_codes").
+					Select("description", "", false).
+					Eq("code_type", toCodeType).
+					Eq("code", codeStr).
+					Limit(1, "").
+					Execute()
+
+				description := ""
+				if err == nil {
+					// Handle array response
+					var codeDataArray []struct {
+						Description string `json:"description"`
+					}
+					if err := json.Unmarshal(descResp, &codeDataArray); err == nil && len(codeDataArray) > 0 {
+						description = codeDataArray[0].Description
+					} else {
+						// Try as single object (fallback)
+						var codeData struct {
+							Description string `json:"description"`
+						}
+						if err2 := json.Unmarshal(descResp, &codeData); err2 == nil {
+							description = codeData.Description
+						}
+					}
+				}
+
+				results = append(results, struct {
+					ToCode        string
+					ToDescription string
+				}{
+					ToCode:        codeStr,
+					ToDescription: description,
+				})
+
+				if len(results) >= 5 { // Limit to 5
+					break
+				}
+			}
+		}
+	}
+
+	r.logger.Printf("✅ Retrieved %d crosswalk codes from %s %s to %s", len(results), fromCodeType, fromCode, toCodeType)
+	return results
+}
+
+// GetIndustriesByKeyword returns industries matching a keyword with minimum weight (Phase 2: Fast path)
+func (r *SupabaseKeywordRepository) GetIndustriesByKeyword(
+	ctx context.Context,
+	keyword string,
+	minWeight float64,
+) []struct {
+	Name   string
+	Weight float64
+} {
+	if keyword == "" {
+		return []struct {
+			Name   string
+			Weight float64
+		}{}
+	}
+
+	r.logger.Printf("🔍 Getting industries by keyword: %s (minWeight: %.2f)", keyword, minWeight)
+
+	if r.client == nil {
+		return []struct {
+			Name   string
+			Weight float64
+		}{}
+	}
+
+	postgrestClient := r.client.GetPostgrestClient()
+	if postgrestClient == nil {
+		return []struct {
+			Name   string
+			Weight float64
+		}{}
+	}
+
+	// Query industry_keywords table joined with industries
+	// SELECT i.name, ik.weight
+	// FROM industry_keywords ik
+	// JOIN industries i ON i.id = ik.industry_id
+	// WHERE LOWER(ik.keyword) = LOWER($1) AND ik.weight >= $2 AND ik.is_active = true
+	// ORDER BY ik.weight DESC LIMIT 5
+
+	response, _, err := postgrestClient.
+		From("industry_keywords").
+		Select("industries!inner(name),weight", "", false).
+		Ilike("keyword", keyword).
+		Gte("weight", fmt.Sprintf("%.2f", minWeight)).
+		Eq("is_active", "true").
+		Order("weight", &postgrest.OrderOpts{Ascending: false}).
+		Limit(5, "").
+		Execute()
+
+	if err != nil {
+		r.logger.Printf("⚠️ Failed to get industries by keyword: %v", err)
+		return []struct {
+			Name   string
+			Weight float64
+		}{}
+	}
+
+	var results []struct {
+		Industries struct {
+			Name string `json:"name"`
+		} `json:"industries"`
+		Weight float64 `json:"weight"`
+	}
+
+	if err := json.Unmarshal(response, &results); err != nil {
+		r.logger.Printf("⚠️ Failed to decode industries by keyword response: %v", err)
+		return []struct {
+			Name   string
+			Weight float64
+		}{}
+	}
+
+	// Convert to return type
+	returnResults := make([]struct {
+		Name   string
+		Weight float64
+	}, len(results))
+	for i, r := range results {
+		returnResults[i] = struct {
+			Name   string
+			Weight float64
+		}{
+			Name:   r.Industries.Name,
+			Weight: r.Weight,
+		}
+	}
+
+	r.logger.Printf("✅ Retrieved %d industries by keyword %s", len(returnResults), keyword)
+	return returnResults
+}
+
 // GetClassificationCodesByType retrieves classification codes by type (NAICS, MCC, SIC)
 func (r *SupabaseKeywordRepository) GetClassificationCodesByType(ctx context.Context, codeType string) ([]*ClassificationCode, error) {
 	r.logger.Printf("🔍 Getting classification codes by type: %s", codeType)
@@ -6802,4 +7315,89 @@ func (r *SupabaseKeywordRepository) BatchFindIndustryTopics(ctx context.Context,
 
 	r.logger.Printf("✅ Batch found topic matches for %d keywords", len(topicMatches))
 	return topicMatches, nil
+}
+
+// =============================================================================
+// Vector Similarity Search (Phase 3)
+// =============================================================================
+
+// MatchCodeEmbeddings performs vector similarity search for code embeddings
+func (r *SupabaseKeywordRepository) MatchCodeEmbeddings(
+	ctx context.Context,
+	embedding []float64,
+	codeType string,
+	threshold float64,
+	limit int,
+) ([]CodeMatch, error) {
+	if r.client == nil {
+		return nil, fmt.Errorf("database client not available")
+	}
+
+	r.logger.Printf("🔍 [Phase 3] Matching codes by embedding (type: %s, threshold: %.2f, limit: %d)", codeType, threshold, limit)
+
+	// Call database function via PostgREST RPC
+	payload := map[string]interface{}{
+		"query_embedding":   embedding,
+		"code_type_filter":  codeType,
+		"match_threshold":   threshold,
+		"match_count":       limit,
+	}
+
+	jsonPayload, err := json.Marshal(payload)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal RPC payload: %w", err)
+	}
+
+	url := fmt.Sprintf("%s/rest/v1/rpc/match_code_embeddings", r.client.GetURL())
+
+	// Ensure context has sufficient time for HTTP request
+	httpTimeout := 5 * time.Second
+	rpcCtx, rpcCancel := r.ensureValidContext(ctx, httpTimeout)
+	defer rpcCancel()
+
+	req, err := http.NewRequestWithContext(rpcCtx, "POST", url, bytes.NewBuffer(jsonPayload))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create RPC request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("apikey", r.client.GetServiceKey())
+	req.Header.Set("Authorization", "Bearer "+r.client.GetServiceKey())
+	req.Header.Set("Prefer", "return=representation")
+
+	httpClient := &http.Client{Timeout: httpTimeout}
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("RPC call failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("RPC call returned status %d: %s", resp.StatusCode, string(body))
+	}
+
+	var results []struct {
+		Code        string  `json:"code"`
+		CodeType    string  `json:"code_type"`
+		Description string  `json:"description"`
+		Similarity  float64 `json:"similarity"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&results); err != nil {
+		return nil, fmt.Errorf("failed to decode RPC response: %w", err)
+	}
+
+	// Convert to CodeMatch
+	matches := make([]CodeMatch, 0, len(results))
+	for _, result := range results {
+		matches = append(matches, CodeMatch{
+			Code:        result.Code,
+			Description: result.Description,
+			Similarity:  result.Similarity,
+		})
+	}
+
+	r.logger.Printf("✅ [Phase 3] Found %d code matches by embedding", len(matches))
+	return matches, nil
 }

@@ -68,6 +68,8 @@ type ClassificationConfig struct {
 	EarlyTerminationConfidenceThreshold float64
 	MinContentLengthForML               int
 	SkipFullCrawlIfContentSufficient    bool
+	// Phase 3: Embedding service configuration
+	EmbeddingServiceURL string // URL of the embedding service (optional)
 }
 
 // LoggingConfig holds logging configurations
@@ -129,6 +131,8 @@ func Load() (*Config, error) {
 			EarlyTerminationConfidenceThreshold: getEnvAsFloat("EARLY_TERMINATION_CONFIDENCE_THRESHOLD", 0.85),
 			MinContentLengthForML:               getEnvAsInt("MIN_CONTENT_LENGTH_FOR_ML", 50),
 			SkipFullCrawlIfContentSufficient:    getEnvAsBool("SKIP_FULL_CRAWL_IF_CONTENT_SUFFICIENT", true),
+			// Phase 3: Embedding service configuration
+			EmbeddingServiceURL: getEnvAsString("EMBEDDING_SERVICE_URL", ""),
 		},
 		Logging: LoggingConfig{
 			Level:  getEnvAsString("LOG_LEVEL", "info"),

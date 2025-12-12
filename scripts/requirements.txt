@@ -5,3 +5,8 @@ requests>=2.31.0
 supabase>=2.0.0
 pandas>=2.0.0
 python-dotenv>=1.0.0
+
+# Embedding pre-computation dependencies (Phase 3)
+sentence-transformers==2.2.2
+tqdm==4.66.1
+torch==2.1.0

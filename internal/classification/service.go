@@ -3,13 +3,16 @@ package classification
 import (
 	"context"
 	"fmt"
+	"io"
 	"log"
 	"math"
+	"net/http"
 	"strings"
 	"sync"
 	"time"
 
 	"kyb-platform/internal/classification/repository"
+	"kyb-platform/internal/external"
 	"kyb-platform/internal/machine_learning"
 )
 
@@ -59,6 +62,9 @@ type IndustryDetectionService struct {
 	useML                  bool                                 // Flag to enable ML
 	metrics                *ClassificationMetrics               // Classification accuracy metrics
 	inFlightRequests       sync.Map                             // map[string]*inFlightRequest - for request deduplication
+	confidenceCalibrator   *ConfidenceCalibrator                 // Phase 2: Confidence calibration
+	explanationGenerator   *ExplanationGenerator                 // Phase 2: Explanation generation
+	embeddingClassifier    *EmbeddingClassifier                 // Phase 3: Embedding-based classification
 }
 
 // NewIndustryDetectionService creates a new industry detection service
@@ -76,6 +82,8 @@ func NewIndustryDetectionService(repo repository.KeywordRepository, logger *log.
 		pythonMLService:        nil,
 		useML:                  false,
 		metrics:                NewClassificationMetrics(),
+		confidenceCalibrator:   NewConfidenceCalibrator(logger), // Phase 2: Initialize confidence calibrator
+		explanationGenerator:   NewExplanationGenerator(),       // Phase 2: Initialize explanation generator
 	}
 }
 
@@ -96,13 +104,7 @@ func NewIndustryDetectionServiceWithML(
 		logger = log.Default()
 	}
 
-	if pythonMLService != nil {
-		logger.Printf("✅ IndustryDetectionService initialized with ML support (Python ML service enabled)")
-	} else {
-		logger.Printf("✅ IndustryDetectionService initialized with ML support (Go ML classifier only)")
-	}
-
-	return &IndustryDetectionService{
+	svc := &IndustryDetectionService{
 		repo:                 repo,
 		logger:               logger,
 		monitor:              nil,
@@ -111,7 +113,17 @@ func NewIndustryDetectionServiceWithML(
 		pythonMLService:        pythonMLService,
 		useML:                  true,
 		metrics:                NewClassificationMetrics(),
+		confidenceCalibrator:   NewConfidenceCalibrator(logger), // Phase 2: Initialize confidence calibrator
+		explanationGenerator:   NewExplanationGenerator(),       // Phase 2: Initialize explanation generator
 	}
+
+	if pythonMLService != nil {
+		logger.Printf("✅ IndustryDetectionService initialized with ML support (Python ML service enabled)")
+	} else {
+		logger.Printf("✅ IndustryDetectionService initialized with ML support (Go ML classifier only)")
+	}
+
+	return svc
 }
 
 // NewIndustryDetectionServiceWithMonitoring creates a new industry detection service with monitoring
@@ -227,13 +239,14 @@ func (s *IndustryDetectionService) GetClassificationMetrics() *ClassificationMet
 
 // IndustryDetectionResult represents the result of industry detection
 type IndustryDetectionResult struct {
-	IndustryName   string        `json:"industry_name"`
-	Confidence     float64       `json:"confidence"`
-	Keywords       []string      `json:"keywords"`
-	ProcessingTime time.Duration `json:"processing_time"`
-	Method         string        `json:"method"`
-	Reasoning      string        `json:"reasoning"`
-	CreatedAt      time.Time     `json:"created_at"`
+	IndustryName   string                   `json:"industry_name"`
+	Confidence     float64                  `json:"confidence"`
+	Keywords       []string                 `json:"keywords"`
+	ProcessingTime time.Duration            `json:"processing_time"`
+	Method         string                   `json:"method"`
+	Reasoning      string                   `json:"reasoning"`
+	Explanation    *ClassificationExplanation `json:"explanation,omitempty"` // Phase 2: Structured explanation
+	CreatedAt      time.Time                `json:"created_at"`
 }
 
 // normalizeString normalizes a string for cache key generation
@@ -328,6 +341,109 @@ func (s *IndustryDetectionService) performClassification(ctx context.Context, bu
 		return s.fallbackToKeywordClassification(ctx, businessName, description, websiteURL, startTime, requestID)
 	}
 
+	// Phase 2: Use method from multiResult if available, otherwise default to "multi_strategy"
+	resultMethod := multiResult.Method
+	if resultMethod == "" {
+		resultMethod = "multi_strategy"
+	}
+	s.logger.Printf("📊 [Phase 2] Classification method: %s (request: %s)", resultMethod, requestID)
+
+	// Phase 2: Apply confidence calibration
+	// Extract strategy scores from strategies
+	strategyScores := make(map[string]float64)
+	for _, strategy := range multiResult.Strategies {
+		strategyScores[strategy.StrategyName] = strategy.Score
+	}
+
+	// For now, we'll use a default content quality (can be enhanced later with actual scraping quality)
+	contentQualityForCalibration := 0.7 // Default, can be improved when we have actual content quality data
+	if multiResult.Confidence > 0.8 {
+		contentQualityForCalibration = 0.85 // High confidence suggests good content
+	} else if multiResult.Confidence < 0.5 {
+		contentQualityForCalibration = 0.5 // Low confidence suggests poor content
+	}
+
+	// Calibrate confidence (code agreement will be calculated later when codes are generated)
+	codeAgreement := 0.7 // Default, will be updated when codes are available
+	calibratedConfidence := s.confidenceCalibrator.CalibrateConfidence(
+		strategyScores,
+		contentQualityForCalibration,
+		codeAgreement,
+		"multi_strategy",
+	)
+
+	s.logger.Printf("📊 [Phase 2] Confidence calibration: %.2f%% -> %.2f%% (request: %s)",
+		multiResult.Confidence*100, calibratedConfidence*100, requestID)
+
+	// Update multiResult with calibrated confidence
+	multiResult.Confidence = calibratedConfidence
+
+	// Phase 3: Layer 2 routing - Try embeddings if Layer 1 confidence is low
+	// Decision: Use Layer 1 or try Layer 2?
+	const layer2Threshold = 0.80
+
+	if multiResult.Confidence >= 0.90 {
+		// High confidence - use Layer 1
+		s.logger.Printf("✅ [Phase 3] High confidence (%.2f%%) >= 90%%, using Layer 1 result (request: %s)",
+			multiResult.Confidence*100, requestID)
+		result := s.convertToIndustryDetectionResult(multiResult, resultMethod, requestID)
+		result.Method = "layer1"
+		return result, nil
+	}
+
+	if multiResult.Confidence >= layer2Threshold {
+		// Good confidence - use Layer 1
+		s.logger.Printf("✅ [Phase 3] Good confidence (%.2f%%) >= 80%%, using Layer 1 result (request: %s)",
+			multiResult.Confidence*100, requestID)
+		result := s.convertToIndustryDetectionResult(multiResult, resultMethod, requestID)
+		result.Method = "layer1_medium_conf"
+		return result, nil
+	}
+
+	// Lower confidence (<0.80) - try Layer 2 (Embeddings) if available
+	if s.embeddingClassifier != nil && websiteURL != "" {
+		s.logger.Printf("🔍 [Phase 3] Layer 1 confidence (%.2f%%) < 80%%, trying Layer 2 (Embeddings) (request: %s)",
+			multiResult.Confidence*100, requestID)
+
+		// Get ScrapedContent for Layer 2
+		scrapedContent, err := s.getScrapedContentForLayer2(ctx, websiteURL)
+		if err != nil {
+			s.logger.Printf("⚠️ [Phase 3] Failed to get scraped content for Layer 2: %v, falling back to Layer 1 (request: %s)", err, requestID)
+			result := s.convertToIndustryDetectionResult(multiResult, resultMethod, requestID)
+			result.Method = "layer1_fallback"
+			return result, nil
+		}
+
+		// Try Layer 2 classification
+		layer2Result, err := s.embeddingClassifier.ClassifyByEmbedding(ctx, scrapedContent)
+		if err != nil {
+			s.logger.Printf("⚠️ [Phase 3] Layer 2 classification failed: %v, falling back to Layer 1 (request: %s)", err, requestID)
+			result := s.convertToIndustryDetectionResult(multiResult, resultMethod, requestID)
+			result.Method = "layer1_fallback"
+			return result, nil
+		}
+
+		s.logger.Printf("✅ [Phase 3] Layer 2 complete (confidence: %.2f%%, top_match: %s) (request: %s)",
+			layer2Result.Confidence*100, layer2Result.TopMatch, requestID)
+
+		// Compare Layer 1 vs Layer 2
+		if layer2Result.Confidence > multiResult.Confidence+0.05 {
+			// Layer 2 is meaningfully better
+			s.logger.Printf("✅ [Phase 3] Using Layer 2 result (Layer 2: %.2f%% vs Layer 1: %.2f%%) (request: %s)",
+				layer2Result.Confidence*100, multiResult.Confidence*100, requestID)
+			result := s.buildResultFromEmbedding(layer2Result, "layer2_embedding", requestID)
+			return result, nil
+		} else {
+			// Layer 1 and Layer 2 similar, prefer Layer 1 (more explainable)
+			s.logger.Printf("ℹ️ [Phase 3] Layer 1 and Layer 2 similar, using Layer 1 (Layer 1: %.2f%%, Layer 2: %.2f%%) (request: %s)",
+				multiResult.Confidence*100, layer2Result.Confidence*100, requestID)
+			result := s.convertToIndustryDetectionResult(multiResult, resultMethod, requestID)
+			result.Method = "layer1_validated"
+			return result, nil
+		}
+	}
+
+	// Layer 2 not available or no website URL - continue with existing ML logic
 	// Step 2: Determine ML strategy based on confidence level
 	// Phase 3.1: Three-tier confidence-based ML strategy
 	const (
@@ -340,7 +456,7 @@ func (s *IndustryDetectionService) performClassification(ctx context.Context, bu
 	if !s.useML || s.mlClassifier == nil {
 		// ML not available - use base result
 		s.logger.Printf("ℹ️ ML not available, using base classification result (request: %s)", requestID)
-		result = s.convertToIndustryDetectionResult(multiResult, "multi_strategy", requestID)
+		result = s.convertToIndustryDetectionResult(multiResult, resultMethod, requestID)
 	} else if multiResult.Confidence < lowConfidenceThreshold {
 		// Low confidence (< 0.5): ML-assisted improvement
 		s.logger.Printf("🔧 Low confidence (%.2f%%) < %.2f%%, using ML-assisted improvement (request: %s)",
@@ -348,7 +464,7 @@ func (s *IndustryDetectionService) performClassification(ctx context.Context, bu
 		result, err = s.improveWithML(ctx, multiResult, businessName, description, websiteURL, requestID)
 		if err != nil {
 			s.logger.Printf("⚠️ ML improvement failed (non-fatal): %v, using base result (request: %s)", err, requestID)
-			result = s.convertToIndustryDetectionResult(multiResult, "multi_strategy", requestID)
+			result = s.convertToIndustryDetectionResult(multiResult, resultMethod, requestID)
 		}
 	} else if multiResult.Confidence < highConfidenceThreshold {
 		// Medium confidence (0.5-0.8): Ensemble validation
@@ -357,7 +473,7 @@ func (s *IndustryDetectionService) performClassification(ctx context.Context, bu
 		result, err = s.validateWithEnsemble(ctx, multiResult, businessName, description, websiteURL, requestID)
 		if err != nil {
 			s.logger.Printf("⚠️ Ensemble validation failed (non-fatal): %v, using base result (request: %s)", err, requestID)
-			result = s.convertToIndustryDetectionResult(multiResult, "multi_strategy", requestID)
+			result = s.convertToIndustryDetectionResult(multiResult, resultMethod, requestID)
 		}
 	} else {
 		// High confidence (>= 0.8): ML validation only
@@ -366,7 +482,7 @@ func (s *IndustryDetectionService) performClassification(ctx context.Context, bu
 		result, err = s.validateWithMLHighConfidence(ctx, multiResult, businessName, description, websiteURL, requestID)
 		if err != nil {
 			s.logger.Printf("⚠️ ML validation failed (non-fatal): %v, using base result (request: %s)", err, requestID)
-			result = s.convertToIndustryDetectionResult(multiResult, "multi_strategy", requestID)
+			result = s.convertToIndustryDetectionResult(multiResult, resultMethod, requestID)
 		}
 	}
 
@@ -376,6 +492,33 @@ func (s *IndustryDetectionService) performClassification(ctx context.Context, bu
 		// For now, we'll skip monitoring if method doesn't exist
 		// This can be added later when monitoring is fully integrated
 	}
+
+	// Phase 2: Generate explanation (codes will be added later in handler if available)
+	// Estimate content quality for explanation
+	contentQuality := 0.7
+	if result.Confidence > 0.8 {
+		contentQuality = 0.85
+	} else if result.Confidence < 0.5 {
+		contentQuality = 0.5
+	}
+
+	// Convert result back to MultiStrategyResult for explanation generation
+	multiResultForExplanation := &MultiStrategyResult{
+		PrimaryIndustry: result.IndustryName,
+		Confidence:      result.Confidence,
+		Keywords:        result.Keywords,
+		Method:          result.Method,
+		Reasoning:       result.Reasoning,
+		ProcessingTime:  result.ProcessingTime,
+	}
+
+	// Generate explanation (codes will be nil for now, can be enhanced in handler)
+	explanation := s.explanationGenerator.GenerateExplanation(
+		multiResultForExplanation,
+		nil, // Codes not available at service level, will be added in handler
+		contentQuality,
+	)
+	result.Explanation = explanation
 
 	s.logger.Printf("✅ Industry detection completed: %s (confidence: %.2f%%) (request: %s)",
 		result.IndustryName, result.Confidence*100, requestID)
@@ -389,13 +532,38 @@ func (s *IndustryDetectionService) convertToIndustryDetectionResult(
 	method string,
 	requestID string,
 ) *IndustryDetectionResult {
+	// Phase 2: Generate explanation for the result
+	contentQuality := 0.7
+	if multiResult.Confidence > 0.8 {
+		contentQuality = 0.85
+	} else if multiResult.Confidence < 0.5 {
+		contentQuality = 0.5
+	}
+
+	// Generate explanation (codes will be added later in handler if available)
+	explanation := s.explanationGenerator.GenerateExplanation(
+		multiResult,
+		nil, // Codes not available at this level
+		contentQuality,
+	)
+
+	// Phase 2: Use method from multiResult if provided, otherwise use passed method
+	resultMethod := method
+	if multiResult.Method != "" {
+		resultMethod = multiResult.Method
+	}
+	if resultMethod == "" {
+		resultMethod = "multi_strategy"
+	}
+
 	return &IndustryDetectionResult{
 		IndustryName:   multiResult.PrimaryIndustry,
 		Confidence:     multiResult.Confidence,
 		Keywords:       multiResult.Keywords,
 		ProcessingTime: multiResult.ProcessingTime,
-		Method:         method,
+		Method:         resultMethod, // Phase 2: Use method from multiResult
 		Reasoning:      multiResult.Reasoning,
+		Explanation:    explanation, // Phase 2: Include explanation
 		CreatedAt:      time.Now(),
 	}
 }
@@ -978,5 +1146,115 @@ func (s *IndustryDetectionService) GetIndustryDetectionStatistics() map[string]i
 		"hardcoded_patterns": false,
 		"monitoring_enabled": s.monitor != nil,
 		"created_at":         time.Now(),
+	}
+}
+
+// SetEmbeddingClassifier sets the embedding classifier for Layer 2 (Phase 3)
+func (s *IndustryDetectionService) SetEmbeddingClassifier(embeddingClassifier *EmbeddingClassifier) {
+	s.embeddingClassifier = embeddingClassifier
+	s.logger.Printf("✅ [Phase 3] Embedding classifier set for Layer 2")
+}
+
+// getScrapedContentForLayer2 gets ScrapedContent for Layer 2 classification
+// This is a simplified version - in production, you may want to use a cached scraper
+func (s *IndustryDetectionService) getScrapedContentForLayer2(ctx context.Context, websiteURL string) (*external.ScrapedContent, error) {
+	if websiteURL == "" {
+		return nil, fmt.Errorf("website URL is required for Layer 2")
+	}
+
+	// For now, create a basic scraper instance
+	// In production, you may want to reuse an existing scraper from the service
+	// Note: external.NewWebsiteScraper requires a zap.Logger, but we only have log.Logger
+	// For now, we'll create a minimal scraper or use a simpler approach
+	// TODO: Consider adding a scraper field to IndustryDetectionService or using a shared scraper
+	
+	// Create a basic HTTP client to fetch the page
+	// This is a simplified version - in production, use the full WebsiteScraper
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+	
+	req, err := http.NewRequestWithContext(ctx, "GET", websiteURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+	req.Header.Set("User-Agent", "KYB-Platform-Bot/1.0")
+	
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch website: %w", err)
+	}
+	defer resp.Body.Close()
+	
+	// Read content (simplified - in production, use full scraper)
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response: %w", err)
+	}
+
+	// Create basic ScrapedContent
+	// In production, this should use the full WebsiteScraper with structured extraction
+	return &external.ScrapedContent{
+		RawHTML:   string(body),
+		PlainText: string(body),
+		Title:     "", // Will be extracted if available
+		Domain:    websiteURL,
+		ScrapedAt: time.Now(),
+	}, nil
+}
+
+// buildResultFromEmbedding builds IndustryDetectionResult from EmbeddingClassificationResult
+func (s *IndustryDetectionService) buildResultFromEmbedding(
+	embResult *EmbeddingClassificationResult,
+	method string,
+	requestID string,
+) *IndustryDetectionResult {
+	// Derive primary industry from top MCC match
+	primaryIndustry := "Unknown"
+	if len(embResult.MCC) > 0 {
+		primaryIndustry = embResult.MCC[0].Description
+	}
+
+	// Generate reasoning
+	reasoning := fmt.Sprintf(
+		"Semantic similarity analysis matched '%s' with %.0f%% confidence",
+		embResult.TopMatch,
+		embResult.TopSimilarity*100,
+	)
+
+	// Estimate content quality for explanation
+	contentQuality := 0.7
+	if embResult.Confidence > 0.8 {
+		contentQuality = 0.85
+	} else if embResult.Confidence < 0.5 {
+		contentQuality = 0.5
+	}
+
+	// Create MultiStrategyResult for explanation generation
+	multiResultForExplanation := &MultiStrategyResult{
+		PrimaryIndustry: primaryIndustry,
+		Confidence:      embResult.Confidence,
+		Keywords:        []string{}, // Embeddings don't use keywords
+		Method:          embResult.Method,
+		Reasoning:       reasoning,
+		ProcessingTime:  time.Duration(embResult.ProcessingTimeMs) * time.Millisecond,
+	}
+
+	// Generate explanation
+	explanation := s.explanationGenerator.GenerateExplanation(
+		multiResultForExplanation,
+		nil, // Codes not available at service level
+		contentQuality,
+	)
+
+	return &IndustryDetectionResult{
+		IndustryName:   primaryIndustry,
+		Confidence:     embResult.Confidence,
+		Keywords:       []string{}, // Embeddings don't use keywords
+		ProcessingTime: time.Duration(embResult.ProcessingTimeMs) * time.Millisecond,
+		Method:         method,
+		Reasoning:      reasoning,
+		Explanation:    explanation,
+		CreatedAt:      time.Now(),
 	}
 }

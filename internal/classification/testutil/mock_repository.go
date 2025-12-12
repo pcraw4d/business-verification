@@ -685,3 +685,205 @@ func (m *MockKeywordRepository) FindCodesByFullTextSearch(ctx context.Context, s
 	return []*repository.ClassificationCode{}, nil
 }
 
+// Phase 2: New methods for enhanced code retrieval
+
+// GetCodesByKeywords returns codes matching keywords with their weights (Phase 2)
+func (m *MockKeywordRepository) GetCodesByKeywords(ctx context.Context, codeType string, keywords []string) []struct {
+	Code        string
+	Description string
+	Weight      float64
+} {
+	result := []struct {
+		Code        string
+		Description string
+		Weight      float64
+	}{}
+	
+	for _, keyword := range keywords {
+		if codes, exists := m.keywordCodes[keyword]; exists {
+			for _, code := range codes {
+				if code.ClassificationCode.CodeType == codeType {
+					result = append(result, struct {
+						Code        string
+						Description string
+						Weight      float64
+					}{
+						Code:        code.ClassificationCode.Code,
+						Description: code.ClassificationCode.Description,
+						Weight:      code.RelevanceScore,
+					})
+				}
+			}
+		}
+	}
+	
+	return result
+}
+
+// GetCodesByTrigramSimilarity returns codes with similarity scores using trigram matching (Phase 2)
+func (m *MockKeywordRepository) GetCodesByTrigramSimilarity(
+	ctx context.Context,
+	codeType string,
+	industryName string,
+	threshold float64,
+	limit int,
+) []struct {
+	Code        string
+	Description string
+	Similarity  float64
+} {
+	result := []struct {
+		Code        string
+		Description string
+		Similarity  float64
+	}{}
+	
+	// Mock implementation - return codes from industries matching the name
+	for _, industry := range m.industries {
+		if codes, exists := m.codesByIndustry[industry.ID]; exists {
+			for _, code := range codes {
+				if code.CodeType == codeType && len(result) < limit {
+					// Mock similarity score
+					similarity := 0.75
+					if similarity >= threshold {
+						result = append(result, struct {
+							Code        string
+							Description string
+							Similarity  float64
+						}{
+							Code:        code.Code,
+							Description: code.Description,
+							Similarity:  similarity,
+						})
+					}
+				}
+			}
+		}
+	}
+	
+	return result
+}
+
+// GetCrosswalks retrieves crosswalk relationships between code types (Phase 2)
+func (m *MockKeywordRepository) GetCrosswalks(
+	ctx context.Context,
+	fromCodeType string,
+	fromCode string,
+	toCodeType string,
+) []struct {
+	ToCode        string
+	ToDescription string
+} {
+	result := []struct {
+		ToCode        string
+		ToDescription string
+	}{}
+	
+	// Mock implementation - find codes of the same industry but different type
+	for _, codes := range m.codesByIndustry {
+		for _, code := range codes {
+			if code.CodeType == fromCodeType && code.Code == fromCode {
+				// Find related codes of target type
+				for _, relatedCode := range codes {
+					if relatedCode.CodeType == toCodeType {
+						result = append(result, struct {
+							ToCode        string
+							ToDescription string
+						}{
+							ToCode:        relatedCode.Code,
+							ToDescription: relatedCode.Description,
+						})
+						if len(result) >= 5 {
+							return result
+						}
+					}
+				}
+			}
+		}
+	}
+	
+	return result
+}
+
+// GetIndustriesByKeyword returns industries matching a keyword with minimum weight (Phase 2: Fast path)
+func (m *MockKeywordRepository) GetIndustriesByKeyword(
+	ctx context.Context,
+	keyword string,
+	minWeight float64,
+) []struct {
+	Name   string
+	Weight float64
+} {
+	result := []struct {
+		Name   string
+		Weight float64
+	}{}
+	
+	// Find industries with this keyword
+	for industryID, keywords := range m.keywordsByIndustry {
+		for _, kw := range keywords {
+			if kw.Keyword == keyword && kw.Weight >= minWeight {
+				if industry, exists := m.industries[industryID]; exists {
+					result = append(result, struct {
+						Name   string
+						Weight float64
+					}{
+						Name:   industry.Name,
+						Weight: kw.Weight,
+					})
+					break // One match per industry
+				}
+			}
+		}
+	}
+	
+	return result
+}
+
+// MatchCodeEmbeddings performs vector similarity search for code embeddings (Phase 3)
+func (m *MockKeywordRepository) MatchCodeEmbeddings(
+	ctx context.Context,
+	embedding []float64,
+	codeType string,
+	threshold float64,
+	limit int,
+) ([]repository.CodeMatch, error) {
+	if err := m.errorMap["MatchCodeEmbeddings"]; err != nil {
+		return nil, err
+	}
+	
+	// Mock implementation - return codes matching the type with mock similarity scores
+	result := []repository.CodeMatch{}
+	
+	// Get codes by type
+	codes, exists := m.codesByType[codeType]
+	if !exists {
+		// Fallback: get codes from all industries
+		for _, codesList := range m.codesByIndustry {
+			for _, code := range codesList {
+				if code.CodeType == codeType {
+					codes = append(codes, code)
+				}
+			}
+		}
+	}
+	
+	// Return mock matches with similarity scores above threshold
+	for i, code := range codes {
+		if i >= limit {
+			break
+		}
+		// Mock similarity score (decreasing with index)
+		similarity := 0.9 - float64(i)*0.1
+		if similarity >= threshold {
+			result = append(result, repository.CodeMatch{
+				Code:        code.Code,
+				Description: code.Description,
+				Similarity:  similarity,
+			})
+		}
+	}
+	
+	return result, nil
+}
+

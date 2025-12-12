@@ -204,10 +204,26 @@ func main() {
 		logger.Info("ℹ️ Python ML Service URL not configured, enhanced classification will not be available")
 	}
 
+	// Phase 3: Initialize embedding classifier if URL is configured
+	if cfg.Classification.EmbeddingServiceURL != "" {
+		logger.Info("🔍 Initializing Embedding Classifier (Phase 3)",
+			zap.String("url", cfg.Classification.EmbeddingServiceURL))
+		embeddingClassifier := classification.NewEmbeddingClassifier(
+			cfg.Classification.EmbeddingServiceURL,
+			keywordRepoInstance,
+			stdLogger,
+		)
+		industryDetector.SetEmbeddingClassifier(embeddingClassifier)
+		logger.Info("✅ Embedding Classifier initialized and set on Industry Detection Service")
+	} else {
+		logger.Info("ℹ️ Embedding Service URL not configured, Layer 2 (embeddings) will not be available")
+	}
+
 	logger.Info("✅ Classification services initialized",
 		zap.Bool("industry_detector", industryDetector != nil),
 		zap.Bool("code_generator", codeGenerator != nil),
-		zap.Bool("python_ml_service", pythonMLService != nil))
+		zap.Bool("python_ml_service", pythonMLService != nil),
+		zap.Bool("embedding_classifier", cfg.Classification.EmbeddingServiceURL != ""))
 
 	// Initialize handlers
 	classificationHandler := handlers.NewClassificationHandler(

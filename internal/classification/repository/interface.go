@@ -178,6 +178,36 @@ type KeywordRepository interface {
 	// Batch Queries (Phase 2.2)
 	BatchFindKeywords(ctx context.Context, keywords []string) (map[string][]IndustryMatch, error)
 	BatchFindIndustryTopics(ctx context.Context, keywords []string) (map[string][]TopicMatch, error)
+
+	// Phase 2: Enhanced code retrieval methods
+	GetCodesByKeywords(ctx context.Context, codeType string, keywords []string) []struct {
+		Code        string
+		Description string
+		Weight      float64
+	}
+	GetCodesByTrigramSimilarity(ctx context.Context, codeType string, industryName string, threshold float64, limit int) []struct {
+		Code        string
+		Description string
+		Similarity  float64
+	}
+	GetCrosswalks(ctx context.Context, fromCodeType string, fromCode string, toCodeType string) []struct {
+		ToCode        string
+		ToDescription string
+	}
+	// Phase 2: Fast path - get industries by keyword with minimum weight
+	GetIndustriesByKeyword(ctx context.Context, keyword string, minWeight float64) []struct {
+		Name   string
+		Weight float64
+	}
+
+	// Phase 3: Vector similarity search for code embeddings
+	MatchCodeEmbeddings(
+		ctx context.Context,
+		embedding []float64,
+		codeType string,
+		threshold float64,
+		limit int,
+	) ([]CodeMatch, error)
 }
 
 // PatternMatchResult represents an industry match from keyword pattern analysis
@@ -244,4 +274,11 @@ type CalibrationBinStatistics struct {
 	PredictedAccuracy    float64 `json:"predicted_accuracy"`
 	ActualAccuracy       float64 `json:"actual_accuracy"`
 	CalibrationError     float64 `json:"calibration_error"`
+}
+
+// CodeMatch represents a code match from vector similarity search (Phase 3)
+type CodeMatch struct {
+	Code        string
+	Description string
+	Similarity  float64
 }
