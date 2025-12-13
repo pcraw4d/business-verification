@@ -219,11 +219,26 @@ func main() {
 		logger.Info("ℹ️ Embedding Service URL not configured, Layer 2 (embeddings) will not be available")
 	}
 
+	// Phase 4: Initialize LLM classifier if URL is configured
+	if cfg.Classification.LLMServiceURL != "" {
+		logger.Info("🤖 Initializing LLM Classifier (Phase 4)",
+			zap.String("url", cfg.Classification.LLMServiceURL))
+		llmClassifier := classification.NewLLMClassifier(
+			cfg.Classification.LLMServiceURL,
+			stdLogger,
+		)
+		industryDetector.SetLLMClassifier(llmClassifier)
+		logger.Info("✅ LLM Classifier initialized and set on Industry Detection Service")
+	} else {
+		logger.Info("ℹ️ LLM Service URL not configured, Layer 3 (LLM) will not be available")
+	}
+
 	logger.Info("✅ Classification services initialized",
 		zap.Bool("industry_detector", industryDetector != nil),
 		zap.Bool("code_generator", codeGenerator != nil),
 		zap.Bool("python_ml_service", pythonMLService != nil),
-		zap.Bool("embedding_classifier", cfg.Classification.EmbeddingServiceURL != ""))
+		zap.Bool("embedding_classifier", cfg.Classification.EmbeddingServiceURL != ""),
+		zap.Bool("llm_classifier", cfg.Classification.LLMServiceURL != ""))
 
 	// Initialize handlers
 	classificationHandler := handlers.NewClassificationHandler(

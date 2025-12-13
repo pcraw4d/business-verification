@@ -70,6 +70,8 @@ type ClassificationConfig struct {
 	SkipFullCrawlIfContentSufficient    bool
 	// Phase 3: Embedding service configuration
 	EmbeddingServiceURL string // URL of the embedding service (optional)
+	// Phase 4: LLM service configuration
+	LLMServiceURL string // URL of the LLM service (optional)
 }
 
 // LoggingConfig holds logging configurations
@@ -133,6 +135,8 @@ func Load() (*Config, error) {
 			SkipFullCrawlIfContentSufficient:    getEnvAsBool("SKIP_FULL_CRAWL_IF_CONTENT_SUFFICIENT", true),
 			// Phase 3: Embedding service configuration
 			EmbeddingServiceURL: getEnvAsString("EMBEDDING_SERVICE_URL", ""),
+			// Phase 4: LLM service configuration
+			LLMServiceURL: getEnvAsString("LLM_SERVICE_URL", ""),
 		},
 		Logging: LoggingConfig{
 			Level:  getEnvAsString("LOG_LEVEL", "info"),

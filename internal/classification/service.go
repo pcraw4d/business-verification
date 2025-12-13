@@ -65,6 +65,7 @@ type IndustryDetectionService struct {
 	confidenceCalibrator   *ConfidenceCalibrator                 // Phase 2: Confidence calibration
 	explanationGenerator   *ExplanationGenerator                 // Phase 2: Explanation generation
 	embeddingClassifier    *EmbeddingClassifier                 // Phase 3: Embedding-based classification
+	llmClassifier          *LLMClassifier                        // Phase 4: LLM-based classification
 }
 
 // NewIndustryDetectionService creates a new industry detection service
@@ -434,9 +435,69 @@ func (s *IndustryDetectionService) performClassification(ctx context.Context, bu
 			result := s.buildResultFromEmbedding(layer2Result, "layer2_embedding", requestID)
 			return result, nil
 		} else {
-			// Layer 1 and Layer 2 similar, prefer Layer 1 (more explainable)
-			s.logger.Printf("ℹ️ [Phase 3] Layer 1 and Layer 2 similar, using Layer 1 (Layer 1: %.2f%%, Layer 2: %.2f%%) (request: %s)",
+			// Layer 1 and Layer 2 similar - try Layer 3 if confidence still low
+			s.logger.Printf("ℹ️ [Phase 3] Layer 1 and Layer 2 similar (Layer 1: %.2f%%, Layer 2: %.2f%%) (request: %s)",
 				multiResult.Confidence*100, layer2Result.Confidence*100, requestID)
+			
+			// Phase 4: Try Layer 3 if confidence is still below threshold
+			if layer2Result.Confidence < 0.88 && s.llmClassifier != nil && websiteURL != "" {
+				s.logger.Printf("🤖 [Phase 4] Layer 2 confidence (%.2f%%) < 88%%, trying Layer 3 (LLM) (request: %s)",
+					layer2Result.Confidence*100, requestID)
+				
+				// Get ScrapedContent for Layer 3
+				scrapedContent, err := s.getScrapedContentForLayer2(ctx, websiteURL)
+				if err != nil {
+					s.logger.Printf("⚠️ [Phase 4] Failed to get scraped content for Layer 3: %v, using Layer 1 (request: %s)", err, requestID)
+					result := s.convertToIndustryDetectionResult(multiResult, resultMethod, requestID)
+					result.Method = "layer1_fallback"
+					return result, nil
+				}
+				
+				// Try Layer 3 classification
+				layer3Result, err := s.llmClassifier.ClassifyWithLLM(
+					ctx,
+					scrapedContent,
+					businessName,
+					description,
+					multiResult,
+					layer2Result,
+				)
+				if err != nil {
+					s.logger.Printf("⚠️ [Phase 4] Layer 3 classification failed: %v, using Layer 1 (request: %s)", err, requestID)
+					result := s.convertToIndustryDetectionResult(multiResult, resultMethod, requestID)
+					result.Method = "layer1_fallback"
+					return result, nil
+				}
+				
+				s.logger.Printf("✅ [Phase 4] Layer 3 complete (confidence: %.2f%%, industry: %s) (request: %s)",
+					layer3Result.Confidence*100, layer3Result.PrimaryIndustry, requestID)
+				
+				// Decision Point 5: Use Layer 3 result?
+				// If Layer 3 confidence is high, use it
+				if layer3Result.Confidence >= 0.85 {
+					s.logger.Printf("✅ [Phase 4] Layer 3 confidence high (≥85%%), using result (request: %s)", requestID)
+					result := s.buildResultFromLLM(layer3Result, "layer3_high_conf", requestID)
+					return result, nil
+				}
+				
+				// If Layer 3 is better than both Layer 1 and Layer 2, use it
+				bestPreviousConf := multiResult.Confidence
+				if layer2Result.Confidence > bestPreviousConf {
+					bestPreviousConf = layer2Result.Confidence
+				}
+				
+				if layer3Result.Confidence > bestPreviousConf+0.03 {
+					s.logger.Printf("✅ [Phase 4] Layer 3 better than previous layers (L3: %.2f%% vs best: %.2f%%), using result (request: %s)",
+						layer3Result.Confidence*100, bestPreviousConf*100, requestID)
+					result := s.buildResultFromLLM(layer3Result, "layer3_better", requestID)
+					return result, nil
+				}
+				
+				// Layer 3 didn't add value, use best previous result
+				s.logger.Printf("ℹ️ [Phase 4] Layer 3 didn't improve, using best previous result (request: %s)", requestID)
+			}
+			
+			// Use Layer 1 (Layer 2 similar, Layer 3 not available or didn't help)
 			result := s.convertToIndustryDetectionResult(multiResult, resultMethod, requestID)
 			result.Method = "layer1_validated"
 			return result, nil
@@ -1155,6 +1216,12 @@ func (s *IndustryDetectionService) SetEmbeddingClassifier(embeddingClassifier *E
 	s.logger.Printf("✅ [Phase 3] Embedding classifier set for Layer 2")
 }
 
+// SetLLMClassifier sets the LLM classifier for Layer 3 (Phase 4)
+func (s *IndustryDetectionService) SetLLMClassifier(llmClassifier *LLMClassifier) {
+	s.llmClassifier = llmClassifier
+	s.logger.Printf("✅ [Phase 4] LLM classifier set for Layer 3")
+}
+
 // getScrapedContentForLayer2 gets ScrapedContent for Layer 2 classification
 // This is a simplified version - in production, you may want to use a cached scraper
 func (s *IndustryDetectionService) getScrapedContentForLayer2(ctx context.Context, websiteURL string) (*external.ScrapedContent, error) {
@@ -1252,6 +1319,79 @@ func (s *IndustryDetectionService) buildResultFromEmbedding(
 		Confidence:     embResult.Confidence,
 		Keywords:       []string{}, // Embeddings don't use keywords
 		ProcessingTime: time.Duration(embResult.ProcessingTimeMs) * time.Millisecond,
+		Method:         method,
+		Reasoning:      reasoning,
+		Explanation:    explanation,
+		CreatedAt:      time.Now(),
+	}
+}
+
+// buildResultFromLLM builds IndustryDetectionResult from LLMClassificationResult
+func (s *IndustryDetectionService) buildResultFromLLM(
+	llmResult *LLMClassificationResult,
+	method string,
+	requestID string,
+) *IndustryDetectionResult {
+	// Use primary industry from LLM
+	primaryIndustry := llmResult.PrimaryIndustry
+	if primaryIndustry == "" {
+		primaryIndustry = "Unknown"
+	}
+
+	// Use LLM reasoning
+	reasoning := llmResult.Reasoning
+	if reasoning == "" {
+		reasoning = "LLM-based classification with advanced reasoning"
+	}
+
+	// Estimate content quality for explanation
+	contentQuality := 0.7
+	if llmResult.Confidence > 0.8 {
+		contentQuality = 0.85
+	} else if llmResult.Confidence < 0.5 {
+		contentQuality = 0.5
+	}
+
+	// Create MultiStrategyResult for explanation generation
+	multiResultForExplanation := &MultiStrategyResult{
+		PrimaryIndustry: primaryIndustry,
+		Confidence:      llmResult.Confidence,
+		Keywords:        []string{}, // LLM doesn't use keywords
+		Method:          "llm_reasoning",
+		Reasoning:       reasoning,
+		ProcessingTime:  time.Duration(llmResult.ProcessingTimeMs) * time.Millisecond,
+	}
+
+	// Generate explanation
+	explanation := s.explanationGenerator.GenerateExplanation(
+		multiResultForExplanation,
+		nil, // Codes not available at service level
+		contentQuality,
+	)
+
+	// Enhance explanation with LLM-specific details
+	if explanation != nil {
+		explanation.PrimaryReason = reasoning
+		explanation.SupportingFactors = append(explanation.SupportingFactors,
+			"Advanced LLM reasoning with context understanding",
+			"Considers business model complexity and nuance",
+			"Provides detailed rationale for classification",
+		)
+		// Add alternative classifications as supporting factors if available
+		if len(llmResult.AlternativeClassifications) > 0 {
+			for _, alt := range llmResult.AlternativeClassifications {
+				explanation.SupportingFactors = append(explanation.SupportingFactors,
+					fmt.Sprintf("Alternative classification considered: %s", alt))
+			}
+		}
+		explanation.MethodUsed = "llm_reasoning"
+	}
+
+	return &IndustryDetectionResult{
+		IndustryName:   primaryIndustry,
+		Confidence:     llmResult.Confidence,
+		Keywords:       []string{}, // LLM doesn't use keywords
+		ProcessingTime: time.Duration(llmResult.ProcessingTimeMs) * time.Millisecond,
 		Method:         method,
 		Reasoning:      reasoning,
 		Explanation:    explanation,
