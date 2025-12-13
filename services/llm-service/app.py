@@ -38,23 +38,35 @@ MODEL_NAME = "Qwen/Qwen2.5-7B-Instruct"
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 logger.info(f"Using device: {DEVICE}")
 
-# Load model and tokenizer on startup
-logger.info(f"Loading model: {MODEL_NAME}...")
-try:
-    tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
-    model = AutoModelForCausalLM.from_pretrained(
-        MODEL_NAME,
-        torch_dtype=torch.float16 if DEVICE == "cuda" else torch.float32,
-        device_map="auto" if DEVICE == "cuda" else None,
-    )
-    if DEVICE == "cpu":
-        model = model.to(DEVICE)
+# Load model and tokenizer on startup (lazy loading)
+tokenizer = None
+model = None
+
+def load_model():
+    """Load model and tokenizer (called on first request if not already loaded)"""
+    global tokenizer, model
+    if tokenizer is not None and model is not None:
+        return
     
-    model.eval()  # Set to evaluation mode
-    logger.info(f"Model loaded successfully on {DEVICE}!")
-except Exception as e:
-    logger.error(f"Failed to load model: {e}")
-    raise
+    logger.info(f"Loading model: {MODEL_NAME}...")
+    try:
+        tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
+        model = AutoModelForCausalLM.from_pretrained(
+            MODEL_NAME,
+            torch_dtype=torch.float16 if DEVICE == "cuda" else torch.float32,
+            device_map="auto" if DEVICE == "cuda" else None,
+        )
+        if DEVICE == "cpu":
+            model = model.to(DEVICE)
+        
+        model.eval()  # Set to evaluation mode
+        logger.info(f"Model loaded successfully on {DEVICE}!")
+    except Exception as e:
+        logger.error(f"Failed to load model: {e}")
+        raise
+
+# Load model on startup (can be moved to first request for faster startup)
+load_model()
 
 # Request/Response models
 class ClassificationContext(BaseModel):
@@ -107,6 +119,10 @@ async def classify_business(request: ClassificationRequest):
             }
         }
     """
+    # Ensure model is loaded
+    if tokenizer is None or model is None:
+        load_model()
+    
     start_time = time.time()
     
     try:
