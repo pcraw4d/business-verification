@@ -17,6 +17,10 @@ RUN pip install --no-cache-dir \
     torch==2.1.0 \
     transformers==4.35.2
 
+# Downgrade huggingface-hub to a version compatible with sentence-transformers==2.2.2
+# sentence-transformers 2.2.2 requires huggingface-hub < 0.20.0 (needs cached_download)
+RUN pip install --no-cache-dir --force-reinstall "huggingface-hub<0.20.0"
+
 # Install application dependencies
 RUN pip install --no-cache-dir \
     fastapi==0.109.0 \
@@ -30,8 +34,7 @@ RUN pip install --no-cache-dir \
     scikit-learn \
     scipy \
     nltk \
-    sentencepiece \
-    huggingface-hub
+    sentencepiece
 
 # Install sentence-transformers without dependencies (using already-installed versions)
 RUN pip install --no-cache-dir --no-deps sentence-transformers==2.2.2
