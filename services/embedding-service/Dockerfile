@@ -10,8 +10,31 @@ RUN apt-get update && apt-get install -y \
 # Copy requirements
 COPY requirements.txt .
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Install critical dependencies first with exact versions to prevent upgrades
+# These must be installed before sentence-transformers to lock versions
+RUN pip install --no-cache-dir \
+    numpy==1.26.4 \
+    torch==2.1.0 \
+    transformers==4.35.2
+
+# Install application dependencies
+RUN pip install --no-cache-dir \
+    fastapi==0.109.0 \
+    uvicorn==0.27.0 \
+    pydantic==2.5.3
+
+# Install sentence-transformers dependencies that don't conflict
+RUN pip install --no-cache-dir \
+    tqdm \
+    torchvision==0.16.0 \
+    scikit-learn \
+    scipy \
+    nltk \
+    sentencepiece \
+    huggingface-hub
+
+# Install sentence-transformers without dependencies (using already-installed versions)
+RUN pip install --no-cache-dir --no-deps sentence-transformers==2.2.2
 
 # Download model at build time (caches in image)
 RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')"
