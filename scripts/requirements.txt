@@ -7,6 +7,10 @@ pandas>=2.0.0
 python-dotenv>=1.0.0
 
 # Embedding pre-computation dependencies (Phase 3)
+# Pin versions to match embedding service for compatibility
+numpy==1.26.4
+torch==2.1.0
+transformers==4.35.2
+huggingface-hub==0.19.4
 sentence-transformers==2.2.2
 tqdm==4.66.1
-torch==2.1.0
