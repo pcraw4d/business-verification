@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -126,6 +127,7 @@ type MultiStrategyResult struct {
 	Keywords          []string               `json:"keywords"`
 	Entities          []nlp.Entity           `json:"entities"`
 	TopicScores       []nlp.TopicScore        `json:"topic_scores"`
+	Method            string                 `json:"method,omitempty"` // Phase 2: "fast_path_keyword", "multi_strategy", "ml_validated"
 }
 
 // ClassifyWithMultiStrategy performs classification using multiple strategies
@@ -151,8 +153,27 @@ func (msc *MultiStrategyClassifier) ClassifyWithMultiStrategy(
 		}
 		msc.logger.Printf("📊 [MultiStrategy] Cache MISS for: %s", businessName)
 		
-		// Trigger predictive preloading in background
-		go msc.predictiveCache.PreloadCache(context.Background(), businessName, description, websiteURL)
+		// Trigger predictive preloading in background (non-blocking, best effort)
+		// Use a separate goroutine to avoid blocking the main request
+		go func() {
+			defer func() {
+				if r := recover(); r != nil {
+					msc.logger.Printf("⚠️ Panic in predictive preload recovered: %v", r)
+				}
+			}()
+			// Use background context with timeout to prevent goroutine leaks
+			preloadCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+			msc.predictiveCache.PreloadCache(preloadCtx, businessName, description, websiteURL)
+		}()
+	}
+
+	// Phase 2: Try fast path for obvious cases (<100ms)
+	if fastResult, isFastPath := msc.tryFastPath(ctx, businessName, description, websiteURL); isFastPath {
+		fastResult.ProcessingTime = time.Since(startTime)
+		msc.logger.Printf("⚡ [Phase 2] Fast path succeeded: %s (confidence: %.2f%%, duration: %v)",
+			fastResult.PrimaryIndustry, fastResult.Confidence*100, fastResult.ProcessingTime)
+		return fastResult, nil
 	}
 
 	// Step 1: Extract keywords and entities in parallel
@@ -162,6 +183,7 @@ func (msc *MultiStrategyClassifier) ClassifyWithMultiStrategy(
 	var extractionWg sync.WaitGroup
 
 	// Extract keywords in parallel
+	// Phase 2: Also extract obvious keywords from description as fallback
 	extractionWg.Add(1)
 	go func() {
 		defer extractionWg.Done()
@@ -171,6 +193,50 @@ func (msc *MultiStrategyClassifier) ClassifyWithMultiStrategy(
 			keywordsChan <- []string{}
 			return
 		}
+		
+		msc.logger.Printf("🔍 [MultiStrategy] Initial keywords from business name/website: %v (count: %d)", keywords, len(keywords))
+		
+		// Phase 2: Always check description for keywords, even if we have some from business name/website
+		// This is critical for cases like "Cloud Services Inc" where business name gives generic "services"
+		// but description has specific "cloud computing" keywords
+		if description != "" {
+			descriptionKeywords := msc.extractObviousKeywords("", description, "")
+			msc.logger.Printf("🔍 [MultiStrategy] Extracted %d keywords from description '%s': %v", len(descriptionKeywords), description, descriptionKeywords)
+			
+			if len(descriptionKeywords) > 0 {
+				if len(keywords) == 0 {
+					// No keywords from business name/website, use description keywords
+					msc.logger.Printf("🔍 [MultiStrategy] No keywords from business name/website, using %d keywords from description: %v", len(descriptionKeywords), descriptionKeywords)
+					keywords = descriptionKeywords
+				} else {
+					// Merge description keywords with existing keywords, prioritizing description keywords
+					msc.logger.Printf("🔍 [MultiStrategy] Merging %d description keywords with %d existing keywords: %v + %v", len(descriptionKeywords), len(keywords), descriptionKeywords, keywords)
+					keywordMap := make(map[string]bool)
+					// Add description keywords first (higher priority)
+					mergedKeywords := make([]string, 0, len(keywords)+len(descriptionKeywords))
+					for _, kw := range descriptionKeywords {
+						lowerKw := strings.ToLower(kw)
+						if !keywordMap[lowerKw] {
+							mergedKeywords = append(mergedKeywords, kw)
+							keywordMap[lowerKw] = true
+						}
+					}
+					// Add existing keywords that aren't duplicates
+					for _, kw := range keywords {
+						lowerKw := strings.ToLower(kw)
+						if !keywordMap[lowerKw] {
+							mergedKeywords = append(mergedKeywords, kw)
+							keywordMap[lowerKw] = true
+						}
+					}
+					keywords = mergedKeywords
+					msc.logger.Printf("🔍 [MultiStrategy] Merged keywords (description first): %v", keywords)
+				}
+			} else {
+				msc.logger.Printf("⚠️ [MultiStrategy] No keywords found in description: '%s'", description)
+			}
+		}
+		
 		keywordsChan <- keywords
 	}()
 
@@ -212,16 +278,39 @@ func (msc *MultiStrategyClassifier) ClassifyWithMultiStrategy(
 			}, nil
 		}
 		
-		msc.logger.Printf("⚠️ [MultiStrategy] No keywords extracted")
+		// Phase 2: Try to extract keywords from description if business name extraction failed
+		// This helps with cases like "Cloud Services Inc" where description has "Cloud computing services"
+		descriptionKeywords := msc.extractObviousKeywords("", description, "")
+		if len(descriptionKeywords) > 0 {
+			msc.logger.Printf("🔍 [MultiStrategy] No keywords from business name, but found %d keywords from description: %v", len(descriptionKeywords), descriptionKeywords)
+			// Retry classification with description keywords
+			keywords = descriptionKeywords
+			// Continue with normal flow instead of early return
+		} else {
+			msc.logger.Printf("⚠️ [MultiStrategy] No keywords extracted from business name or description")
+			result := &MultiStrategyResult{
+				PrimaryIndustry: "General Business",
+				Confidence:      0.30,
+				ProcessingTime:  time.Since(startTime),
+				Keywords:        []string{},
+				Reasoning:       "No keywords extracted from business name or website",
+			}
+			msc.logger.Printf("✅ [MultiStrategy] Classification completed (early return): %s (confidence: %.2f%%)",
+				result.PrimaryIndustry, result.Confidence*100)
+			return result, nil
+		}
+	}
+
+	// Ensure we have keywords before proceeding (from either business name or description)
+	if len(keywords) == 0 {
+		msc.logger.Printf("⚠️ [MultiStrategy] Still no keywords after description extraction")
 		result := &MultiStrategyResult{
 			PrimaryIndustry: "General Business",
 			Confidence:      0.30,
 			ProcessingTime:  time.Since(startTime),
 			Keywords:        []string{},
-			Reasoning:       "No keywords extracted from business name or website",
+			Reasoning:       "No keywords extracted from business name, description, or website",
 		}
-		msc.logger.Printf("✅ [MultiStrategy] Classification completed (early return): %s (confidence: %.2f%%)",
-			result.PrimaryIndustry, result.Confidence*100)
 		return result, nil
 	}
 
@@ -321,12 +410,35 @@ func (msc *MultiStrategyClassifier) ClassifyWithMultiStrategy(
 		}
 	}
 
-	// Step 6: Apply confidence calibration
-	calibratedConfidence := msc.calibrator.AdjustConfidence(confidence)
+	// Step 6: Apply Phase 2 confidence calibration with 5 factors
+	// Extract strategy scores
+	strategyScores := make(map[string]float64)
+	for _, strategy := range strategies {
+		strategyScores[strategy.StrategyName] = strategy.Score
+	}
+
+	// Estimate content quality based on confidence and strategy agreement
+	contentQuality := 0.7 // Default
+	if confidence > 0.8 {
+		contentQuality = 0.85
+	} else if confidence < 0.5 {
+		contentQuality = 0.5
+	}
+
+	// Code agreement will be calculated later when codes are available (default to 0.7)
+	codeAgreement := 0.7
+
+	// Apply Phase 2 enhanced calibration
+	calibratedConfidence := msc.calibrator.CalibrateConfidence(
+		strategyScores,
+		contentQuality,
+		codeAgreement,
+		"multi_strategy",
+	)
 	
-	// Use calibrated confidence if different
+	// Use calibrated confidence
 	if calibratedConfidence != confidence {
-		msc.logger.Printf("📊 [MultiStrategy] Confidence calibrated: %.2f%% -> %.2f%%",
+		msc.logger.Printf("📊 [Phase 2] Confidence calibrated: %.2f%% -> %.2f%%",
 			confidence*100, calibratedConfidence*100)
 		confidence = calibratedConfidence
 	}
@@ -342,6 +454,7 @@ func (msc *MultiStrategyClassifier) ClassifyWithMultiStrategy(
 		Reasoning:        reasoning,
 		ProcessingTime:    time.Since(startTime),
 		Keywords:         keywords,
+		Method:           "multi_strategy", // Phase 2: Add method field
 		Entities:         entities,
 		TopicScores:      topicScores,
 	}
@@ -358,6 +471,146 @@ func (msc *MultiStrategyClassifier) ClassifyWithMultiStrategy(
 	}
 	
 	return result, nil
+}
+
+// tryFastPath attempts fast path classification for obvious cases (Phase 2)
+// Returns result and true if fast path succeeded, nil and false otherwise
+func (msc *MultiStrategyClassifier) tryFastPath(
+	ctx context.Context,
+	businessName, description, websiteURL string,
+) (*MultiStrategyResult, bool) {
+	// Extract obvious keywords from business name, description, and URL
+	obviousKeywords := msc.extractObviousKeywords(businessName, description, websiteURL)
+
+	if len(obviousKeywords) == 0 {
+		return nil, false // No obvious keywords found
+	}
+
+	// Check each obvious keyword for direct industry match
+	for _, keyword := range obviousKeywords {
+		// Query for high-confidence keyword matches (lower threshold for fast path: 0.70+)
+		matches := msc.keywordRepo.GetIndustriesByKeyword(ctx, keyword, 0.70)
+
+		if len(matches) > 0 {
+			// Found high-confidence match via obvious keyword
+			industry := matches[0]
+
+			// Create a strategy result for fast path
+			strategy := ClassificationStrategy{
+				StrategyName: "keyword",
+				IndustryName: industry.Name,
+				Score:        0.95,
+				Confidence:  0.92,
+				Evidence:    []string{keyword},
+			}
+
+			result := &MultiStrategyResult{
+				PrimaryIndustry: industry.Name,
+				Confidence:      0.92, // High confidence for fast path
+				Method:          "fast_path_keyword",
+				Keywords:        []string{keyword},
+				Strategies:      []ClassificationStrategy{strategy},
+				Reasoning:       fmt.Sprintf("Fast path: obvious keyword '%s' matched industry '%s'", keyword, industry.Name),
+				ProcessingTime:  0, // Will be set by caller
+			}
+
+			msc.logger.Printf("⚡ [Phase 2] Fast path triggered by keyword '%s' -> industry '%s'", keyword, industry.Name)
+			return result, true
+		}
+	}
+
+	// No fast path match found
+	return nil, false
+}
+
+// extractObviousKeywords extracts obvious industry keywords from business information (Phase 2)
+func (msc *MultiStrategyClassifier) extractObviousKeywords(businessName, description, websiteURL string) []string {
+	obviousKeywords := []string{}
+
+	// Common obvious industry keywords map
+	obviousKeywordMap := map[string]bool{
+		// Food & Beverage
+		"restaurant": true, "cafe": true, "coffee": true, "bakery": true,
+		"bar": true, "pub": true, "brewery": true, "winery": true,
+		"pizzeria": true, "diner": true, "bistro": true, "pizza": true,
+		"dining": true, "food": true, "eatery": true,
+
+		// Retail
+		"shop": true, "store": true, "boutique": true, "market": true,
+		"mall": true, "retail": true, "merchandise": true,
+
+		// Professional Services
+		"law firm": true, "attorney": true, "lawyer": true, "legal": true,
+		"dentist": true, "dental": true, "orthodontist": true,
+		"doctor": true, "physician": true, "medical": true, "clinic": true,
+		"accountant": true, "accounting": true, "cpa": true,
+		"consulting": true, "consultant": true,
+		
+		// Technology & Cloud
+		"cloud": true, "computing": true, "software": true, "technology": true,
+		"tech": true, "it": true, "saas": true, "platform": true,
+		"services": true, "solutions": true,
+
+		// Home Services
+		"plumber": true, "plumbing": true, "electrician": true, "electrical": true,
+		"contractor": true, "construction": true, "roofing": true,
+		"hvac": true, "heating": true, "cooling": true, "landscaping": true,
+
+		// Automotive
+		"auto repair": true, "mechanic": true, "car wash": true,
+		"dealership": true, "automotive": true, "auto": true,
+
+		// Personal Services
+		"salon": true, "barber": true, "spa": true, "gym": true,
+		"fitness": true, "yoga": true, "wellness": true,
+
+		// Hospitality
+		"hotel": true, "motel": true, "inn": true, "resort": true,
+		"lodging": true, "accommodation": true,
+
+		// Education
+		"school": true, "university": true, "college": true,
+		"tutoring": true, "academy": true, "education": true,
+	}
+
+	// Combine all text sources
+	// Ensure spaces around text for proper regex matching
+	combinedText := strings.ToLower(" " + businessName + " " + description + " " + websiteURL + " ")
+
+	// Check for keyword matches
+	for keyword := range obviousKeywordMap {
+		if strings.Contains(combinedText, keyword) {
+			// Check if it's a whole word match (not part of another word)
+			// Simple check: surrounded by word boundaries or at start/end
+			pattern := "(^|[^a-z])" + keyword + "([^a-z]|$)"
+			matched, _ := regexp.MatchString(pattern, combinedText)
+			if matched {
+				obviousKeywords = append(obviousKeywords, keyword)
+			}
+		}
+	}
+
+	// Also check individual words in business name (highest signal)
+	businessNameWords := strings.Fields(strings.ToLower(businessName))
+	for _, word := range businessNameWords {
+		// Remove common suffixes/prefixes
+		word = strings.Trim(word, ".,!?;:'\"()[]{}")
+		if obviousKeywordMap[word] {
+			// Check if not already added
+			found := false
+			for _, existing := range obviousKeywords {
+				if existing == word {
+					found = true
+					break
+				}
+			}
+			if !found {
+				obviousKeywords = append(obviousKeywords, word)
+			}
+		}
+	}
+
+	return obviousKeywords
 }
 
 // extractKeywords extracts keywords using the repository and filters them for relevance
@@ -969,6 +1222,16 @@ func (msc *MultiStrategyClassifier) combineStrategies(strategies []Classificatio
 		}
 	}
 
+	// Phase 2: Boost specific industries and penalize generic ones
+	combinedScores = msc.boostSpecificIndustries(combinedScores, industryNames)
+
+	// Phase 2: If no strategies returned results, try to infer from keywords
+	// This helps with ambiguous cases like "ABC Corporation" where no keywords match
+	if len(combinedScores) == 0 {
+		msc.logger.Printf("⚠️ [Phase 2] No strategies returned results, combinedScores is empty")
+		// This will default to General Business below, which is expected
+	}
+
 	// Find primary industry (highest score)
 	var primaryIndustryID int
 	var maxScore float64
@@ -984,7 +1247,20 @@ func (msc *MultiStrategyClassifier) combineStrategies(strategies []Classificatio
 	if primaryIndustry == "" {
 		primaryIndustry = "General Business"
 		primaryIndustryID = 26 // Default industry ID
+		// If we have no scores, set a minimum score for General Business
+		if maxScore == 0 {
+			maxScore = 0.30 // Minimum confidence for General Business
+		}
 	}
+
+	// Phase 2: Prefer specific industries over generic
+	primaryIndustryID, primaryIndustry, maxScore = msc.selectBestIndustry(
+		combinedScores,
+		industryNames,
+		primaryIndustryID,
+		primaryIndustry,
+		maxScore,
+	)
 
 	// Calculate final confidence
 	confidence := maxScore
@@ -999,6 +1275,127 @@ func (msc *MultiStrategyClassifier) combineStrategies(strategies []Classificatio
 	reasoning := msc.generateReasoning(strategies, primaryIndustryID, confidence, strategyContributions)
 
 	return combinedScores, primaryIndustry, confidence, reasoning
+}
+
+// boostSpecificIndustries boosts confidence of specific industries (Phase 2)
+func (msc *MultiStrategyClassifier) boostSpecificIndustries(
+	combinedScores map[int]float64,
+	industryNames map[int]string,
+) map[int]float64 {
+	// Define generic industries to avoid
+	genericIndustries := map[string]bool{
+		"General Business":      true,
+		"Other Services":        true,
+		"Miscellaneous":         true,
+		"Business Services":     true,
+		"Professional Services": true,
+		"General Merchandise":   true,
+		"Other":                 true,
+	}
+
+	// Boost specific industries by 0.10 (increased from 0.05) to make them more competitive
+	specificBoost := 0.10
+	for industryID, score := range combinedScores {
+		industryName := industryNames[industryID]
+		if !genericIndustries[industryName] {
+			combinedScores[industryID] = math.Min(score+specificBoost, 0.95)
+		}
+	}
+
+	return combinedScores
+}
+
+// selectBestIndustry selects the best industry, preferring specific over generic (Phase 2)
+func (msc *MultiStrategyClassifier) selectBestIndustry(
+	combinedScores map[int]float64,
+	industryNames map[int]string,
+	currentIndustryID int,
+	currentIndustry string,
+	currentScore float64,
+) (int, string, float64) {
+	// Define generic industries
+	genericIndustries := map[string]bool{
+		"General Business":      true,
+		"Other Services":        true,
+		"Miscellaneous":         true,
+		"Business Services":     true,
+		"Professional Services": true,
+		"General Merchandise":   true,
+		"Other":                 true,
+	}
+
+	// If current industry is generic, always try to find specific alternative (even with higher confidence)
+	if genericIndustries[currentIndustry] {
+		msc.logger.Printf("⚠️ [Phase 2] Top candidate is generic '%s' with confidence (%.2f), checking for specific alternatives",
+			currentIndustry, currentScore)
+
+		// Look for more specific alternative - be more aggressive in preferring specific industries
+		bestSpecificID := 0
+		bestSpecificName := ""
+		bestSpecificScore := 0.0
+
+		for industryID, score := range combinedScores {
+			industryName := industryNames[industryID]
+			if !genericIndustries[industryName] {
+				// More aggressive: Prefer specific industry if:
+				// 1. It's within 0.30 of generic confidence (even more lenient)
+				// 2. OR if specific industry has at least 0.30 confidence (lowered from 0.50)
+				// 3. OR if generic confidence is low (<0.60) and specific has any score > 0.20
+				shouldPrefer := false
+				if (currentScore - score) < 0.30 && score > bestSpecificScore {
+					shouldPrefer = true
+				} else if score >= 0.30 && score > bestSpecificScore {
+					shouldPrefer = true
+				} else if currentScore < 0.60 && score > 0.20 && score > bestSpecificScore {
+					// If generic is low confidence, prefer any specific industry with reasonable score
+					shouldPrefer = true
+				}
+				
+				if shouldPrefer {
+					bestSpecificID = industryID
+					bestSpecificName = industryName
+					bestSpecificScore = score
+				}
+			}
+		}
+
+		if bestSpecificName != "" {
+			msc.logger.Printf("✅ [Phase 2] Preferring specific industry '%s' (%.2f) over generic '%s' (%.2f)",
+				bestSpecificName, bestSpecificScore, currentIndustry, currentScore)
+			return bestSpecificID, bestSpecificName, bestSpecificScore
+		} else {
+			// If no specific alternative found, but generic confidence is very low, try harder
+			if currentScore < 0.60 {
+				msc.logger.Printf("⚠️ [Phase 2] Generic '%s' has low confidence (%.2f) but no specific alternative found - may need better keyword matching",
+					currentIndustry, currentScore)
+				// Last resort: find ANY specific industry with score > 0.15
+				for industryID, score := range combinedScores {
+					industryName := industryNames[industryID]
+					if !genericIndustries[industryName] && score > 0.15 && score > bestSpecificScore {
+						bestSpecificID = industryID
+						bestSpecificName = industryName
+						bestSpecificScore = score
+					}
+				}
+				if bestSpecificName != "" {
+					msc.logger.Printf("✅ [Phase 2] Last resort: Using specific industry '%s' (%.2f) instead of generic '%s' (%.2f)",
+						bestSpecificName, bestSpecificScore, currentIndustry, currentScore)
+					return bestSpecificID, bestSpecificName, bestSpecificScore
+				}
+			}
+		}
+	}
+
+	// For generic industries, require higher confidence threshold
+	if genericIndustries[currentIndustry] {
+		if currentScore < 0.70 {
+			msc.logger.Printf("⚠️ [Phase 2] Generic industry '%s' requires ≥0.70 confidence, got %.2f - may need fallback",
+				currentIndustry, currentScore)
+			// Still return it, but log warning
+		}
+	}
+
+	return currentIndustryID, currentIndustry, currentScore
 }
 
 // generateReasoning generates clear reasoning for the classification result

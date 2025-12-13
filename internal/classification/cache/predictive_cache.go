@@ -134,6 +134,7 @@ type PredictiveCache struct {
 	mu             sync.RWMutex
 	logger         *log.Logger
 	preloadEnabled bool
+	preloadSem     chan struct{} // Semaphore to limit concurrent preload operations
 }
 
 // ClassificationPredictor interface for classification prediction
@@ -165,6 +166,7 @@ func NewPredictiveCache(
 		patterns:       make(map[string][]string),
 		logger:         logger,
 		preloadEnabled: true,
+		preloadSem:     make(chan struct{}, 3), // Limit to 3 concurrent preload operations
 	}
 }
 
@@ -190,19 +192,56 @@ func (pc *PredictiveCache) PreloadCache(ctx context.Context, businessName, descr
 	// Generate name variations
 	variations := pc.generateNameVariations(businessName)
 	
-	// Pre-cache in background
+	// Pre-cache in background with panic recovery and concurrency limiting
 	go func() {
+		// Recover from any panics to prevent service crash
+		defer func() {
+			if r := recover(); r != nil {
+				pc.logger.Printf("⚠️ Panic in PreloadCache recovered: %v", r)
+			}
+		}()
+		
+		// Create a timeout context for preload operations (10 seconds max)
+		preloadCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		
 		for _, variation := range variations {
+			// Check if context is cancelled
+			select {
+			case <-preloadCtx.Done():
+				pc.logger.Printf("⚠️ PreloadCache cancelled or timed out")
+				return
+			default:
+			}
+			
 			// Skip if already cached
 			key := pc.generateCacheKey(variation, description, websiteURL)
 			if _, exists := pc.cache.Get(key); exists {
 				continue
 			}
 			
-			// Pre-classify and cache
-			result, err := pc.classifyAndCache(ctx, variation, description, websiteURL)
-			if err == nil && result != nil {
-				pc.logger.Printf("✅ Pre-cached: %s", variation)
+			// Acquire semaphore to limit concurrent operations
+			select {
+			case pc.preloadSem <- struct{}{}:
+				// Got semaphore, proceed with preload
+				func() {
+					defer func() { <-pc.preloadSem }() // Release semaphore
+					
+					// Pre-classify and cache with timeout
+					result, err := pc.classifyAndCache(preloadCtx, variation, description, websiteURL)
+					if err != nil {
+						// Log error but don't fail - preload is best effort
+						pc.logger.Printf("⚠️ Pre-cache failed for %s: %v", variation, err)
+					} else if result != nil {
+						pc.logger.Printf("✅ Pre-cached: %s", variation)
+					}
+				}()
+			case <-preloadCtx.Done():
+				// Context cancelled, stop preloading
+				return
+			default:
+				// Semaphore full, skip this variation (best effort)
+				pc.logger.Printf("⚠️ Preload semaphore full, skipping: %s", variation)
 			}
 		}
 	}()

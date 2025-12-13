@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math"
 	"sort"
 	"strings"
 	"sync"
@@ -199,6 +200,7 @@ type MCCCode struct {
 	Description string   `json:"description"`
 	Confidence  float64  `json:"confidence"`
 	Keywords    []string `json:"keywords_matched"`
+	Source      string   `json:"source"` // "industry_match", "keyword_match", "trigram_match", "crosswalk", "ml_prediction"
 	// Enhanced metadata from code_metadata table
 	CrosswalkCodes []CrosswalkCode `json:"crosswalk_codes,omitempty"` // Related codes from other systems
 	IsOfficial     bool            `json:"is_official,omitempty"`      // Whether from official source
@@ -210,6 +212,7 @@ type SICCode struct {
 	Description string   `json:"description"`
 	Confidence  float64  `json:"confidence"`
 	Keywords    []string `json:"keywords_matched"`
+	Source      string   `json:"source"` // "industry_match", "keyword_match", "trigram_match", "crosswalk", "ml_prediction"
 	// Enhanced metadata from code_metadata table
 	CrosswalkCodes []CrosswalkCode `json:"crosswalk_codes,omitempty"` // Related codes from other systems
 	IsOfficial     bool            `json:"is_official,omitempty"`     // Whether from official source
@@ -221,6 +224,7 @@ type NAICSCode struct {
 	Description string   `json:"description"`
 	Confidence  float64  `json:"confidence"`
 	Keywords    []string `json:"keywords_matched"`
+	Source      string   `json:"source"` // "industry_match", "keyword_match", "trigram_match", "crosswalk", "ml_prediction"
 	// Enhanced metadata from code_metadata table
 	CrosswalkCodes []CrosswalkCode `json:"crosswalk_codes,omitempty"` // Related codes from other systems
 	Hierarchy      *CodeHierarchy  `json:"hierarchy,omitempty"`       // Parent/child relationships (NAICS only)
@@ -541,10 +545,12 @@ func (g *ClassificationCodeGenerator) generateCodesForMultipleIndustries(
 	codeMap := make(map[int]bool) // For deduplication by code ID
 
 	for _, industry := range industries {
-		// Skip "General Business" industry - rely only on keyword-based matching
-		// This prevents generating generic/default codes when industry detection fails
-		if industry.IndustryName == "General Business" {
-			g.logger.Printf("⚠️ Skipping industry-based code generation for 'General Business' - using keyword-based matching only")
+		// For "General Business" with very low confidence, skip industry-based codes
+		// But still try if confidence is reasonable (>= 0.4) to ensure codes are generated
+		if industry.IndustryName == "General Business" && industry.Confidence < 0.4 {
+			// Skip "General Business" with very low confidence - rely only on keyword-based matching
+			// This prevents generating generic/default codes when industry detection fails
+			g.logger.Printf("⚠️ Skipping industry-based code generation for 'General Business' (confidence: %.2f) - using keyword-based matching only", industry.Confidence)
 			continue
 		}
 
@@ -572,8 +578,526 @@ func (g *ClassificationCodeGenerator) generateCodesForMultipleIndustries(
 	return allCodes
 }
 
+// CodeResult represents a code candidate with source information (Phase 2)
+type CodeResult struct {
+	Code        string
+	Description string
+	Confidence  float64
+	Source      string // "industry_match", "keyword_match", "trigram_match", "crosswalk"
+}
+
+// getMCCCandidates collects MCC code candidates from multiple strategies (Phase 2)
+func (g *ClassificationCodeGenerator) getMCCCandidates(
+	ctx context.Context,
+	industryName string,
+	keywords []string,
+	industries []IndustryResult,
+) []CodeResult {
+	candidates := make(map[string]*CodeResult) // Use map to deduplicate
+
+	// Strategy 1: Direct industry lookup
+	if industryName != "" {
+		industry, err := g.repo.GetIndustryByName(ctx, industryName)
+		if err == nil && industry != nil {
+			industryCodes, err := g.repo.GetCachedClassificationCodes(ctx, industry.ID)
+			if err == nil {
+				for _, code := range industryCodes {
+					if code.CodeType == "MCC" {
+						key := code.Code
+						if _, exists := candidates[key]; !exists {
+							candidates[key] = &CodeResult{
+								Code:        code.Code,
+								Description: code.Description,
+								Confidence:  0.90, // High confidence from direct match
+								Source:      "industry_match",
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// Strategy 2: Keyword matching
+	keywordCodes := g.repo.GetCodesByKeywords(ctx, "MCC", keywords)
+	for _, kc := range keywordCodes {
+		key := kc.Code
+		if existing, exists := candidates[key]; exists {
+			// Boost confidence if found through multiple strategies
+			existing.Confidence = math.Min(existing.Confidence+0.1, 0.98)
+		} else {
+			candidates[key] = &CodeResult{
+				Code:        kc.Code,
+				Description: kc.Description,
+				Confidence:  kc.Weight, // Use keyword weight as confidence
+				Source:      "keyword_match",
+			}
+		}
+	}
+
+	// Strategy 3: Trigram similarity (fuzzy matching)
+	if industryName != "" {
+		trigramCodes := g.repo.GetCodesByTrigramSimilarity(ctx, "MCC", industryName, 0.3, 10)
+		for _, tc := range trigramCodes {
+			key := tc.Code
+			if existing, exists := candidates[key]; exists {
+				existing.Confidence = math.Min(existing.Confidence+0.05, 0.98)
+			} else {
+				candidates[key] = &CodeResult{
+					Code:        tc.Code,
+					Description: tc.Description,
+					Confidence:  tc.Similarity * 0.7, // Scale down trigram confidence
+					Source:      "trigram_match",
+				}
+			}
+		}
+	}
+
+	// Convert map to slice
+	result := make([]CodeResult, 0, len(candidates))
+	for _, candidate := range candidates {
+		result = append(result, *candidate)
+	}
+
+	return result
+}
+
+// getSICCandidates collects SIC code candidates from multiple strategies (Phase 2)
+func (g *ClassificationCodeGenerator) getSICCandidates(
+	ctx context.Context,
+	industryName string,
+	keywords []string,
+	industries []IndustryResult,
+) []CodeResult {
+	candidates := make(map[string]*CodeResult)
+
+	// Strategy 1: Direct industry lookup
+	if industryName != "" {
+		industry, err := g.repo.GetIndustryByName(ctx, industryName)
+		if err == nil && industry != nil {
+			industryCodes, err := g.repo.GetCachedClassificationCodes(ctx, industry.ID)
+			if err == nil {
+				for _, code := range industryCodes {
+					if code.CodeType == "SIC" {
+						key := code.Code
+						if _, exists := candidates[key]; !exists {
+							candidates[key] = &CodeResult{
+								Code:        code.Code,
+								Description: code.Description,
+								Confidence:  0.90,
+								Source:      "industry_match",
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// Strategy 2: Keyword matching
+	keywordCodes := g.repo.GetCodesByKeywords(ctx, "SIC", keywords)
+	for _, kc := range keywordCodes {
+		key := kc.Code
+		if existing, exists := candidates[key]; exists {
+			existing.Confidence = math.Min(existing.Confidence+0.1, 0.98)
+		} else {
+			candidates[key] = &CodeResult{
+				Code:        kc.Code,
+				Description: kc.Description,
+				Confidence:  kc.Weight,
+				Source:      "keyword_match",
+			}
+		}
+	}
+
+	// Strategy 3: Trigram similarity
+	if industryName != "" {
+		trigramCodes := g.repo.GetCodesByTrigramSimilarity(ctx, "SIC", industryName, 0.3, 10)
+		for _, tc := range trigramCodes {
+			key := tc.Code
+			if existing, exists := candidates[key]; exists {
+				existing.Confidence = math.Min(existing.Confidence+0.05, 0.98)
+			} else {
+				candidates[key] = &CodeResult{
+					Code:        tc.Code,
+					Description: tc.Description,
+					Confidence:  tc.Similarity * 0.7,
+					Source:      "trigram_match",
+				}
+			}
+		}
+	}
+
+	result := make([]CodeResult, 0, len(candidates))
+	for _, candidate := range candidates {
+		result = append(result, *candidate)
+	}
+
+	return result
+}
+
+// getNAICSCandidates collects NAICS code candidates from multiple strategies (Phase 2)
+func (g *ClassificationCodeGenerator) getNAICSCandidates(
+	ctx context.Context,
+	industryName string,
+	keywords []string,
+	industries []IndustryResult,
+) []CodeResult {
+	candidates := make(map[string]*CodeResult)
+
+	// Strategy 1: Direct industry lookup
+	if industryName != "" {
+		industry, err := g.repo.GetIndustryByName(ctx, industryName)
+		if err == nil && industry != nil {
+			industryCodes, err := g.repo.GetCachedClassificationCodes(ctx, industry.ID)
+			if err == nil {
+				for _, code := range industryCodes {
+					if code.CodeType == "NAICS" {
+						key := code.Code
+						if _, exists := candidates[key]; !exists {
+							candidates[key] = &CodeResult{
+								Code:        code.Code,
+								Description: code.Description,
+								Confidence:  0.90,
+								Source:      "industry_match",
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// Strategy 2: Keyword matching
+	keywordCodes := g.repo.GetCodesByKeywords(ctx, "NAICS", keywords)
+	for _, kc := range keywordCodes {
+		key := kc.Code
+		if existing, exists := candidates[key]; exists {
+			existing.Confidence = math.Min(existing.Confidence+0.1, 0.98)
+		} else {
+			candidates[key] = &CodeResult{
+				Code:        kc.Code,
+				Description: kc.Description,
+				Confidence:  kc.Weight,
+				Source:      "keyword_match",
+			}
+		}
+	}
+
+	// Strategy 3: Trigram similarity
+	if industryName != "" {
+		trigramCodes := g.repo.GetCodesByTrigramSimilarity(ctx, "NAICS", industryName, 0.3, 10)
+		for _, tc := range trigramCodes {
+			key := tc.Code
+			if existing, exists := candidates[key]; exists {
+				existing.Confidence = math.Min(existing.Confidence+0.05, 0.98)
+			} else {
+				candidates[key] = &CodeResult{
+					Code:        tc.Code,
+					Description: tc.Description,
+					Confidence:  tc.Similarity * 0.7,
+					Source:      "trigram_match",
+				}
+			}
+		}
+	}
+
+	result := make([]CodeResult, 0, len(candidates))
+	for _, candidate := range candidates {
+		result = append(result, *candidate)
+	}
+
+	return result
+}
+
+// selectTopCodes selects the top N codes by confidence (Phase 2)
+func (g *ClassificationCodeGenerator) selectTopCodes(candidates []CodeResult, limit int) []CodeResult {
+	if len(candidates) == 0 {
+		return []CodeResult{}
+	}
+
+	// Sort by confidence (highest first)
+	sort.Slice(candidates, func(i, j int) bool {
+		return candidates[i].Confidence > candidates[j].Confidence
+	})
+
+	// Return top N
+	if len(candidates) > limit {
+		return candidates[:limit]
+	}
+
+	return candidates
+}
+
+// enrichWithCrosswalks enriches codes using crosswalk relationships (Phase 2)
+func (g *ClassificationCodeGenerator) enrichWithCrosswalks(codes *ClassificationCodesInfo) *ClassificationCodesInfo {
+	// If we have a high-confidence MCC code, use crosswalks to find corresponding SIC/NAICS
+	if len(codes.MCC) > 0 && codes.MCC[0].Confidence > 0.8 {
+		// Get crosswalks from MCC to SIC
+		ctx := context.Background()
+		sicCrosswalks := g.repo.GetCrosswalks(ctx, "MCC", codes.MCC[0].Code, "SIC")
+		for _, xwalk := range sicCrosswalks {
+			// Check if this SIC code is already in our list
+			found := false
+			for i, existing := range codes.SIC {
+				if existing.Code == xwalk.ToCode {
+					// Boost confidence if found via crosswalk
+					codes.SIC[i].Confidence = math.Min(codes.SIC[i].Confidence+0.15, 0.98)
+					codes.SIC[i].Source = "crosswalk_from_mcc"
+					found = true
+					break
+				}
+			}
+
+			if !found && len(codes.SIC) < 3 {
+				// Add new code from crosswalk
+				codes.SIC = append(codes.SIC, SICCode{
+					Code:        xwalk.ToCode,
+					Description: xwalk.ToDescription,
+					Confidence:  codes.MCC[0].Confidence * 0.85, // Slightly lower than source
+					Source:      "crosswalk_from_mcc",
+				})
+			}
+		}
+
+		// Get crosswalks from MCC to NAICS
+		naicsCrosswalks := g.repo.GetCrosswalks(ctx, "MCC", codes.MCC[0].Code, "NAICS")
+		for _, xwalk := range naicsCrosswalks {
+			found := false
+			for i, existing := range codes.NAICS {
+				if existing.Code == xwalk.ToCode {
+					codes.NAICS[i].Confidence = math.Min(codes.NAICS[i].Confidence+0.15, 0.98)
+					codes.NAICS[i].Source = "crosswalk_from_mcc"
+					found = true
+					break
+				}
+			}
+
+			if !found && len(codes.NAICS) < 3 {
+				codes.NAICS = append(codes.NAICS, NAICSCode{
+					Code:        xwalk.ToCode,
+					Description: xwalk.ToDescription,
+					Confidence:  codes.MCC[0].Confidence * 0.85,
+					Source:      "crosswalk_from_mcc",
+				})
+			}
+		}
+	}
+
+	// Re-sort after enrichment
+	sort.Slice(codes.SIC, func(i, j int) bool {
+		return codes.SIC[i].Confidence > codes.SIC[j].Confidence
+	})
+	sort.Slice(codes.NAICS, func(i, j int) bool {
+		return codes.NAICS[i].Confidence > codes.NAICS[j].Confidence
+	})
+
+	return codes
+}
+
+// fillGapsWithCrosswalks fills gaps to ensure 3 codes per type when possible (Phase 2)
+func (g *ClassificationCodeGenerator) fillGapsWithCrosswalks(codes *ClassificationCodesInfo) *ClassificationCodesInfo {
+	ctx := context.Background()
+	
+	// Strategy 1: If MCC has codes but SIC doesn't, use crosswalks
+	if len(codes.MCC) > 0 && len(codes.SIC) < 3 {
+		for _, mcc := range codes.MCC {
+			if len(codes.SIC) >= 3 {
+				break
+			}
+
+			xwalks := g.repo.GetCrosswalks(ctx, "MCC", mcc.Code, "SIC")
+			for _, xw := range xwalks {
+				// Check if already present
+				found := false
+				for _, existing := range codes.SIC {
+					if existing.Code == xw.ToCode {
+						found = true
+						break
+					}
+				}
+
+				if !found {
+					codes.SIC = append(codes.SIC, SICCode{
+						Code:        xw.ToCode,
+						Description: xw.ToDescription,
+						Confidence:  mcc.Confidence * 0.80,
+						Source:      "crosswalk_gap_fill",
+					})
+
+					if len(codes.SIC) >= 3 {
+						break
+					}
+				}
+			}
+		}
+	}
+
+	// Strategy 2: If MCC has codes but NAICS doesn't, use crosswalks
+	if len(codes.MCC) > 0 && len(codes.NAICS) < 3 {
+		for _, mcc := range codes.MCC {
+			if len(codes.NAICS) >= 3 {
+				break
+			}
+
+			xwalks := g.repo.GetCrosswalks(ctx, "MCC", mcc.Code, "NAICS")
+			for _, xw := range xwalks {
+				found := false
+				for _, existing := range codes.NAICS {
+					if existing.Code == xw.ToCode {
+						found = true
+						break
+					}
+				}
+
+				if !found {
+					codes.NAICS = append(codes.NAICS, NAICSCode{
+						Code:        xw.ToCode,
+						Description: xw.ToDescription,
+						Confidence:  mcc.Confidence * 0.80,
+						Source:      "crosswalk_gap_fill",
+					})
+
+					if len(codes.NAICS) >= 3 {
+						break
+					}
+				}
+			}
+		}
+	}
+
+	// Strategy 3: If SIC has codes but MCC doesn't, use reverse crosswalks
+	if len(codes.SIC) > 0 && len(codes.MCC) < 3 {
+		for _, sic := range codes.SIC {
+			if len(codes.MCC) >= 3 {
+				break
+			}
+
+			xwalks := g.repo.GetCrosswalks(ctx, "SIC", sic.Code, "MCC")
+			for _, xw := range xwalks {
+				found := false
+				for _, existing := range codes.MCC {
+					if existing.Code == xw.ToCode {
+						found = true
+						break
+					}
+				}
+
+				if !found {
+					codes.MCC = append(codes.MCC, MCCCode{
+						Code:        xw.ToCode,
+						Description: xw.ToDescription,
+						Confidence:  sic.Confidence * 0.80,
+						Source:      "crosswalk_gap_fill",
+					})
+
+					if len(codes.MCC) >= 3 {
+						break
+					}
+				}
+			}
+		}
+	}
+
+	// Strategy 4: If NAICS has codes but MCC doesn't, use reverse crosswalks
+	if len(codes.NAICS) > 0 && len(codes.MCC) < 3 {
+		for _, naics := range codes.NAICS {
+			if len(codes.MCC) >= 3 {
+				break
+			}
+
+			xwalks := g.repo.GetCrosswalks(ctx, "NAICS", naics.Code, "MCC")
+			for _, xw := range xwalks {
+				found := false
+				for _, existing := range codes.MCC {
+					if existing.Code == xw.ToCode {
+						found = true
+						break
+					}
+				}
+
+				if !found {
+					codes.MCC = append(codes.MCC, MCCCode{
+						Code:        xw.ToCode,
+						Description: xw.ToDescription,
+						Confidence:  naics.Confidence * 0.80,
+						Source:      "crosswalk_gap_fill",
+					})
+
+					if len(codes.MCC) >= 3 {
+						break
+					}
+				}
+			}
+		}
+	}
+
+	// Strategy 5: If SIC has codes but NAICS doesn't, use crosswalks
+	if len(codes.SIC) > 0 && len(codes.NAICS) < 3 {
+		for _, sic := range codes.SIC {
+			if len(codes.NAICS) >= 3 {
+				break
+			}
+
+			xwalks := g.repo.GetCrosswalks(ctx, "SIC", sic.Code, "NAICS")
+			for _, xw := range xwalks {
+				found := false
+				for _, existing := range codes.NAICS {
+					if existing.Code == xw.ToCode {
+						found = true
+						break
+					}
+				}
+
+				if !found {
+					codes.NAICS = append(codes.NAICS, NAICSCode{
+						Code:        xw.ToCode,
+						Description: xw.ToDescription,
+						Confidence:  sic.Confidence * 0.80,
+						Source:      "crosswalk_gap_fill",
+					})
+
+					if len(codes.NAICS) >= 3 {
+						break
+					}
+				}
+			}
+		}
+	}
+
+	g.logger.Printf("🔗 [Phase 2] Gap filling completed: %d MCC, %d SIC, %d NAICS",
+		len(codes.MCC), len(codes.SIC), len(codes.NAICS))
+
+	return codes
+}
+
+// ensureTop3MCC ensures exactly 3 MCC codes
+func (g *ClassificationCodeGenerator) ensureTop3MCC(codes []MCCCode) []MCCCode {
+	if len(codes) > 3 {
+		return codes[:3]
+	}
+	return codes
+}
+
+// ensureTop3SIC ensures exactly 3 SIC codes
+func (g *ClassificationCodeGenerator) ensureTop3SIC(codes []SICCode) []SICCode {
+	if len(codes) > 3 {
+		return codes[:3]
+	}
+	return codes
+}
+
+// ensureTop3NAICS ensures exactly 3 NAICS codes
+func (g *ClassificationCodeGenerator) ensureTop3NAICS(codes []NAICSCode) []NAICSCode {
+	if len(codes) > 3 {
+		return codes[:3]
+	}
+	return codes
+}
+
 // generateCodesInParallel generates MCC, SIC, and NAICS codes in parallel for better performance
 // Supports multiple industries for enhanced code coverage
+// Phase 2: Enhanced to use multi-strategy candidate collection and return top 3 codes
 func (g *ClassificationCodeGenerator) generateCodesInParallel(ctx context.Context, codes *ClassificationCodesInfo, keywordsLower []string, industries []IndustryResult) {
 	g.logger.Printf("🚀 Starting parallel code generation for MCC, SIC, and NAICS")
 
@@ -584,83 +1108,61 @@ func (g *ClassificationCodeGenerator) generateCodesInParallel(ctx context.Contex
 	// Channel to collect errors from goroutines
 	errorChan := make(chan error, 3)
 
-	// Generate MCC codes in parallel
+	// Generate MCC codes in parallel (Phase 2: Enhanced with multi-strategy)
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		g.logger.Printf("🔄 Starting MCC code generation (hybrid: industry + keywords)...")
+		g.logger.Printf("🔄 Starting MCC code generation (Phase 2: multi-strategy)...")
 
-		// Get industry-based codes from all industries
-		industryCodes := g.generateCodesForMultipleIndustries(ctx, industries, "MCC")
-		
-		// Use primary industry confidence for keyword matching
-		primaryConfidence := 0.5
+		// Phase 2: Use multi-strategy candidate collection
+		primaryIndustryName := ""
 		if len(industries) > 0 {
-			primaryConfidence = industries[0].Confidence
+			primaryIndustryName = industries[0].IndustryName
 		}
 
-		// Get keyword-based codes
-		keywordMatches, err := g.generateCodesFromKeywords(ctx, keywordsLower, "MCC", primaryConfidence)
-		if err != nil {
-			g.logger.Printf("⚠️ Failed to get MCC codes from keywords: %v", err)
+		// Get candidates from multiple strategies
+		candidates := g.getMCCCandidates(ctx, primaryIndustryName, keywordsLower, industries)
+		
+		// Select top 3 codes
+		topCodes := g.selectTopCodes(candidates, 3)
+
+		// Convert to MCCCode format
+		mccResults := make([]MCCCode, 0, len(topCodes))
+		for _, codeResult := range topCodes {
+			mccResults = append(mccResults, MCCCode{
+				Code:        codeResult.Code,
+				Description: codeResult.Description,
+				Confidence:  codeResult.Confidence,
+				Source:      codeResult.Source,
+				Keywords:    []string{}, // Will be populated if needed
+			})
 		}
 
-		// Merge results using primary industry confidence
-		rankedCodes := g.mergeCodeResults(industryCodes, keywordMatches, primaryConfidence, "MCC")
-
-		// Convert to MCCCode format with enhanced metadata from code_metadata
-		mccResults := make([]MCCCode, 0, len(rankedCodes))
-		for _, rankedCode := range rankedCodes {
-			// Extract keywords from match details
-			keywordsMatched := make([]string, 0)
-			for _, match := range rankedCode.MatchDetails {
-				if match.Source == "keyword" {
-					// Try to extract keyword from match (we don't store it in CodeMatch, so we'll use a placeholder)
-					keywordsMatched = append(keywordsMatched, "keyword_match")
-				}
-			}
-
-			// Enhance description with official description from code_metadata if available
-			description := rankedCode.Code.Description
-			var crosswalkCodes []CrosswalkCode
-			isOfficial := false
-			
-			if g.codeMetadataRepo != nil {
-				enhancedDesc := g.codeMetadataRepo.EnhanceCodeDescription(ctx, "MCC", rankedCode.Code.Code, description)
-				if enhancedDesc != description {
-					g.logger.Printf("📝 Enhanced MCC %s description from code_metadata", rankedCode.Code.Code)
-					description = enhancedDesc
+		// Enhance with code_metadata if available
+		if g.codeMetadataRepo != nil {
+			for i := range mccResults {
+				enhancedDesc := g.codeMetadataRepo.EnhanceCodeDescription(ctx, "MCC", mccResults[i].Code, mccResults[i].Description)
+				if enhancedDesc != mccResults[i].Description {
+					mccResults[i].Description = enhancedDesc
 				}
 				
-				// Get crosswalk codes (related NAICS/SIC codes)
-				crosswalks, err := g.codeMetadataRepo.GetCrosswalkCodes(ctx, "MCC", rankedCode.Code.Code)
+				crosswalks, err := g.codeMetadataRepo.GetCrosswalkCodes(ctx, "MCC", mccResults[i].Code)
 				if err == nil && len(crosswalks) > 0 {
-					crosswalkCodes = make([]CrosswalkCode, len(crosswalks))
-					for i, cw := range crosswalks {
-						crosswalkCodes[i] = CrosswalkCode{
+					mccResults[i].CrosswalkCodes = make([]CrosswalkCode, len(crosswalks))
+					for j, cw := range crosswalks {
+						mccResults[i].CrosswalkCodes[j] = CrosswalkCode{
 							CodeType: cw.CodeType,
 							Code:     cw.Code,
 							Name:     cw.Name,
 						}
 					}
-					g.logger.Printf("🔗 Found %d crosswalk codes for MCC %s", len(crosswalkCodes), rankedCode.Code.Code)
 				}
 				
-				// Check if code is official
-				metadata, _ := g.codeMetadataRepo.GetCodeMetadata(ctx, "MCC", rankedCode.Code.Code)
+				metadata, _ := g.codeMetadataRepo.GetCodeMetadata(ctx, "MCC", mccResults[i].Code)
 				if metadata != nil {
-					isOfficial = metadata.IsOfficial
+					mccResults[i].IsOfficial = metadata.IsOfficial
 				}
 			}
-
-			mccResults = append(mccResults, MCCCode{
-				Code:          rankedCode.Code.Code,
-				Description:   description,
-				Confidence:    rankedCode.CombinedConfidence,
-				Keywords:      keywordsMatched,
-				CrosswalkCodes: crosswalkCodes,
-				IsOfficial:    isOfficial,
-			})
 		}
 
 		// Thread-safe update of shared codes
@@ -668,86 +1170,65 @@ func (g *ClassificationCodeGenerator) generateCodesInParallel(ctx context.Contex
 		codes.MCC = mccResults
 		mu.Unlock()
 
-		g.logger.Printf("✅ MCC code generation completed: %d codes (industries: %d, keyword: %d)",
-			len(mccResults), len(industries), len(keywordMatches))
+		g.logger.Printf("✅ MCC code generation completed: %d codes (Phase 2: multi-strategy)",
+			len(mccResults))
 	}()
 
-	// Generate SIC codes in parallel
+	// Generate SIC codes in parallel (Phase 2: Enhanced with multi-strategy)
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		g.logger.Printf("🔄 Starting SIC code generation (hybrid: industry + keywords)...")
+		g.logger.Printf("🔄 Starting SIC code generation (Phase 2: multi-strategy)...")
 
-		// Get industry-based codes from all industries
-		industryCodes := g.generateCodesForMultipleIndustries(ctx, industries, "SIC")
-		
-		// Use primary industry confidence for keyword matching
-		primaryConfidence := 0.5
+		// Phase 2: Use multi-strategy candidate collection
+		primaryIndustryName := ""
 		if len(industries) > 0 {
-			primaryConfidence = industries[0].Confidence
+			primaryIndustryName = industries[0].IndustryName
 		}
 
-		// Get keyword-based codes
-		keywordMatches, err := g.generateCodesFromKeywords(ctx, keywordsLower, "SIC", primaryConfidence)
-		if err != nil {
-			g.logger.Printf("⚠️ Failed to get SIC codes from keywords: %v", err)
+		// Get candidates from multiple strategies
+		candidates := g.getSICCandidates(ctx, primaryIndustryName, keywordsLower, industries)
+		
+		// Select top 3 codes
+		topCodes := g.selectTopCodes(candidates, 3)
+
+		// Convert to SICCode format
+		sicResults := make([]SICCode, 0, len(topCodes))
+		for _, codeResult := range topCodes {
+			sicResults = append(sicResults, SICCode{
+				Code:        codeResult.Code,
+				Description: codeResult.Description,
+				Confidence:  codeResult.Confidence,
+				Source:      codeResult.Source,
+				Keywords:    []string{},
+			})
 		}
 
-		// Merge results using primary industry confidence
-		rankedCodes := g.mergeCodeResults(industryCodes, keywordMatches, primaryConfidence, "SIC")
-
-		// Convert to SICCode format with enhanced descriptions from code_metadata
-		sicResults := make([]SICCode, 0, len(rankedCodes))
-		for _, rankedCode := range rankedCodes {
-			// Extract keywords from match details
-			keywordsMatched := make([]string, 0)
-			for _, match := range rankedCode.MatchDetails {
-				if match.Source == "keyword" {
-					keywordsMatched = append(keywordsMatched, "keyword_match")
-				}
-			}
-
-			// Enhance description with official description from code_metadata if available
-			description := rankedCode.Code.Description
-			var crosswalkCodes []CrosswalkCode
-			isOfficial := false
-			
-			if g.codeMetadataRepo != nil {
-				enhancedDesc := g.codeMetadataRepo.EnhanceCodeDescription(ctx, "SIC", rankedCode.Code.Code, description)
-				if enhancedDesc != description {
-					g.logger.Printf("📝 Enhanced SIC %s description from code_metadata", rankedCode.Code.Code)
-					description = enhancedDesc
+		// Enhance with code_metadata if available
+		if g.codeMetadataRepo != nil {
+			for i := range sicResults {
+				enhancedDesc := g.codeMetadataRepo.EnhanceCodeDescription(ctx, "SIC", sicResults[i].Code, sicResults[i].Description)
+				if enhancedDesc != sicResults[i].Description {
+					sicResults[i].Description = enhancedDesc
 				}
 				
-				// Get crosswalk codes (related NAICS/MCC codes)
-				crosswalks, err := g.codeMetadataRepo.GetCrosswalkCodes(ctx, "SIC", rankedCode.Code.Code)
+				crosswalks, err := g.codeMetadataRepo.GetCrosswalkCodes(ctx, "SIC", sicResults[i].Code)
 				if err == nil && len(crosswalks) > 0 {
-					crosswalkCodes = make([]CrosswalkCode, len(crosswalks))
-					for i, cw := range crosswalks {
-						crosswalkCodes[i] = CrosswalkCode{
+					sicResults[i].CrosswalkCodes = make([]CrosswalkCode, len(crosswalks))
+					for j, cw := range crosswalks {
+						sicResults[i].CrosswalkCodes[j] = CrosswalkCode{
 							CodeType: cw.CodeType,
 							Code:     cw.Code,
 							Name:     cw.Name,
 						}
 					}
-					g.logger.Printf("🔗 Found %d crosswalk codes for SIC %s", len(crosswalkCodes), rankedCode.Code.Code)
 				}
 				
-				// Check if code is official
-				metadata, _ := g.codeMetadataRepo.GetCodeMetadata(ctx, "SIC", rankedCode.Code.Code)
+				metadata, _ := g.codeMetadataRepo.GetCodeMetadata(ctx, "SIC", sicResults[i].Code)
 				if metadata != nil {
-					isOfficial = metadata.IsOfficial
+					sicResults[i].IsOfficial = metadata.IsOfficial
 				}
 			}
-
-			sicResults = append(sicResults, SICCode{
-				Code:          rankedCode.Code.Code,
-				Description:   description,
-				Confidence:    rankedCode.CombinedConfidence,
-				Keywords:      keywordsMatched,
-				CrosswalkCodes: crosswalkCodes,
-				IsOfficial:    isOfficial,
-			})
 		}
 
 		// Thread-safe update of shared codes
@@ -755,108 +1236,81 @@ func (g *ClassificationCodeGenerator) generateCodesInParallel(ctx context.Contex
 		codes.SIC = sicResults
 		mu.Unlock()
 
-		g.logger.Printf("✅ SIC code generation completed: %d codes (industries: %d, keyword: %d)",
-			len(sicResults), len(industries), len(keywordMatches))
+		g.logger.Printf("✅ SIC code generation completed: %d codes (Phase 2: multi-strategy)",
+			len(sicResults))
 	}()
 
-	// Generate NAICS codes in parallel
+	// Generate NAICS codes in parallel (Phase 2: Enhanced with multi-strategy)
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		g.logger.Printf("🔄 Starting NAICS code generation (hybrid: industry + keywords)...")
+		g.logger.Printf("🔄 Starting NAICS code generation (Phase 2: multi-strategy)...")
 
-		// Get industry-based codes from all industries
-		industryCodes := g.generateCodesForMultipleIndustries(ctx, industries, "NAICS")
-		
-		// Use primary industry confidence for keyword matching
-		primaryConfidence := 0.5
+		// Phase 2: Use multi-strategy candidate collection
+		primaryIndustryName := ""
 		if len(industries) > 0 {
-			primaryConfidence = industries[0].Confidence
+			primaryIndustryName = industries[0].IndustryName
 		}
 
-		// Get keyword-based codes
-		keywordMatches, err := g.generateCodesFromKeywords(ctx, keywordsLower, "NAICS", primaryConfidence)
-		if err != nil {
-			g.logger.Printf("⚠️ Failed to get NAICS codes from keywords: %v", err)
-		}
-
-		// Merge results using primary industry confidence
-		rankedCodes := g.mergeCodeResults(industryCodes, keywordMatches, primaryConfidence, "NAICS")
+		// Get candidates from multiple strategies
+		candidates := g.getNAICSCandidates(ctx, primaryIndustryName, keywordsLower, industries)
+		
+		// Select top 3 codes
+		topCodes := g.selectTopCodes(candidates, 3)
 
 		// Convert to NAICSCode format
-		naicsResults := make([]NAICSCode, 0, len(rankedCodes))
-		for _, rankedCode := range rankedCodes {
-			// Extract keywords from match details
-			keywordsMatched := make([]string, 0)
-			for _, match := range rankedCode.MatchDetails {
-				if match.Source == "keyword" {
-					keywordsMatched = append(keywordsMatched, "keyword_match")
-				}
-			}
+		naicsResults := make([]NAICSCode, 0, len(topCodes))
+		for _, codeResult := range topCodes {
+			naicsResults = append(naicsResults, NAICSCode{
+				Code:        codeResult.Code,
+				Description: codeResult.Description,
+				Confidence:  codeResult.Confidence,
+				Source:      codeResult.Source,
+				Keywords:    []string{},
+			})
+		}
 
-			// Enhance description with official description from code_metadata if available
-			description := rankedCode.Code.Description
-			var crosswalkCodes []CrosswalkCode
-			var hierarchy *CodeHierarchy
-			isOfficial := false
-			
-			if g.codeMetadataRepo != nil {
-				enhancedDesc := g.codeMetadataRepo.EnhanceCodeDescription(ctx, "NAICS", rankedCode.Code.Code, description)
-				if enhancedDesc != description {
-					g.logger.Printf("📝 Enhanced NAICS %s description from code_metadata", rankedCode.Code.Code)
-					description = enhancedDesc
+		// Enhance with code_metadata if available
+		if g.codeMetadataRepo != nil {
+			for i := range naicsResults {
+				enhancedDesc := g.codeMetadataRepo.EnhanceCodeDescription(ctx, "NAICS", naicsResults[i].Code, naicsResults[i].Description)
+				if enhancedDesc != naicsResults[i].Description {
+					naicsResults[i].Description = enhancedDesc
 				}
 				
-				// Get crosswalk codes (related SIC/MCC codes)
-				crosswalks, err := g.codeMetadataRepo.GetCrosswalkCodes(ctx, "NAICS", rankedCode.Code.Code)
+				crosswalks, err := g.codeMetadataRepo.GetCrosswalkCodes(ctx, "NAICS", naicsResults[i].Code)
 				if err == nil && len(crosswalks) > 0 {
-					crosswalkCodes = make([]CrosswalkCode, len(crosswalks))
-					for i, cw := range crosswalks {
-						crosswalkCodes[i] = CrosswalkCode{
+					naicsResults[i].CrosswalkCodes = make([]CrosswalkCode, len(crosswalks))
+					for j, cw := range crosswalks {
+						naicsResults[i].CrosswalkCodes[j] = CrosswalkCode{
 							CodeType: cw.CodeType,
 							Code:     cw.Code,
 							Name:     cw.Name,
 						}
 					}
-					g.logger.Printf("🔗 Found %d crosswalk codes for NAICS %s", len(crosswalkCodes), rankedCode.Code.Code)
 				}
 				
-				// Get hierarchy (parent/child codes) for NAICS
-				parent, children, err := g.codeMetadataRepo.GetHierarchyCodes(ctx, "NAICS", rankedCode.Code.Code)
+				// Get hierarchy for NAICS
+				parent, children, err := g.codeMetadataRepo.GetHierarchyCodes(ctx, "NAICS", naicsResults[i].Code)
 				if err == nil && (parent != nil || len(children) > 0) {
-					hierarchy = &CodeHierarchy{}
+					naicsResults[i].Hierarchy = &CodeHierarchy{}
 					if parent != nil {
-						hierarchy.ParentCode = parent.Code
-						hierarchy.ParentType = parent.CodeType
+						naicsResults[i].Hierarchy.ParentCode = parent.Code
+						naicsResults[i].Hierarchy.ParentType = parent.CodeType
 					}
 					if len(children) > 0 {
-						hierarchy.ChildCodes = make([]string, len(children))
-						for i, child := range children {
-							hierarchy.ChildCodes[i] = child.Code
+						naicsResults[i].Hierarchy.ChildCodes = make([]string, len(children))
+						for j, child := range children {
+							naicsResults[i].Hierarchy.ChildCodes[j] = child.Code
 						}
-					}
-					if hierarchy.ParentCode != "" || len(hierarchy.ChildCodes) > 0 {
-						g.logger.Printf("🌳 Found hierarchy for NAICS %s (parent: %s, children: %d)", 
-							rankedCode.Code.Code, hierarchy.ParentCode, len(hierarchy.ChildCodes))
 					}
 				}
 				
-				// Check if code is official
-				metadata, _ := g.codeMetadataRepo.GetCodeMetadata(ctx, "NAICS", rankedCode.Code.Code)
+				metadata, _ := g.codeMetadataRepo.GetCodeMetadata(ctx, "NAICS", naicsResults[i].Code)
 				if metadata != nil {
-					isOfficial = metadata.IsOfficial
+					naicsResults[i].IsOfficial = metadata.IsOfficial
 				}
 			}
-
-			naicsResults = append(naicsResults, NAICSCode{
-				Code:          rankedCode.Code.Code,
-				Description:   description,
-				Confidence:    rankedCode.CombinedConfidence,
-				Keywords:      keywordsMatched,
-				CrosswalkCodes: crosswalkCodes,
-				Hierarchy:     hierarchy,
-				IsOfficial:    isOfficial,
-			})
 		}
 
 		// Thread-safe update of shared codes
@@ -864,8 +1318,8 @@ func (g *ClassificationCodeGenerator) generateCodesInParallel(ctx context.Contex
 		codes.NAICS = naicsResults
 		mu.Unlock()
 
-		g.logger.Printf("✅ NAICS code generation completed: %d codes (industries: %d, keyword: %d)",
-			len(naicsResults), len(industries), len(keywordMatches))
+		g.logger.Printf("✅ NAICS code generation completed: %d codes (Phase 2: multi-strategy)",
+			len(naicsResults))
 	}()
 
 	// Wait for all goroutines to complete with timeout (Task 2.2: Enhanced parallel execution)
@@ -900,6 +1354,21 @@ func (g *ClassificationCodeGenerator) generateCodesInParallel(ctx context.Contex
 		g.logger.Printf("🚀 Parallel code generation completed successfully: %d MCC, %d SIC, %d NAICS codes",
 			len(codes.MCC), len(codes.SIC), len(codes.NAICS))
 	}
+
+	// Phase 2: Enrich codes with crosswalks and fill gaps
+	g.logger.Printf("🔗 [Phase 2] Enriching codes with crosswalk validation")
+	codes = g.enrichWithCrosswalks(codes)
+	
+	g.logger.Printf("🔗 [Phase 2] Filling gaps to ensure 3 codes per type")
+	codes = g.fillGapsWithCrosswalks(codes)
+	
+	// Ensure we have exactly 3 codes per type (trim if more)
+	codes.MCC = g.ensureTop3MCC(codes.MCC)
+	codes.SIC = g.ensureTop3SIC(codes.SIC)
+	codes.NAICS = g.ensureTop3NAICS(codes.NAICS)
+	
+	g.logger.Printf("✅ [Phase 2] Final code counts: %d MCC, %d SIC, %d NAICS",
+		len(codes.MCC), len(codes.SIC), len(codes.NAICS))
 }
 
 // =============================================================================
