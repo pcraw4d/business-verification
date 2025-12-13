@@ -71,8 +71,26 @@ def main():
 
 def fetch_all_codes(supabase: Client) -> List[Dict]:
     """Fetch all classification codes from database."""
-    response = supabase.table('classification_codes').select('*').execute()
-    return response.data
+    all_codes = []
+    page_size = 1000
+    offset = 0
+    
+    while True:
+        response = supabase.table('classification_codes').select('*').range(offset, offset + page_size - 1).execute()
+        
+        if not response.data or len(response.data) == 0:
+            break
+            
+        all_codes.extend(response.data)
+        
+        # If we got fewer than page_size, we've reached the end
+        if len(response.data) < page_size:
+            break
+            
+        offset += page_size
+        print(f"   Fetched {len(all_codes)} codes so far...")
+    
+    return all_codes
 
 def enrich_codes_with_context(codes: List[Dict], supabase: Client) -> List[Dict]:
     """Enrich code descriptions with keywords and additional context."""
