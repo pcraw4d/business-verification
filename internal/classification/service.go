@@ -382,10 +382,66 @@ func (s *IndustryDetectionService) performClassification(ctx context.Context, bu
 	// Phase 3: Layer 2 routing - Try embeddings if Layer 1 confidence is low
 	// Decision: Use Layer 1 or try Layer 2?
 	const layer2Threshold = 0.80
+	const highConfidenceThreshold = 0.95 // Increased from 0.90 to allow more cases to try Layer 2/3
 
-	if multiResult.Confidence >= 0.90 {
-		// High confidence - use Layer 1
-		s.logger.Printf("✅ [Phase 3] High confidence (%.2f%%) >= 90%%, using Layer 1 result (request: %s)",
+	// Check for ambiguity indicators - ambiguous cases should use Layer 3 even with high confidence
+	isAmbiguous := s.isAmbiguousCase(businessName, description)
+
+	// Phase 4: If ambiguous, try Layer 3 (LLM) directly even with high confidence
+	if isAmbiguous && s.llmClassifier != nil && websiteURL != "" {
+		s.logger.Printf("🤖 [Phase 4] Ambiguous case detected, trying Layer 3 (LLM) even with high confidence (%.2f%%) (request: %s)",
+			multiResult.Confidence*100, requestID)
+
+		// Get ScrapedContent for Layer 3
+		scrapedContent, err := s.getScrapedContentForLayer2(ctx, websiteURL)
+		if err != nil {
+			s.logger.Printf("⚠️ [Phase 4] Failed to get scraped content for Layer 3: %v, falling back to Layer 1 (request: %s)", err, requestID)
+			result := s.convertToIndustryDetectionResult(multiResult, resultMethod, requestID)
+			result.Method = "layer1_fallback"
+			return result, nil
+		}
+
+		// Try Layer 3 classification
+		layer3Result, err := s.llmClassifier.ClassifyWithLLM(
+			ctx,
+			scrapedContent,
+			businessName,
+			description,
+			multiResult,
+			nil, // Layer 2 not available yet
+		)
+		if err != nil {
+			s.logger.Printf("⚠️ [Phase 4] Layer 3 classification failed: %v, falling back to Layer 1 (request: %s)", err, requestID)
+			result := s.convertToIndustryDetectionResult(multiResult, resultMethod, requestID)
+			result.Method = "layer1_fallback"
+			return result, nil
+		}
+
+		s.logger.Printf("✅ [Phase 4] Layer 3 complete (confidence: %.2f%%, industry: %s) (request: %s)",
+			layer3Result.Confidence*100, layer3Result.PrimaryIndustry, requestID)
+
+		// Use Layer 3 result if confidence is acceptable
+		if layer3Result.Confidence >= 0.85 {
+			s.logger.Printf("✅ [Phase 4] Layer 3 confidence high (≥85%%), using result (request: %s)", requestID)
+			result := s.buildResultFromLLM(layer3Result, "layer3_ambiguous", requestID)
+			return result, nil
+		}
+
+		// If Layer 3 is better than Layer 1, use it
+		if layer3Result.Confidence > multiResult.Confidence+0.03 {
+			s.logger.Printf("✅ [Phase 4] Layer 3 better than Layer 1 (L3: %.2f%% vs L1: %.2f%%), using result (request: %s)",
+				layer3Result.Confidence*100, multiResult.Confidence*100, requestID)
+			result := s.buildResultFromLLM(layer3Result, "layer3_better", requestID)
+			return result, nil
+		}
+
+		// Layer 3 didn't add value, fall through to normal routing
+		s.logger.Printf("ℹ️ [Phase 4] Layer 3 didn't improve, continuing with normal routing (request: %s)", requestID)
+	}
+
+	if multiResult.Confidence >= highConfidenceThreshold && !isAmbiguous {
+		// Very high confidence AND not ambiguous - use Layer 1
+		s.logger.Printf("✅ [Phase 3] Very high confidence (%.2f%%) >= 95%% and not ambiguous, using Layer 1 result (request: %s)",
 			multiResult.Confidence*100, requestID)
 		result := s.convertToIndustryDetectionResult(multiResult, resultMethod, requestID)
 		result.Method = "layer1"
@@ -508,8 +564,8 @@ func (s *IndustryDetectionService) performClassification(ctx context.Context, bu
 	// Step 2: Determine ML strategy based on confidence level
 	// Phase 3.1: Three-tier confidence-based ML strategy
 	const (
-		lowConfidenceThreshold  = 0.5
-		highConfidenceThreshold = 0.8
+		lowConfidenceThreshold     = 0.5
+		mlHighConfidenceThreshold = 0.8 // ML-specific threshold (different from Layer 2/3 routing threshold)
 	)
 
 	var result *IndustryDetectionResult
@@ -527,10 +583,10 @@ func (s *IndustryDetectionService) performClassification(ctx context.Context, bu
 			s.logger.Printf("⚠️ ML improvement failed (non-fatal): %v, using base result (request: %s)", err, requestID)
 			result = s.convertToIndustryDetectionResult(multiResult, resultMethod, requestID)
 		}
-	} else if multiResult.Confidence < highConfidenceThreshold {
+	} else if multiResult.Confidence < mlHighConfidenceThreshold {
 		// Medium confidence (0.5-0.8): Ensemble validation
 		s.logger.Printf("⚖️ Medium confidence (%.2f%%) between %.2f%% and %.2f%%, using ensemble validation (request: %s)",
-			multiResult.Confidence*100, lowConfidenceThreshold*100, highConfidenceThreshold*100, requestID)
+			multiResult.Confidence*100, lowConfidenceThreshold*100, mlHighConfidenceThreshold*100, requestID)
 		result, err = s.validateWithEnsemble(ctx, multiResult, businessName, description, websiteURL, requestID)
 		if err != nil {
 			s.logger.Printf("⚠️ Ensemble validation failed (non-fatal): %v, using base result (request: %s)", err, requestID)
@@ -539,7 +595,7 @@ func (s *IndustryDetectionService) performClassification(ctx context.Context, bu
 	} else {
 		// High confidence (>= 0.8): ML validation only
 		s.logger.Printf("✅ High confidence (%.2f%%) >= %.2f%%, using ML validation (request: %s)",
-			multiResult.Confidence*100, highConfidenceThreshold*100, requestID)
+			multiResult.Confidence*100, mlHighConfidenceThreshold*100, requestID)
 		result, err = s.validateWithMLHighConfidence(ctx, multiResult, businessName, description, websiteURL, requestID)
 		if err != nil {
 			s.logger.Printf("⚠️ ML validation failed (non-fatal): %v, using base result (request: %s)", err, requestID)
@@ -1220,6 +1276,59 @@ func (s *IndustryDetectionService) SetEmbeddingClassifier(embeddingClassifier *E
 func (s *IndustryDetectionService) SetLLMClassifier(llmClassifier *LLMClassifier) {
 	s.llmClassifier = llmClassifier
 	s.logger.Printf("✅ [Phase 4] LLM classifier set for Layer 3")
+}
+
+// isAmbiguousCase checks if a business description indicates ambiguity
+// Ambiguous cases should use Layer 3 (LLM) even if Layer 1 confidence is high
+func (s *IndustryDetectionService) isAmbiguousCase(businessName, description string) bool {
+	desc := strings.ToLower(description)
+	ambiguousKeywords := []string{
+		"diversified",
+		"multiple sectors",
+		"various services",
+		"multi-industry",
+		"cross-sector",
+		"various industries",
+		"multiple businesses",
+		"wide range",
+		"broad range",
+		"multiple industries",
+		"various sectors",
+		"cross-industry",
+		"multi-sector",
+		"diverse portfolio",
+		"multiple markets",
+	}
+
+	for _, keyword := range ambiguousKeywords {
+		if strings.Contains(desc, keyword) {
+			return true
+		}
+	}
+
+	// Check for very short or vague descriptions
+	if len(description) < 50 {
+		return true
+	}
+
+	// Check for vague business language
+	vaguePhrases := []string{
+		"help businesses",
+		"provide solutions",
+		"strategic partnerships",
+		"innovative solutions",
+		"business services",
+		"consulting services",
+		"professional services",
+	}
+
+	for _, phrase := range vaguePhrases {
+		if strings.Contains(desc, phrase) && len(description) < 100 {
+			return true
+		}
+	}
+
+	return false
 }
 
 // getScrapedContentForLayer2 gets ScrapedContent for Layer 2 classification
