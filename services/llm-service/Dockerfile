@@ -20,12 +20,13 @@ RUN pip3 install --no-cache-dir "torch>=2.2.0,<2.3.0" --index-url https://downlo
 # Install remaining Python dependencies
 RUN pip3 install --no-cache-dir -r requirements.txt
 
-# Model download at build time (commented out - using lazy loading instead)
-# Note: Model downloads on first request to avoid build timeouts
-# Using Qwen 2.5 3B model (~7GB) to fit within Railway's 8GB memory limit
-# RUN python3 -c "from transformers import AutoModelForCausalLM, AutoTokenizer; \
-#     AutoTokenizer.from_pretrained('Qwen/Qwen2.5-3B-Instruct'); \
-#     AutoModelForCausalLM.from_pretrained('Qwen/Qwen2.5-3B-Instruct', low_cpu_mem_usage=True)"
+# Pre-download model at build time (0.5B model is small enough ~1GB)
+# This makes first request much faster
+RUN python3 -c "from transformers import AutoModelForCausalLM, AutoTokenizer; \
+    print('Downloading Qwen 2.5 0.5B model...'); \
+    AutoTokenizer.from_pretrained('Qwen/Qwen2.5-0.5B-Instruct'); \
+    AutoModelForCausalLM.from_pretrained('Qwen/Qwen2.5-0.5B-Instruct', low_cpu_mem_usage=True); \
+    print('Model downloaded successfully!')"
 
 # Copy application
 COPY services/llm-service/app.py .
@@ -33,8 +34,8 @@ COPY services/llm-service/app.py .
 # Expose port
 EXPOSE 8000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=30s --start-period=180s --retries=3 \
+# Health check (reduced start period since 0.5B model loads fast)
+HEALTHCHECK --interval=30s --timeout=30s --start-period=60s --retries=3 \
     CMD python3 -c "import requests; requests.get('http://localhost:8000/health', timeout=10)"
 
 # Run application

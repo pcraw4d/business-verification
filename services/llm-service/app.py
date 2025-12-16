@@ -1,6 +1,10 @@
 """
-LLM Service - Industry classification reasoning using Qwen 2.5 7B
+LLM Service - Industry classification reasoning using Qwen 2.5 0.5B
 Deployed on Railway as a microservice
+
+Using 0.5B model for reliable operation within Railway's 8GB memory limit.
+Memory footprint: ~1.5GB (vs 6GB for 3B, 14GB for 7B)
+Inference time: 2-5 seconds on CPU
 """
 
 from fastapi import FastAPI, HTTPException
@@ -21,8 +25,8 @@ logger = logging.getLogger(__name__)
 # Initialize FastAPI app
 app = FastAPI(
     title="LLM Classification Service",
-    description="Industry classification reasoning using Qwen 2.5 7B",
-    version="1.0.0"
+    description="Industry classification reasoning using Qwen 2.5 0.5B",
+    version="1.1.0"
 )
 
 # Add CORS middleware
@@ -35,8 +39,9 @@ app.add_middleware(
 )
 
 # Model configuration
-# Using 3B model instead of 7B to fit within Railway's 8GB memory limit
-MODEL_NAME = "Qwen/Qwen2.5-3B-Instruct"
+# Using 0.5B model for reliable operation within Railway's 8GB memory limit
+# Memory: ~1GB model + ~0.5GB KV cache + ~0.5GB overhead = ~2GB total
+MODEL_NAME = "Qwen/Qwen2.5-0.5B-Instruct"
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 logger.info(f"Using device: {DEVICE}")
 
@@ -53,40 +58,38 @@ def load_model():
     
     logger.info(f"Loading model: {MODEL_NAME} on {DEVICE}...")
     try:
-        # Use float16 to reduce memory usage by 50% (from ~12GB float32 to ~6GB float16)
-        # This is critical for Railway's 8GB memory limit
+        # Use float16 for memory efficiency
+        # 0.5B model: ~1GB in fp16, ~2GB in fp32
         dtype = torch.float16
-        logger.info(f"Using float16 for {DEVICE} inference (50% memory reduction vs float32)")
+        logger.info(f"Using float16 for {DEVICE} inference")
         
         logger.info(f"Loading tokenizer...")
         tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
         
-        logger.info(f"Loading model with dtype={dtype} and aggressive memory optimizations...")
+        logger.info(f"Loading model with dtype={dtype}...")
         model = AutoModelForCausalLM.from_pretrained(
             MODEL_NAME,
             torch_dtype=dtype,
             device_map="auto" if DEVICE == "cuda" else None,
-            low_cpu_mem_usage=True,  # Critical: Optimize memory usage for Railway 8GB limit
+            low_cpu_mem_usage=True,
         )
         
         if DEVICE == "cpu":
             model = model.to(DEVICE)
-            # Additional CPU memory optimizations
+            # CPU optimizations for parallel inference
             if hasattr(torch, 'set_num_threads'):
-                torch.set_num_threads(2)  # Limit CPU threads to reduce memory pressure
+                torch.set_num_threads(4)  # 0.5B model can use more threads
         
         model.eval()  # Set to evaluation mode
         
-        # Clear any cached memory (critical for CPU inference)
-        if DEVICE == "cpu":
-            gc.collect()  # Force garbage collection
-            # Additional memory cleanup
-            if hasattr(torch, 'cuda'):
-                torch.cuda.empty_cache()  # Clear CUDA cache if available (no-op on CPU)
+        # Clear any cached memory
+        gc.collect()
+        if hasattr(torch, 'cuda'):
+            torch.cuda.empty_cache()
         
         model_loaded = True
         logger.info(f"✅ Model loaded successfully on {DEVICE} with dtype={dtype}!")
-        logger.info(f"Memory footprint: ~6GB (fits in Railway's 8GB limit)")
+        logger.info(f"Memory footprint: ~1.5GB (plenty of headroom in Railway's 8GB)")
     except torch.cuda.OutOfMemoryError as e:
         logger.error(f"❌ CUDA OOM during model loading: {e}")
         model_loaded = False
@@ -115,7 +118,7 @@ class ClassificationContext(BaseModel):
 class ClassificationRequest(BaseModel):
     context: ClassificationContext
     temperature: Optional[float] = 0.1
-    max_tokens: Optional[int] = 600  # Reduced from 800 to save memory (KV cache)
+    max_tokens: Optional[int] = 400  # Smaller model = smaller context window
 
 class ClassificationResponse(BaseModel):
     primary_industry: str
@@ -143,12 +146,12 @@ async def health_check():
     return {
         "status": status,
         "model": MODEL_NAME,
-        "model_size": "3B",
+        "model_size": "0.5B",
         "device": DEVICE,
         "model_loaded": model_loaded,
-        "memory_optimized": True,
+        "memory_footprint_gb": 1.5,
         "service": "llm-service",
-        "version": "1.0.0"
+        "version": "1.1.0"
     }
 
 # Classification endpoint
@@ -303,15 +306,20 @@ Respond ONLY with a valid JSON object in this exact format:
 def generate_classification(
     prompt: str,
     temperature: float = 0.1,
-    max_tokens: int = 800
+    max_tokens: int = 400
 ) -> str:
     """Generate classification using LLM."""
     
     # Tokenize
     inputs = tokenizer(prompt, return_tensors="pt").to(DEVICE)
     
+    # Store input length for later extraction (before we delete inputs)
+    input_ids = inputs['input_ids'][0]
+    prompt_decoded = tokenizer.decode(input_ids, skip_special_tokens=True)
+    prompt_length = len(prompt_decoded)
+    
     # Generate with inference mode (lower memory than no_grad on CPU)
-    with torch.inference_mode():  # More memory-efficient than no_grad for inference
+    with torch.inference_mode():
         outputs = model.generate(
             **inputs,
             max_new_tokens=max_tokens,
@@ -325,16 +333,13 @@ def generate_classification(
     
     # Clear inputs from memory after generation
     del inputs
-    if DEVICE == "cpu":
-        gc.collect()
+    del input_ids
+    gc.collect()
     
-    # Decode
+    # Decode full response
     response = tokenizer.decode(outputs[0], skip_special_tokens=True)
     
     # Extract just the assistant's response (after the prompt)
-    # The response includes the full prompt + generation
-    # We want just the new generation
-    prompt_length = len(tokenizer.decode(inputs['input_ids'][0], skip_special_tokens=True))
     response = response[prompt_length:].strip()
     
     return response
@@ -393,8 +398,9 @@ async def get_info():
     return {
         "model": MODEL_NAME,
         "device": DEVICE,
-        "parameters": "7B",
-        "description": "Industry classification using LLM reasoning",
+        "parameters": "0.5B",
+        "memory_footprint_gb": 1.5,
+        "description": "Industry classification using LLM reasoning (lightweight model)",
         "endpoints": {
             "/classify": "Classify business with reasoning",
             "/health": "Health check",
