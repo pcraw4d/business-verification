@@ -20,13 +20,12 @@ RUN pip3 install --no-cache-dir "torch>=2.2.0,<2.3.0" --index-url https://downlo
 # Install remaining Python dependencies
 RUN pip3 install --no-cache-dir -r requirements.txt
 
-# Download model at build time (caches in image, ~14GB)
-# Note: This will take a while but ensures model is available on startup
-# Skip model download at build time - download on first startup instead
-# This avoids build timeout issues and allows the service to start faster
+# Model download at build time (commented out - using lazy loading instead)
+# Note: Model downloads on first request to avoid build timeouts
+# Using Qwen 2.5 3B model (~7GB) to fit within Railway's 8GB memory limit
 # RUN python3 -c "from transformers import AutoModelForCausalLM, AutoTokenizer; \
-#     AutoTokenizer.from_pretrained('Qwen/Qwen2.5-7B-Instruct'); \
-#     AutoModelForCausalLM.from_pretrained('Qwen/Qwen2.5-7B-Instruct', device_map='auto')"
+#     AutoTokenizer.from_pretrained('Qwen/Qwen2.5-3B-Instruct'); \
+#     AutoModelForCausalLM.from_pretrained('Qwen/Qwen2.5-3B-Instruct', low_cpu_mem_usage=True)"
 
 # Copy application
 COPY services/llm-service/app.py .

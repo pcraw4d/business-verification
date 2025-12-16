@@ -34,7 +34,8 @@ app.add_middleware(
 )
 
 # Model configuration
-MODEL_NAME = "Qwen/Qwen2.5-7B-Instruct"
+# Using 3B model instead of 7B to fit within Railway's 8GB memory limit
+MODEL_NAME = "Qwen/Qwen2.5-3B-Instruct"
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 logger.info(f"Using device: {DEVICE}")
 
@@ -56,6 +57,7 @@ def load_model():
             MODEL_NAME,
             torch_dtype=torch.float16 if DEVICE == "cuda" else torch.float32,
             device_map="auto" if DEVICE == "cuda" else None,
+            low_cpu_mem_usage=True,  # Optimize memory usage for Railway 8GB limit
         )
         if DEVICE == "cpu":
             model = model.to(DEVICE)
@@ -102,8 +104,10 @@ async def health_check():
     return {
         "status": "healthy" if model_loaded else "model_loading",
         "model": MODEL_NAME,
+        "model_size": "3B",
         "device": DEVICE,
         "model_loaded": model_loaded,
+        "memory_optimized": True,
         "service": "llm-service",
         "version": "1.0.0"
     }
