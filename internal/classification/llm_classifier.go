@@ -26,10 +26,13 @@ func NewLLMClassifier(llmServiceURL string, logger *log.Logger) *LLMClassifier {
 		logger = log.Default()
 	}
 
+	// Trim trailing slash to prevent double-slash in URL construction
+	llmServiceURL = strings.TrimSuffix(llmServiceURL, "/")
+
 	return &LLMClassifier{
 		llmServiceURL: llmServiceURL,
 		httpClient: &http.Client{
-			Timeout: 60 * time.Second, // LLM can be slow
+			Timeout: 300 * time.Second, // LLM on CPU can take 200+ seconds
 		},
 		logger: logger,
 	}

@@ -344,6 +344,58 @@ def generate_classification(
     
     return response
 
+def normalize_code_entry(code_entry: Any) -> Dict[str, Any]:
+    """Normalize a code entry to the expected format: {code, description, confidence}"""
+    if isinstance(code_entry, dict):
+        # Already a dict, ensure required fields
+        return {
+            "code": str(code_entry.get("code", "")),
+            "description": str(code_entry.get("description", "")),
+            "confidence": float(code_entry.get("confidence", 0.8))
+        }
+    elif isinstance(code_entry, str):
+        # Just a code string
+        return {
+            "code": code_entry,
+            "description": "",
+            "confidence": 0.8
+        }
+    elif isinstance(code_entry, (int, float)):
+        # Numeric code
+        return {
+            "code": str(int(code_entry)),
+            "description": "",
+            "confidence": 0.8
+        }
+    else:
+        return {"code": "", "description": "", "confidence": 0.0}
+
+
+def normalize_codes(codes: Any) -> List[Dict[str, Any]]:
+    """Normalize codes field - handles various malformed outputs from smaller models."""
+    if codes is None:
+        return []
+    
+    if isinstance(codes, list):
+        # Already a list, normalize each entry
+        return [normalize_code_entry(entry) for entry in codes]
+    
+    elif isinstance(codes, str):
+        # Single code as string (common with 0.5B model)
+        return [normalize_code_entry(codes)]
+    
+    elif isinstance(codes, (int, float)):
+        # Single numeric code
+        return [normalize_code_entry(codes)]
+    
+    elif isinstance(codes, dict):
+        # Single code as dict
+        return [normalize_code_entry(codes)]
+    
+    else:
+        return []
+
+
 def parse_classification_response(response: str) -> Dict:
     """Parse LLM response into structured format."""
     
@@ -371,23 +423,35 @@ def parse_classification_response(response: str) -> Dict:
         if field not in parsed:
             raise ValueError(f"Missing required field: {field}")
     
-    # Ensure codes have MCC/SIC/NAICS
-    if 'mcc' not in parsed['codes']:
-        parsed['codes']['mcc'] = []
-    if 'sic' not in parsed['codes']:
-        parsed['codes']['sic'] = []
-    if 'naics' not in parsed['codes']:
-        parsed['codes']['naics'] = []
+    # Normalize codes - handle various malformed outputs from smaller models
+    # The 0.5B model sometimes returns strings instead of lists
+    if not isinstance(parsed['codes'], dict):
+        parsed['codes'] = {'mcc': [], 'sic': [], 'naics': []}
     
-    # Ensure alternative_classifications exists
-    if 'alternative_classifications' not in parsed:
+    # Normalize each code type
+    parsed['codes']['mcc'] = normalize_codes(parsed['codes'].get('mcc'))
+    parsed['codes']['sic'] = normalize_codes(parsed['codes'].get('sic'))
+    parsed['codes']['naics'] = normalize_codes(parsed['codes'].get('naics'))
+    
+    # Ensure alternative_classifications is a list
+    alt_class = parsed.get('alternative_classifications', [])
+    if isinstance(alt_class, str):
+        parsed['alternative_classifications'] = [alt_class]
+    elif not isinstance(alt_class, list):
         parsed['alternative_classifications'] = []
+    else:
+        # Ensure all entries are strings
+        parsed['alternative_classifications'] = [str(x) for x in alt_class]
     
     # Validate confidence is in range
-    confidence = float(parsed['confidence'])
-    if confidence < 0.0 or confidence > 1.0:
-        logger.warning(f"Confidence out of range: {confidence}, clamping to [0, 1]")
-        parsed['confidence'] = max(0.0, min(1.0, confidence))
+    try:
+        confidence = float(parsed['confidence'])
+        if confidence < 0.0 or confidence > 1.0:
+            logger.warning(f"Confidence out of range: {confidence}, clamping to [0, 1]")
+            parsed['confidence'] = max(0.0, min(1.0, confidence))
+    except (ValueError, TypeError):
+        logger.warning(f"Invalid confidence value: {parsed['confidence']}, defaulting to 0.7")
+        parsed['confidence'] = 0.7
     
     return parsed
 
