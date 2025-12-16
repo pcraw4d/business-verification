@@ -1968,19 +1968,17 @@ func (h *ClassificationHandler) processClassification(ctx context.Context, req *
 	}
 
 	// Phase 2: Ensure keywords from multiResult are used (includes description keywords)
-	// Get keywords from the actual classification result, not just enhancedResult
+	// Get keywords from the enhancedResult
 	keywordsForExplanation := enhancedResult.Keywords
-	if result != nil && result.Keywords != nil && len(result.Keywords) > 0 {
-		// Use keywords from the actual classification result (includes description keywords)
-		keywordsForExplanation = result.Keywords
-		h.logger.Info("✅ [Phase 2] Using keywords from classification result",
+	if keywordsForExplanation != nil && len(keywordsForExplanation) > 0 {
+		h.logger.Info("✅ [Phase 2] Using keywords from enhancedResult",
 			zap.String("request_id", req.RequestID),
 			zap.Int("keyword_count", len(keywordsForExplanation)),
 			zap.Strings("keywords", keywordsForExplanation))
 	} else {
-		h.logger.Info("⚠️ [Phase 2] Using keywords from enhancedResult (classification result keywords not available)",
+		h.logger.Info("⚠️ [Phase 2] No keywords available in enhancedResult",
 			zap.String("request_id", req.RequestID),
-			zap.Int("keyword_count", len(keywordsForExplanation)))
+			zap.Int("keyword_count", 0))
 	}
 	
 	multiResult := &classification.MultiStrategyResult{
