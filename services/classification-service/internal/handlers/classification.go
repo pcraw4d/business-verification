@@ -41,6 +41,9 @@ type inFlightRequest struct {
 	timeout    time.Duration // Maximum time to wait for this request
 	// FIX #13: Use sync.Once to prevent double-close panic
 	closeOnce sync.Once
+	// FIX: Add closed flag to prevent "send on closed channel" panic
+	closed bool
+	mu     sync.Mutex
 }
 
 // inFlightResult represents the result of an in-flight request
@@ -520,11 +523,15 @@ func (h *ClassificationHandler) cleanupInFlightRequests(ctx context.Context) {
 					h.logger.Warn("Removing stale in-flight request",
 						zap.String("cache_key", key),
 						zap.Duration("age", age))
-					delete(h.inFlightRequests, key)
-					// FIX #13: Use sync.Once to prevent double-close panic
-					req.closeOnce.Do(func() {
-						close(req.resultChan)
-					})
+				delete(h.inFlightRequests, key)
+				// FIX: Set closed flag before closing to prevent "send on closed channel" panic
+				req.mu.Lock()
+				req.closed = true
+				req.mu.Unlock()
+				// FIX #13: Use sync.Once to prevent double-close panic
+				req.closeOnce.Do(func() {
+					close(req.resultChan)
+				})
 				}
 			}
 			h.inFlightMutex.Unlock()
@@ -1175,11 +1182,17 @@ func (h *ClassificationHandler) HandleClassification(w http.ResponseWriter, r *h
 	select {
 	case response := <-queuedReq.response:
 		// Send result to waiting duplicate requests (non-blocking)
-		select {
-		case inFlightReq.resultChan <- &inFlightResult{response: response, err: nil}:
-			// Result sent successfully
-		default:
-			// Channel already has a result (shouldn't happen, but safe to ignore)
+		// FIX: Check if channel is closed before sending to prevent panic
+		inFlightReq.mu.Lock()
+		isClosed := inFlightReq.closed
+		inFlightReq.mu.Unlock()
+		if !isClosed {
+			select {
+			case inFlightReq.resultChan <- &inFlightResult{response: response, err: nil}:
+				// Result sent successfully
+			default:
+				// Channel already has a result (shouldn't happen, but safe to ignore)
+			}
 		}
 
 		// Cache the response if enabled
@@ -1253,11 +1266,17 @@ func (h *ClassificationHandler) HandleClassification(w http.ResponseWriter, r *h
 			zap.Error(err))
 
 		// Send error to waiting duplicate requests (non-blocking)
-		select {
-		case inFlightReq.resultChan <- &inFlightResult{response: nil, err: err}:
-			// Error sent successfully
-		default:
-			// Channel already has a result (shouldn't happen, but safe to ignore)
+		// FIX: Check if channel is closed before sending to prevent panic
+		inFlightReq.mu.Lock()
+		isClosed := inFlightReq.closed
+		inFlightReq.mu.Unlock()
+		if !isClosed {
+			select {
+			case inFlightReq.resultChan <- &inFlightResult{response: nil, err: err}:
+				// Error sent successfully
+			default:
+				// Channel already has a result (shouldn't happen, but safe to ignore)
+			}
 		}
 
 		// OPTIMIZATION: Check if HTTP connection is still valid before writing error
