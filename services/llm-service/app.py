@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 app = FastAPI(
     title="LLM Classification Service",
     description="Industry classification reasoning using Qwen 2.5 0.5B",
-    version="1.1.0"
+    version="1.2.0"
 )
 
 # Add CORS middleware
