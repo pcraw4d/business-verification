@@ -41,11 +41,12 @@ logger.info(f"Using device: {DEVICE}")
 # Load model and tokenizer on startup (lazy loading)
 tokenizer = None
 model = None
+model_loaded = False
 
 def load_model():
     """Load model and tokenizer (called on first request if not already loaded)"""
-    global tokenizer, model
-    if tokenizer is not None and model is not None:
+    global tokenizer, model, model_loaded
+    if model_loaded:
         return
     
     logger.info(f"Loading model: {MODEL_NAME}...")
@@ -60,13 +61,18 @@ def load_model():
             model = model.to(DEVICE)
         
         model.eval()  # Set to evaluation mode
+        model_loaded = True
         logger.info(f"Model loaded successfully on {DEVICE}!")
     except Exception as e:
         logger.error(f"Failed to load model: {e}")
         raise
 
-# Load model on startup (can be moved to first request for faster startup)
-load_model()
+# Attempt to load model on startup, but don't block or crash if it fails
+# This allows the service to start even if model download/loading has issues
+try:
+    load_model()
+except Exception as e:
+    logger.warning(f"Model could not be loaded during startup: {e}. It will be loaded on first request.")
 
 # Request/Response models
 class ClassificationContext(BaseModel):
@@ -94,9 +100,10 @@ class ClassificationResponse(BaseModel):
 async def health_check():
     """Health check endpoint for Railway"""
     return {
-        "status": "healthy",
+        "status": "healthy" if model_loaded else "model_loading",
         "model": MODEL_NAME,
         "device": DEVICE,
+        "model_loaded": model_loaded,
         "service": "llm-service",
         "version": "1.0.0"
     }
@@ -120,8 +127,12 @@ async def classify_business(request: ClassificationRequest):
         }
     """
     # Ensure model is loaded
-    if tokenizer is None or model is None:
-        load_model()
+    if not model_loaded:
+        try:
+            load_model()
+        except Exception as e:
+            logger.error(f"Failed to load model on request: {e}")
+            raise HTTPException(status_code=503, detail=f"Model loading failed: {str(e)}")
     
     start_time = time.time()
     
@@ -234,7 +245,10 @@ Respond ONLY with a valid JSON object in this exact format:
         {"role": "user", "content": user_msg}
     ]
     
-    # Format for Qwen
+    # Format for Qwen (ensure tokenizer is loaded)
+    if tokenizer is None:
+        raise ValueError("Tokenizer not loaded")
+    
     prompt = tokenizer.apply_chat_template(
         messages,
         tokenize=False,

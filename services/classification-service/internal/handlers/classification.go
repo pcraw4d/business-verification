@@ -690,11 +690,12 @@ type CheckResult struct {
 
 // ClassificationResult represents the classification results
 type ClassificationResult struct {
-	Industry       string          `json:"industry"`
-	MCCCodes       []IndustryCode  `json:"mcc_codes"`
-	NAICSCodes     []IndustryCode  `json:"naics_codes"`
-	SICCodes       []IndustryCode  `json:"sic_codes"`
-	WebsiteContent *WebsiteContent `json:"website_content"`
+	Industry       string                        `json:"industry"`
+	MCCCodes       []IndustryCode                `json:"mcc_codes"`
+	NAICSCodes     []IndustryCode                `json:"naics_codes"`
+	SICCodes       []IndustryCode                `json:"sic_codes"`
+	WebsiteContent *WebsiteContent               `json:"website_content"`
+	Explanation    *classification.ClassificationExplanation `json:"explanation,omitempty"` // Phase 2: Structured explanation
 }
 
 // IndustryCode represents an industry classification code
@@ -1401,7 +1402,7 @@ func (h *ClassificationHandler) handleClassificationStreaming(w http.ResponseWri
 	})
 
 	// Step 2: Generate classification codes (if needed)
-	var classification *ClassificationResult
+	var classificationResult *ClassificationResult
 	shouldGenerateCodes := enhancedResult.ConfidenceScore >= 0.5 ||
 		(enhancedResult.ConfidenceScore >= h.industryThresholds.GetThreshold(enhancedResult.PrimaryIndustry))
 
@@ -1430,10 +1431,55 @@ func (h *ClassificationHandler) handleClassificationStreaming(w http.ResponseWri
 			enhancedResult.SICCodes = convertSICCodesToIndustryCodes(codes.SIC)
 			enhancedResult.NAICSCodes = convertNAICSCodesToIndustryCodes(codes.NAICS)
 		}
+
+		// Phase 2: Generate or enhance explanation with codes
+		explanationGenerator := classification.NewExplanationGenerator()
+		contentQuality := 0.7
+		if enhancedResult.ConfidenceScore > 0.8 {
+			contentQuality = 0.85
+		} else if enhancedResult.ConfidenceScore < 0.5 {
+			contentQuality = 0.5
+		}
+
+		// Determine method from metadata or default to multi_strategy
+		method := "multi_strategy"
+		if enhancedResult.Metadata != nil {
+			if m, ok := enhancedResult.Metadata["method"].(string); ok && m != "" {
+				method = m
+			}
+		}
+		
+		multiResult := &classification.MultiStrategyResult{
+			PrimaryIndustry: enhancedResult.PrimaryIndustry,
+			Confidence:      enhancedResult.ConfidenceScore,
+			Keywords:        enhancedResult.Keywords,
+			Reasoning:       enhancedResult.ClassificationReasoning,
+			Method:          method,
+		}
+
+		// Generate or regenerate explanation (always generate if nil, enhance if exists)
+		if enhancedResult.ClassificationExplanation == nil {
+			// Generate new explanation
+			enhancedResult.ClassificationExplanation = explanationGenerator.GenerateExplanation(
+				multiResult,
+				codes, // Include codes if available
+				contentQuality,
+			)
+		} else if codes != nil {
+			// Enhance existing explanation with codes
+			enhancedResult.ClassificationExplanation = explanationGenerator.GenerateExplanation(
+				multiResult,
+				codes,
+				contentQuality,
+			)
+		}
 	}
 
+	// Phase 2: Use explanation from enhancedResult
+	classificationExplanation := enhancedResult.ClassificationExplanation
+
 	// Convert to response format
-	classification = &ClassificationResult{
+	classificationResult = &ClassificationResult{
 		Industry:   enhancedResult.PrimaryIndustry,
 		MCCCodes:   convertIndustryCodes(enhancedResult.MCCCodes),
 		SICCodes:   convertIndustryCodes(enhancedResult.SICCodes),
@@ -1448,6 +1494,7 @@ func (h *ClassificationHandler) handleClassificationStreaming(w http.ResponseWri
 			}(),
 			KeywordsFound: len(enhancedResult.Keywords),
 		},
+		Explanation: classificationExplanation, // Phase 2: Add explanation
 	}
 
 	// Send progress: Codes generated
@@ -1458,9 +1505,9 @@ func (h *ClassificationHandler) handleClassificationStreaming(w http.ResponseWri
 			"status":      "codes_generated",
 			"message":     "Classification codes generated",
 			"step":        "codes",
-			"mcc_count":   len(classification.MCCCodes),
-			"sic_count":   len(classification.SICCodes),
-			"naics_count": len(classification.NAICSCodes),
+		"mcc_count":   len(classificationResult.MCCCodes),
+		"sic_count":   len(classificationResult.SICCodes),
+		"naics_count": len(classificationResult.NAICSCodes),
 		})
 	}
 
@@ -1543,12 +1590,12 @@ func (h *ClassificationHandler) handleClassificationStreaming(w http.ResponseWri
 		"verification_status": verificationStatus.Status,
 	})
 
-	// Extract DistilBART enhancement fields
-	var explanation, contentSummary, modelVersion string
+	// Extract DistilBART enhancement fields (legacy string explanation)
+	var distilbartExplanation, contentSummary, modelVersion string
 	var quantizationEnabled bool
 	if enhancedResult.Metadata != nil {
 		if exp, ok := enhancedResult.Metadata["explanation"].(string); ok {
-			explanation = exp
+			distilbartExplanation = exp
 		}
 		if summary, ok := enhancedResult.Metadata["content_summary"].(string); ok {
 			contentSummary = summary
@@ -1560,8 +1607,8 @@ func (h *ClassificationHandler) handleClassificationStreaming(w http.ResponseWri
 			modelVersion = version
 		}
 	}
-	if explanation == "" {
-		explanation = enhancedResult.ClassificationReasoning
+	if distilbartExplanation == "" {
+		distilbartExplanation = enhancedResult.ClassificationReasoning
 	}
 
 	// Build final response
@@ -1570,11 +1617,11 @@ func (h *ClassificationHandler) handleClassificationStreaming(w http.ResponseWri
 		BusinessName:        req.BusinessName,
 		Description:         req.Description,
 		PrimaryIndustry:     enhancedResult.PrimaryIndustry,
-		Classification:      classification,
+		Classification:      classificationResult,
 		RiskAssessment:      riskAssessment,
 		VerificationStatus:  verificationStatus,
 		ConfidenceScore:     enhancedResult.ConfidenceScore,
-		Explanation:         explanation,
+		Explanation:         distilbartExplanation,
 		ContentSummary:      contentSummary,
 		QuantizationEnabled: quantizationEnabled,
 		ModelVersion:        modelVersion,
@@ -1902,8 +1949,82 @@ func (h *ClassificationHandler) processClassification(ctx context.Context, req *
 		return nil, fmt.Errorf("classification returned nil result")
 	}
 
+	// Phase 2: ALWAYS generate explanation to ensure it's set
+	// Force generation even if one exists to ensure it's not nil or empty
+	explanationGenerator := classification.NewExplanationGenerator()
+	contentQuality := 0.7
+	if enhancedResult.ConfidenceScore > 0.8 {
+		contentQuality = 0.85
+	} else if enhancedResult.ConfidenceScore < 0.5 {
+		contentQuality = 0.5
+	}
+
+	// Determine method from metadata or default to multi_strategy
+	method := "multi_strategy"
+	if enhancedResult.Metadata != nil {
+		if m, ok := enhancedResult.Metadata["method"].(string); ok && m != "" {
+			method = m
+		}
+	}
+
+	// Phase 2: Ensure keywords from multiResult are used (includes description keywords)
+	// Get keywords from the actual classification result, not just enhancedResult
+	keywordsForExplanation := enhancedResult.Keywords
+	if result != nil && result.Keywords != nil && len(result.Keywords) > 0 {
+		// Use keywords from the actual classification result (includes description keywords)
+		keywordsForExplanation = result.Keywords
+		h.logger.Info("✅ [Phase 2] Using keywords from classification result",
+			zap.String("request_id", req.RequestID),
+			zap.Int("keyword_count", len(keywordsForExplanation)),
+			zap.Strings("keywords", keywordsForExplanation))
+	} else {
+		h.logger.Info("⚠️ [Phase 2] Using keywords from enhancedResult (classification result keywords not available)",
+			zap.String("request_id", req.RequestID),
+			zap.Int("keyword_count", len(keywordsForExplanation)))
+	}
+	
+	multiResult := &classification.MultiStrategyResult{
+		PrimaryIndustry: enhancedResult.PrimaryIndustry,
+		Confidence:      enhancedResult.ConfidenceScore,
+		Keywords:        keywordsForExplanation, // Use keywords that include description keywords
+		Reasoning:       enhancedResult.ClassificationReasoning,
+		Method:          method,
+		// Strategies field will be empty, but extractConfidenceFactors handles this gracefully
+		Strategies: []classification.ClassificationStrategy{},
+	}
+
+	// ALWAYS generate explanation to ensure it's set (even if one existed before)
+	enhancedResult.ClassificationExplanation = explanationGenerator.GenerateExplanation(
+		multiResult,
+		nil, // Codes not available at this point in processClassification
+		contentQuality,
+	)
+
+	// Verify explanation was generated
+	if enhancedResult.ClassificationExplanation == nil {
+		h.logger.Error("❌ [Phase 2] Explanation generation returned nil!",
+			zap.String("request_id", req.RequestID),
+			zap.String("method", method))
+		// Create a minimal explanation as fallback
+		enhancedResult.ClassificationExplanation = &classification.ClassificationExplanation{
+			PrimaryReason:     fmt.Sprintf("Classified as '%s' based on business information", enhancedResult.PrimaryIndustry),
+			SupportingFactors: []string{fmt.Sprintf("Confidence score: %.0f%%", enhancedResult.ConfidenceScore*100)},
+			KeyTermsFound:     enhancedResult.Keywords,
+			MethodUsed:        method,
+			ProcessingPath:    "full_strategy",
+		}
+	}
+
+	h.logger.Info("✅ [Phase 2] Explanation generated/verified in processClassification",
+		zap.String("request_id", req.RequestID),
+		zap.Bool("explanation_not_nil", enhancedResult.ClassificationExplanation != nil),
+		zap.String("method", method),
+		zap.String("primary_reason", enhancedResult.ClassificationExplanation.PrimaryReason),
+		zap.Int("supporting_factors", len(enhancedResult.ClassificationExplanation.SupportingFactors)),
+		zap.Int("key_terms", len(enhancedResult.ClassificationExplanation.KeyTermsFound)))
+
 	// Convert enhanced result to response format
-	classification := &ClassificationResult{
+	classificationResult := &ClassificationResult{
 		Industry:   enhancedResult.PrimaryIndustry,
 		MCCCodes:   convertIndustryCodes(enhancedResult.MCCCodes),
 		SICCodes:   convertIndustryCodes(enhancedResult.SICCodes),
@@ -1918,7 +2039,18 @@ func (h *ClassificationHandler) processClassification(ctx context.Context, req *
 			}(),
 			KeywordsFound: len(enhancedResult.Keywords),
 		},
+		Explanation: enhancedResult.ClassificationExplanation, // Phase 2: Include structured explanation
 	}
+
+	h.logger.Info("✅ [Phase 2] ClassificationResult created",
+		zap.String("request_id", req.RequestID),
+		zap.Bool("explanation_in_result", classificationResult.Explanation != nil),
+		zap.String("explanation_primary_reason", func() string {
+			if classificationResult.Explanation != nil {
+				return classificationResult.Explanation.PrimaryReason
+			}
+			return ""
+		}()))
 
 	// Parallel processing: Generate risk assessment and verification status concurrently
 	// FIX #9: Add context cancellation to prevent goroutine leaks
@@ -2032,7 +2164,7 @@ func (h *ClassificationHandler) processClassification(ctx context.Context, req *
 		BusinessName:        req.BusinessName,
 		Description:         req.Description,
 		PrimaryIndustry:     enhancedResult.PrimaryIndustry, // Add at top level for merchant service compatibility
-		Classification:      classification,
+		Classification:      classificationResult,
 		RiskAssessment:      riskAssessment,
 		VerificationStatus:  verificationStatus,
 		ConfidenceScore:     enhancedResult.ConfidenceScore,
@@ -2570,10 +2702,11 @@ type EnhancedClassificationResult struct {
 	Keywords                []string               `json:"keywords"`
 	ConfidenceScore         float64                `json:"confidence_score"`
 	ClassificationReasoning string                 `json:"classification_reasoning"`
-	MethodWeights           map[string]float64     `json:"method_weights"`
-	WebsiteAnalysis         *WebsiteAnalysisData   `json:"website_analysis,omitempty"`
-	Metadata                map[string]interface{} `json:"metadata,omitempty"`
-	Timestamp               time.Time              `json:"timestamp"`
+	MethodWeights           map[string]float64                    `json:"method_weights"`
+	WebsiteAnalysis         *WebsiteAnalysisData                  `json:"website_analysis,omitempty"`
+	Metadata                map[string]interface{}                `json:"metadata,omitempty"`
+	ClassificationExplanation *classification.ClassificationExplanation `json:"explanation,omitempty"` // Phase 2: Structured explanation
+	Timestamp               time.Time                             `json:"timestamp"`
 }
 
 // WebsiteAnalysisData represents aggregated data from website analysis
@@ -3281,6 +3414,80 @@ func (h *ClassificationHandler) runGoClassification(ctx context.Context, req *Cl
 		}
 	}
 
+	// Phase 2: Generate or get explanation
+	var explanation *classification.ClassificationExplanation
+	if industryResult.Explanation != nil {
+		explanation = industryResult.Explanation
+		// Enhance with codes if available
+		if codesInfo != nil {
+			explanationGenerator := classification.NewExplanationGenerator()
+			contentQuality := 0.7
+			if industryResult.Confidence > 0.8 {
+				contentQuality = 0.85
+			} else if industryResult.Confidence < 0.5 {
+				contentQuality = 0.5
+			}
+
+			multiResult := &classification.MultiStrategyResult{
+				PrimaryIndustry: industryResult.IndustryName,
+				Confidence:      industryResult.Confidence,
+				Keywords:        industryResult.Keywords,
+				Method:          industryResult.Method,
+				Strategies:      []classification.ClassificationStrategy{}, // Empty strategies - extractConfidenceFactors handles this
+			}
+
+			// Regenerate with codes
+			explanation = explanationGenerator.GenerateExplanation(
+				multiResult,
+				codesInfo,
+				contentQuality,
+			)
+
+			h.logger.Info("✅ [Phase 2] Explanation regenerated with codes in generateEnhancedClassification",
+				zap.String("request_id", req.RequestID),
+				zap.Bool("explanation_not_nil", explanation != nil),
+				zap.String("primary_reason", func() string {
+					if explanation != nil {
+						return explanation.PrimaryReason
+					}
+					return ""
+				}()))
+		}
+	} else {
+		// Generate explanation if not provided by service
+		explanationGenerator := classification.NewExplanationGenerator()
+		contentQuality := 0.7
+		if industryResult.Confidence > 0.8 {
+			contentQuality = 0.85
+		} else if industryResult.Confidence < 0.5 {
+			contentQuality = 0.5
+		}
+
+		multiResult := &classification.MultiStrategyResult{
+			PrimaryIndustry: industryResult.IndustryName,
+			Confidence:      industryResult.Confidence,
+			Keywords:        industryResult.Keywords,
+			Method:          industryResult.Method,
+			Strategies:      []classification.ClassificationStrategy{}, // Empty strategies - extractConfidenceFactors handles this
+		}
+
+		explanation = explanationGenerator.GenerateExplanation(
+			multiResult,
+			codesInfo, // Include codes if available
+			contentQuality,
+		)
+
+		h.logger.Info("✅ [Phase 2] Explanation generated in generateEnhancedClassification",
+			zap.String("request_id", req.RequestID),
+			zap.Bool("explanation_not_nil", explanation != nil),
+			zap.String("primary_reason", func() string {
+				if explanation != nil {
+					return explanation.PrimaryReason
+				}
+				return ""
+			}()))
+	}
+
 	result := &EnhancedClassificationResult{
 		BusinessName:            req.BusinessName,
 		PrimaryIndustry:         primaryIndustry, // Use industry from DetectIndustry (e.g., "Wineries")
@@ -3295,6 +3502,7 @@ func (h *ClassificationHandler) runGoClassification(ctx context.Context, req *Cl
 		ClassificationReasoning: reasoning,
 		WebsiteAnalysis:         websiteAnalysis,
 		MethodWeights:           methodWeights,
+		ClassificationExplanation: explanation, // Phase 2: Add explanation
 		Timestamp:               time.Now(),
 	}
 
@@ -3305,7 +3513,14 @@ func (h *ClassificationHandler) runGoClassification(ctx context.Context, req *Cl
 		zap.Float64("confidence", result.ConfidenceScore),
 		zap.Int("mcc_codes", len(result.MCCCodes)),
 		zap.Int("sic_codes", len(result.SICCodes)),
-		zap.Int("naics_codes", len(result.NAICSCodes)))
+		zap.Int("naics_codes", len(result.NAICSCodes)),
+		zap.Bool("explanation_set", result.ClassificationExplanation != nil),
+		zap.String("explanation_primary_reason", func() string {
+			if result.ClassificationExplanation != nil {
+				return result.ClassificationExplanation.PrimaryReason
+			}
+			return ""
+		}()))
 
 	// Add code generation metadata
 	if result.Metadata == nil {
@@ -3624,43 +3839,55 @@ func convertIndustryCodes(codes []IndustryCode) []IndustryCode {
 	return codes // Same type, no conversion needed
 }
 
-// convertMCCCodesToIndustryCodes converts classification.MCCCode to handlers.IndustryCode
+// convertMCCCodesToIndustryCodes converts classification.MCCCode to handlers.IndustryCode (Phase 2: includes Source)
 func convertMCCCodesToIndustryCodes(codes []classification.MCCCode) []IndustryCode {
 	result := make([]IndustryCode, 0, len(codes))
 	for _, code := range codes {
+		source := []string{code.Source}
+		if code.Source == "" {
+			source = []string{"keyword"} // Default fallback
+		}
 		result = append(result, IndustryCode{
 			Code:        code.Code,
 			Description: code.Description,
 			Confidence:  code.Confidence,
-			Source:      []string{"keyword"},
+			Source:      source,
 		})
 	}
 	return result
 }
 
-// convertSICCodesToIndustryCodes converts classification.SICCode to handlers.IndustryCode
+// convertSICCodesToIndustryCodes converts classification.SICCode to handlers.IndustryCode (Phase 2: includes Source)
 func convertSICCodesToIndustryCodes(codes []classification.SICCode) []IndustryCode {
 	result := make([]IndustryCode, 0, len(codes))
 	for _, code := range codes {
+		source := []string{code.Source}
+		if code.Source == "" {
+			source = []string{"keyword"} // Default fallback
+		}
 		result = append(result, IndustryCode{
 			Code:        code.Code,
 			Description: code.Description,
 			Confidence:  code.Confidence,
-			Source:      []string{"keyword"},
+			Source:      source,
 		})
 	}
 	return result
 }
 
-// convertNAICSCodesToIndustryCodes converts classification.NAICSCode to handlers.IndustryCode
+// convertNAICSCodesToIndustryCodes converts classification.NAICSCode to handlers.IndustryCode (Phase 2: includes Source)
 func convertNAICSCodesToIndustryCodes(codes []classification.NAICSCode) []IndustryCode {
 	result := make([]IndustryCode, 0, len(codes))
 	for _, code := range codes {
+		source := []string{code.Source}
+		if code.Source == "" {
+			source = []string{"keyword"} // Default fallback
+		}
 		result = append(result, IndustryCode{
 			Code:        code.Code,
 			Description: code.Description,
 			Confidence:  code.Confidence,
-			Source:      []string{"keyword"},
+			Source:      source,
 		})
 	}
 	return result

@@ -49,10 +49,10 @@ AS $$
 BEGIN
     RETURN QUERY
     SELECT
-        ce.code,
-        ce.code_type,
-        ce.description,
-        ce.extended_description,
+        ce.code::text,
+        ce.code_type::text,
+        ce.description::text,
+        ce.extended_description::text,
         1 - (ce.embedding <=> query_embedding) as similarity
     FROM code_embeddings ce
     WHERE ce.code_type = code_type_filter
