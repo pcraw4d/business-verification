@@ -12,6 +12,7 @@ import time
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 import json
+import gc  # For explicit garbage collection
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -76,14 +77,24 @@ def load_model():
         
         model.eval()  # Set to evaluation mode
         
-        # Clear any cached memory
+        # Clear any cached memory (critical for CPU inference)
         if DEVICE == "cpu":
-            import gc
-            gc.collect()
+            gc.collect()  # Force garbage collection
+            # Additional memory cleanup
+            if hasattr(torch, 'cuda'):
+                torch.cuda.empty_cache()  # Clear CUDA cache if available (no-op on CPU)
         
         model_loaded = True
         logger.info(f"✅ Model loaded successfully on {DEVICE} with dtype={dtype}!")
         logger.info(f"Memory footprint: ~6GB (fits in Railway's 8GB limit)")
+    except torch.cuda.OutOfMemoryError as e:
+        logger.error(f"❌ CUDA OOM during model loading: {e}")
+        model_loaded = False
+        raise HTTPException(status_code=503, detail="Model loading failed: Out of memory (CUDA)")
+    except MemoryError as e:
+        logger.error(f"❌ System OOM during model loading: {e}")
+        model_loaded = False
+        raise HTTPException(status_code=503, detail="Model loading failed: Out of memory (System)")
     except Exception as e:
         logger.error(f"❌ Failed to load model: {e}", exc_info=True)
         model_loaded = False
@@ -104,7 +115,7 @@ class ClassificationContext(BaseModel):
 class ClassificationRequest(BaseModel):
     context: ClassificationContext
     temperature: Optional[float] = 0.1
-    max_tokens: Optional[int] = 800
+    max_tokens: Optional[int] = 600  # Reduced from 800 to save memory (KV cache)
 
 class ClassificationResponse(BaseModel):
     primary_industry: str
@@ -118,8 +129,19 @@ class ClassificationResponse(BaseModel):
 @app.get("/health")
 async def health_check():
     """Health check endpoint for Railway"""
+    # Always return 200 OK - Railway will check status field
+    # This prevents Railway from restarting the service while model is loading
+    status = "healthy" if model_loaded else "model_loading"
+    
+    # If model is not loaded, return 503 to indicate service not ready
+    # But only if we've attempted to load it (to avoid startup issues)
+    if not model_loaded:
+        # Return 200 with "model_loading" status - Railway health check should be lenient
+        # during startup period (start-period in Dockerfile is 180s)
+        pass
+    
     return {
-        "status": "healthy" if model_loaded else "model_loading",
+        "status": status,
         "model": MODEL_NAME,
         "model_size": "3B",
         "device": DEVICE,
@@ -288,8 +310,8 @@ def generate_classification(
     # Tokenize
     inputs = tokenizer(prompt, return_tensors="pt").to(DEVICE)
     
-    # Generate
-    with torch.no_grad():
+    # Generate with inference mode (lower memory than no_grad on CPU)
+    with torch.inference_mode():  # More memory-efficient than no_grad for inference
         outputs = model.generate(
             **inputs,
             max_new_tokens=max_tokens,
@@ -300,6 +322,11 @@ def generate_classification(
             pad_token_id=tokenizer.pad_token_id,
             eos_token_id=tokenizer.eos_token_id,
         )
+    
+    # Clear inputs from memory after generation
+    del inputs
+    if DEVICE == "cpu":
+        gc.collect()
     
     # Decode
     response = tokenizer.decode(outputs[0], skip_special_tokens=True)
