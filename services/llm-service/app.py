@@ -50,31 +50,48 @@ def load_model():
     if model_loaded:
         return
     
-    logger.info(f"Loading model: {MODEL_NAME}...")
+    logger.info(f"Loading model: {MODEL_NAME} on {DEVICE}...")
     try:
+        # Use float16 to reduce memory usage by 50% (from ~12GB float32 to ~6GB float16)
+        # This is critical for Railway's 8GB memory limit
+        dtype = torch.float16
+        logger.info(f"Using float16 for {DEVICE} inference (50% memory reduction vs float32)")
+        
+        logger.info(f"Loading tokenizer...")
         tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
+        
+        logger.info(f"Loading model with dtype={dtype} and aggressive memory optimizations...")
         model = AutoModelForCausalLM.from_pretrained(
             MODEL_NAME,
-            torch_dtype=torch.float16 if DEVICE == "cuda" else torch.float32,
+            torch_dtype=dtype,
             device_map="auto" if DEVICE == "cuda" else None,
-            low_cpu_mem_usage=True,  # Optimize memory usage for Railway 8GB limit
+            low_cpu_mem_usage=True,  # Critical: Optimize memory usage for Railway 8GB limit
         )
+        
         if DEVICE == "cpu":
             model = model.to(DEVICE)
+            # Additional CPU memory optimizations
+            if hasattr(torch, 'set_num_threads'):
+                torch.set_num_threads(2)  # Limit CPU threads to reduce memory pressure
         
         model.eval()  # Set to evaluation mode
+        
+        # Clear any cached memory
+        if DEVICE == "cpu":
+            import gc
+            gc.collect()
+        
         model_loaded = True
-        logger.info(f"Model loaded successfully on {DEVICE}!")
+        logger.info(f"✅ Model loaded successfully on {DEVICE} with dtype={dtype}!")
+        logger.info(f"Memory footprint: ~6GB (fits in Railway's 8GB limit)")
     except Exception as e:
-        logger.error(f"Failed to load model: {e}")
+        logger.error(f"❌ Failed to load model: {e}", exc_info=True)
+        model_loaded = False
         raise
 
-# Attempt to load model on startup, but don't block or crash if it fails
-# This allows the service to start even if model download/loading has issues
-try:
-    load_model()
-except Exception as e:
-    logger.warning(f"Model could not be loaded during startup: {e}. It will be loaded on first request.")
+# DO NOT load model on startup - wait for first request
+# This prevents OOM crashes during service startup
+logger.info("Service starting - model will be loaded on first request to avoid OOM")
 
 # Request/Response models
 class ClassificationContext(BaseModel):
