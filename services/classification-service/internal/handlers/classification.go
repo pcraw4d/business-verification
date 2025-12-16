@@ -4204,7 +4204,7 @@ func (h *ClassificationHandler) HandleHealth(w http.ResponseWriter, r *http.Requ
 	health := map[string]interface{}{
 		"status":    "healthy",
 		"timestamp": time.Now(),
-		"version":   "1.0.0",
+		"version":   "1.0.1",
 		"service":   "classification-service",
 		"uptime":    time.Since(startTime).String(),
 		"supabase_status": map[string]interface{}{
