@@ -6,7 +6,7 @@ Deployed on Railway as a microservice
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Any
 import logging
 import time
 import torch
@@ -121,7 +121,7 @@ class ClassificationResponse(BaseModel):
     primary_industry: str
     confidence: float
     reasoning: str
-    codes: Dict[str, List[Dict[str, any]]]
+    codes: Dict[str, List[Dict[str, Any]]]
     alternative_classifications: List[str]
     processing_time_ms: int
 
