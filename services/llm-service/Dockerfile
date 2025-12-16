@@ -15,7 +15,7 @@ WORKDIR /app
 COPY services/llm-service/requirements.txt .
 
 # Install PyTorch with CUDA 12.1 support first
-RUN pip3 install --no-cache-dir torch>=2.2.0,<2.3.0 --index-url https://download.pytorch.org/whl/cu121
+RUN pip3 install --no-cache-dir "torch>=2.2.0,<2.3.0" --index-url https://download.pytorch.org/whl/cu121
 
 # Install remaining Python dependencies
 RUN pip3 install --no-cache-dir -r requirements.txt
