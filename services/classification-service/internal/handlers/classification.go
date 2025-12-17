@@ -677,6 +677,9 @@ type ClassificationResponse struct {
 	Timestamp           time.Time              `json:"timestamp"`
 	ProcessingTime      time.Duration          `json:"processing_time"`
 	Metadata            map[string]interface{} `json:"metadata,omitempty"`
+	// Phase 4: Async LLM processing fields
+	LLMProcessingID     string `json:"llm_processing_id,omitempty"`
+	LLMStatus           string `json:"llm_status,omitempty"`
 }
 
 // requestTrace tracks detailed timing for a single request
@@ -1671,6 +1674,9 @@ func (h *ClassificationHandler) handleClassificationStreaming(w http.ResponseWri
 		Success:             true,
 		Timestamp:           time.Now(),
 		ProcessingTime:      time.Since(startTime),
+		// Phase 4: Async LLM processing fields
+		LLMProcessingID:     enhancedResult.LLMProcessingID,
+		LLMStatus:           enhancedResult.LLMStatus,
 		Metadata: func() map[string]interface{} {
 			metadata := map[string]interface{}{
 				"service":                  "classification-service",
@@ -2216,6 +2222,9 @@ func (h *ClassificationHandler) processClassification(ctx context.Context, req *
 		Success:             true,
 		Timestamp:           time.Now(),
 		ProcessingTime:      time.Since(startTime),
+		// Phase 4: Async LLM processing fields
+		LLMProcessingID:     enhancedResult.LLMProcessingID,
+		LLMStatus:           enhancedResult.LLMStatus,
 		Metadata: func() map[string]interface{} {
 			metadata := map[string]interface{}{
 				"service":                  "classification-service",
@@ -2746,6 +2755,9 @@ type EnhancedClassificationResult struct {
 	Metadata                map[string]interface{}                `json:"metadata,omitempty"`
 	ClassificationExplanation *classification.ClassificationExplanation `json:"explanation,omitempty"` // Phase 2: Structured explanation
 	Timestamp               time.Time                             `json:"timestamp"`
+	// Phase 4: Async LLM processing fields
+	LLMProcessingID         string                                `json:"llm_processing_id,omitempty"`
+	LLMStatus               string                                `json:"llm_status,omitempty"`
 }
 
 // WebsiteAnalysisData represents aggregated data from website analysis
@@ -3208,6 +3220,9 @@ func (h *ClassificationHandler) runGoClassification(ctx context.Context, req *Cl
 					"early_termination":  true,
 					"termination_reason": "low_confidence_insufficient_keywords",
 				},
+				// Phase 4: Pass through async LLM processing fields
+				LLMProcessingID: industryResult.LLMProcessingID,
+				LLMStatus:       string(industryResult.LLMStatus),
 			}, nil
 		}
 	}
@@ -3543,6 +3558,9 @@ func (h *ClassificationHandler) runGoClassification(ctx context.Context, req *Cl
 		MethodWeights:           methodWeights,
 		ClassificationExplanation: explanation, // Phase 2: Add explanation
 		Timestamp:               time.Now(),
+		// Phase 4: Pass through async LLM processing fields
+		LLMProcessingID:         industryResult.LLMProcessingID,
+		LLMStatus:               string(industryResult.LLMStatus),
 	}
 
 	// Log the final result for debugging
@@ -3692,6 +3710,14 @@ func (h *ClassificationHandler) combineEnsembleResults(pythonMLResult, goResult 
 	metadata["go_industry"] = goResult.PrimaryIndustry
 	metadata["final_confidence"] = confidenceScore
 
+	// Phase 4: Pass through LLM processing fields from either result
+	llmProcessingID := pythonMLResult.LLMProcessingID
+	llmStatus := pythonMLResult.LLMStatus
+	if llmProcessingID == "" && goResult.LLMProcessingID != "" {
+		llmProcessingID = goResult.LLMProcessingID
+		llmStatus = goResult.LLMStatus
+	}
+
 	return &EnhancedClassificationResult{
 		BusinessName:            req.BusinessName,
 		PrimaryIndustry:         primaryIndustry,
@@ -3708,6 +3734,9 @@ func (h *ClassificationHandler) combineEnsembleResults(pythonMLResult, goResult 
 		MethodWeights:           methodWeights,
 		Timestamp:               time.Now(),
 		Metadata:                metadata,
+		// Phase 4: Async LLM processing fields
+		LLMProcessingID:         llmProcessingID,
+		LLMStatus:               llmStatus,
 	}
 }
 
