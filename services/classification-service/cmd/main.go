@@ -268,6 +268,11 @@ func main() {
 	// OPTIMIZATION #5.2: Validation API endpoint
 	router.HandleFunc("/v1/classify/validate", classificationHandler.HandleValidation).Methods("POST")
 	router.HandleFunc("/classify/validate", classificationHandler.HandleValidation).Methods("POST") // Alias for backward compatibility
+	// Phase 4: Async LLM status endpoints
+	router.HandleFunc("/v1/classify/status/{processing_id}", classificationHandler.HandleLLMStatus).Methods("GET")
+	router.HandleFunc("/classify/status/{processing_id}", classificationHandler.HandleLLMStatus).Methods("GET") // Alias
+	router.HandleFunc("/v1/classify/async-stats", classificationHandler.HandleAsyncLLMStats).Methods("GET")
+	router.HandleFunc("/classify/async-stats", classificationHandler.HandleAsyncLLMStats).Methods("GET") // Alias
 
 	// Create HTTP server
 	httpServer := &http.Server{

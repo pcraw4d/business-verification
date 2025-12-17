@@ -66,6 +66,7 @@ type IndustryDetectionService struct {
 	explanationGenerator   *ExplanationGenerator                 // Phase 2: Explanation generation
 	embeddingClassifier    *EmbeddingClassifier                 // Phase 3: Embedding-based classification
 	llmClassifier          *LLMClassifier                        // Phase 4: LLM-based classification
+	asyncLLMProcessor      *AsyncLLMProcessor                    // Phase 4: Async LLM processing
 }
 
 // NewIndustryDetectionService creates a new industry detection service
@@ -248,6 +249,10 @@ type IndustryDetectionResult struct {
 	Reasoning      string                   `json:"reasoning"`
 	Explanation    *ClassificationExplanation `json:"explanation,omitempty"` // Phase 2: Structured explanation
 	CreatedAt      time.Time                `json:"created_at"`
+	
+	// Phase 4: Async LLM processing fields
+	LLMProcessingID string         `json:"llm_processing_id,omitempty"` // ID to poll for LLM result
+	LLMStatus       AsyncLLMStatus `json:"llm_status,omitempty"`        // Status of async LLM processing
 }
 
 // normalizeString normalizes a string for cache key generation
@@ -393,56 +398,45 @@ func (s *IndustryDetectionService) performClassification(ctx context.Context, bu
 	s.logger.Printf("📊 [Routing] Ambiguous: %v, LLM available: %v, Website: %v (request: %s)",
 		isAmbiguous, s.llmClassifier != nil, websiteURL != "", requestID)
 
-	// Phase 4: If ambiguous, try Layer 3 (LLM) directly even with high confidence
-	if isAmbiguous && s.llmClassifier != nil && websiteURL != "" {
-		s.logger.Printf("🤖 [Phase 4] Ambiguous case detected, trying Layer 3 (LLM) even with high confidence (%.2f%%) (request: %s)",
+	// Phase 4: If ambiguous, trigger ASYNC Layer 3 (LLM) and return Layer 1 result immediately
+	if isAmbiguous && s.llmClassifier != nil && s.asyncLLMProcessor != nil && websiteURL != "" {
+		s.logger.Printf("🤖 [Phase 4] Ambiguous case detected, triggering ASYNC Layer 3 (LLM) (confidence: %.2f%%) (request: %s)",
 			multiResult.Confidence*100, requestID)
 
 		// Get ScrapedContent for Layer 3
 		scrapedContent, err := s.getScrapedContentForLayer2(ctx, websiteURL)
 		if err != nil {
-			s.logger.Printf("⚠️ [Phase 4] Failed to get scraped content for Layer 3: %v, falling back to Layer 1 (request: %s)", err, requestID)
+			s.logger.Printf("⚠️ [Phase 4] Failed to get scraped content for Layer 3: %v, returning Layer 1 without async LLM (request: %s)", err, requestID)
 			result := s.convertToIndustryDetectionResult(multiResult, resultMethod, requestID)
-			result.Method = "layer1_fallback"
+			result.Method = "layer1_no_content"
 			return result, nil
 		}
 
-		// Try Layer 3 classification
-		layer3Result, err := s.llmClassifier.ClassifyWithLLM(
-			ctx,
+		// Generate processing ID for async tracking
+		llmProcessingID := fmt.Sprintf("llm_%s_%d", requestID, time.Now().UnixNano())
+		
+		// Convert Layer 1 result for the response
+		result := s.convertToIndustryDetectionResult(multiResult, resultMethod, requestID)
+		result.Method = "layer1_llm_pending"
+		result.LLMProcessingID = llmProcessingID
+		result.LLMStatus = AsyncLLMStatusProcessing
+		
+		// Start async LLM processing (returns immediately)
+		s.asyncLLMProcessor.ProcessAsync(
+			llmProcessingID,
+			ctx, // Note: We pass ctx but the processor creates its own context for the LLM call
 			scrapedContent,
 			businessName,
 			description,
 			multiResult,
 			nil, // Layer 2 not available yet
+			result,
 		)
-		if err != nil {
-			s.logger.Printf("⚠️ [Phase 4] Layer 3 classification failed: %v, falling back to Layer 1 (request: %s)", err, requestID)
-			result := s.convertToIndustryDetectionResult(multiResult, resultMethod, requestID)
-			result.Method = "layer1_fallback"
-			return result, nil
-		}
-
-		s.logger.Printf("✅ [Phase 4] Layer 3 complete (confidence: %.2f%%, industry: %s) (request: %s)",
-			layer3Result.Confidence*100, layer3Result.PrimaryIndustry, requestID)
-
-		// Use Layer 3 result if confidence is acceptable
-		if layer3Result.Confidence >= 0.85 {
-			s.logger.Printf("✅ [Phase 4] Layer 3 confidence high (≥85%%), using result (request: %s)", requestID)
-			result := s.buildResultFromLLM(layer3Result, "layer3_ambiguous", requestID)
-			return result, nil
-		}
-
-		// If Layer 3 is better than Layer 1, use it
-		if layer3Result.Confidence > multiResult.Confidence+0.03 {
-			s.logger.Printf("✅ [Phase 4] Layer 3 better than Layer 1 (L3: %.2f%% vs L1: %.2f%%), using result (request: %s)",
-				layer3Result.Confidence*100, multiResult.Confidence*100, requestID)
-			result := s.buildResultFromLLM(layer3Result, "layer3_better", requestID)
-			return result, nil
-		}
-
-		// Layer 3 didn't add value, fall through to normal routing
-		s.logger.Printf("ℹ️ [Phase 4] Layer 3 didn't improve, continuing with normal routing (request: %s)", requestID)
+		
+		s.logger.Printf("🚀 [Phase 4] Async LLM processing started (id: %s), returning Layer 1 result immediately (request: %s)",
+			llmProcessingID, requestID)
+		
+		return result, nil
 	}
 
 	if multiResult.Confidence >= highConfidenceThreshold && !isAmbiguous {
@@ -497,66 +491,47 @@ func (s *IndustryDetectionService) performClassification(ctx context.Context, bu
 			result := s.buildResultFromEmbedding(layer2Result, "layer2_embedding", requestID)
 			return result, nil
 		} else {
-			// Layer 1 and Layer 2 similar - try Layer 3 if confidence still low
+			// Layer 1 and Layer 2 similar - try async Layer 3 if confidence still low
 			s.logger.Printf("ℹ️ [Phase 3] Layer 1 and Layer 2 similar (Layer 1: %.2f%%, Layer 2: %.2f%%) (request: %s)",
 				multiResult.Confidence*100, layer2Result.Confidence*100, requestID)
 			
-			// Phase 4: Try Layer 3 if confidence is still below threshold
-			if layer2Result.Confidence < 0.88 && s.llmClassifier != nil && websiteURL != "" {
-				s.logger.Printf("🤖 [Phase 4] Layer 2 confidence (%.2f%%) < 88%%, trying Layer 3 (LLM) (request: %s)",
+			// Phase 4: Trigger ASYNC Layer 3 if confidence is still below threshold
+			if layer2Result.Confidence < 0.88 && s.llmClassifier != nil && s.asyncLLMProcessor != nil && websiteURL != "" {
+				s.logger.Printf("🤖 [Phase 4] Layer 2 confidence (%.2f%%) < 88%%, triggering ASYNC Layer 3 (LLM) (request: %s)",
 					layer2Result.Confidence*100, requestID)
 				
 				// Get ScrapedContent for Layer 3
 				scrapedContent, err := s.getScrapedContentForLayer2(ctx, websiteURL)
 				if err != nil {
-					s.logger.Printf("⚠️ [Phase 4] Failed to get scraped content for Layer 3: %v, using Layer 1 (request: %s)", err, requestID)
-					result := s.convertToIndustryDetectionResult(multiResult, resultMethod, requestID)
-					result.Method = "layer1_fallback"
+					s.logger.Printf("⚠️ [Phase 4] Failed to get scraped content for Layer 3: %v, using Layer 2 (request: %s)", err, requestID)
+					result := s.buildResultFromEmbedding(layer2Result, "layer2_no_content", requestID)
 					return result, nil
 				}
 				
-				// Try Layer 3 classification
-				layer3Result, err := s.llmClassifier.ClassifyWithLLM(
+				// Generate processing ID for async tracking
+				llmProcessingID := fmt.Sprintf("llm_%s_%d", requestID, time.Now().UnixNano())
+				
+				// Use Layer 2 as the immediate result
+				result := s.buildResultFromEmbedding(layer2Result, "layer2_llm_pending", requestID)
+				result.LLMProcessingID = llmProcessingID
+				result.LLMStatus = AsyncLLMStatusProcessing
+				
+				// Start async LLM processing (returns immediately)
+				s.asyncLLMProcessor.ProcessAsync(
+					llmProcessingID,
 					ctx,
 					scrapedContent,
 					businessName,
 					description,
 					multiResult,
 					layer2Result,
+					result,
 				)
-				if err != nil {
-					s.logger.Printf("⚠️ [Phase 4] Layer 3 classification failed: %v, using Layer 1 (request: %s)", err, requestID)
-					result := s.convertToIndustryDetectionResult(multiResult, resultMethod, requestID)
-					result.Method = "layer1_fallback"
-					return result, nil
-				}
 				
-				s.logger.Printf("✅ [Phase 4] Layer 3 complete (confidence: %.2f%%, industry: %s) (request: %s)",
-					layer3Result.Confidence*100, layer3Result.PrimaryIndustry, requestID)
+				s.logger.Printf("🚀 [Phase 4] Async LLM processing started (id: %s), returning Layer 2 result immediately (request: %s)",
+					llmProcessingID, requestID)
 				
-				// Decision Point 5: Use Layer 3 result?
-				// If Layer 3 confidence is high, use it
-				if layer3Result.Confidence >= 0.85 {
-					s.logger.Printf("✅ [Phase 4] Layer 3 confidence high (≥85%%), using result (request: %s)", requestID)
-					result := s.buildResultFromLLM(layer3Result, "layer3_high_conf", requestID)
-					return result, nil
-				}
-				
-				// If Layer 3 is better than both Layer 1 and Layer 2, use it
-				bestPreviousConf := multiResult.Confidence
-				if layer2Result.Confidence > bestPreviousConf {
-					bestPreviousConf = layer2Result.Confidence
-				}
-				
-				if layer3Result.Confidence > bestPreviousConf+0.03 {
-					s.logger.Printf("✅ [Phase 4] Layer 3 better than previous layers (L3: %.2f%% vs best: %.2f%%), using result (request: %s)",
-						layer3Result.Confidence*100, bestPreviousConf*100, requestID)
-					result := s.buildResultFromLLM(layer3Result, "layer3_better", requestID)
-					return result, nil
-				}
-				
-				// Layer 3 didn't add value, use best previous result
-				s.logger.Printf("ℹ️ [Phase 4] Layer 3 didn't improve, using best previous result (request: %s)", requestID)
+				return result, nil
 			}
 			
 			// Use Layer 1 (Layer 2 similar, Layer 3 not available or didn't help)
@@ -1282,6 +1257,34 @@ func (s *IndustryDetectionService) SetEmbeddingClassifier(embeddingClassifier *E
 func (s *IndustryDetectionService) SetLLMClassifier(llmClassifier *LLMClassifier) {
 	s.llmClassifier = llmClassifier
 	s.logger.Printf("✅ [Phase 4] LLM classifier set for Layer 3")
+	
+	// Initialize async LLM processor
+	store := NewAsyncLLMStore(30*time.Minute, 1000) // 30 min TTL, max 1000 results
+	s.asyncLLMProcessor = NewAsyncLLMProcessor(
+		store,
+		llmClassifier,
+		s.logger,
+		5*time.Minute, // 5 minute timeout for LLM calls
+	)
+	s.logger.Printf("✅ [Phase 4] Async LLM processor initialized")
+}
+
+// GetAsyncLLMResult retrieves the result of async LLM processing
+func (s *IndustryDetectionService) GetAsyncLLMResult(processingID string) (*AsyncLLMResult, bool) {
+	if s.asyncLLMProcessor == nil {
+		return nil, false
+	}
+	return s.asyncLLMProcessor.GetResult(processingID)
+}
+
+// GetAsyncLLMStats returns statistics about async LLM processing
+func (s *IndustryDetectionService) GetAsyncLLMStats() map[string]interface{} {
+	if s.asyncLLMProcessor == nil {
+		return map[string]interface{}{"enabled": false}
+	}
+	stats := s.asyncLLMProcessor.GetStats()
+	stats["enabled"] = true
+	return stats
 }
 
 // isAmbiguousCase checks if a business description indicates ambiguity

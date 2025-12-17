@@ -4258,7 +4258,7 @@ func (h *ClassificationHandler) HandleHealth(w http.ResponseWriter, r *http.Requ
 	health := map[string]interface{}{
 		"status":    "healthy",
 		"timestamp": time.Now(),
-		"version":   "1.0.8",
+		"version":   "1.1.0", // Async LLM processing
 		"service":   "classification-service",
 		"uptime":    time.Since(h.serviceStartTime).String(),
 		"supabase_status": map[string]interface{}{
@@ -4287,6 +4287,109 @@ func (h *ClassificationHandler) HandleHealth(w http.ResponseWriter, r *http.Requ
 
 	w.WriteHeader(statusCode)
 	json.NewEncoder(w).Encode(health)
+}
+
+// HandleLLMStatus handles requests to check the status of async LLM processing
+// GET /classify/status/{processing_id}
+func (h *ClassificationHandler) HandleLLMStatus(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	// Extract processing ID from URL path
+	// Expected path: /classify/status/{processing_id} or /v1/classify/status/{processing_id}
+	path := r.URL.Path
+	var processingID string
+	
+	// Handle both /classify/status/{id} and /v1/classify/status/{id}
+	if idx := strings.LastIndex(path, "/status/"); idx != -1 {
+		processingID = path[idx+8:] // len("/status/") = 8
+	}
+	
+	if processingID == "" {
+		h.logger.Error("Missing processing_id in request")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"error":   "missing_processing_id",
+			"message": "Processing ID is required",
+		})
+		return
+	}
+	
+	// Get the async LLM result
+	result, found := h.industryDetector.GetAsyncLLMResult(processingID)
+	if !found {
+		h.logger.Warn("Processing ID not found",
+			zap.String("processing_id", processingID))
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"error":         "not_found",
+			"message":       "Processing ID not found or expired",
+			"processing_id": processingID,
+		})
+		return
+	}
+	
+	// Build response based on status
+	response := map[string]interface{}{
+		"processing_id": result.ProcessingID,
+		"status":        result.Status,
+		"started_at":    result.StartedAt,
+	}
+	
+	if result.CompletedAt != nil {
+		response["completed_at"] = result.CompletedAt
+		response["processing_time_ms"] = result.CompletedAt.Sub(result.StartedAt).Milliseconds()
+	}
+	
+	if result.Error != "" {
+		response["error"] = result.Error
+	}
+	
+	// Include the original Layer 1/2 result for reference
+	if result.OriginalResult != nil {
+		response["original_result"] = map[string]interface{}{
+			"industry":   result.OriginalResult.IndustryName,
+			"confidence": result.OriginalResult.Confidence,
+			"method":     result.OriginalResult.Method,
+		}
+	}
+	
+	// If completed successfully, include the LLM result
+	if result.Status == classification.AsyncLLMStatusCompleted && result.Result != nil {
+		response["llm_result"] = map[string]interface{}{
+			"industry":   result.Result.PrimaryIndustry,
+			"confidence": result.Result.Confidence,
+			"reasoning":  result.Result.Reasoning,
+			"mcc_codes":  result.Result.MCC,
+			"naics_codes": result.Result.NAICS,
+			"sic_codes":  result.Result.SIC,
+		}
+		
+		// Calculate improvement over original result
+		if result.OriginalResult != nil {
+			improvement := result.Result.Confidence - result.OriginalResult.Confidence
+			response["confidence_improvement"] = improvement
+			response["llm_added_value"] = improvement > 0.03
+		}
+	}
+	
+	h.logger.Info("LLM status request",
+		zap.String("processing_id", processingID),
+		zap.String("status", string(result.Status)))
+	
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(response)
+}
+
+// HandleAsyncLLMStats returns statistics about async LLM processing
+// GET /classify/async-stats
+func (h *ClassificationHandler) HandleAsyncLLMStats(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	
+	stats := h.industryDetector.GetAsyncLLMStats()
+	stats["timestamp"] = time.Now()
+	
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(stats)
 }
 
 // calculateAdaptiveTimeout calculates an adaptive timeout based on request characteristics
