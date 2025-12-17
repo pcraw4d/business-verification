@@ -1,8 +1,11 @@
 -- Migration: Fix dashboard summary function return type
 -- Fixes: Returned type text does not match expected type character varying
 
--- Fix the get_dashboard_summary function to use TEXT instead of VARCHAR for metric
-CREATE OR REPLACE FUNCTION get_dashboard_summary(days INTEGER DEFAULT 30)
+-- Drop the existing function first (required when changing return type)
+DROP FUNCTION IF EXISTS get_dashboard_summary(INTEGER);
+
+-- Recreate the get_dashboard_summary function with TEXT instead of VARCHAR for metric
+CREATE FUNCTION get_dashboard_summary(days INTEGER DEFAULT 30)
 RETURNS TABLE (
     metric TEXT,
     value NUMERIC,
