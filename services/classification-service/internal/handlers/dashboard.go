@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -10,13 +11,23 @@ import (
 
 // DashboardHandler handles dashboard API requests
 type DashboardHandler struct {
-	repo repository.KeywordRepository
+	repo   repository.KeywordRepository
+	logger *log.Logger
 }
 
 // NewDashboardHandler creates a new dashboard handler
 func NewDashboardHandler(repo repository.KeywordRepository) *DashboardHandler {
 	return &DashboardHandler{
-		repo: repo,
+		repo:   repo,
+		logger: log.Default(),
+	}
+}
+
+// NewDashboardHandlerWithLogger creates a new dashboard handler with custom logger
+func NewDashboardHandlerWithLogger(repo repository.KeywordRepository, logger *log.Logger) *DashboardHandler {
+	return &DashboardHandler{
+		repo:   repo,
+		logger: logger,
 	}
 }
 
@@ -30,10 +41,18 @@ func (h *DashboardHandler) GetSummary(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	h.logger.Printf("📊 [Dashboard] Getting summary for %d days", days)
+
 	// Get summary from database
 	summary, err := h.repo.GetDashboardSummary(r.Context(), days)
 	if err != nil {
-		http.Error(w, "Failed to get dashboard summary: "+err.Error(), http.StatusInternalServerError)
+		h.logger.Printf("❌ [Dashboard] Failed to get summary: %v", err)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"error":   "Failed to get dashboard summary",
+			"message": err.Error(),
+		})
 		return
 	}
 
@@ -42,9 +61,12 @@ func (h *DashboardHandler) GetSummary(w http.ResponseWriter, r *http.Request) {
 		"metrics": summary,
 		"days":    days,
 	}); err != nil {
+		h.logger.Printf("❌ [Dashboard] Failed to encode response: %v", err)
 		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
 		return
 	}
+
+	h.logger.Printf("✅ [Dashboard] Summary returned successfully (%d metrics)", len(summary))
 }
 
 // GetTimeSeries returns time series data for charts
@@ -57,10 +79,18 @@ func (h *DashboardHandler) GetTimeSeries(w http.ResponseWriter, r *http.Request)
 		}
 	}
 
+	h.logger.Printf("📊 [Dashboard] Getting time series for %d days", days)
+
 	// Get time series data from database
 	timeSeries, err := h.repo.GetTimeSeriesData(r.Context(), days)
 	if err != nil {
-		http.Error(w, "Failed to get time series data: "+err.Error(), http.StatusInternalServerError)
+		h.logger.Printf("❌ [Dashboard] Failed to get time series: %v", err)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"error":   "Failed to get time series data",
+			"message": err.Error(),
+		})
 		return
 	}
 
@@ -69,8 +99,11 @@ func (h *DashboardHandler) GetTimeSeries(w http.ResponseWriter, r *http.Request)
 		"time_series": timeSeries,
 		"days":        days,
 	}); err != nil {
+		h.logger.Printf("❌ [Dashboard] Failed to encode response: %v", err)
 		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
 		return
 	}
+
+	h.logger.Printf("✅ [Dashboard] Time series returned successfully (%d data points)", len(timeSeries))
 }
 

@@ -260,7 +260,8 @@ func main() {
 	)
 
 	// Phase 5: Initialize dashboard handler
-	dashboardHandler := handlers.NewDashboardHandler(keywordRepoInstance)
+	dashboardHandler := handlers.NewDashboardHandlerWithLogger(keywordRepoInstance, stdLogger)
+	logger.Info("✅ [Phase 5] Dashboard handler initialized")
 
 	// Setup router
 	router := mux.NewRouter()
