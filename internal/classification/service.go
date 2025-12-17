@@ -1615,7 +1615,7 @@ func (s *IndustryDetectionService) buildResultFromLLM(
 		"layer3", // LLM is always layer 3
 		false,    // LLM results are not cached at this point
 		nil,      // No cache timestamp
-		llmResult.ProcessingTimeMs,
+		int(llmResult.ProcessingTimeMs), // Convert int64 to int
 	)
 
 	// Enhance explanation with LLM-specific details
