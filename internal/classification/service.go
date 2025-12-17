@@ -325,7 +325,11 @@ func (s *IndustryDetectionService) performClassification(ctx context.Context, bu
 	startTime := time.Now()
 	requestID := s.generateRequestID()
 
-	s.logger.Printf("🔍 Starting industry detection for: %s (request: %s)", businessName, requestID)
+	// Debug: Log layer availability
+	llmAvailable := s.llmClassifier != nil
+	embeddingAvailable := s.embeddingClassifier != nil
+	s.logger.Printf("🔍 Starting industry detection for: %s (request: %s) [LLM:%v, Embedding:%v, URL:%s]",
+		businessName, requestID, llmAvailable, embeddingAvailable, websiteURL)
 
 	// Step 1: Run multi-strategy classifier (base classification)
 	s.logger.Printf("📝 Running MultiStrategyClassifier (base classification) (request: %s)", requestID)
@@ -386,6 +390,8 @@ func (s *IndustryDetectionService) performClassification(ctx context.Context, bu
 
 	// Check for ambiguity indicators - ambiguous cases should use Layer 3 even with high confidence
 	isAmbiguous := s.isAmbiguousCase(businessName, description)
+	s.logger.Printf("📊 [Routing] Ambiguous: %v, LLM available: %v, Website: %v (request: %s)",
+		isAmbiguous, s.llmClassifier != nil, websiteURL != "", requestID)
 
 	// Phase 4: If ambiguous, try Layer 3 (LLM) directly even with high confidence
 	if isAmbiguous && s.llmClassifier != nil && websiteURL != "" {
