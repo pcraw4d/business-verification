@@ -255,7 +255,8 @@ func main() {
 	router := mux.NewRouter()
 
 	// Add middleware
-	router.Use(securityHeadersMiddleware()) // Add security headers first
+	router.Use(recoveryMiddleware(logger))   // Recovery first to catch all panics
+	router.Use(securityHeadersMiddleware())  // Add security headers
 	router.Use(loggingMiddleware(logger))
 	router.Use(corsMiddleware())
 	router.Use(rateLimitMiddleware())
@@ -428,6 +429,28 @@ func startMemoryDiagnostics(logger *zap.Logger) {
 			}
 		}
 	}()
+}
+
+// recoveryMiddleware catches panics and prevents service crashes
+func recoveryMiddleware(logger *zap.Logger) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			defer func() {
+				if err := recover(); err != nil {
+					logger.Error("Panic recovered in HTTP handler",
+						zap.Any("panic", err),
+						zap.String("method", r.Method),
+						zap.String("url", r.URL.String()),
+						zap.String("remote_addr", r.RemoteAddr),
+						zap.Stack("stack"))
+					
+					// Return 500 error instead of crashing
+					http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+				}
+			}()
+			next.ServeHTTP(w, r)
+		})
+	}
 }
 
 // loggingMiddleware logs HTTP requests
