@@ -4287,7 +4287,7 @@ func (h *ClassificationHandler) HandleHealth(w http.ResponseWriter, r *http.Requ
 	health := map[string]interface{}{
 		"status":    "healthy",
 		"timestamp": time.Now(),
-		"version":   "1.3.1", // Phase 4: Boosted Education, Real Estate, Financial keywords for 95%+ accuracy
+		"version":   "1.3.2", // Phase 4: Added compound keywords (edutech, finhealth, agritech) with 1.8 weight
 		"service":   "classification-service",
 		"uptime":    time.Since(h.serviceStartTime).String(),
 		"supabase_status": map[string]interface{}{

@@ -1,0 +1,149 @@
+==============================================
+Phase 4 Accuracy Testing v2 - Wed Dec 17 03:01:22 EST 2025
+Service: https://classification-service-production.up.railway.app
+==============================================
+
+=== CATEGORY 1: RESTAURANTS & FOOD SERVICE (10 cases) ===
+✅ [RESTAURANT] Texas Roadhouse
+   Expected: Restaurant                Got: Restaurants                   
+✅ [RESTAURANT] Chipotle Mexican Grill
+   Expected: Restaurant                Got: Restaurants                   
+✅ [RESTAURANT] Starbucks Coffee
+   Expected: Coffee                    Got: Cafes & Coffee Shops          
+✅ [RESTAURANT] Domino's Pizza
+   Expected: Restaurant                Got: Restaurants                   
+✅ [RESTAURANT] The Cheesecake Factory
+   Expected: Restaurant                Got: Restaurants                   
+✅ [RESTAURANT] Five Guys Burgers
+   Expected: Restaurant                Got: Restaurants                   
+✅ [RESTAURANT] Panda Express
+   Expected: Restaurant                Got: Restaurants                   
+✅ [RESTAURANT] Olive Garden
+   Expected: Restaurant                Got: Restaurants                   
+✅ [RESTAURANT] Sweetgreen
+   Expected: Restaurant                Got: Restaurants                   
+✅ [RESTAURANT] Joe's Crab Shack
+   Expected: Restaurant                Got: Restaurants                   
+
+=== CATEGORY 2: RETAIL & SHOPPING (10 cases) ===
+✅ [RETAIL] Walmart Stores
+   Expected: Retail                    Got: Retail                        
+✅ [RETAIL] Target Corporation
+   Expected: Retail                    Got: Retail                        
+✅ [RETAIL] Home Depot
+   Expected: Hardware                  Got: Retail                        
+✅ [RETAIL] Best Buy Electronics
+   Expected: Electronics               Got: Retail                        
+✅ [RETAIL] Nordstrom Department Store
+   Expected: Clothing                  Got: Retail                        
+✅ [RETAIL] Costco Wholesale Club
+   Expected: Warehouse                 Got: Retail                        
+✅ [RETAIL] Petco Animal Supplies
+   Expected: Pet                       Got: Retail                        
+✅ [RETAIL] AutoZone Auto Parts
+   Expected: Auto                      Got: Retail                        
+✅ [RETAIL] Lowe's Home Improvement
+   Expected: Hardware                  Got: Retail                        
+✅ [RETAIL] Dick's Sporting Goods Store
+   Expected: Sporting                  Got: Retail                        
+
+=== CATEGORY 3: PROFESSIONAL SERVICES (10 cases) ===
+✅ [PROFESSIONAL] Deloitte Consulting
+   Expected: Consulting                Got: Professional, Scientific, and Technical Services
+✅ [PROFESSIONAL] Jones Day Law Firm
+   Expected: Legal                     Got: Legal Services                
+❌ [PROFESSIONAL] H&R Block Tax Services
+   Expected: Tax                       Got: Fintech                       
+✅ [PROFESSIONAL] KPMG Accounting
+   Expected: Accounting                Got: Professional, Scientific, and Technical Services
+✅ [PROFESSIONAL] McKinsey Consulting
+   Expected: Consulting                Got: Professional, Scientific, and Technical Services
+✅ [PROFESSIONAL] Merrill Lynch Wealth Management
+   Expected: Financial                 Got: Financial Services            
+❌ [PROFESSIONAL] Cushman Wakefield Real Estate
+   Expected: Real Estate               Got: Insurance                     
+✅ [PROFESSIONAL] Kelly Services Staffing Agency
+   Expected: Staffing                  Got: Professional, Scientific, and Technical Services
+✅ [PROFESSIONAL] ADP Payroll Services
+   Expected: Payroll                   Got: Professional, Scientific, and Technical Services
+✅ [PROFESSIONAL] Marsh Insurance Brokerage
+   Expected: Insurance                 Got: Insurance                     
+
+=== CATEGORY 4: TECHNOLOGY & SOFTWARE (10 cases) ===
+✅ [TECH] Microsoft Corporation
+   Expected: Technology                Got: Technology                    
+✅ [TECH] Salesforce Software
+   Expected: Software                  Got: Technology                    
+✅ [TECH] Adobe Software
+   Expected: Software                  Got: Technology                    
+✅ [TECH] Oracle Software
+   Expected: Software                  Got: Technology                    
+✅ [TECH] Intuit Software
+   Expected: Software                  Got: Technology                    
+❌ [TECH] Shopify E-commerce Platform
+   Expected: E-commerce                Got: Software Development          
+✅ [TECH] Zoom Communications
+   Expected: Technology                Got: Technology                    
+✅ [TECH] Slack Technologies
+   Expected: Technology                Got: Technology                    
+✅ [TECH] DocuSign Software
+   Expected: Software                  Got: Technology                    
+✅ [TECH] Twilio Cloud Platform
+   Expected: Technology                Got: Software Development          
+
+=== CATEGORY 5: HEALTHCARE & MEDICAL (10 cases) ===
+✅ [HEALTHCARE] CVS Pharmacy
+   Expected: Pharmacy                  Got: Healthcare                    
+✅ [HEALTHCARE] Kaiser Permanente Hospital
+   Expected: Healthcare                Got: Healthcare                    
+✅ [HEALTHCARE] Quest Diagnostics Lab
+   Expected: Medical                   Got: Healthcare                    
+✅ [HEALTHCARE] DaVita Healthcare
+   Expected: Healthcare                Got: Healthcare                    
+✅ [HEALTHCARE] HCA Hospital
+   Expected: Hospital                  Got: Healthcare                    
+✅ [HEALTHCARE] Walgreens Pharmacy
+   Expected: Pharmacy                  Got: Retail                        
+✅ [HEALTHCARE] Anthem Health Insurance
+   Expected: Insurance                 Got: Insurance                     
+✅ [HEALTHCARE] Labcorp Medical Laboratory
+   Expected: Medical                   Got: Healthcare                    
+✅ [HEALTHCARE] Dental Associates Clinic
+   Expected: Dental                    Got: Healthcare                    
+✅ [HEALTHCARE] VCA Veterinary Hospital
+   Expected: Veterinary                Got: Healthcare                    
+
+=== CATEGORY 6: AMBIGUOUS/COMPLEX (10 cases) ===
+✅ [AMBIGUOUS] Diversified Holdings LLC
+   Expected: General                   Got: General Business              
+✅ [AMBIGUOUS] ABC Multi-Services Company
+   Expected: Services                  Got: Professional, Scientific, and Technical Services
+✅ [AMBIGUOUS] TechFood Innovations
+   Expected: Technology                Got: Technology                    
+✅ [AMBIGUOUS] GreenBuild Consulting
+   Expected: Consulting                Got: Professional, Scientific, and Technical Services
+✅ [AMBIGUOUS] CloudKitchen Brands
+   Expected: Restaurant                Got: Restaurants                   
+❌ [AMBIGUOUS] FinHealth Solutions
+   Expected: Financial                 Got: Healthcare                    
+❌ [AMBIGUOUS] EduTech Academy
+   Expected: Education                 Got: Software Development          
+✅ [AMBIGUOUS] SportsMed Clinic
+   Expected: Medical                   Got: Healthcare                    
+✅ [AMBIGUOUS] Crypto Capital Partners
+   Expected: Financial                 Got: Professional, Scientific, and Technical Services
+❌ [AMBIGUOUS] AgriTech Farms
+   Expected: Agriculture               Got: Technology                    
+
+==============================================
+ACCURACY RESULTS (With Related Industry Matching)
+==============================================
+
+📊 OVERALL ACCURACY: 54 / 60 = 90.0%
+   ✅ Correct: 54
+   ❌ Wrong: 6
+
+🎯 Phase 4 Target: 90-95%
+✅ TARGET ACHIEVED!
+
+==============================================
