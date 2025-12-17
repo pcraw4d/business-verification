@@ -523,15 +523,13 @@ func (h *ClassificationHandler) cleanupInFlightRequests(ctx context.Context) {
 					h.logger.Warn("Removing stale in-flight request",
 						zap.String("cache_key", key),
 						zap.Duration("age", age))
-				delete(h.inFlightRequests, key)
-				// FIX: Set closed flag before closing to prevent "send on closed channel" panic
-				req.mu.Lock()
-				req.closed = true
-				req.mu.Unlock()
-				// FIX #13: Use sync.Once to prevent double-close panic
-				req.closeOnce.Do(func() {
-					close(req.resultChan)
-				})
+					// FIX: Mark as closed to prevent sends, then delete
+					// Don't close the channel - let it be garbage collected
+					// This prevents "send on closed channel" panic entirely
+					req.mu.Lock()
+					req.closed = true
+					req.mu.Unlock()
+					delete(h.inFlightRequests, key)
 				}
 			}
 			h.inFlightMutex.Unlock()
@@ -4204,7 +4202,7 @@ func (h *ClassificationHandler) HandleHealth(w http.ResponseWriter, r *http.Requ
 	health := map[string]interface{}{
 		"status":    "healthy",
 		"timestamp": time.Now(),
-		"version":   "1.0.1",
+		"version":   "1.0.2",
 		"service":   "classification-service",
 		"uptime":    time.Since(startTime).String(),
 		"supabase_status": map[string]interface{}{
