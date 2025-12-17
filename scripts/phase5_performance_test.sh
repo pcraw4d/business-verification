@@ -12,7 +12,7 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Configuration
-API_URL="${CLASSIFICATION_SERVICE_URL:-http://localhost:8080}"
+API_URL="${CLASSIFICATION_SERVICE_URL:-https://classification-service-production.up.railway.app}"
 ENDPOINT="${API_URL}/v1/classify"
 NUM_REQUESTS="${NUM_REQUESTS:-100}"
 CONCURRENT="${CONCURRENT:-10}"
@@ -176,14 +176,25 @@ echo ""
 echo "📊 Analyzing results..."
 echo ""
 
-# Count cache hits/misses
-cache_hits=$(grep -c "true" "$CACHE_FILE" 2>/dev/null || echo "0")
-cache_misses=$(grep -c "false" "$CACHE_FILE" 2>/dev/null || echo "0")
+# Count cache hits/misses (handle empty file)
+if [ -s "$CACHE_FILE" ]; then
+    cache_hits=$(grep -c "true" "$CACHE_FILE" 2>/dev/null || echo "0")
+    cache_misses=$(grep -c "false" "$CACHE_FILE" 2>/dev/null || echo "0")
+else
+    cache_hits=0
+    cache_misses=0
+fi
 
-# Count layer distribution
-layer1_count=$(grep -c "layer1" "$LAYER_FILE" 2>/dev/null || echo "0")
-layer2_count=$(grep -c "layer2" "$LAYER_FILE" 2>/dev/null || echo "0")
-layer3_count=$(grep -c "layer3" "$LAYER_FILE" 2>/dev/null || echo "0")
+# Count layer distribution (handle empty file)
+if [ -s "$LAYER_FILE" ]; then
+    layer1_count=$(grep -c "layer1" "$LAYER_FILE" 2>/dev/null || echo "0")
+    layer2_count=$(grep -c "layer2" "$LAYER_FILE" 2>/dev/null || echo "0")
+    layer3_count=$(grep -c "layer3" "$LAYER_FILE" 2>/dev/null || echo "0")
+else
+    layer1_count=0
+    layer2_count=0
+    layer3_count=0
+fi
 
 # Calculate timing statistics
 if [ -s "$TIMING_FILE" ]; then

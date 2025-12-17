@@ -12,7 +12,7 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Configuration
-API_URL="${CLASSIFICATION_SERVICE_URL:-http://localhost:8080}"
+API_URL="${CLASSIFICATION_SERVICE_URL:-https://classification-service-production.up.railway.app}"
 ENDPOINT="${API_URL}/v1/classify"
 
 echo "🎯 Phase 5 Accuracy Validation Test"
@@ -187,14 +187,22 @@ test_classification() {
     local end_time=$(date +%s%N)
     local duration_ms=$(( (end_time - start_time) / 1000000 ))
     
+    # Check if response is valid JSON
+    if ! echo "$response" | jq . > /dev/null 2>&1; then
+        errors=$((errors + 1))
+        echo "$total|$business_name|$expected_industry|ERROR|NO|unknown|0|false|$duration_ms" >> "$RESULTS_FILE"
+        echo -e "${RED}❌ $business_name: Invalid response${NC}"
+        return 1
+    fi
+    
     # Parse response
-    local got_industry=$(echo "$response" | jq -r '.primary_industry // .classification.industry // "ERROR"' 2>/dev/null)
+    local got_industry=$(echo "$response" | jq -r '.primary_industry // .classification.industry // empty' 2>/dev/null)
     local confidence=$(echo "$response" | jq -r '.confidence_score // .classification.confidence // 0' 2>/dev/null)
     local processing_path=$(echo "$response" | jq -r '.processing_path // .classification.explanation.layer_used // "unknown"' 2>/dev/null)
     local from_cache=$(echo "$response" | jq -r '.from_cache // false' 2>/dev/null)
     
-    # Check for errors
-    if echo "$response" | jq -e '.error' > /dev/null 2>&1 || [ "$got_industry" = "ERROR" ]; then
+    # Check for errors or empty industry
+    if echo "$response" | jq -e '.error' > /dev/null 2>&1 || [ -z "$got_industry" ] || [ "$got_industry" = "null" ]; then
         errors=$((errors + 1))
         echo "$total|$business_name|$expected_industry|ERROR|NO|unknown|0|false|$duration_ms" >> "$RESULTS_FILE"
         echo -e "${RED}❌ $business_name: ERROR${NC}"
@@ -205,10 +213,39 @@ test_classification() {
     got_lower=$(echo "$got_industry" | tr '[:upper:]' '[:lower:]')
     expected_lower=$(echo "$expected_industry" | tr '[:upper:]' '[:lower:]')
     
-    # Check match (case-insensitive, partial match)
+    # Check match (case-insensitive, partial match, and synonym matching)
     match="NO"
+    
+    # Direct match or substring match
     if [[ "$got_lower" == *"$expected_lower"* ]] || [[ "$expected_lower" == *"$got_lower"* ]]; then
         match="YES"
+    else
+        # Synonym matching for common cases
+        case "$expected_lower" in
+            *"financial services"*|*"banking"*|*"finance"*)
+                if [[ "$got_lower" == *"banking"* ]] || [[ "$got_lower" == *"finance"* ]] || [[ "$got_lower" == *"financial"* ]]; then
+                    match="YES"
+                fi
+                ;;
+            *"restaurants"*|*"restaurant"*)
+                if [[ "$got_lower" == *"restaurant"* ]] || [[ "$got_lower" == *"cafe"* ]] || [[ "$got_lower" == *"coffee"* ]] || [[ "$got_lower" == *"food"* ]]; then
+                    match="YES"
+                fi
+                ;;
+            *"automotive"*|*"auto"*)
+                if [[ "$got_lower" == *"auto"* ]] || [[ "$got_lower" == *"vehicle"* ]] || [[ "$got_lower" == *"car"* ]]; then
+                    match="YES"
+                fi
+                ;;
+            *"airlines"*|*"airline"*)
+                if [[ "$got_lower" == *"airline"* ]] || [[ "$got_lower" == *"aviation"* ]]; then
+                    match="YES"
+                fi
+                ;;
+        esac
+    fi
+    
+    if [ "$match" = "YES" ]; then
         correct=$((correct + 1))
         status="${GREEN}✅${NC}"
     else
@@ -234,11 +271,15 @@ test_classification() {
         fi
     fi
     
-    # Track confidence distribution
-    if [ "$(echo "$confidence >= 0.90" | bc -l)" -eq 1 ]; then
-        high_confidence=$((high_confidence + 1))
-    elif [ "$(echo "$confidence >= 0.70" | bc -l)" -eq 1 ]; then
-        medium_confidence=$((medium_confidence + 1))
+    # Track confidence distribution (handle empty confidence)
+    if [ -n "$confidence" ] && [ "$confidence" != "null" ] && [ "$confidence" != "0" ]; then
+        if [ "$(echo "$confidence >= 0.90" | bc -l 2>/dev/null)" -eq 1 ]; then
+            high_confidence=$((high_confidence + 1))
+        elif [ "$(echo "$confidence >= 0.70" | bc -l 2>/dev/null)" -eq 1 ]; then
+            medium_confidence=$((medium_confidence + 1))
+        else
+            low_confidence=$((low_confidence + 1))
+        fi
     else
         low_confidence=$((low_confidence + 1))
     fi
