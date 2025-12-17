@@ -556,9 +556,10 @@ func (msc *MultiStrategyClassifier) extractObviousKeywords(businessName, descrip
 		"investment": true, "wealth": true, "trading": true, "finance": true,
 		"advisory": true, "wealth management": true, "asset": true,
 
-		// Real Estate
+		// Real Estate (highest priority for real estate keyword)
 		"real estate": true, "property": true, "commercial": true, "residential": true,
-		"realty": true, "broker": true, "realtor": true,
+		"realty": true, "realtor": true, "real estate brokerage": true,
+		"commercial real estate": true, "property management": true,
 
 		// HR & Staffing
 		"staffing": true, "recruiting": true, "employment": true, "payroll": true,

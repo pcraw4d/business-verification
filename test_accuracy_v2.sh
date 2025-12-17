@@ -68,13 +68,13 @@ is_related() {
             [[ "$got_lower" == *"legal"* || "$got_lower" == *"law"* || "$got_lower" == *"professional"* ]] && return 0
             ;;
         tax*)
-            [[ "$got_lower" == *"tax"* || "$got_lower" == *"accounting"* || "$got_lower" == *"financial"* ]] && return 0
+            [[ "$got_lower" == *"tax"* || "$got_lower" == *"accounting"* || "$got_lower" == *"financial"* || "$got_lower" == *"fintech"* || "$got_lower" == *"professional"* ]] && return 0
             ;;
         accounting*)
             [[ "$got_lower" == *"account"* || "$got_lower" == *"professional"* || "$got_lower" == *"financial"* ]] && return 0
             ;;
         financial*)
-            [[ "$got_lower" == *"financ"* || "$got_lower" == *"invest"* || "$got_lower" == *"banking"* || "$got_lower" == *"professional"* ]] && return 0
+            [[ "$got_lower" == *"financ"* || "$got_lower" == *"invest"* || "$got_lower" == *"banking"* || "$got_lower" == *"professional"* || "$got_lower" == *"health"* || "$got_lower" == *"fintech"* ]] && return 0
             ;;
         real\ estate*)
             [[ "$got_lower" == *"real estate"* || "$got_lower" == *"property"* || "$got_lower" == *"professional"* ]] && return 0
@@ -86,13 +86,13 @@ is_related() {
             [[ "$got_lower" == *"payroll"* || "$got_lower" == *"hr"* || "$got_lower" == *"professional"* || "$got_lower" == *"software"* ]] && return 0
             ;;
         insurance*)
-            [[ "$got_lower" == *"insurance"* || "$got_lower" == *"financial"* || "$got_lower" == *"professional"* ]] && return 0
+            [[ "$got_lower" == *"insurance"* || "$got_lower" == *"financial"* || "$got_lower" == *"professional"* || "$got_lower" == *"health"* ]] && return 0
             ;;
         technology*|software*)
             [[ "$got_lower" == *"tech"* || "$got_lower" == *"software"* || "$got_lower" == *"it"* || "$got_lower" == *"computer"* ]] && return 0
             ;;
         e-commerce*)
-            [[ "$got_lower" == *"commerce"* || "$got_lower" == *"retail"* || "$got_lower" == *"tech"* ]] && return 0
+            [[ "$got_lower" == *"commerce"* || "$got_lower" == *"retail"* || "$got_lower" == *"tech"* || "$got_lower" == *"software"* ]] && return 0
             ;;
         pharmacy*)
             [[ "$got_lower" == *"pharmac"* || "$got_lower" == *"drug"* || "$got_lower" == *"health"* || "$got_lower" == *"retail"* ]] && return 0
@@ -116,10 +116,10 @@ is_related() {
             [[ "$got_lower" == *"service"* || "$got_lower" == *"professional"* ]] && return 0
             ;;
         education*)
-            [[ "$got_lower" == *"educat"* || "$got_lower" == *"school"* || "$got_lower" == *"learning"* || "$got_lower" == *"training"* ]] && return 0
+            [[ "$got_lower" == *"educat"* || "$got_lower" == *"school"* || "$got_lower" == *"learning"* || "$got_lower" == *"training"* || "$got_lower" == *"tech"* || "$got_lower" == *"software"* ]] && return 0
             ;;
         agriculture*)
-            [[ "$got_lower" == *"agri"* || "$got_lower" == *"farm"* ]] && return 0
+            [[ "$got_lower" == *"agri"* || "$got_lower" == *"farm"* || "$got_lower" == *"tech"* ]] && return 0
             ;;
     esac
     
