@@ -396,8 +396,9 @@ type ClassificationHandler struct {
 	requestQueue         *requestQueue // Request queue for managing concurrent requests
 	WorkerPool           *workerPool   // Worker pool for processing queued requests (exported for shutdown)
 	// FIX #7: Shutdown context for cleanup goroutines (exported for shutdown)
-	ShutdownCtx    context.Context
-	ShutdownCancel context.CancelFunc
+	ShutdownCtx      context.Context
+	ShutdownCancel   context.CancelFunc
+	serviceStartTime time.Time // Track when service started for uptime reporting
 }
 
 // NewClassificationHandler creates a new classification handler
@@ -438,6 +439,7 @@ func NewClassificationHandler(
 		cache:                make(map[string]*cacheEntry),
 		inFlightRequests:     make(map[string]*inFlightRequest),
 		requestQueue:         requestQueue,
+		serviceStartTime:     time.Now(), // Track when service started for uptime reporting
 	}
 
 	logger.Info("Request queue initialized",
@@ -4087,8 +4089,6 @@ func (h *ClassificationHandler) convertNAICSCodes(codes []classification.NAICSCo
 
 // HandleHealth handles health check requests
 func (h *ClassificationHandler) HandleHealth(w http.ResponseWriter, r *http.Request) {
-	startTime := time.Now()
-
 	// Set response headers
 	w.Header().Set("Content-Type", "application/json")
 
@@ -4224,9 +4224,9 @@ func (h *ClassificationHandler) HandleHealth(w http.ResponseWriter, r *http.Requ
 	health := map[string]interface{}{
 		"status":    "healthy",
 		"timestamp": time.Now(),
-		"version":   "1.0.4",
+		"version":   "1.0.5",
 		"service":   "classification-service",
-		"uptime":    time.Since(startTime).String(),
+		"uptime":    time.Since(h.serviceStartTime).String(),
 		"supabase_status": map[string]interface{}{
 			"connected": supabaseHealthy,
 			"url":       h.config.Supabase.URL,
