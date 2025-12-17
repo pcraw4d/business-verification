@@ -4221,13 +4221,14 @@ func (h *ClassificationHandler) HandleHealth(w http.ResponseWriter, r *http.Requ
 	}
 
 	// Check LLM service connectivity (Layer 3)
+	llmURL := strings.TrimSuffix(h.config.Classification.LLMServiceURL, "/") // Remove trailing slash
 	llmStatus := map[string]interface{}{
 		"configured": h.config.Classification.LLMServiceURL != "",
-		"url":        h.config.Classification.LLMServiceURL,
+		"url":        llmURL,
 	}
-	if h.config.Classification.LLMServiceURL != "" {
+	if llmURL != "" {
 		// Try to reach the LLM service health endpoint
-		llmHealthURL := h.config.Classification.LLMServiceURL + "/health"
+		llmHealthURL := llmURL + "/health"
 		llmReq, err := http.NewRequestWithContext(ctx, "GET", llmHealthURL, nil)
 		if err != nil {
 			llmStatus["connected"] = false
@@ -4257,7 +4258,7 @@ func (h *ClassificationHandler) HandleHealth(w http.ResponseWriter, r *http.Requ
 	health := map[string]interface{}{
 		"status":    "healthy",
 		"timestamp": time.Now(),
-		"version":   "1.0.6",
+		"version":   "1.0.7",
 		"service":   "classification-service",
 		"uptime":    time.Since(h.serviceStartTime).String(),
 		"supabase_status": map[string]interface{}{
