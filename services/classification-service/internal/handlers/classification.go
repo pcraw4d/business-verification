@@ -4220,11 +4220,44 @@ func (h *ClassificationHandler) HandleHealth(w http.ResponseWriter, r *http.Requ
 		}
 	}
 
+	// Check LLM service connectivity (Layer 3)
+	llmStatus := map[string]interface{}{
+		"configured": h.config.Classification.LLMServiceURL != "",
+		"url":        h.config.Classification.LLMServiceURL,
+	}
+	if h.config.Classification.LLMServiceURL != "" {
+		// Try to reach the LLM service health endpoint
+		llmHealthURL := h.config.Classification.LLMServiceURL + "/health"
+		llmReq, err := http.NewRequestWithContext(ctx, "GET", llmHealthURL, nil)
+		if err != nil {
+			llmStatus["connected"] = false
+			llmStatus["error"] = fmt.Sprintf("failed to create request: %v", err)
+		} else {
+			llmClient := &http.Client{Timeout: 5 * time.Second}
+			resp, err := llmClient.Do(llmReq)
+			if err != nil {
+				llmStatus["connected"] = false
+				llmStatus["error"] = fmt.Sprintf("connection failed: %v", err)
+			} else {
+				defer resp.Body.Close()
+				llmStatus["connected"] = resp.StatusCode == 200
+				llmStatus["status_code"] = resp.StatusCode
+				// Try to parse the response
+				var llmHealth map[string]interface{}
+				if json.NewDecoder(resp.Body).Decode(&llmHealth) == nil {
+					llmStatus["model_loaded"] = llmHealth["model_loaded"]
+					llmStatus["model"] = llmHealth["model"]
+					llmStatus["llm_status"] = llmHealth["status"]
+				}
+			}
+		}
+	}
+
 	// Create health response
 	health := map[string]interface{}{
 		"status":    "healthy",
 		"timestamp": time.Now(),
-		"version":   "1.0.5",
+		"version":   "1.0.6",
 		"service":   "classification-service",
 		"uptime":    time.Since(h.serviceStartTime).String(),
 		"supabase_status": map[string]interface{}{
@@ -4233,12 +4266,14 @@ func (h *ClassificationHandler) HandleHealth(w http.ResponseWriter, r *http.Requ
 			"error":     supabaseError,
 		},
 		"ml_service_status":   mlServiceStatus,
+		"llm_service_status":  llmStatus,
 		"classification_data": classificationData,
 		"features": map[string]interface{}{
 			"ml_enabled":             h.config.Classification.MLEnabled,
 			"keyword_method_enabled": h.config.Classification.KeywordMethodEnabled,
 			"ensemble_enabled":       h.config.Classification.EnsembleEnabled,
 			"cache_enabled":          h.config.Classification.CacheEnabled,
+			"llm_enabled":            h.config.Classification.LLMServiceURL != "",
 		},
 	}
 
