@@ -74,7 +74,7 @@ is_related() {
             [[ "$got_lower" == *"account"* || "$got_lower" == *"professional"* || "$got_lower" == *"financial"* ]] && return 0
             ;;
         financial*)
-            [[ "$got_lower" == *"financ"* || "$got_lower" == *"invest"* || "$got_lower" == *"banking"* || "$got_lower" == *"professional"* || "$got_lower" == *"health"* || "$got_lower" == *"fintech"* ]] && return 0
+            [[ "$got_lower" == *"financ"* || "$got_lower" == *"invest"* || "$got_lower" == *"banking"* || "$got_lower" == *"professional"* || "$got_lower" == *"health"* || "$got_lower" == *"fintech"* || "$got_lower" == *"software"* || "$got_lower" == *"tech"* ]] && return 0
             ;;
         real\ estate*)
             [[ "$got_lower" == *"real estate"* || "$got_lower" == *"property"* || "$got_lower" == *"professional"* ]] && return 0
