@@ -549,7 +549,20 @@ func (msc *MultiStrategyClassifier) extractObviousKeywords(businessName, descrip
 		// Technology & Cloud
 		"cloud": true, "computing": true, "software": true, "technology": true,
 		"tech": true, "it": true, "saas": true, "platform": true,
-		"services": true, "solutions": true,
+
+		// Insurance & Finance
+		"insurance": true, "brokerage": true, "bank": true, "banking": true,
+		"credit": true, "mortgage": true, "loan": true, "financial": true,
+		"investment": true, "wealth": true, "trading": true, "finance": true,
+
+		// Healthcare
+		"hospital": true, "healthcare": true, "pharmacy": true, "diagnostic": true,
+		"laboratory": true, "dialysis": true, "veterinary": true, "vet": true,
+		"health": true, "patient": true, "care": true,
+
+		// Agriculture
+		"farm": true, "farming": true, "agriculture": true, "agricultural": true,
+		"crop": true, "livestock": true, "ranch": true, "agri": true,
 
 		// Home Services
 		"plumber": true, "plumbing": true, "electrician": true, "electrical": true,
