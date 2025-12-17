@@ -593,6 +593,8 @@ func (msc *MultiStrategyClassifier) extractObviousKeywords(businessName, descrip
 		// Education
 		"school": true, "university": true, "college": true,
 		"tutoring": true, "academy": true, "education": true,
+		"edtech": true, "edutech": true, "learning": true,
+		"elearning": true, "online learning": true,
 	}
 
 	// Combine all text sources
