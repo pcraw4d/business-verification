@@ -219,103 +219,125 @@ func (wp *workerPool) worker(id int) {
 				continue
 			}
 
-			startTime := queuedReq.startTime
-			if startTime.IsZero() {
-				startTime = time.Now()
-			}
+			// Process request with panic recovery
+			wp.processRequestSafely(id, queuedReq)
+		}
+	}
+}
 
-			// Calculate queue wait time
-			queueWaitTime := time.Since(startTime)
-
-			// ALWAYS create fresh context to avoid expiration issues
-			// This eliminates the need for complex checks and ensures sufficient time
-			// Increased to 120s to accommodate longer processing times (scraping, classification, etc.)
-			freshTimeout := 120 * time.Second
-			processingCtx, cancel := context.WithTimeout(context.Background(), freshTimeout)
-			defer cancel()
-
-			// Log original context state for debugging
-			originalTimeRemaining := time.Duration(0)
-			originalExpired := false
-			if queuedReq.ctx.Err() != nil {
-				originalExpired = true
-			} else if deadline, hasDeadline := queuedReq.ctx.Deadline(); hasDeadline {
-				originalTimeRemaining = time.Until(deadline)
-				if originalTimeRemaining <= 0 {
-					originalExpired = true
-				}
-			}
-
-			wp.logger.Info("🔧 [WORKER-CONTEXT] Worker creating fresh context for processing",
+// processRequestSafely wraps request processing with panic recovery
+func (wp *workerPool) processRequestSafely(id int, queuedReq *queuedRequest) {
+	defer func() {
+		if r := recover(); r != nil {
+			wp.logger.Error("🚨 [WORKER-PANIC] Worker recovered from panic",
 				zap.Int("worker_id", id),
 				zap.String("request_id", queuedReq.req.RequestID),
-				zap.Duration("queue_wait", queueWaitTime),
-				zap.Duration("fresh_timeout", freshTimeout),
-				zap.Duration("original_time_remaining", originalTimeRemaining),
-				zap.Bool("original_expired", originalExpired),
-				zap.Duration("time_since_enqueue", time.Since(queuedReq.startTime)))
+				zap.Any("panic", r),
+				zap.Stack("stack"))
 
-			// Update worker stats - processing started
-			wp.statsMutex.Lock()
-			stats := wp.workerStats[id]
-			stats.lastActivity = time.Now()
-			stats.currentRequestID = queuedReq.req.RequestID
-			stats.isBlocked = false
-			wp.statsMutex.Unlock()
+			// Send error to requester
+			select {
+			case queuedReq.errChan <- fmt.Errorf("internal panic: %v", r):
+			default:
+			}
+		}
+	}()
 
-			// Process request
-			wp.logger.Info("🔧 [WORKER-PROCESSING] Worker processing request",
-				zap.Int("worker_id", id),
+	startTime := queuedReq.startTime
+	if startTime.IsZero() {
+		startTime = time.Now()
+	}
+
+	// Calculate queue wait time
+	queueWaitTime := time.Since(startTime)
+
+	// ALWAYS create fresh context to avoid expiration issues
+	// This eliminates the need for complex checks and ensures sufficient time
+	// Increased to 120s to accommodate longer processing times (scraping, classification, etc.)
+	freshTimeout := 120 * time.Second
+	processingCtx, cancel := context.WithTimeout(context.Background(), freshTimeout)
+	defer cancel()
+
+	// Log original context state for debugging
+	originalTimeRemaining := time.Duration(0)
+	originalExpired := false
+	if queuedReq.ctx.Err() != nil {
+		originalExpired = true
+	} else if deadline, hasDeadline := queuedReq.ctx.Deadline(); hasDeadline {
+		originalTimeRemaining = time.Until(deadline)
+		if originalTimeRemaining <= 0 {
+			originalExpired = true
+		}
+	}
+
+	wp.logger.Info("🔧 [WORKER-CONTEXT] Worker creating fresh context for processing",
+		zap.Int("worker_id", id),
+		zap.String("request_id", queuedReq.req.RequestID),
+		zap.Duration("queue_wait", queueWaitTime),
+		zap.Duration("fresh_timeout", freshTimeout),
+		zap.Duration("original_time_remaining", originalTimeRemaining),
+		zap.Bool("original_expired", originalExpired),
+		zap.Duration("time_since_enqueue", time.Since(queuedReq.startTime)))
+
+	// Update worker stats - processing started
+	wp.statsMutex.Lock()
+	stats := wp.workerStats[id]
+	stats.lastActivity = time.Now()
+	stats.currentRequestID = queuedReq.req.RequestID
+	stats.isBlocked = false
+	wp.statsMutex.Unlock()
+
+	// Process request
+	wp.logger.Info("🔧 [WORKER-PROCESSING] Worker processing request",
+		zap.Int("worker_id", id),
+		zap.String("request_id", queuedReq.req.RequestID),
+		zap.Int("queue_size", wp.queue.Size()),
+		zap.Duration("queue_wait", queueWaitTime),
+		zap.Int("active_workers", wp.getActiveWorkerCount()))
+
+	response, err := wp.handler.processClassification(processingCtx, queuedReq.req, startTime)
+
+	// Update worker stats - processing completed
+	processingDuration := time.Since(startTime)
+	wp.statsMutex.Lock()
+	stats = wp.workerStats[id]
+	stats.requestsProcessed++
+	stats.totalProcessingTime += processingDuration
+	if stats.requestsProcessed > 0 {
+		stats.averageTime = stats.totalProcessingTime / time.Duration(stats.requestsProcessed)
+	}
+	stats.lastActivity = time.Now()
+	stats.currentRequestID = ""
+	wp.statsMutex.Unlock()
+
+	if err != nil {
+		wp.logger.Error("Request processing failed",
+			zap.Int("worker_id", id),
+			zap.String("request_id", queuedReq.req.RequestID),
+			zap.Error(err),
+			zap.Duration("duration", processingDuration))
+		// FIX #12: Error channel is buffered (size 1) and has default case to prevent blocking
+		// The receiver (HTTP handler) is always waiting, so this should never block
+		select {
+		case queuedReq.errChan <- err:
+			// Error sent successfully
+		default:
+			// Error channel already has an error (shouldn't happen, but safe to ignore)
+			wp.logger.Warn("Error channel full, error may be lost",
 				zap.String("request_id", queuedReq.req.RequestID),
-				zap.Int("queue_size", wp.queue.Size()),
-				zap.Duration("queue_wait", queueWaitTime),
-				zap.Int("active_workers", wp.getActiveWorkerCount()))
-
-			response, err := wp.handler.processClassification(processingCtx, queuedReq.req, startTime)
-
-			// Update worker stats - processing completed
-			processingDuration := time.Since(startTime)
-			wp.statsMutex.Lock()
-			stats = wp.workerStats[id]
-			stats.requestsProcessed++
-			stats.totalProcessingTime += processingDuration
-			if stats.requestsProcessed > 0 {
-				stats.averageTime = stats.totalProcessingTime / time.Duration(stats.requestsProcessed)
-			}
-			stats.lastActivity = time.Now()
-			stats.currentRequestID = ""
-			wp.statsMutex.Unlock()
-
-			if err != nil {
-				wp.logger.Error("Request processing failed",
-					zap.Int("worker_id", id),
-					zap.String("request_id", queuedReq.req.RequestID),
-					zap.Error(err),
-					zap.Duration("duration", processingDuration))
-				// FIX #12: Error channel is buffered (size 1) and has default case to prevent blocking
-				// The receiver (HTTP handler) is always waiting, so this should never block
-				select {
-				case queuedReq.errChan <- err:
-					// Error sent successfully
-				default:
-					// Error channel already has an error (shouldn't happen, but safe to ignore)
-					wp.logger.Warn("Error channel full, error may be lost",
-						zap.String("request_id", queuedReq.req.RequestID),
-						zap.Error(err))
-				}
-			} else {
-				wp.logger.Info("✅ [WORKER-COMPLETE] Request processing completed",
-					zap.Int("worker_id", id),
-					zap.String("request_id", queuedReq.req.RequestID),
-					zap.Duration("duration", processingDuration),
-					zap.Int64("total_processed", stats.requestsProcessed),
-					zap.Duration("avg_time", stats.averageTime))
-				select {
-				case queuedReq.response <- response:
-				default:
-					// Response channel already has a response (shouldn't happen)
-				}
-			}
+				zap.Error(err))
+		}
+	} else {
+		wp.logger.Info("✅ [WORKER-COMPLETE] Request processing completed",
+			zap.Int("worker_id", id),
+			zap.String("request_id", queuedReq.req.RequestID),
+			zap.Duration("duration", processingDuration),
+			zap.Int64("total_processed", stats.requestsProcessed),
+			zap.Duration("avg_time", stats.averageTime))
+		select {
+		case queuedReq.response <- response:
+		default:
+			// Response channel already has a response (shouldn't happen)
 		}
 	}
 }
@@ -4202,7 +4224,7 @@ func (h *ClassificationHandler) HandleHealth(w http.ResponseWriter, r *http.Requ
 	health := map[string]interface{}{
 		"status":    "healthy",
 		"timestamp": time.Now(),
-		"version":   "1.0.3",
+		"version":   "1.0.4",
 		"service":   "classification-service",
 		"uptime":    time.Since(startTime).String(),
 		"supabase_status": map[string]interface{}{
