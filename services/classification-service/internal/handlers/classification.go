@@ -680,6 +680,11 @@ type ClassificationResponse struct {
 	// Phase 4: Async LLM processing fields
 	LLMProcessingID     string `json:"llm_processing_id,omitempty"`
 	LLMStatus           string `json:"llm_status,omitempty"`
+	
+	// Phase 5: Cache fields
+	FromCache           bool       `json:"from_cache"`           // Indicates if result came from cache
+	CachedAt            *time.Time `json:"cached_at,omitempty"`   // When result was cached
+	ProcessingPath      string     `json:"processing_path,omitempty"` // Layer used: "layer1", "layer2", "layer3"
 }
 
 // requestTrace tracks detailed timing for a single request
@@ -1677,6 +1682,10 @@ func (h *ClassificationHandler) handleClassificationStreaming(w http.ResponseWri
 		// Phase 4: Async LLM processing fields
 		LLMProcessingID:     enhancedResult.LLMProcessingID,
 		LLMStatus:           enhancedResult.LLMStatus,
+		// Phase 5: Cache fields
+		FromCache:           enhancedResult.FromCache,
+		CachedAt:            enhancedResult.CachedAt,
+		ProcessingPath:      enhancedResult.ProcessingPath,
 		Metadata: func() map[string]interface{} {
 			metadata := map[string]interface{}{
 				"service":                  "classification-service",
@@ -2758,6 +2767,10 @@ type EnhancedClassificationResult struct {
 	// Phase 4: Async LLM processing fields
 	LLMProcessingID         string                                `json:"llm_processing_id,omitempty"`
 	LLMStatus               string                                `json:"llm_status,omitempty"`
+	// Phase 5: Cache fields
+	FromCache               bool                                  `json:"from_cache"`               // Indicates if result came from cache
+	CachedAt                *time.Time                            `json:"cached_at,omitempty"`      // When result was cached
+	ProcessingPath          string                                `json:"processing_path,omitempty"` // Layer used: "layer1", "layer2", "layer3"
 }
 
 // WebsiteAnalysisData represents aggregated data from website analysis
@@ -3220,10 +3233,23 @@ func (h *ClassificationHandler) runGoClassification(ctx context.Context, req *Cl
 					"early_termination":  true,
 					"termination_reason": "low_confidence_insufficient_keywords",
 				},
-				// Phase 4: Pass through async LLM processing fields
-				LLMProcessingID: industryResult.LLMProcessingID,
-				LLMStatus:       string(industryResult.LLMStatus),
-			}, nil
+			// Phase 4: Pass through async LLM processing fields
+			LLMProcessingID: industryResult.LLMProcessingID,
+			LLMStatus:       string(industryResult.LLMStatus),
+			// Phase 5: Pass through cache fields
+			FromCache:      industryResult.FromCache,
+			CachedAt:       industryResult.CachedAt,
+			ProcessingPath: func() string {
+				method := industryResult.Method
+				if strings.Contains(method, "layer3") || strings.Contains(method, "llm") {
+					return "layer3"
+				}
+				if strings.Contains(method, "layer2") || strings.Contains(method, "embedding") {
+					return "layer2"
+				}
+				return "layer1"
+			}(),
+		}, nil
 		}
 	}
 
@@ -3561,6 +3587,19 @@ func (h *ClassificationHandler) runGoClassification(ctx context.Context, req *Cl
 		// Phase 4: Pass through async LLM processing fields
 		LLMProcessingID:         industryResult.LLMProcessingID,
 		LLMStatus:               string(industryResult.LLMStatus),
+		// Phase 5: Pass through cache fields
+		FromCache:               industryResult.FromCache,
+		CachedAt:                industryResult.CachedAt,
+		ProcessingPath: func() string {
+			method := industryResult.Method
+			if strings.Contains(method, "layer3") || strings.Contains(method, "llm") {
+				return "layer3"
+			}
+			if strings.Contains(method, "layer2") || strings.Contains(method, "embedding") {
+				return "layer2"
+			}
+			return "layer1"
+		}(),
 	}
 
 	// Log the final result for debugging

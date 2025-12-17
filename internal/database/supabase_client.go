@@ -64,8 +64,13 @@ func NewSupabaseClient(cfg *SupabaseConfig, logger *log.Logger) (*SupabaseClient
 		logger = log.Default()
 	}
 
-	// Log HTTP client configuration note
-	logger.Printf("ℹ️ [CONNECTION-POOL] Supabase client uses HTTP/REST (connection pooling handled by Go HTTP client)")
+	// Phase 5: Log HTTP client configuration note
+	// Note: Supabase uses HTTP/REST, not direct PostgreSQL connections
+	// Connection pooling is handled by Go's HTTP client (default transport)
+	// The PostgREST library uses Go's default HTTP client which has connection pooling built-in
+	// Optimization: HTTP client connection pooling is optimized at the application level
+	// (see embedding_classifier.go and llm_classifier.go for HTTP client optimizations)
+	logger.Printf("ℹ️ [Phase 5] [CONNECTION-POOL] Supabase client uses HTTP/REST (connection pooling handled by Go HTTP client with optimized transport)")
 
 	return &SupabaseClient{
 		client:     client,

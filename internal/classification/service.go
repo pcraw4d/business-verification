@@ -2,6 +2,7 @@ package classification
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -67,6 +68,7 @@ type IndustryDetectionService struct {
 	embeddingClassifier    *EmbeddingClassifier                 // Phase 3: Embedding-based classification
 	llmClassifier          *LLMClassifier                        // Phase 4: LLM-based classification
 	asyncLLMProcessor      *AsyncLLMProcessor                    // Phase 4: Async LLM processing
+	classificationCache    *ClassificationCache                  // Phase 5: 30-day classification cache
 }
 
 // NewIndustryDetectionService creates a new industry detection service
@@ -93,6 +95,12 @@ func NewIndustryDetectionService(repo repository.KeywordRepository, logger *log.
 func (s *IndustryDetectionService) SetContentCache(cache WebsiteContentCacher) {
 	// Cache is now handled by request-scoped cache in methods
 	s.logger.Printf("ℹ️ SetContentCache called (cache now handled by request-scoped cache)")
+}
+
+// SetClassificationCache sets the classification cache (Phase 5)
+func (s *IndustryDetectionService) SetClassificationCache(cache *ClassificationCache) {
+	s.classificationCache = cache
+	s.logger.Printf("✅ [Phase 5] Classification cache set on Industry Detection Service")
 }
 
 // NewIndustryDetectionServiceWithML creates a new industry detection service with ML support
@@ -253,6 +261,10 @@ type IndustryDetectionResult struct {
 	// Phase 4: Async LLM processing fields
 	LLMProcessingID string         `json:"llm_processing_id,omitempty"` // ID to poll for LLM result
 	LLMStatus       AsyncLLMStatus `json:"llm_status,omitempty"`        // Status of async LLM processing
+	
+	// Phase 5: Cache fields
+	FromCache bool       `json:"from_cache"`        // Indicates if result came from cache
+	CachedAt  *time.Time `json:"cached_at,omitempty"` // When result was cached
 }
 
 // normalizeString normalizes a string for cache key generation
@@ -335,6 +347,24 @@ func (s *IndustryDetectionService) performClassification(ctx context.Context, bu
 	embeddingAvailable := s.embeddingClassifier != nil
 	s.logger.Printf("🔍 Starting industry detection for: %s (request: %s) [LLM:%v, Embedding:%v, URL:%s]",
 		businessName, requestID, llmAvailable, embeddingAvailable, websiteURL)
+
+	// Phase 5: Check cache if cache is enabled and we have a website URL
+	if s.classificationCache != nil && websiteURL != "" {
+		// Get scraped content to generate cache key
+		scrapedContent, err := s.getScrapedContentForLayer2(ctx, websiteURL)
+		if err == nil && scrapedContent != nil {
+			// Generate cache key from scraped content
+			cacheKey := s.classificationCache.GenerateCacheKey(scrapedContent, websiteURL)
+			
+			// Check cache
+			cachedResult, err := s.classificationCache.Get(ctx, cacheKey)
+			if err == nil && cachedResult != nil {
+				s.logger.Printf("✅ [Phase 5] Returning cached result for: %s (request: %s)", businessName, requestID)
+				cachedResult.ProcessingTime = time.Since(startTime)
+				return cachedResult, nil
+			}
+		}
+	}
 
 	// Step 1: Run multi-strategy classifier (base classification)
 	s.logger.Printf("📝 Running MultiStrategyClassifier (base classification) (request: %s)", requestID)
@@ -611,15 +641,46 @@ func (s *IndustryDetectionService) performClassification(ctx context.Context, bu
 	}
 
 	// Generate explanation (codes will be nil for now, can be enhanced in handler)
-	explanation := s.explanationGenerator.GenerateExplanation(
+	// Phase 5: Use enhanced explanation generation with layer and cache information
+	layerUsed := "layer1"
+	if strings.Contains(result.Method, "layer2") || strings.Contains(result.Method, "embedding") {
+		layerUsed = "layer2"
+	} else if strings.Contains(result.Method, "layer3") || strings.Contains(result.Method, "llm") {
+		layerUsed = "layer3"
+	}
+	
+	explanation := s.explanationGenerator.GenerateExplanationWithPhase5(
 		multiResultForExplanation,
 		nil, // Codes not available at service level, will be added in handler
 		contentQuality,
+		layerUsed,
+		result.FromCache,
+		result.CachedAt,
+		int(result.ProcessingTime.Milliseconds()),
 	)
 	result.Explanation = explanation
 
 	s.logger.Printf("✅ Industry detection completed: %s (confidence: %.2f%%) (request: %s)",
 		result.IndustryName, result.Confidence*100, requestID)
+
+	// Phase 5: Cache the result if cache is enabled and we have a website URL
+	if s.classificationCache != nil && websiteURL != "" {
+		// Get scraped content to generate cache key (reuse if already scraped)
+		scrapedContent, err := s.getScrapedContentForLayer2(ctx, websiteURL)
+		if err == nil && scrapedContent != nil {
+			cacheKey := s.classificationCache.GenerateCacheKey(scrapedContent, websiteURL)
+			// Cache result asynchronously (non-blocking)
+			s.classificationCache.Set(ctx, cacheKey, businessName, websiteURL, result)
+		}
+	}
+
+	// Phase 5: Log metrics asynchronously (non-blocking)
+	go func() {
+		metricsCtx := context.Background()
+		if err := s.logMetrics(metricsCtx, result, businessName, websiteURL, requestID, startTime); err != nil {
+			s.logger.Printf("⚠️ [Phase 5] Failed to log metrics: %v", err)
+		}
+	}()
 
 	return result, nil
 }
@@ -1190,6 +1251,72 @@ func (s *IndustryDetectionService) isTechnicalTerm(word string) bool {
 	return technicalTerms[strings.ToLower(word)]
 }
 
+// logMetrics logs classification metrics asynchronously (Phase 5)
+func (s *IndustryDetectionService) logMetrics(
+	ctx context.Context,
+	result *IndustryDetectionResult,
+	businessName string,
+	websiteURL string,
+	requestID string,
+	startTime time.Time,
+) error {
+	if s.repo == nil {
+		return fmt.Errorf("repository not available")
+	}
+
+	// Extract layer information from method
+	layerUsed := "layer1"
+	if strings.Contains(result.Method, "layer2") {
+		layerUsed = "layer2"
+	} else if strings.Contains(result.Method, "layer3") {
+		layerUsed = "layer3"
+	}
+
+	// Calculate timing breakdown (simplified - actual timing would need to be tracked per layer)
+	totalTimeMs := int(result.ProcessingTime.Milliseconds())
+	scrapeTimeMs := 0 // Would need to track scraping time separately
+	layer1TimeMs := 0
+	layer2TimeMs := 0
+	layer3TimeMs := 0
+
+	// Estimate layer times based on method used
+	if layerUsed == "layer1" {
+		layer1TimeMs = totalTimeMs
+	} else if layerUsed == "layer2" {
+		layer1TimeMs = totalTimeMs / 2
+		layer2TimeMs = totalTimeMs / 2
+	} else if layerUsed == "layer3" {
+		layer1TimeMs = totalTimeMs / 3
+		layer2TimeMs = totalTimeMs / 3
+		layer3TimeMs = totalTimeMs / 3
+	}
+
+	// Prepare codes (would need to be passed from handler if available)
+	var mccCodes, sicCodes, naicsCodes json.RawMessage
+	// Codes are typically added in the handler, so we'll leave them empty for now
+
+	metrics := &repository.ClassificationMetricsRecord{
+		RequestID:       requestID,
+		BusinessName:    businessName,
+		WebsiteURL:       websiteURL,
+		PrimaryIndustry:  result.IndustryName,
+		Confidence:       result.Confidence,
+		LayerUsed:        layerUsed,
+		Method:           result.Method,
+		TotalTimeMs:      totalTimeMs,
+		ScrapeTimeMs:     scrapeTimeMs,
+		Layer1TimeMs:     layer1TimeMs,
+		Layer2TimeMs:     layer2TimeMs,
+		Layer3TimeMs:     layer3TimeMs,
+		FromCache:        result.FromCache,
+		MCCCodes:         mccCodes,
+		SICCodes:         sicCodes,
+		NAICSCodes:       naicsCodes,
+	}
+
+	return s.repo.LogClassificationMetrics(ctx, metrics)
+}
+
 // generateRequestID generates a unique request ID for tracking
 func (s *IndustryDetectionService) generateRequestID() string {
 	return fmt.Sprintf("industry_detection_%d", time.Now().UnixNano())
@@ -1480,11 +1607,15 @@ func (s *IndustryDetectionService) buildResultFromLLM(
 		ProcessingTime:  time.Duration(llmResult.ProcessingTimeMs) * time.Millisecond,
 	}
 
-	// Generate explanation
-	explanation := s.explanationGenerator.GenerateExplanation(
+	// Generate explanation with Phase 5 enhancements
+	explanation := s.explanationGenerator.GenerateExplanationWithPhase5(
 		multiResultForExplanation,
 		nil, // Codes not available at service level
 		contentQuality,
+		"layer3", // LLM is always layer 3
+		false,    // LLM results are not cached at this point
+		nil,      // No cache timestamp
+		llmResult.ProcessingTimeMs,
 	)
 
 	// Enhance explanation with LLM-specific details
@@ -1503,6 +1634,7 @@ func (s *IndustryDetectionService) buildResultFromLLM(
 			}
 		}
 		explanation.MethodUsed = "llm_reasoning"
+		explanation.LayerUsed = "layer3"
 	}
 
 	return &IndustryDetectionResult{

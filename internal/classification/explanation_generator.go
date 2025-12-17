@@ -3,6 +3,7 @@ package classification
 import (
 	"fmt"
 	"strings"
+	"time"
 )
 
 // ClassificationExplanation represents a structured explanation for a classification (Phase 2)
@@ -13,6 +14,11 @@ type ClassificationExplanation struct {
 	ConfidenceFactors map[string]float64 `json:"confidence_factors,omitempty"`
 	MethodUsed        string             `json:"method_used"`
 	ProcessingPath    string             `json:"processing_path"` // "fast_path", "full_strategy", "ml_validated"
+	// Phase 5: Enhanced explanation fields
+	LayerUsed         string             `json:"layer_used,omitempty"`         // "layer1", "layer2", "layer3"
+	FromCache         bool               `json:"from_cache,omitempty"`         // Indicates if result came from cache
+	CachedAt          *string            `json:"cached_at,omitempty"`          // When result was cached (ISO 8601)
+	ProcessingTimeMs  int                `json:"processing_time_ms,omitempty"`  // Processing time in milliseconds
 }
 
 // ExplanationGenerator generates human-readable explanations for classifications (Phase 2)
@@ -43,6 +49,70 @@ func (g *ExplanationGenerator) GenerateExplanation(
 	exp.SupportingFactors = g.generateSupportingFactors(result, codes, contentQuality)
 
 	return exp
+}
+
+// GenerateExplanationWithPhase5 generates a structured explanation with Phase 5 enhancements
+func (g *ExplanationGenerator) GenerateExplanationWithPhase5(
+	result *MultiStrategyResult,
+	codes *ClassificationCodesInfo,
+	contentQuality float64,
+	layerUsed string,
+	fromCache bool,
+	cachedAt *time.Time,
+	processingTimeMs int,
+) *ClassificationExplanation {
+	exp := g.GenerateExplanation(result, codes, contentQuality)
+	
+	// Phase 5: Add layer and cache information
+	exp.LayerUsed = layerUsed
+	exp.FromCache = fromCache
+	if cachedAt != nil {
+		cachedAtStr := cachedAt.Format(time.RFC3339)
+		exp.CachedAt = &cachedAtStr
+	}
+	exp.ProcessingTimeMs = processingTimeMs
+	
+	// Enhance primary reason with layer information
+	if layerUsed != "" {
+		layerInfo := g.getLayerDescription(layerUsed)
+		if !fromCache {
+			exp.PrimaryReason = fmt.Sprintf("%s (Processed via %s)", exp.PrimaryReason, layerInfo)
+		} else {
+			exp.PrimaryReason = fmt.Sprintf("%s (Retrieved from cache, originally processed via %s)", exp.PrimaryReason, layerInfo)
+		}
+	}
+	
+	// Add cache status to supporting factors
+	if fromCache {
+		exp.SupportingFactors = append([]string{"Result retrieved from cache (30-day TTL)"}, exp.SupportingFactors...)
+	} else {
+		exp.SupportingFactors = append([]string{fmt.Sprintf("Processed via %s", g.getLayerDescription(layerUsed))}, exp.SupportingFactors...)
+	}
+	
+	// Add processing time information
+	if processingTimeMs > 0 {
+		if processingTimeMs < 100 {
+			exp.SupportingFactors = append(exp.SupportingFactors, fmt.Sprintf("Fast processing time: %dms", processingTimeMs))
+		} else if processingTimeMs < 500 {
+			exp.SupportingFactors = append(exp.SupportingFactors, fmt.Sprintf("Processing time: %dms", processingTimeMs))
+		}
+	}
+	
+	return exp
+}
+
+// getLayerDescription returns a human-readable description of the layer
+func (g *ExplanationGenerator) getLayerDescription(layerUsed string) string {
+	switch layerUsed {
+	case "layer1":
+		return "Layer 1 (Keyword-based classification)"
+	case "layer2":
+		return "Layer 2 (Embedding-based classification)"
+	case "layer3":
+		return "Layer 3 (LLM-based classification)"
+	default:
+		return "Multi-layer classification"
+	}
 }
 
 // determineProcessingPath determines the processing path used (Phase 2)

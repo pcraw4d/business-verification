@@ -162,7 +162,7 @@ echo ""
 if [ $total -gt 0 ]; then
     accuracy=$(echo "scale=1; $correct * 100 / $total" | bc)
 else
-    accuracy=0
+    accuracy=$(echo "scale=1; 0" | bc)
 fi
 
 if [ $layer1_total -gt 0 ]; then

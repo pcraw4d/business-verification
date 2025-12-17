@@ -208,6 +208,16 @@ type KeywordRepository interface {
 		threshold float64,
 		limit int,
 	) ([]CodeMatch, error)
+
+	// Phase 5: Classification Cache Methods
+	GetCachedClassification(ctx context.Context, contentHash string) (*CachedClassificationResult, error)
+	SetCachedClassification(ctx context.Context, contentHash string, businessName string, websiteURL string, result *CachedClassificationResult) error
+	GetCacheStats(ctx context.Context) (*CacheStats, error)
+
+	// Phase 5: Metrics Logging
+	LogClassificationMetrics(ctx context.Context, metrics *ClassificationMetricsRecord) error
+	GetDashboardSummary(ctx context.Context, days int) ([]*DashboardMetric, error)
+	GetTimeSeriesData(ctx context.Context, days int) ([]*TimeSeriesData, error)
 }
 
 // PatternMatchResult represents an industry match from keyword pattern analysis

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -13,6 +14,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/redis/go-redis/v9"
+	"golang.org/x/time/rate"
 	"go.uber.org/zap"
 	"runtime"
 	"runtime/debug"
@@ -233,12 +235,18 @@ func main() {
 		logger.Info("ℹ️ LLM Service URL not configured, Layer 3 (LLM) will not be available")
 	}
 
+	// Phase 5: Initialize classification cache
+	classificationCache := classification.NewClassificationCache(keywordRepoInstance, stdLogger)
+	industryDetector.SetClassificationCache(classificationCache)
+	logger.Info("✅ [Phase 5] Classification cache initialized")
+
 	logger.Info("✅ Classification services initialized",
 		zap.Bool("industry_detector", industryDetector != nil),
 		zap.Bool("code_generator", codeGenerator != nil),
 		zap.Bool("python_ml_service", pythonMLService != nil),
 		zap.Bool("embedding_classifier", cfg.Classification.EmbeddingServiceURL != ""),
-		zap.Bool("llm_classifier", cfg.Classification.LLMServiceURL != ""))
+		zap.Bool("llm_classifier", cfg.Classification.LLMServiceURL != ""),
+		zap.Bool("classification_cache", classificationCache != nil))
 
 	// Initialize handlers
 	classificationHandler := handlers.NewClassificationHandler(
@@ -251,6 +259,9 @@ func main() {
 		pythonMLService,     // Pass Python ML service (can be nil)
 	)
 
+	// Phase 5: Initialize dashboard handler
+	dashboardHandler := handlers.NewDashboardHandler(keywordRepoInstance)
+
 	// Setup router
 	router := mux.NewRouter()
 
@@ -260,6 +271,7 @@ func main() {
 	router.Use(loggingMiddleware(logger))
 	router.Use(corsMiddleware())
 	router.Use(rateLimitMiddleware())
+	router.Use(timeoutMiddleware(30 * time.Second)) // Phase 5: 30s request timeout middleware
 
 	// Register routes
 	router.HandleFunc("/health", classificationHandler.HandleHealth).Methods("GET")
@@ -273,6 +285,10 @@ func main() {
 	router.HandleFunc("/classify/status/{processing_id}", classificationHandler.HandleLLMStatus).Methods("GET") // Alias
 	router.HandleFunc("/v1/classify/async-stats", classificationHandler.HandleAsyncLLMStats).Methods("GET")
 	router.HandleFunc("/classify/async-stats", classificationHandler.HandleAsyncLLMStats).Methods("GET") // Alias
+
+	// Phase 5: Dashboard endpoints
+	router.HandleFunc("/api/dashboard/summary", dashboardHandler.GetSummary).Methods("GET")
+	router.HandleFunc("/api/dashboard/timeseries", dashboardHandler.GetTimeSeries).Methods("GET")
 
 	// Create HTTP server
 	httpServer := &http.Server{
@@ -536,45 +552,151 @@ func securityHeadersMiddleware() func(http.Handler) http.Handler {
 	}
 }
 
-// rateLimitMiddleware adds basic rate limiting
-// FIX #4: Added mutex protection to prevent race conditions
+// rateLimitMiddleware adds enhanced rate limiting using golang.org/x/time/rate (Phase 5)
 func rateLimitMiddleware() func(http.Handler) http.Handler {
+	// Phase 5: Use token bucket rate limiter from golang.org/x/time/rate
+	// Default: 100 requests per minute per IP (allows bursts up to 10)
+	// Rate: 100 requests/minute = 100/60 requests/second ≈ 1.67 req/s
+	// Burst: Allow up to 10 requests in quick succession
+	rateLimitPerIP := rate.Limit(100.0 / 60.0) // 100 requests per minute
+	burstSize := 10
+
+	// Map to store rate limiters per IP address
 	var (
-		requests = make(map[string][]time.Time)
+		limiters = make(map[string]*rate.Limiter)
 		mu       sync.RWMutex
 	)
 
+	// Cleanup old limiters periodically to prevent memory leak
+	go func() {
+		ticker := time.NewTicker(10 * time.Minute)
+		defer ticker.Stop()
+		for range ticker.C {
+			mu.Lock()
+			// Keep only recent limiters (simple cleanup - in production, consider LRU cache)
+			if len(limiters) > 10000 {
+				// Clear half of the limiters (simple strategy)
+				cleared := 0
+				for ip := range limiters {
+					if cleared >= len(limiters)/2 {
+						break
+					}
+					delete(limiters, ip)
+					cleared++
+				}
+			}
+			mu.Unlock()
+		}
+	}()
+
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Extract client IP (consider X-Forwarded-For header for proxies)
 			clientIP := r.RemoteAddr
-			now := time.Now()
-
-			mu.Lock()
-			// Clean old requests (older than 1 minute)
-			if clientRequests, exists := requests[clientIP]; exists {
-				var validRequests []time.Time
-				for _, reqTime := range clientRequests {
-					if now.Sub(reqTime) < time.Minute {
-						validRequests = append(validRequests, reqTime)
-					}
+			if forwardedFor := r.Header.Get("X-Forwarded-For"); forwardedFor != "" {
+				// Take the first IP in the chain
+				ips := strings.Split(forwardedFor, ",")
+				if len(ips) > 0 {
+					clientIP = strings.TrimSpace(ips[0])
 				}
-				requests[clientIP] = validRequests
+			} else if realIP := r.Header.Get("X-Real-IP"); realIP != "" {
+				clientIP = realIP
 			}
 
-			// Check rate limit (100 requests per minute)
-			if len(requests[clientIP]) >= 100 {
+			// Get or create rate limiter for this IP
+			mu.RLock()
+			limiter, exists := limiters[clientIP]
+			mu.RUnlock()
+
+			if !exists {
+				mu.Lock()
+				// Double-check after acquiring write lock
+				limiter, exists = limiters[clientIP]
+				if !exists {
+					limiter = rate.NewLimiter(rateLimitPerIP, burstSize)
+					limiters[clientIP] = limiter
+				}
 				mu.Unlock()
-				errors.WriteError(w, r, http.StatusTooManyRequests, "RATE_LIMIT_EXCEEDED", "Rate limit exceeded", "Too many requests from this IP address")
+			}
+
+			// Check if request is allowed
+			if !limiter.Allow() {
+				errors.WriteError(w, r, http.StatusTooManyRequests, "RATE_LIMIT_EXCEEDED", "Rate limit exceeded", fmt.Sprintf("Too many requests from IP %s. Limit: 100 requests per minute", clientIP))
 				return
 			}
-
-			// Add current request
-			requests[clientIP] = append(requests[clientIP], now)
-			mu.Unlock()
 
 			next.ServeHTTP(w, r)
 		})
 	}
+}
+
+// timeoutMiddleware adds request timeout middleware (Phase 5)
+func timeoutMiddleware(timeout time.Duration) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Create context with timeout
+			ctx, cancel := context.WithTimeout(r.Context(), timeout)
+			defer cancel()
+
+			// Create a response writer wrapper to detect if response was written
+			done := make(chan bool, 1)
+			wrapped := &timeoutResponseWriter{
+				ResponseWriter: w,
+				done:           done,
+			}
+
+			// Handle request in goroutine
+			go func() {
+				next.ServeHTTP(wrapped, r.WithContext(ctx))
+				done <- true
+			}()
+
+			// Wait for either completion or timeout
+			select {
+			case <-done:
+				// Request completed successfully
+				return
+			case <-ctx.Done():
+				// Timeout occurred
+				if !wrapped.wroteHeader {
+					wrapped.mu.Lock()
+					if !wrapped.wroteHeader {
+						wrapped.wroteHeader = true
+						wrapped.mu.Unlock()
+						errors.WriteError(w, r, http.StatusRequestTimeout, "REQUEST_TIMEOUT", "Request timeout", fmt.Sprintf("Request exceeded timeout of %v", timeout))
+					} else {
+						wrapped.mu.Unlock()
+					}
+				}
+			}
+		})
+	}
+}
+
+// timeoutResponseWriter wraps http.ResponseWriter to track if headers were written
+type timeoutResponseWriter struct {
+	http.ResponseWriter
+	done        chan bool
+	wroteHeader bool
+	mu          sync.Mutex
+}
+
+func (tw *timeoutResponseWriter) WriteHeader(code int) {
+	tw.mu.Lock()
+	defer tw.mu.Unlock()
+	if !tw.wroteHeader {
+		tw.wroteHeader = true
+		tw.ResponseWriter.WriteHeader(code)
+	}
+}
+
+func (tw *timeoutResponseWriter) Write(b []byte) (int, error) {
+	tw.mu.Lock()
+	defer tw.mu.Unlock()
+	if !tw.wroteHeader {
+		tw.wroteHeader = true
+	}
+	return tw.ResponseWriter.Write(b)
 }
 
 // responseWriter wraps http.ResponseWriter to capture status code

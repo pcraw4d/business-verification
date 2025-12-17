@@ -29,10 +29,23 @@ func NewLLMClassifier(llmServiceURL string, logger *log.Logger) *LLMClassifier {
 	// Trim trailing slash to prevent double-slash in URL construction
 	llmServiceURL = strings.TrimSuffix(llmServiceURL, "/")
 
+	// Phase 5: Optimize HTTP client with connection pooling
+	transport := &http.Transport{
+		MaxIdleConns:        100,              // Maximum idle connections
+		MaxIdleConnsPerHost: 10,               // Maximum idle connections per host
+		IdleConnTimeout:     90 * time.Second, // Timeout for idle connections
+		DisableCompression:  false,            // Enable compression
+		DisableKeepAlives:   false,            // Enable keep-alives for connection reuse
+		ForceAttemptHTTP2:   true,             // Enable HTTP/2 support
+		TLSHandshakeTimeout: 10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+	}
+
 	return &LLMClassifier{
 		llmServiceURL: llmServiceURL,
 		httpClient: &http.Client{
-			Timeout: 300 * time.Second, // LLM on CPU can take 200+ seconds
+			Timeout:   300 * time.Second, // LLM on CPU can take 200+ seconds
+			Transport: transport,
 		},
 		logger: logger,
 	}

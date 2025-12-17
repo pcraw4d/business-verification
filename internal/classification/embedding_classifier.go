@@ -32,11 +32,24 @@ func NewEmbeddingClassifier(
 		logger = log.Default()
 	}
 
+	// Phase 5: Optimize HTTP client with connection pooling
+	transport := &http.Transport{
+		MaxIdleConns:        100,              // Maximum idle connections
+		MaxIdleConnsPerHost: 10,               // Maximum idle connections per host
+		IdleConnTimeout:     90 * time.Second, // Timeout for idle connections
+		DisableCompression:  false,            // Enable compression
+		DisableKeepAlives:   false,            // Enable keep-alives for connection reuse
+		ForceAttemptHTTP2:   true,             // Enable HTTP/2 support
+		TLSHandshakeTimeout: 10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+	}
+
 	return &EmbeddingClassifier{
 		embeddingServiceURL: embeddingServiceURL,
 		supabaseRepo:        repo,
 		httpClient: &http.Client{
-			Timeout: 10 * time.Second,
+			Timeout:   10 * time.Second,
+			Transport: transport,
 		},
 		logger: logger,
 	}

@@ -7401,3 +7401,505 @@ func (r *SupabaseKeywordRepository) MatchCodeEmbeddings(
 	r.logger.Printf("✅ [Phase 3] Found %d code matches by embedding", len(matches))
 	return matches, nil
 }
+
+// =============================================================================
+// Phase 5: Classification Cache Methods
+// =============================================================================
+
+// CacheStats represents cache statistics
+type CacheStats struct {
+	TotalEntries int           `json:"total_entries"`
+	HitRate      float64       `json:"hit_rate"`
+	AvgAge       time.Duration `json:"avg_age"`
+	ExpiringSoon int           `json:"expiring_soon"` // Expiring in next 7 days
+}
+
+// GetCachedClassification retrieves a cached classification result
+func (r *SupabaseKeywordRepository) GetCachedClassification(
+	ctx context.Context,
+	contentHash string,
+) (*CachedClassificationResult, error) {
+	if r.client == nil {
+		return nil, fmt.Errorf("database client not available")
+	}
+
+	r.logger.Printf("🔍 [Phase 5] Checking cache for content hash: %s", contentHash[:16]+"...")
+
+	// Call database function via PostgREST RPC
+	payload := map[string]interface{}{
+		"p_content_hash": contentHash,
+	}
+
+	jsonPayload, err := json.Marshal(payload)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal RPC payload: %w", err)
+	}
+
+	url := fmt.Sprintf("%s/rest/v1/rpc/get_cached_classification", r.client.GetURL())
+
+	// Ensure context has sufficient time for HTTP request
+	httpTimeout := 2 * time.Second
+	rpcCtx, rpcCancel := r.ensureValidContext(ctx, httpTimeout)
+	defer rpcCancel()
+
+	req, err := http.NewRequestWithContext(rpcCtx, "POST", url, bytes.NewBuffer(jsonPayload))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create RPC request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("apikey", r.client.GetServiceKey())
+	req.Header.Set("Authorization", "Bearer "+r.client.GetServiceKey())
+	req.Header.Set("Prefer", "return=representation")
+
+	httpClient := &http.Client{Timeout: httpTimeout}
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("RPC call failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusNoContent {
+		// Cache miss
+		return nil, nil
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("RPC call returned status %d: %s", resp.StatusCode, string(body))
+	}
+
+	// Decode JSONB result
+	var resultJSON json.RawMessage
+	if err := json.NewDecoder(resp.Body).Decode(&resultJSON); err != nil {
+		return nil, fmt.Errorf("failed to decode cache result: %w", err)
+	}
+
+	// Check if result is null (cache miss)
+	if len(resultJSON) == 0 || string(resultJSON) == "null" {
+		return nil, nil
+	}
+
+	// Parse the cached result
+	var cachedResult CachedClassificationResult
+	if err := json.Unmarshal(resultJSON, &cachedResult); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal cached result: %w", err)
+	}
+
+	r.logger.Printf("✅ [Phase 5] Cache hit for content hash: %s", contentHash[:16]+"...")
+	return &cachedResult, nil
+}
+
+// SetCachedClassification stores a classification result in cache
+func (r *SupabaseKeywordRepository) SetCachedClassification(
+	ctx context.Context,
+	contentHash string,
+	businessName string,
+	websiteURL string,
+	result *CachedClassificationResult,
+) error {
+	if r.client == nil {
+		return fmt.Errorf("database client not available")
+	}
+
+	// Serialize result to JSONB
+	resultJSON, err := json.Marshal(result)
+	if err != nil {
+		return fmt.Errorf("failed to marshal result: %w", err)
+	}
+
+	// Call database function via PostgREST RPC
+	payload := map[string]interface{}{
+		"p_content_hash":        contentHash,
+		"p_business_name":       businessName,
+		"p_website_url":          websiteURL,
+		"p_result":              json.RawMessage(resultJSON),
+		"p_layer_used":          result.LayerUsed,
+		"p_confidence":          result.Confidence,
+		"p_processing_time_ms":  result.ProcessingTimeMs,
+	}
+
+	jsonPayload, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal RPC payload: %w", err)
+	}
+
+	url := fmt.Sprintf("%s/rest/v1/rpc/set_cached_classification", r.client.GetURL())
+
+	// Ensure context has sufficient time for HTTP request
+	httpTimeout := 2 * time.Second
+	rpcCtx, rpcCancel := r.ensureValidContext(ctx, httpTimeout)
+	defer rpcCancel()
+
+	req, err := http.NewRequestWithContext(rpcCtx, "POST", url, bytes.NewBuffer(jsonPayload))
+	if err != nil {
+		return fmt.Errorf("failed to create RPC request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("apikey", r.client.GetServiceKey())
+	req.Header.Set("Authorization", "Bearer "+r.client.GetServiceKey())
+	req.Header.Set("Prefer", "return=representation")
+
+	httpClient := &http.Client{Timeout: httpTimeout}
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("RPC call failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("RPC call returned status %d: %s", resp.StatusCode, string(body))
+	}
+
+	r.logger.Printf("✅ [Phase 5] Cached classification result for content hash: %s", contentHash[:16]+"...")
+	return nil
+}
+
+// GetCacheStats retrieves cache statistics
+func (r *SupabaseKeywordRepository) GetCacheStats(ctx context.Context) (*CacheStats, error) {
+	if r.client == nil {
+		return nil, fmt.Errorf("database client not available")
+	}
+
+	// Query cache statistics using PostgREST
+	postgrestClient := r.client.GetPostgrestClient()
+	if postgrestClient == nil {
+		return nil, fmt.Errorf("postgrest client not available")
+	}
+
+	stats := &CacheStats{}
+
+	// Query using PostgREST From method to count entries
+	// Note: PostgREST doesn't support COUNT(*) directly, so we fetch all IDs and count
+	data, _, err := postgrestClient.From("classification_cache").
+		Select("id", "", false).
+		Gt("expires_at", time.Now().Format(time.RFC3339)).
+		Execute()
+	if err == nil && len(data) > 0 {
+		// Count the results
+		var results []map[string]interface{}
+		if err := json.Unmarshal(data, &results); err == nil {
+			stats.TotalEntries = len(results)
+		}
+	}
+
+	// Query average age and expiring soon (simplified - would need custom SQL RPC)
+	// For now, return basic stats
+	stats.HitRate = 0.0 // Would need to track hits/misses separately
+	stats.AvgAge = 0
+	stats.ExpiringSoon = 0
+
+	return stats, nil
+}
+
+// LogClassificationMetrics logs a classification metrics record
+func (r *SupabaseKeywordRepository) LogClassificationMetrics(
+	ctx context.Context,
+	metrics *ClassificationMetricsRecord,
+) error {
+	if r.client == nil {
+		return fmt.Errorf("database client not available")
+	}
+
+	// Use PostgREST to insert into classification_metrics table
+	postgrestClient := r.client.GetPostgrestClient()
+	if postgrestClient == nil {
+		return fmt.Errorf("postgrest client not available")
+	}
+
+	// Prepare payload
+	payload := map[string]interface{}{
+		"request_id":       metrics.RequestID,
+		"business_name":    metrics.BusinessName,
+		"website_url":       metrics.WebsiteURL,
+		"primary_industry":  metrics.PrimaryIndustry,
+		"confidence":        metrics.Confidence,
+		"layer_used":        metrics.LayerUsed,
+		"method":            metrics.Method,
+		"total_time_ms":     metrics.TotalTimeMs,
+		"scrape_time_ms":    metrics.ScrapeTimeMs,
+		"layer1_time_ms":    metrics.Layer1TimeMs,
+		"layer2_time_ms":    metrics.Layer2TimeMs,
+		"layer3_time_ms":    metrics.Layer3TimeMs,
+		"from_cache":        metrics.FromCache,
+		"user_agent":        metrics.UserAgent,
+	}
+
+	// Add codes if present
+	if len(metrics.MCCCodes) > 0 {
+		payload["mcc_codes"] = json.RawMessage(metrics.MCCCodes)
+	}
+	if len(metrics.SICCodes) > 0 {
+		payload["sic_codes"] = json.RawMessage(metrics.SICCodes)
+	}
+	if len(metrics.NAICSCodes) > 0 {
+		payload["naics_codes"] = json.RawMessage(metrics.NAICSCodes)
+	}
+
+	// Add IP address if present
+	if metrics.IPAddress != "" {
+		payload["ip_address"] = metrics.IPAddress
+	}
+
+	// Insert using PostgREST (expects array of maps)
+	// Use direct HTTP call since PostgREST interface may not support Insert properly
+	insertData := []map[string]interface{}{payload}
+	jsonPayload, err := json.Marshal(insertData)
+	if err != nil {
+		return fmt.Errorf("failed to marshal metrics payload: %w", err)
+	}
+
+	url := fmt.Sprintf("%s/rest/v1/classification_metrics", r.client.GetURL())
+	
+	// Ensure context has sufficient time for HTTP request
+	httpTimeout := 2 * time.Second
+	rpcCtx, rpcCancel := r.ensureValidContext(ctx, httpTimeout)
+	defer rpcCancel()
+
+	req, err := http.NewRequestWithContext(rpcCtx, "POST", url, bytes.NewBuffer(jsonPayload))
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("apikey", r.client.GetServiceKey())
+	req.Header.Set("Authorization", "Bearer "+r.client.GetServiceKey())
+	req.Header.Set("Prefer", "return=representation")
+
+	httpClient := &http.Client{Timeout: httpTimeout}
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("HTTP request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("insert returned status %d: %s", resp.StatusCode, string(body))
+	}
+
+	r.logger.Printf("✅ [Phase 5] Logged classification metrics for request: %s", metrics.RequestID)
+	return nil
+}
+
+// GetDashboardSummary retrieves dashboard summary metrics
+func (r *SupabaseKeywordRepository) GetDashboardSummary(
+	ctx context.Context,
+	days int,
+) ([]*DashboardMetric, error) {
+	if r.client == nil {
+		return nil, fmt.Errorf("database client not available")
+	}
+
+	// Call database function via PostgREST RPC
+	payload := map[string]interface{}{
+		"days": days,
+	}
+
+	jsonPayload, err := json.Marshal(payload)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal RPC payload: %w", err)
+	}
+
+	url := fmt.Sprintf("%s/rest/v1/rpc/get_dashboard_summary", r.client.GetURL())
+
+	// Ensure context has sufficient time for HTTP request
+	httpTimeout := 5 * time.Second
+	rpcCtx, rpcCancel := r.ensureValidContext(ctx, httpTimeout)
+	defer rpcCancel()
+
+	req, err := http.NewRequestWithContext(rpcCtx, "POST", url, bytes.NewBuffer(jsonPayload))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create RPC request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("apikey", r.client.GetServiceKey())
+	req.Header.Set("Authorization", "Bearer "+r.client.GetServiceKey())
+	req.Header.Set("Prefer", "return=representation")
+
+	httpClient := &http.Client{Timeout: httpTimeout}
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("RPC call failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("RPC call returned status %d: %s", resp.StatusCode, string(body))
+	}
+
+	var results []struct {
+		Metric      string  `json:"metric"`
+		Value       float64 `json:"value"`
+		Description string  `json:"description"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&results); err != nil {
+		return nil, fmt.Errorf("failed to decode dashboard summary: %w", err)
+	}
+
+	metrics := make([]*DashboardMetric, len(results))
+	for i, r := range results {
+		metrics[i] = &DashboardMetric{
+			Metric:      r.Metric,
+			Value:       r.Value,
+			Description: r.Description,
+		}
+	}
+
+	return metrics, nil
+}
+
+// GetTimeSeriesData retrieves time series data for charts
+func (r *SupabaseKeywordRepository) GetTimeSeriesData(
+	ctx context.Context,
+	days int,
+) ([]*TimeSeriesData, error) {
+	if r.client == nil {
+		return nil, fmt.Errorf("database client not available")
+	}
+
+	// Call database function via PostgREST RPC
+	payload := map[string]interface{}{
+		"days": days,
+	}
+
+	jsonPayload, err := json.Marshal(payload)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal RPC payload: %w", err)
+	}
+
+	url := fmt.Sprintf("%s/rest/v1/rpc/get_dashboard_timeseries", r.client.GetURL())
+
+	// Ensure context has sufficient time for HTTP request
+	httpTimeout := 5 * time.Second
+	rpcCtx, rpcCancel := r.ensureValidContext(ctx, httpTimeout)
+	defer rpcCancel()
+
+	req, err := http.NewRequestWithContext(rpcCtx, "POST", url, bytes.NewBuffer(jsonPayload))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create RPC request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("apikey", r.client.GetServiceKey())
+	req.Header.Set("Authorization", "Bearer "+r.client.GetServiceKey())
+	req.Header.Set("Prefer", "return=representation")
+
+	httpClient := &http.Client{Timeout: httpTimeout}
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("RPC call failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("RPC call returned status %d: %s", resp.StatusCode, string(body))
+	}
+
+	var results []struct {
+		Date                 string  `json:"date"`
+		TotalClassifications int64   `json:"total_classifications"`
+		CacheHits            int64   `json:"cache_hits"`
+		CacheMisses          int64   `json:"cache_misses"`
+		AvgConfidence        float64 `json:"avg_confidence"`
+		AvgTotalTimeMs       float64 `json:"avg_total_time_ms"`
+		Layer1Count          int64   `json:"layer1_count"`
+		Layer2Count          int64   `json:"layer2_count"`
+		Layer3Count          int64   `json:"layer3_count"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&results); err != nil {
+		return nil, fmt.Errorf("failed to decode time series data: %w", err)
+	}
+
+	timeSeries := make([]*TimeSeriesData, len(results))
+	for i, r := range results {
+		date, err := time.Parse("2006-01-02", r.Date)
+		if err != nil {
+			// Try parsing with timezone
+			date, err = time.Parse(time.RFC3339, r.Date)
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse date %s: %w", r.Date, err)
+			}
+		}
+
+		timeSeries[i] = &TimeSeriesData{
+			Date:                 date,
+			TotalClassifications: r.TotalClassifications,
+			CacheHits:            r.CacheHits,
+			CacheMisses:          r.CacheMisses,
+			AvgConfidence:        r.AvgConfidence,
+			AvgTotalTimeMs:       r.AvgTotalTimeMs,
+			Layer1Count:          r.Layer1Count,
+			Layer2Count:          r.Layer2Count,
+			Layer3Count:          r.Layer3Count,
+		}
+	}
+
+	return timeSeries, nil
+}
+
+// CachedClassificationResult represents a cached classification result
+// Note: Explanation is stored as json.RawMessage to avoid circular dependencies
+type CachedClassificationResult struct {
+	IndustryName      string          `json:"industry_name"`
+	Confidence        float64         `json:"confidence"`
+	Keywords          []string        `json:"keywords"`
+	ProcessingTime    time.Duration   `json:"processing_time"`
+	Method            string          `json:"method"`
+	Reasoning         string          `json:"reasoning"`
+	Explanation       json.RawMessage `json:"explanation,omitempty"`
+	CreatedAt         time.Time       `json:"created_at"`
+	LayerUsed         string          `json:"layer_used"`
+	ProcessingTimeMs  int             `json:"processing_time_ms"`
+	FromCache         bool            `json:"from_cache"`
+	CachedAt          *time.Time      `json:"cached_at,omitempty"`
+}
+
+// ClassificationMetricsRecord represents a single classification metrics record
+type ClassificationMetricsRecord struct {
+	RequestID        string          `json:"request_id"`
+	BusinessName     string          `json:"business_name"`
+	WebsiteURL       string          `json:"website_url"`
+	PrimaryIndustry  string          `json:"primary_industry"`
+	Confidence       float64         `json:"confidence"`
+	LayerUsed        string          `json:"layer_used"`
+	Method           string          `json:"method"`
+	TotalTimeMs      int             `json:"total_time_ms"`
+	ScrapeTimeMs     int             `json:"scrape_time_ms"`
+	Layer1TimeMs     int             `json:"layer1_time_ms"`
+	Layer2TimeMs     int             `json:"layer2_time_ms"`
+	Layer3TimeMs     int             `json:"layer3_time_ms"`
+	FromCache        bool            `json:"from_cache"`
+	MCCCodes         json.RawMessage `json:"mcc_codes,omitempty"`
+	SICCodes         json.RawMessage `json:"sic_codes,omitempty"`
+	NAICSCodes       json.RawMessage `json:"naics_codes,omitempty"`
+	UserAgent        string          `json:"user_agent,omitempty"`
+	IPAddress        string          `json:"ip_address,omitempty"`
+}
+
+// DashboardMetric represents a single dashboard metric
+type DashboardMetric struct {
+	Metric      string  `json:"metric"`
+	Value       float64 `json:"value"`
+	Description string  `json:"description"`
+}
+
+// TimeSeriesData represents time series data for charts
+type TimeSeriesData struct {
+	Date                 time.Time `json:"date"`
+	TotalClassifications int64     `json:"total_classifications"`
+	CacheHits            int64     `json:"cache_hits"`
+	CacheMisses          int64     `json:"cache_misses"`
+	AvgConfidence        float64   `json:"avg_confidence"`
+	AvgTotalTimeMs       float64   `json:"avg_total_time_ms"`
+	Layer1Count          int64     `json:"layer1_count"`
+	Layer2Count          int64     `json:"layer2_count"`
+	Layer3Count          int64     `json:"layer3_count"`
+}

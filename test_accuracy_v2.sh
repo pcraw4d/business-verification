@@ -240,7 +240,7 @@ echo ""
 if [ $total -gt 0 ]; then
     accuracy=$(echo "scale=1; $correct * 100 / $total" | bc)
 else
-    accuracy=0
+    accuracy=$(echo "scale=1; 0" | bc)
 fi
 
 echo "📊 OVERALL ACCURACY: $correct / $total = $accuracy%"
