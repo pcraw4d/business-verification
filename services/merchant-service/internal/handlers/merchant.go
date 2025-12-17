@@ -1802,6 +1802,10 @@ func (h *MerchantHandler) HandleMerchantSpecificAnalytics(w http.ResponseWriter,
 			if naicsCodes, ok := classificationData["naicsCodes"].([]interface{}); ok {
 				classification["naicsCodes"] = naicsCodes
 			}
+			// Phase 5: Add structured explanation if present
+			if structuredExplanation, ok := classificationData["structuredExplanation"].(map[string]interface{}); ok {
+				classification["structuredExplanation"] = structuredExplanation
+			}
 			// Add metadata if present (backward compatible - optional field)
 			if metadata, ok := classificationData["metadata"].(map[string]interface{}); ok {
 				classification["metadata"] = metadata

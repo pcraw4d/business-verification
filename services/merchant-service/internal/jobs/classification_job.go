@@ -441,10 +441,40 @@ func (j *ClassificationJob) extractClassificationFromResponse(response map[strin
 		result.ConfidenceScore = confidence
 	}
 
-	// Extract industry codes
-	result.MCCCodes = j.extractIndustryCodes(response, "mcc_codes", "mccCodes")
-	result.SICCodes = j.extractIndustryCodes(response, "sic_codes", "sicCodes")
-	result.NAICSCodes = j.extractIndustryCodes(response, "naics_codes", "naicsCodes")
+	// Extract industry codes - Phase 5: Check classification.explanation structure first
+	if classification, ok := response["classification"].(map[string]interface{}); ok {
+		// Phase 5: Extract codes from classification object
+		if mccCodes, ok := classification["mcc_codes"].([]interface{}); ok && len(mccCodes) > 0 {
+			result.MCCCodes = j.parseIndustryCodesArray(mccCodes)
+		}
+		if naicsCodes, ok := classification["naics_codes"].([]interface{}); ok && len(naicsCodes) > 0 {
+			result.NAICSCodes = j.parseIndustryCodesArray(naicsCodes)
+		}
+		if sicCodes, ok := classification["sic_codes"].([]interface{}); ok && len(sicCodes) > 0 {
+			result.SICCodes = j.parseIndustryCodesArray(sicCodes)
+		}
+		
+		// Phase 5: Extract structured explanation from classification.explanation
+		if explanationData, ok := classification["explanation"].(map[string]interface{}); ok {
+			// Store structured explanation in metadata
+			result.Metadata["structuredExplanation"] = explanationData
+			// Also extract primary_reason as string for backward compatibility
+			if primaryReason, ok := explanationData["primary_reason"].(string); ok {
+				result.Explanation = primaryReason
+			}
+		}
+	}
+	
+	// Fallback: Extract industry codes from top-level response if not found in classification
+	if len(result.MCCCodes) == 0 {
+		result.MCCCodes = j.extractIndustryCodes(response, "mcc_codes", "mccCodes")
+	}
+	if len(result.SICCodes) == 0 {
+		result.SICCodes = j.extractIndustryCodes(response, "sic_codes", "sicCodes")
+	}
+	if len(result.NAICSCodes) == 0 {
+		result.NAICSCodes = j.extractIndustryCodes(response, "naics_codes", "naicsCodes")
+	}
 
 	// Extract risk level (default to medium if not found)
 	if riskLevel, ok := response["risk_level"].(string); ok {
@@ -470,8 +500,8 @@ func (j *ClassificationJob) extractClassificationFromResponse(response map[strin
 			result.Metadata["analysisMethod"] = analysisMethod
 		}
 		
-		// Extract DistilBART enhancement fields
-		if explanation, ok := metadata["explanation"].(string); ok {
+		// Extract DistilBART enhancement fields (backward compatibility)
+		if explanation, ok := metadata["explanation"].(string); ok && result.Explanation == "" {
 			result.Explanation = explanation
 		}
 		if contentSummary, ok := metadata["content_summary"].(string); ok {
@@ -652,6 +682,11 @@ func (j *ClassificationJob) saveResultToDB(ctx context.Context, result *Classifi
 	}
 	if result.ModelVersion != "" {
 		classificationData["modelVersion"] = result.ModelVersion
+	}
+	
+	// Phase 5: Add structured explanation if present
+	if structuredExplanation, ok := result.Metadata["structuredExplanation"].(map[string]interface{}); ok {
+		classificationData["structuredExplanation"] = structuredExplanation
 	}
 
 	// Add industry codes

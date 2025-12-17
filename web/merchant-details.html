@@ -1248,28 +1248,31 @@
               websiteKeywords =
                 result.classification.website_keywords || result.classification.keywords || [];
               // Phase 5: Extract structured explanation if available, otherwise fallback to string
-              if (result.classification.explanation) {
+              // Check for structuredExplanation field (from merchant service) or explanation field (from classification service)
+              const explanationData = result.classification.structuredExplanation || result.classification.explanation;
+              if (explanationData) {
                 if (
-                  typeof result.classification.explanation === 'object' &&
-                  result.classification.explanation.primary_reason
+                  typeof explanationData === 'object' &&
+                  explanationData.primary_reason
                 ) {
                   // Structured explanation (Phase 5)
-                  classificationReasoning = result.classification.explanation.primary_reason;
+                  classificationReasoning = explanationData.primary_reason;
                   if (
-                    result.classification.explanation.supporting_factors &&
-                    result.classification.explanation.supporting_factors.length > 0
+                    explanationData.supporting_factors &&
+                    explanationData.supporting_factors.length > 0
                   ) {
                     classificationReasoning +=
                       '\n\nSupporting Factors:\n' +
-                      result.classification.explanation.supporting_factors
+                      explanationData.supporting_factors
                         .map((f) => '• ' + f)
                         .join('\n');
                   }
-                } else {
+                } else if (typeof explanationData === 'string') {
                   // String explanation (legacy)
-                  classificationReasoning = result.classification.explanation;
+                  classificationReasoning = explanationData;
                 }
               } else {
+                // Fallback to reasoning field
                 classificationReasoning = result.classification.reasoning || '';
               }
             } else if (result.classification.classification_codes) {
