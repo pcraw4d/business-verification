@@ -10,7 +10,13 @@ import logging
 from typing import Optional, Dict, Any
 from flask import Flask, request, jsonify
 from bs4 import BeautifulSoup
-import hrequests
+
+# Import hrequests with error handling for compatibility
+try:
+    import hrequests
+except ImportError as e:
+    logging.error(f"Failed to import hrequests: {e}")
+    hrequests = None
 
 # Configure logging
 logging.basicConfig(
@@ -192,8 +198,17 @@ def scrape():
         url = data['url']
         logger.info(f"Scraping URL: {url}")
         
+        # Check if hrequests is available
+        if hrequests is None:
+            return jsonify({
+                "success": False,
+                "error": "hrequests library not available",
+                "latency_ms": int((time.time() - start_time) * 1000)
+            }), 500
+        
         # Scrape with hrequests
         try:
+            # Use hrequests.get with proper error handling
             response = hrequests.get(url, timeout=TIMEOUT)
             
             # Check if response is successful
