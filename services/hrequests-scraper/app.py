@@ -238,14 +238,6 @@ def scrape():
                 "latency_ms": int((time.time() - start_time) * 1000)
             }), 500
             
-        except Exception as e:
-            logger.error(f"Unexpected error scraping {url}: {str(e)}")
-            return jsonify({
-                "success": False,
-                "error": f"Unexpected error: {str(e)}",
-                "latency_ms": int((time.time() - start_time) * 1000)
-            }), 500
-            
     except Exception as e:
         logger.error(f"Request processing error: {str(e)}")
         return jsonify({
