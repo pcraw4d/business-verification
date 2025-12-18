@@ -1,5 +1,5 @@
 # Railway ignore file - excludes large directories from deployment
-# This prevents Railway from uploading unnecessary files
+# This prevents Railway from uploading unnecessary files during snapshot
 
 # Python virtual environments
 python_ml_service/venv/
@@ -8,16 +8,23 @@ venv/
 **/venv/
 **/.venv/
 
-# Node.js dependencies
+# Node.js dependencies (exclude all node_modules)
+**/node_modules/
+node_modules/
 frontend/node_modules/
 web/node_modules/
-**/node_modules/
+services/*/node_modules/
 
 # Frontend build artifacts
 frontend/.next/
 frontend/out/
+frontend/dist/
 web/dist/
 web/.next/
+web/build/
+services/*/dist/
+services/*/build/
+services/*/.next/
 
 # Build artifacts and binaries
 *.test
@@ -31,19 +38,40 @@ database.test
 test-auth
 test-build
 test-supabase
+*.exe
+*.exe~
+kyb-platform
+kyb-platform-*
 
-# Large log files
-docs/railway log/*.json
+# Large log files and test results
+docs/railway log/
 *.log
+test/results/
+load_test_results/
+test/integration/test/
+test/integration/test_report_generator.go
 
-# Archive and backup files
+# Archive and backup files (119MB+)
 archive/
 backup-*/
 *.tar.gz
 *.zip
+*.rar
 
-# Reports
+# Reports directory (23MB+)
 reports/
+
+# Large test data files
+test/data/comprehensive_test_samples.json
+test/data/*.json
+!test/data/*config*.json
+
+# Large documentation files
+docs/COMPREHENSIVE_TEST_ANALYSIS_REPORT.md
+docs/HREQUESTS_INTEGRATION_COMPLETE.md
+docs/HREQUESTS_INTEGRATION_TESTING.md
+docs/HREQUESTS_INTEGRATION_VERIFICATION.md
+docs/HYBRID_SCRAPING_IMPLEMENTATION_COMPLETION.md
 
 # Python cache
 __pycache__/
@@ -51,18 +79,36 @@ __pycache__/
 *.pyo
 *.pyd
 .Python
+*.py[cod]
+*$py.class
 
-# Go build artifacts
+# Go build artifacts and cache
 *.exe
 *.exe~
-kyb-platform
-kyb-platform-*
+*.test
+*.out
+.go_cache/
+.gocache/
 
 # IDE files
 .vscode/
 .idea/
+*.swp
+*.swo
+*~
 
 # OS files
 .DS_Store
 ._*
+Thumbs.db
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.bak
+*.backup
+
+# Pre-deployment checklists (historical)
+pre_deployment_checklist_*.md
 
