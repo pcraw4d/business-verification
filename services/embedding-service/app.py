@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from sentence_transformers import SentenceTransformer
 from typing import List, Optional
+from contextlib import asynccontextmanager
 import logging
 import time
 
@@ -15,11 +16,28 @@ import time
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Initialize FastAPI app
+# Global model variable
+model = None
+MODEL_NAME = 'sentence-transformers/all-MiniLM-L6-v2'
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Load model on startup, cleanup on shutdown"""
+    global model
+    # Startup: Load model
+    logger.info(f"Loading embedding model: {MODEL_NAME}...")
+    model = SentenceTransformer(MODEL_NAME)
+    logger.info(f"Model loaded successfully! Dimension: {model.get_sentence_embedding_dimension()}")
+    yield
+    # Shutdown: Cleanup (if needed)
+    logger.info("Shutting down embedding service")
+
+# Initialize FastAPI app with lifespan events
 app = FastAPI(
     title="Embedding Service",
     description="Generate 384-dimensional embeddings using all-MiniLM-L6-v2",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 # Add CORS middleware
@@ -30,12 +48,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Load embedding model on startup
-MODEL_NAME = 'sentence-transformers/all-MiniLM-L6-v2'
-logger.info(f"Loading embedding model: {MODEL_NAME}...")
-model = SentenceTransformer(MODEL_NAME)
-logger.info(f"Model loaded successfully! Dimension: {model.get_sentence_embedding_dimension()}")
 
 # Request/Response models
 class EmbedRequest(BaseModel):
@@ -60,13 +72,22 @@ class EmbedBatchResponse(BaseModel):
 @app.get("/health")
 async def health_check():
     """Health check endpoint for Railway"""
-    return {
-        "status": "healthy",
-        "model": MODEL_NAME,
-        "dimension": model.get_sentence_embedding_dimension(),
-        "service": "embedding-service",
-        "version": "1.0.0"
-    }
+    # Check if model is loaded
+    if model is None:
+        raise HTTPException(status_code=503, detail="Model not loaded yet")
+    
+    try:
+        dimension = model.get_sentence_embedding_dimension()
+        return {
+            "status": "healthy",
+            "model": MODEL_NAME,
+            "dimension": dimension,
+            "service": "embedding-service",
+            "version": "1.0.0"
+        }
+    except Exception as e:
+        logger.error(f"Health check failed: {e}")
+        raise HTTPException(status_code=503, detail=f"Service unhealthy: {str(e)}")
 
 # Single text embedding endpoint
 @app.post("/embed", response_model=EmbedResponse)
@@ -93,6 +114,10 @@ async def create_embedding(request: EmbedRequest):
         # Validate text
         if not text or len(text.strip()) == 0:
             raise HTTPException(status_code=400, detail="Text cannot be empty")
+        
+        # Check if model is loaded
+        if model is None:
+            raise HTTPException(status_code=503, detail="Model not loaded yet")
         
         # Generate embedding
         embedding = model.encode(text, show_progress_bar=False)
@@ -146,6 +171,10 @@ async def create_embeddings_batch(request: EmbedBatchRequest):
             else:
                 texts.append(text)
         
+        # Check if model is loaded
+        if model is None:
+            raise HTTPException(status_code=503, detail="Model not loaded yet")
+        
         # Generate embeddings in batch (more efficient)
         embeddings = model.encode(texts, show_progress_bar=False)
         
@@ -169,6 +198,9 @@ async def create_embeddings_batch(request: EmbedBatchRequest):
 @app.get("/info")
 async def get_info():
     """Get information about the embedding service"""
+    if model is None:
+        raise HTTPException(status_code=503, detail="Model not loaded yet")
+    
     return {
         "model": MODEL_NAME,
         "dimension": model.get_sentence_embedding_dimension(),
