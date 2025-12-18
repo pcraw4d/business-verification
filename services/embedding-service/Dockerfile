@@ -44,6 +44,10 @@ RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTr
 
 # Copy application (from service directory)
 COPY app.py .
+COPY start.sh .
+
+# Make startup script executable
+RUN chmod +x start.sh
 
 # Expose port
 EXPOSE 8000
