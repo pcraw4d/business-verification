@@ -11,11 +11,19 @@ from typing import Optional, Dict, Any
 from flask import Flask, request, jsonify
 from bs4 import BeautifulSoup
 
-# Import hrequests with error handling for compatibility
+# Import hrequests with error handling and patching for compatibility
 try:
     import hrequests
-except ImportError as e:
-    logging.error(f"Failed to import hrequests: {e}")
+    # Patch hrequests.exceptions if RequestException is missing
+    if not hasattr(hrequests, 'exceptions'):
+        hrequests.exceptions = type('exceptions', (), {})()
+    if not hasattr(hrequests.exceptions, 'RequestException'):
+        # Create a dummy RequestException class
+        class RequestException(Exception):
+            pass
+        hrequests.exceptions.RequestException = RequestException
+except (ImportError, AttributeError) as e:
+    logging.warning(f"hrequests import issue (will use fallback): {e}")
     hrequests = None
 
 # Configure logging
