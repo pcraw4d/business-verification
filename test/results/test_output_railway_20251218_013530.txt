@@ -1,5 +1,0 @@
-# ./test/integration
-open /Users/petercrawford/Library/Caches/go-build/b0/b0ae7b989b1123d6b38c806896e031034bc187ca82d51893d23979fade256dfe-a: operation not permitted
-FAIL	./test/integration [setup failed]
-FAIL
-go: failed to trim cache: open /Users/petercrawford/Library/Caches/go-build/trim.txt: operation not permitted

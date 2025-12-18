@@ -181,7 +181,9 @@ dev.env
 backup-*/
 backup-*
 
-# Archive files
+# Archive files and directories
+archive/
+reports/
 *.tar.gz
 *.zip
 *.rar
