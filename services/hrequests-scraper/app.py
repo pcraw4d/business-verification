@@ -11,20 +11,8 @@ from typing import Optional, Dict, Any
 from flask import Flask, request, jsonify
 from bs4 import BeautifulSoup
 
-# Import hrequests with error handling and patching for compatibility
-try:
-    import hrequests
-    # Patch hrequests.exceptions if RequestException is missing
-    if not hasattr(hrequests, 'exceptions'):
-        hrequests.exceptions = type('exceptions', (), {})()
-    if not hasattr(hrequests.exceptions, 'RequestException'):
-        # Create a dummy RequestException class
-        class RequestException(Exception):
-            pass
-        hrequests.exceptions.RequestException = RequestException
-except (ImportError, AttributeError) as e:
-    logging.warning(f"hrequests import issue (will use fallback): {e}")
-    hrequests = None
+# Import hrequests library
+import hrequests
 
 # Configure logging
 logging.basicConfig(
@@ -206,37 +194,9 @@ def scrape():
         url = data['url']
         logger.info(f"Scraping URL: {url}")
         
-        # Check if hrequests is available
-        if hrequests is None:
-            return jsonify({
-                "success": False,
-                "error": "hrequests library not available",
-                "latency_ms": int((time.time() - start_time) * 1000)
-            }), 500
-        
         # Scrape with hrequests
         try:
-            # Use hrequests.get with proper error handling
-            # Workaround for hrequests library bug with RequestException
-            try:
-                response = hrequests.get(url, timeout=TIMEOUT)
-            except (AttributeError, NameError) as lib_err:
-                # Handle hrequests library compatibility issues
-                if 'RequestException' in str(lib_err) or 'exceptions' in str(lib_err):
-                    logger.warning(f"hrequests library issue detected, using requests fallback: {lib_err}")
-                    import requests
-                    req_response = requests.get(url, timeout=TIMEOUT, headers={
-                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-                    })
-                    # Wrap in compatible interface
-                    class ResponseWrapper:
-                        def __init__(self, req_response):
-                            self.status_code = req_response.status_code
-                            self.text = req_response.text
-                            self.content = req_response.content
-                    response = ResponseWrapper(req_response)
-                else:
-                    raise
+            response = hrequests.get(url, timeout=TIMEOUT)
             
             # Check if response is successful
             if response.status_code >= 400:
