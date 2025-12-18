@@ -1919,6 +1919,13 @@ func (s *WebsiteScraper) ScrapeWithStructuredContent(ctx context.Context, target
 		// Use logging version for better debugging
 		isValid := content != nil && err == nil && isContentValidWithLogging(content, s.logger, strategy.Name())
 		if err == nil && content != nil && isValid {
+			// Ensure metadata map exists
+			if content.Metadata == nil {
+				content.Metadata = make(map[string]interface{})
+			}
+			// Always set scraping_strategy when a strategy succeeds
+			content.Metadata["scraping_strategy"] = strategy.Name()
+			
 			// Early exit: If content quality is high enough, skip remaining strategies
 			// Lowered thresholds: QualityScore >= 0.7 (was 0.8), WordCount >= 150 (was 200)
 			// This should increase early exit rate from 0% to >50%
@@ -1932,9 +1939,6 @@ func (s *WebsiteScraper) ScrapeWithStructuredContent(ctx context.Context, target
 					zap.Duration("strategy_duration_ms", strategyDuration),
 					zap.Duration("total_duration_ms", time.Since(startTime)))
 				// Mark content as early exit for tracking
-				if content.Metadata == nil {
-					content.Metadata = make(map[string]interface{})
-				}
 				content.Metadata["early_exit"] = true
 				content.Metadata["early_exit_strategy"] = strategy.Name()
 				return content, nil
@@ -2111,18 +2115,42 @@ func convertFallbackResultToScrapedContent(result *FallbackResult, url string) *
 	doc, err := html.Parse(strings.NewReader(result.Content))
 	if err != nil {
 		// If parsing fails, create basic ScrapedContent
-		return &ScrapedContent{
+		content := &ScrapedContent{
 			RawHTML:   result.Content,
 			PlainText: result.Content,
 			Domain:    url,
 			ScrapedAt: time.Now(),
 			WordCount: len(strings.Fields(result.Content)),
+			Metadata:   make(map[string]interface{}),
 		}
+		// Set fallback metadata
+		content.Metadata["scraping_strategy"] = result.StrategyUsed
+		content.Metadata["fallback_used"] = true
+		content.Metadata["fallback_type"] = result.StrategyUsed
+		return content
 	}
 
 	// Extract structured content
 	content := extractStructuredContent(doc, result.Content, url)
 	content.ScrapedAt = time.Now()
+	
+	// Ensure metadata map exists
+	if content.Metadata == nil {
+		content.Metadata = make(map[string]interface{})
+	}
+	// Set fallback metadata
+	content.Metadata["scraping_strategy"] = result.StrategyUsed
+	content.Metadata["fallback_used"] = true
+	content.Metadata["fallback_type"] = result.StrategyUsed
+	
+	// Copy any additional metadata from FallbackResult
+	if result.Metadata != nil {
+		for k, v := range result.Metadata {
+			if k != "scraping_strategy" && k != "fallback_used" && k != "fallback_type" {
+				content.Metadata[k] = v
+			}
+		}
+	}
 
 	return content
 }
