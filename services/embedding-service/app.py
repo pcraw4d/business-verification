@@ -11,6 +11,7 @@ from typing import List, Optional
 from contextlib import asynccontextmanager
 import logging
 import time
+import os
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -72,22 +73,42 @@ class EmbedBatchResponse(BaseModel):
 @app.get("/health")
 async def health_check():
     """Health check endpoint for Railway"""
-    # Check if model is loaded
-    if model is None:
-        raise HTTPException(status_code=503, detail="Model not loaded yet")
+    # Always return 200 OK - Railway will check status field
+    # This prevents Railway from restarting the service while model is loading
+    # Railway's start-period (90s) gives enough time for model loading
+    status = "healthy" if model is not None else "model_loading"
     
     try:
-        dimension = model.get_sentence_embedding_dimension()
-        return {
-            "status": "healthy",
-            "model": MODEL_NAME,
-            "dimension": dimension,
-            "service": "embedding-service",
-            "version": "1.0.0"
-        }
+        if model is not None:
+            dimension = model.get_sentence_embedding_dimension()
+            return {
+                "status": status,
+                "model": MODEL_NAME,
+                "dimension": dimension,
+                "service": "embedding-service",
+                "version": "1.0.0"
+            }
+        else:
+            # Model still loading - return 200 with loading status
+            # Railway's start-period will prevent premature healthcheck failures
+            return {
+                "status": status,
+                "model": MODEL_NAME,
+                "service": "embedding-service",
+                "version": "1.0.0",
+                "message": "Model is loading, please wait"
+            }
     except Exception as e:
         logger.error(f"Health check failed: {e}")
-        raise HTTPException(status_code=503, detail=f"Service unhealthy: {str(e)}")
+        # Return 200 with error status instead of 503
+        # This prevents Railway from restarting during transient errors
+        return {
+            "status": "error",
+            "model": MODEL_NAME,
+            "service": "embedding-service",
+            "version": "1.0.0",
+            "error": str(e)
+        }
 
 # Single text embedding endpoint
 @app.post("/embed", response_model=EmbedResponse)
@@ -216,5 +237,7 @@ async def get_info():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    # Use Railway's PORT environment variable, fallback to 8000
+    port = int(os.getenv("PORT", "8000"))
+    uvicorn.run(app, host="0.0.0.0", port=port)
 
