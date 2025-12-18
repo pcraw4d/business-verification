@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements (from service directory)
-COPY services/embedding-service/requirements.txt .
+COPY requirements.txt .
 
 # Install critical dependencies first with exact versions to prevent upgrades
 # These must be installed before sentence-transformers to lock versions
@@ -43,7 +43,7 @@ RUN pip install --no-cache-dir --no-deps sentence-transformers==2.2.2
 RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')"
 
 # Copy application (from service directory)
-COPY services/embedding-service/app.py .
+COPY app.py .
 
 # Expose port
 EXPOSE 8000
