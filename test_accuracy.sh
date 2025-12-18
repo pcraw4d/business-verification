@@ -159,10 +159,19 @@ echo "=============================================="
 echo ""
 
 # Calculate percentages
+# Ensure accuracy is always a decimal string for consistent comparisons
 if [ $total -gt 0 ]; then
     accuracy=$(echo "scale=1; $correct * 100 / $total" | bc)
 else
-    accuracy=$(echo "scale=1; 0" | bc)
+    accuracy="0.0"
+fi
+
+# Ensure accuracy is set to a valid decimal string (handle bc failures or empty results)
+if [ -z "$accuracy" ]; then
+    accuracy="0.0"
+else
+    # Normalize to ensure it's a valid decimal format
+    accuracy=$(echo "scale=1; $accuracy" | bc 2>/dev/null || echo "0.0")
 fi
 
 if [ $layer1_total -gt 0 ]; then
@@ -191,9 +200,10 @@ echo "   Layer 2 (Embeddings):     $layer2_correct / $layer2_total = $layer2_acc
 echo "   Layer 3 (LLM):            $layer3_correct / $layer3_total = $layer3_acc%"
 echo ""
 echo "🎯 Phase 4 Target: 90-95%"
-if (( $(echo "$accuracy >= 90" | bc -l) )); then
+# Use bc -l for consistent floating-point comparison
+if [ -n "$accuracy" ] && (( $(echo "$accuracy >= 90" | bc -l) )); then
     echo "✅ TARGET ACHIEVED!"
-elif (( $(echo "$accuracy >= 85" | bc -l) )); then
+elif [ -n "$accuracy" ] && (( $(echo "$accuracy >= 85" | bc -l) )); then
     echo "⚠️ Close to target (85-90%)"
 else
     echo "❌ Below target (<85%)"

@@ -1695,13 +1695,42 @@ func (h *ClassificationHandler) handleClassificationStreaming(w http.ResponseWri
 				"method_weights":           enhancedResult.MethodWeights,
 				"smart_crawling_enabled":   true,
 				"streaming":                true,
+				// Scraping metadata fields (populated from enhancedResult.Metadata if available)
+				"scraping_strategy":   "",
+				"early_exit":          false,
+				"fallback_used":       false,
+				"fallback_type":       "",
+				"scraping_time_ms":    0,
+				"classification_time_ms": 0,
 			}
 			if enhancedResult.Metadata != nil {
 				if codeGen, ok := enhancedResult.Metadata["codeGeneration"]; ok {
 					metadata["codeGeneration"] = codeGen
 				}
+				// Extract scraping metadata if present
+				if scrapingStrategy, ok := enhancedResult.Metadata["scraping_strategy"].(string); ok {
+					metadata["scraping_strategy"] = scrapingStrategy
+				}
+				if earlyExit, ok := enhancedResult.Metadata["early_exit"].(bool); ok {
+					metadata["early_exit"] = earlyExit
+				}
+				if fallbackUsed, ok := enhancedResult.Metadata["fallback_used"].(bool); ok {
+					metadata["fallback_used"] = fallbackUsed
+				}
+				if fallbackType, ok := enhancedResult.Metadata["fallback_type"].(string); ok {
+					metadata["fallback_type"] = fallbackType
+				}
+				if scrapingTime, ok := enhancedResult.Metadata["scraping_time_ms"].(float64); ok {
+					metadata["scraping_time_ms"] = int64(scrapingTime)
+				}
+				if classificationTime, ok := enhancedResult.Metadata["classification_time_ms"].(float64); ok {
+					metadata["classification_time_ms"] = int64(classificationTime)
+				}
+				// Include all other metadata fields
 				for k, v := range enhancedResult.Metadata {
-					if k != "explanation" && k != "content_summary" && k != "quantization_enabled" && k != "model_version" {
+					if k != "explanation" && k != "content_summary" && k != "quantization_enabled" && k != "model_version" &&
+						k != "scraping_strategy" && k != "early_exit" && k != "fallback_used" && k != "fallback_type" &&
+						k != "scraping_time_ms" && k != "classification_time_ms" {
 						metadata[k] = v
 					}
 				}

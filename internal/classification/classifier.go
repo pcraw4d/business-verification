@@ -618,9 +618,29 @@ func (g *ClassificationCodeGenerator) getMCCCandidates(
 		}
 	}
 
-	// Strategy 2: Keyword matching
+	// Strategy 2: Keyword matching (filtered by industry relevance)
 	keywordCodes := g.repo.GetCodesByKeywords(ctx, "MCC", keywords)
 	for _, kc := range keywordCodes {
+		// Filter by industry relevance if industry name is available
+		if industryName != "" && g.codeMetadataRepo != nil {
+			// Check if code is relevant to the detected industry
+			industryCodes, err := g.codeMetadataRepo.GetCodesByIndustryMapping(ctx, industryName, "MCC")
+			if err == nil {
+				// Check if this code is in the industry-relevant codes
+				isRelevant := false
+				for _, ic := range industryCodes {
+					if ic.Code == kc.Code {
+						isRelevant = true
+						break
+					}
+				}
+				// Skip codes not relevant to the industry (unless no industry codes found)
+				if !isRelevant && len(industryCodes) > 0 {
+					continue
+				}
+			}
+		}
+		
 		key := kc.Code
 		if existing, exists := candidates[key]; exists {
 			// Boost confidence if found through multiple strategies
@@ -635,10 +655,29 @@ func (g *ClassificationCodeGenerator) getMCCCandidates(
 		}
 	}
 
-	// Strategy 3: Trigram similarity (fuzzy matching)
+	// Strategy 3: Trigram similarity (fuzzy matching, filtered by industry)
 	if industryName != "" {
 		trigramCodes := g.repo.GetCodesByTrigramSimilarity(ctx, "MCC", industryName, 0.3, 10)
 		for _, tc := range trigramCodes {
+			// Filter by industry relevance if code metadata repo is available
+			if g.codeMetadataRepo != nil {
+				industryCodes, err := g.codeMetadataRepo.GetCodesByIndustryMapping(ctx, industryName, "MCC")
+				if err == nil && len(industryCodes) > 0 {
+					// Check if this code is in the industry-relevant codes
+					isRelevant := false
+					for _, ic := range industryCodes {
+						if ic.Code == tc.Code {
+							isRelevant = true
+							break
+						}
+					}
+					// Skip codes not relevant to the industry
+					if !isRelevant {
+						continue
+					}
+				}
+			}
+			
 			key := tc.Code
 			if existing, exists := candidates[key]; exists {
 				existing.Confidence = math.Min(existing.Confidence+0.05, 0.98)
@@ -694,9 +733,26 @@ func (g *ClassificationCodeGenerator) getSICCandidates(
 		}
 	}
 
-	// Strategy 2: Keyword matching
+	// Strategy 2: Keyword matching (filtered by industry relevance)
 	keywordCodes := g.repo.GetCodesByKeywords(ctx, "SIC", keywords)
 	for _, kc := range keywordCodes {
+		// Filter by industry relevance if industry name is available
+		if industryName != "" && g.codeMetadataRepo != nil {
+			industryCodes, err := g.codeMetadataRepo.GetCodesByIndustryMapping(ctx, industryName, "SIC")
+			if err == nil {
+				isRelevant := false
+				for _, ic := range industryCodes {
+					if ic.Code == kc.Code {
+						isRelevant = true
+						break
+					}
+				}
+				if !isRelevant && len(industryCodes) > 0 {
+					continue
+				}
+			}
+		}
+		
 		key := kc.Code
 		if existing, exists := candidates[key]; exists {
 			existing.Confidence = math.Min(existing.Confidence+0.1, 0.98)
@@ -710,10 +766,27 @@ func (g *ClassificationCodeGenerator) getSICCandidates(
 		}
 	}
 
-	// Strategy 3: Trigram similarity
+	// Strategy 3: Trigram similarity (filtered by industry)
 	if industryName != "" {
 		trigramCodes := g.repo.GetCodesByTrigramSimilarity(ctx, "SIC", industryName, 0.3, 10)
 		for _, tc := range trigramCodes {
+			// Filter by industry relevance if code metadata repo is available
+			if g.codeMetadataRepo != nil {
+				industryCodes, err := g.codeMetadataRepo.GetCodesByIndustryMapping(ctx, industryName, "SIC")
+				if err == nil && len(industryCodes) > 0 {
+					isRelevant := false
+					for _, ic := range industryCodes {
+						if ic.Code == tc.Code {
+							isRelevant = true
+							break
+						}
+					}
+					if !isRelevant {
+						continue
+					}
+				}
+			}
+			
 			key := tc.Code
 			if existing, exists := candidates[key]; exists {
 				existing.Confidence = math.Min(existing.Confidence+0.05, 0.98)
@@ -768,9 +841,26 @@ func (g *ClassificationCodeGenerator) getNAICSCandidates(
 		}
 	}
 
-	// Strategy 2: Keyword matching
+	// Strategy 2: Keyword matching (filtered by industry relevance)
 	keywordCodes := g.repo.GetCodesByKeywords(ctx, "NAICS", keywords)
 	for _, kc := range keywordCodes {
+		// Filter by industry relevance if industry name is available
+		if industryName != "" && g.codeMetadataRepo != nil {
+			industryCodes, err := g.codeMetadataRepo.GetCodesByIndustryMapping(ctx, industryName, "NAICS")
+			if err == nil {
+				isRelevant := false
+				for _, ic := range industryCodes {
+					if ic.Code == kc.Code {
+						isRelevant = true
+						break
+					}
+				}
+				if !isRelevant && len(industryCodes) > 0 {
+					continue
+				}
+			}
+		}
+		
 		key := kc.Code
 		if existing, exists := candidates[key]; exists {
 			existing.Confidence = math.Min(existing.Confidence+0.1, 0.98)
@@ -784,10 +874,27 @@ func (g *ClassificationCodeGenerator) getNAICSCandidates(
 		}
 	}
 
-	// Strategy 3: Trigram similarity
+	// Strategy 3: Trigram similarity (filtered by industry)
 	if industryName != "" {
 		trigramCodes := g.repo.GetCodesByTrigramSimilarity(ctx, "NAICS", industryName, 0.3, 10)
 		for _, tc := range trigramCodes {
+			// Filter by industry relevance if code metadata repo is available
+			if g.codeMetadataRepo != nil {
+				industryCodes, err := g.codeMetadataRepo.GetCodesByIndustryMapping(ctx, industryName, "NAICS")
+				if err == nil && len(industryCodes) > 0 {
+					isRelevant := false
+					for _, ic := range industryCodes {
+						if ic.Code == tc.Code {
+							isRelevant = true
+							break
+						}
+					}
+					if !isRelevant {
+						continue
+					}
+				}
+			}
+			
 			key := tc.Code
 			if existing, exists := candidates[key]; exists {
 				existing.Confidence = math.Min(existing.Confidence+0.05, 0.98)

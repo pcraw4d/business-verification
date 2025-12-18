@@ -170,8 +170,8 @@ func (pms *PythonMLService) Initialize(ctx context.Context) error {
 	}
 
 	// Load available models (this will acquire its own lock)
-	// Use a separate timeout for model loading to prevent blocking initialization
-	modelsCtx, modelsCancel := context.WithTimeout(ctx, 5*time.Second)
+	// Increased timeout from 5s to 30s to allow models to load properly
+	modelsCtx, modelsCancel := context.WithTimeout(ctx, 30*time.Second)
 	defer modelsCancel()
 	
 	if err := pms.loadAvailableModels(modelsCtx); err != nil {

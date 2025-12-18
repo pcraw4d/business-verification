@@ -1249,12 +1249,10 @@
                 result.classification.website_keywords || result.classification.keywords || [];
               // Phase 5: Extract structured explanation if available, otherwise fallback to string
               // Check for structuredExplanation field (from merchant service) or explanation field (from classification service)
-              const explanationData = result.classification.structuredExplanation || result.classification.explanation;
+              const explanationData =
+                result.classification.structuredExplanation || result.classification.explanation;
               if (explanationData) {
-                if (
-                  typeof explanationData === 'object' &&
-                  explanationData.primary_reason
-                ) {
+                if (typeof explanationData === 'object' && explanationData.primary_reason) {
                   // Structured explanation (Phase 5)
                   classificationReasoning = explanationData.primary_reason;
                   if (
@@ -1263,9 +1261,7 @@
                   ) {
                     classificationReasoning +=
                       '\n\nSupporting Factors:\n' +
-                      explanationData.supporting_factors
-                        .map((f) => '• ' + f)
-                        .join('\n');
+                      explanationData.supporting_factors.map((f) => '• ' + f).join('\n');
                   }
                 } else if (typeof explanationData === 'string') {
                   // String explanation (legacy)

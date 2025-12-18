@@ -818,8 +818,8 @@ class ModelManager:
 
 # Global model manager and classifier (initialized lazily)
 # Initialize model_manager at startup so /models endpoint doesn't return 503
-# Models themselves are still loaded lazily on first request
-model_manager: Optional[ModelManager] = ModelManager(load_models=False)
+# Models are loaded on startup to ensure they're available for classification
+model_manager: Optional[ModelManager] = ModelManager(load_models=True)
 distilbart_classifier: Optional[DistilBARTBusinessClassifier] = None
 lightweight_classifier: Optional[LightweightBusinessClassifier] = None  # Task 3.1
 _models_loading = False

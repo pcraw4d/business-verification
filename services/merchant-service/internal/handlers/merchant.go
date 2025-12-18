@@ -10,18 +10,18 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	
+
 	postgrest "github.com/supabase-community/postgrest-go"
 	"go.uber.org/zap"
 
-	"kyb-platform/services/merchant-service/internal/errors"
 	"kyb-platform/services/merchant-service/internal/cache"
+	"kyb-platform/services/merchant-service/internal/config"
+	"kyb-platform/services/merchant-service/internal/errors"
+	"kyb-platform/services/merchant-service/internal/jobs"
 	"kyb-platform/services/merchant-service/internal/metrics"
 	"kyb-platform/services/merchant-service/internal/queue"
 	"kyb-platform/services/merchant-service/internal/resilience"
-	"kyb-platform/services/merchant-service/internal/config"
 	"kyb-platform/services/merchant-service/internal/supabase"
-	"kyb-platform/services/merchant-service/internal/jobs"
 )
 
 // MerchantHandler handles merchant management requests

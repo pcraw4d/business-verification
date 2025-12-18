@@ -31,6 +31,7 @@ type FallbackConfig struct {
 	EnableAlternativeSources  bool              `json:"enable_alternative_sources"`
 	MaxFallbackAttempts       int               `json:"max_fallback_attempts"`
 	FallbackDelay             time.Duration     `json:"fallback_delay"`
+	FallbackTimeout           time.Duration     `json:"fallback_timeout"` // Per-strategy timeout limit
 	UserAgentPool             []string          `json:"user_agent_pool"`
 	HeaderTemplates           map[string]string `json:"header_templates"`
 	ProxyPool                 []Proxy           `json:"proxy_pool"`
@@ -85,6 +86,7 @@ func DefaultFallbackConfig() *FallbackConfig {
 		EnableAlternativeSources:  true,
 		MaxFallbackAttempts:       5,
 		FallbackDelay:             2 * time.Second,
+		FallbackTimeout:           15 * time.Second, // Reduced from implicit 30s to 15s per strategy
 		UserAgentPool: []string{
 			"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
 			"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -269,12 +271,21 @@ func (m *FallbackStrategyManager) TryUserAgentRotation(ctx context.Context, targ
 		userAgents[i], userAgents[j] = userAgents[j], userAgents[i]
 	})
 
+	startTime := time.Now()
 	for _, userAgent := range userAgents {
 		result.Attempts++
 
-		// Create HTTP client
+		// Check timeout - early exit if exceeded
+		if time.Since(startTime) > m.config.FallbackTimeout {
+			m.logger.Warn("Fallback timeout exceeded, skipping remaining attempts",
+				zap.String("strategy", "user_agent_rotation"),
+				zap.Duration("timeout", m.config.FallbackTimeout))
+			break
+		}
+
+		// Create HTTP client with per-strategy timeout
 		client := &http.Client{
-			Timeout: 30 * time.Second,
+			Timeout: m.config.FallbackTimeout,
 		}
 
 		// Create request
@@ -319,6 +330,7 @@ func (m *FallbackStrategyManager) TryUserAgentRotation(ctx context.Context, targ
 
 // TryHeaderCustomization tries different header configurations
 func (m *FallbackStrategyManager) TryHeaderCustomization(ctx context.Context, targetURL string) *FallbackResult {
+	startTime := time.Now()
 	result := &FallbackResult{
 		StrategyUsed: "header_customization",
 		Success:      false,
@@ -329,9 +341,17 @@ func (m *FallbackStrategyManager) TryHeaderCustomization(ctx context.Context, ta
 	for _, headers := range m.headers {
 		result.Attempts++
 
-		// Create HTTP client
+		// Check timeout - early exit if exceeded
+		if time.Since(startTime) > m.config.FallbackTimeout {
+			m.logger.Warn("Fallback timeout exceeded, skipping remaining attempts",
+				zap.String("strategy", "header_customization"),
+				zap.Duration("timeout", m.config.FallbackTimeout))
+			break
+		}
+
+		// Create HTTP client with per-strategy timeout
 		client := &http.Client{
-			Timeout: 30 * time.Second,
+			Timeout: m.config.FallbackTimeout,
 		}
 
 		// Create request
@@ -402,9 +422,18 @@ func (m *FallbackStrategyManager) TryProxyRotation(ctx context.Context, targetUR
 		return result
 	}
 
+	startTime := time.Now()
 	// Try each proxy
 	for _, proxy := range activeProxies {
 		result.Attempts++
+
+		// Check timeout - early exit if exceeded
+		if time.Since(startTime) > m.config.FallbackTimeout {
+			m.logger.Warn("Fallback timeout exceeded, skipping remaining attempts",
+				zap.String("strategy", "proxy_rotation"),
+				zap.Duration("timeout", m.config.FallbackTimeout))
+			break
+		}
 
 		// Create proxy URL (for future proxy implementation)
 		_ = fmt.Sprintf("%s://%s:%d", proxy.Protocol, proxy.Host, proxy.Port)
@@ -412,9 +441,9 @@ func (m *FallbackStrategyManager) TryProxyRotation(ctx context.Context, targetUR
 			_ = fmt.Sprintf("%s://%s:%s@%s:%d", proxy.Protocol, proxy.Username, proxy.Password, proxy.Host, proxy.Port)
 		}
 
-		// Create HTTP client with proxy
+		// Create HTTP client with proxy and per-strategy timeout
 		client := &http.Client{
-			Timeout: 30 * time.Second,
+			Timeout: m.config.FallbackTimeout,
 		}
 
 		// Create request
@@ -459,6 +488,7 @@ func (m *FallbackStrategyManager) TryProxyRotation(ctx context.Context, targetUR
 
 // TryAlternativeDataSources tries alternative data sources
 func (m *FallbackStrategyManager) TryAlternativeDataSources(ctx context.Context, targetURL string) *FallbackResult {
+	startTime := time.Now()
 	result := &FallbackResult{
 		StrategyUsed: "alternative_sources",
 		Success:      false,
@@ -472,6 +502,14 @@ func (m *FallbackStrategyManager) TryAlternativeDataSources(ctx context.Context,
 	// Try each data source
 	for _, source := range sources {
 		result.Attempts++
+
+		// Check timeout - early exit if exceeded
+		if time.Since(startTime) > m.config.FallbackTimeout {
+			m.logger.Warn("Fallback timeout exceeded, skipping remaining attempts",
+				zap.String("strategy", "alternative_sources"),
+				zap.Duration("timeout", m.config.FallbackTimeout))
+			break
+		}
 
 		content, err := m.fetchFromDataSource(ctx, targetURL, source)
 		if err == nil && content != "" {

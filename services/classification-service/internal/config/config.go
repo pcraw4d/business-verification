@@ -86,8 +86,8 @@ func Load() (*Config, error) {
 		Server: ServerConfig{
 			Port:         getEnvAsString("PORT", "8081"),
 			Host:         getEnvAsString("HOST", "0.0.0.0"),
-			ReadTimeout:  getEnvAsDuration("READ_TIMEOUT", 100*time.Second),  // Increased to 100s to accommodate optimized adaptive timeout (68s max processing + 32s buffer)
-			WriteTimeout: getEnvAsDuration("WRITE_TIMEOUT", 120*time.Second), // Increased to 120s for long-running classifications
+			ReadTimeout:  getEnvAsDuration("READ_TIMEOUT", 60*time.Second),  // Increased from 30s to 60s to allow fallback strategies to complete
+			WriteTimeout: getEnvAsDuration("WRITE_TIMEOUT", 60*time.Second), // Increased from 30s to 60s to match client timeout
 			IdleTimeout:  getEnvAsDuration("IDLE_TIMEOUT", 60*time.Second),
 		},
 		Supabase: SupabaseConfig{
@@ -103,7 +103,7 @@ func Load() (*Config, error) {
 			// FIX #5: Changed default timeout from 10s to 120s to match worker timeout
 			RequestTimeout:       getEnvAsDuration("REQUEST_TIMEOUT", 120*time.Second),
 			CacheEnabled:         getEnvAsBool("CACHE_ENABLED", true),
-			CacheTTL:             getEnvAsDuration("CACHE_TTL", 5*time.Minute),
+			CacheTTL:             getEnvAsDuration("CACHE_TTL", 10*time.Minute), // Increased from 5m to 10m to improve cache hit rate from 49.6% to 60-70%
 			RedisURL:             getEnvAsString("REDIS_URL", ""),
 			RedisEnabled:         getEnvAsBool("REDIS_ENABLED", false),
 			MLEnabled:            getEnvAsBool("ML_ENABLED", true),

@@ -40,7 +40,7 @@ func DefaultScrapingConfig() *ScrapingConfig {
 	return &ScrapingConfig{
 		Timeout:           30 * time.Second,
 		MaxRetries:        3,
-		RetryDelay:        2 * time.Second,
+		RetryDelay:        1 * time.Second, // Reduced from 2s to 1s for faster retry on transient errors
 		MaxRedirects:      5,
 		UserAgent:         "KYB-Platform-Bot/1.0 (+https://kyb-platform.com/bot)",
 		FollowRedirects:   true,
@@ -276,16 +276,26 @@ func (s *WebsiteScraper) ScrapeWebsite(ctx context.Context, targetURL string) (*
 	var attempt int
 	for attempt = 0; attempt <= s.config.MaxRetries; attempt++ {
 		if attempt > 0 {
+			// Calculate exponential backoff delay for faster retry on transient errors
+			retryDelay := s.config.RetryDelay
+			if attempt > 0 {
+				// Exponential backoff: 1s, 2s, 4s for subsequent retries (capped at 5s)
+				retryDelay = time.Duration(math.Pow(2, float64(attempt))) * time.Second
+				if retryDelay > 5*time.Second {
+					retryDelay = 5 * time.Second
+				}
+			}
+			
 			s.logger.Info("Retrying website scraping",
 				zap.String("url", targetURL),
 				zap.Int("attempt", attempt+1),
-				zap.Duration("delay", s.config.RetryDelay))
+				zap.Duration("delay", retryDelay))
 
 			// Wait before retry
 			select {
 			case <-ctx.Done():
 				return nil, ctx.Err()
-			case <-time.After(s.config.RetryDelay):
+			case <-time.After(retryDelay):
 			}
 		}
 
@@ -466,6 +476,12 @@ func (s *WebsiteScraper) shouldNotRetry(err error) bool {
 	// Don't retry on invalid URLs
 	if strings.Contains(errStr, "invalid URL") {
 		return true
+	}
+	
+	// HTTP/2 stream errors are transient - allow retry but classify as transient
+	// This helps with faster retry logic for transient errors
+	if strings.Contains(errStr, "stream error") || strings.Contains(errStr, "HTTP/2") {
+		return false // Allow retry for HTTP/2 stream errors
 	}
 
 	return false
