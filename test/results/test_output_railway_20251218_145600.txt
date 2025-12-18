@@ -1,0 +1,4 @@
+# kyb-platform-tests/integration
+/usr/local/Cellar/go/1.24.6/libexec/src/crypto/x509/cert_pool.go:10:2: package encoding/pem is not in std (/usr/local/Cellar/go/1.24.6/libexec/src/encoding/pem)
+FAIL	kyb-platform-tests/integration [setup failed]
+FAIL

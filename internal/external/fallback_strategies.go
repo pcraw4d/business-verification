@@ -86,7 +86,7 @@ func DefaultFallbackConfig() *FallbackConfig {
 		EnableAlternativeSources:  true,
 		MaxFallbackAttempts:       5,
 		FallbackDelay:             2 * time.Second,
-		FallbackTimeout:           15 * time.Second, // Reduced from implicit 30s to 15s per strategy
+		FallbackTimeout:           10 * time.Second, // Reduced from 15s to 10s per strategy for faster fallback
 		UserAgentPool: []string{
 			"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
 			"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",

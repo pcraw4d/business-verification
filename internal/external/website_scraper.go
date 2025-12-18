@@ -201,8 +201,9 @@ type ScrapedContent struct {
 	QualityScore float64 `json:"quality_score"`
 
 	// Metadata
-	Domain    string    `json:"domain"`
-	ScrapedAt time.Time `json:"scraped_at"`
+	Domain    string                 `json:"domain"`
+	ScrapedAt time.Time              `json:"scraped_at"`
+	Metadata  map[string]interface{} `json:"metadata,omitempty"` // Additional metadata for tracking (early exit, strategy, etc.)
 }
 
 // ScrapeWebsite scrapes a website with retry logic and comprehensive error handling
@@ -1919,13 +1920,23 @@ func (s *WebsiteScraper) ScrapeWithStructuredContent(ctx context.Context, target
 		isValid := content != nil && err == nil && isContentValidWithLogging(content, s.logger, strategy.Name())
 		if err == nil && content != nil && isValid {
 			// Early exit: If content quality is high enough, skip remaining strategies
-			if content.QualityScore >= 0.8 && content.WordCount >= 200 {
+			// Lowered thresholds: QualityScore >= 0.7 (was 0.8), WordCount >= 150 (was 200)
+			// This should increase early exit rate from 0% to >50%
+			if content.QualityScore >= 0.7 && content.WordCount >= 150 {
 				s.logger.Info("✅ [EarlyExit] High-quality content found, skipping remaining strategies",
 					zap.String("strategy", strategy.Name()),
 					zap.Float64("quality_score", content.QualityScore),
 					zap.Int("word_count", content.WordCount),
+					zap.Bool("meets_quality_threshold", content.QualityScore >= 0.7),
+					zap.Bool("meets_word_count_threshold", content.WordCount >= 150),
 					zap.Duration("strategy_duration_ms", strategyDuration),
 					zap.Duration("total_duration_ms", time.Since(startTime)))
+				// Mark content as early exit for tracking
+				if content.Metadata == nil {
+					content.Metadata = make(map[string]interface{})
+				}
+				content.Metadata["early_exit"] = true
+				content.Metadata["early_exit_strategy"] = strategy.Name()
 				return content, nil
 			}
 
@@ -1935,7 +1946,7 @@ func (s *WebsiteScraper) ScrapeWithStructuredContent(ctx context.Context, target
 				zap.Float64("quality_score", content.QualityScore),
 				zap.Int("word_count", content.WordCount),
 				zap.Bool("meets_quality_threshold", content.QualityScore >= 0.7),
-				zap.Bool("meets_early_exit_threshold", content.QualityScore >= 0.8 && content.WordCount >= 200),
+				zap.Bool("meets_early_exit_threshold", content.QualityScore >= 0.7 && content.WordCount >= 150),
 				zap.Duration("strategy_duration_ms", strategyDuration),
 				zap.Duration("total_duration_ms", time.Since(startTime)))
 			return content, nil

@@ -479,9 +479,21 @@ func NewClassificationHandler(
 			"classification",
 			logger,
 		)
-		logger.Info("Redis cache initialized for classification service")
+		// Test Redis connection
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		if err := handler.redisCache.Health(ctx); err == nil {
+			logger.Info("✅ Redis cache initialized and healthy for classification service",
+				zap.String("redis_url", maskRedisURL(config.Classification.RedisURL)))
+		} else {
+			logger.Warn("⚠️ Redis cache initialized but health check failed, using in-memory fallback",
+				zap.String("redis_url", maskRedisURL(config.Classification.RedisURL)),
+				zap.Error(err))
+		}
+		cancel()
 	} else {
-		logger.Info("Using in-memory cache only (Redis not enabled or URL not provided)")
+		logger.Info("Using in-memory cache only",
+			zap.Bool("redis_enabled", config.Classification.RedisEnabled),
+			zap.Bool("redis_url_provided", config.Classification.RedisURL != ""))
 	}
 
 	// FIX #7: Initialize shutdown context for cleanup goroutines
@@ -579,6 +591,8 @@ func (h *ClassificationHandler) getCacheKey(req *ClassificationRequest) string {
 // getCachedResponse retrieves a cached response if available and not expired
 func (h *ClassificationHandler) getCachedResponse(key string) (*ClassificationResponse, bool) {
 	if !h.config.Classification.CacheEnabled {
+		h.logger.Debug("Cache disabled, skipping cache lookup",
+			zap.String("key", key))
 		return nil, false
 	}
 
@@ -591,11 +605,38 @@ func (h *ClassificationHandler) getCachedResponse(key string) (*ClassificationRe
 		if found {
 			var response ClassificationResponse
 			if err := json.Unmarshal(data, &response); err == nil {
-				h.logger.Debug("Cache hit from Redis",
-					zap.String("key", key))
+				keyPrefix := key
+				if len(key) > 16 {
+					keyPrefix = key[:16]
+				}
+				h.logger.Info("✅ [CACHE-HIT] Cache hit from Redis",
+					zap.String("key", key),
+					zap.String("key_prefix", keyPrefix))
 				return &response, true
+			} else {
+				h.logger.Warn("Failed to unmarshal cached response from Redis",
+					zap.String("key", key),
+					zap.Error(err))
 			}
+		} else {
+			keyPrefix := key
+			if len(key) > 16 {
+				keyPrefix = key[:16]
+			}
+			h.logger.Debug("Cache miss from Redis",
+				zap.String("key", key),
+				zap.String("key_prefix", keyPrefix))
 		}
+	} else {
+		h.logger.Debug("Redis cache not initialized, trying in-memory cache",
+			zap.String("key", key),
+			zap.Bool("redis_enabled", h.config.Classification.RedisEnabled),
+			zap.String("redis_url_set", func() string {
+				if h.config.Classification.RedisURL != "" {
+					return "yes"
+				}
+				return "no"
+			}()))
 	}
 
 	// Fallback to in-memory cache
@@ -604,19 +645,34 @@ func (h *ClassificationHandler) getCachedResponse(key string) (*ClassificationRe
 
 	entry, exists := h.cache[key]
 	if !exists {
+		h.logger.Debug("Cache miss from in-memory cache",
+			zap.String("key", key),
+			zap.Int("cache_size", len(h.cache)))
 		return nil, false
 	}
 
 	if time.Now().After(entry.expiresAt) {
+		h.logger.Debug("Cache entry expired in in-memory cache",
+			zap.String("key", key),
+			zap.Time("expires_at", entry.expiresAt))
 		return nil, false
 	}
 
+	keyPrefix := key
+	if len(key) > 16 {
+		keyPrefix = key[:16]
+	}
+	h.logger.Info("✅ [CACHE-HIT] Cache hit from in-memory cache",
+		zap.String("key", key),
+		zap.String("key_prefix", keyPrefix))
 	return entry.response, true
 }
 
 // setCachedResponse stores a response in the cache
 func (h *ClassificationHandler) setCachedResponse(key string, response *ClassificationResponse) {
 	if !h.config.Classification.CacheEnabled {
+		h.logger.Debug("Cache disabled, skipping cache store",
+			zap.String("key", key))
 		return
 	}
 
@@ -628,15 +684,29 @@ func (h *ClassificationHandler) setCachedResponse(key string, response *Classifi
 		data, err := json.Marshal(response)
 		if err == nil {
 			h.redisCache.Set(ctx, key, data, h.config.Classification.CacheTTL)
-			h.logger.Debug("Stored in Redis cache",
+			keyPrefix := key
+			if len(key) > 16 {
+				keyPrefix = key[:16]
+			}
+			h.logger.Info("✅ [CACHE-SET] Stored in Redis cache",
 				zap.String("key", key),
+				zap.String("key_prefix", keyPrefix),
 				zap.Duration("ttl", h.config.Classification.CacheTTL))
 		} else {
 			h.logger.Warn("Failed to marshal response for Redis cache",
 				zap.String("key", key),
 				zap.Error(err))
 		}
-		cancel()
+	} else {
+		h.logger.Debug("Redis cache not initialized, storing in in-memory cache only",
+			zap.String("key", key),
+			zap.Bool("redis_enabled", h.config.Classification.RedisEnabled),
+			zap.String("redis_url_set", func() string {
+				if h.config.Classification.RedisURL != "" {
+					return "yes"
+				}
+				return "no"
+			}()))
 	}
 
 	// Always store in in-memory cache as fallback
@@ -647,6 +717,15 @@ func (h *ClassificationHandler) setCachedResponse(key string, response *Classifi
 		response:  response,
 		expiresAt: time.Now().Add(h.config.Classification.CacheTTL),
 	}
+	keyPrefix := key
+	if len(key) > 16 {
+		keyPrefix = key[:16]
+	}
+	h.logger.Debug("✅ [CACHE-SET] Stored in in-memory cache",
+		zap.String("key", key),
+		zap.String("key_prefix", keyPrefix),
+		zap.Int("cache_size", len(h.cache)),
+		zap.Duration("ttl", h.config.Classification.CacheTTL))
 }
 
 // ClassificationRequest represents a classification request
@@ -1998,6 +2077,7 @@ func (h *ClassificationHandler) processClassification(ctx context.Context, req *
 
 	// Generate enhanced classification using actual classification services
 	var enhancedResult *EnhancedClassificationResult
+	classificationStartTime := time.Now()
 	err := h.traceStage(trace, "classification_generation", map[string]interface{}{
 		"has_website":     req.WebsiteURL != "",
 		"has_description": req.Description != "",
@@ -2017,6 +2097,18 @@ func (h *ClassificationHandler) processClassification(ctx context.Context, req *
 		}
 		return nil
 	})
+	classificationTime := time.Since(classificationStartTime)
+	
+	// Add performance metrics to metadata
+	if enhancedResult != nil {
+		if enhancedResult.Metadata == nil {
+			enhancedResult.Metadata = make(map[string]interface{})
+		}
+		enhancedResult.Metadata["classification_time_ms"] = float64(classificationTime.Milliseconds())
+		h.logger.Info("Performance metrics added",
+			zap.String("request_id", req.RequestID),
+			zap.Duration("classification_time", classificationTime))
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -2352,6 +2444,28 @@ func (h *ClassificationHandler) generateRiskAssessment(req *ClassificationReques
 
 // generateRequestID generates a unique request ID
 // sanitizeInput sanitizes input to prevent XSS and SQL injection
+// maskRedisURL masks sensitive parts of Redis URL for logging
+func maskRedisURL(url string) string {
+	if url == "" {
+		return ""
+	}
+	// Mask password if present (format: redis://user:password@host:port)
+	if strings.Contains(url, "@") {
+		parts := strings.Split(url, "@")
+		if len(parts) == 2 {
+			authPart := parts[0]
+			if strings.Contains(authPart, ":") {
+				authParts := strings.Split(authPart, ":")
+				if len(authParts) >= 3 {
+					// redis://user:password -> redis://user:***
+					return strings.Join(authParts[:len(authParts)-1], ":") + ":***@" + parts[1]
+				}
+			}
+		}
+	}
+	return url
+}
+
 func sanitizeInput(input string) string {
 	if input == "" {
 		return input
@@ -4185,6 +4299,52 @@ func (h *ClassificationHandler) convertNAICSCodes(codes []classification.NAICSCo
 }
 
 // HandleHealth handles health check requests
+// HandleCacheHealth returns cache health status
+func (h *ClassificationHandler) HandleCacheHealth(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	
+	status := map[string]interface{}{
+		"cache_enabled": h.config.Classification.CacheEnabled,
+		"redis_enabled": h.config.Classification.RedisEnabled,
+		"redis_configured": h.config.Classification.RedisURL != "",
+		"redis_connected": false,
+		"in_memory_cache_size": 0,
+		"cache_ttl_seconds": int(h.config.Classification.CacheTTL.Seconds()),
+	}
+	
+	// Check Redis connection if enabled
+	if h.redisCache != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+		
+		if err := h.redisCache.Health(ctx); err == nil {
+			status["redis_connected"] = true
+		} else {
+			status["redis_error"] = err.Error()
+		}
+	}
+	
+	// Get in-memory cache size
+	h.cacheMutex.RLock()
+	status["in_memory_cache_size"] = len(h.cache)
+	h.cacheMutex.RUnlock()
+	
+	// Determine overall health
+	// Cache is healthy if: enabled AND (Redis connected OR in-memory cache has items)
+	redisConnected := h.redisCache != nil && status["redis_connected"].(bool)
+	inMemoryHasItems := status["in_memory_cache_size"].(int) > 0
+	healthy := h.config.Classification.CacheEnabled && (redisConnected || inMemoryHasItems)
+	
+	if healthy {
+		w.WriteHeader(http.StatusOK)
+	} else {
+		w.WriteHeader(http.StatusServiceUnavailable)
+	}
+	status["healthy"] = healthy
+	
+	json.NewEncoder(w).Encode(status)
+}
+
 func (h *ClassificationHandler) HandleHealth(w http.ResponseWriter, r *http.Request) {
 	// Set response headers
 	w.Header().Set("Content-Type", "application/json")

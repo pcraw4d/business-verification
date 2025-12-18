@@ -1,0 +1,156 @@
+=== RUN   TestComprehensiveClassificationE2E
+    comprehensive_classification_e2e_test.go:41: 🚀 Starting comprehensive E2E tests with 100 samples
+    comprehensive_classification_e2e_test.go:221: 🚀 Starting comprehensive E2E tests with 100 samples
+    comprehensive_classification_e2e_test.go:225: Running test 1/100: Microsoft Corporation
+    comprehensive_classification_e2e_test.go:225: Running test 2/100: Apple Inc
+    comprehensive_classification_e2e_test.go:225: Running test 3/100: Google LLC
+    comprehensive_classification_e2e_test.go:225: Running test 4/100: Amazon
+    comprehensive_classification_e2e_test.go:225: Running test 5/100: Meta Platforms
+    comprehensive_classification_e2e_test.go:225: Running test 6/100: Mayo Clinic
+    comprehensive_classification_e2e_test.go:225: Running test 7/100: Cleveland Clinic
+    comprehensive_classification_e2e_test.go:225: Running test 8/100: Kaiser Permanente
+    comprehensive_classification_e2e_test.go:225: Running test 9/100: CVS Health
+    comprehensive_classification_e2e_test.go:225: Running test 10/100: UnitedHealth Group
+    comprehensive_classification_e2e_test.go:231: Progress: 10/100 tests completed
+    comprehensive_classification_e2e_test.go:225: Running test 11/100: JPMorgan Chase
+    comprehensive_classification_e2e_test.go:225: Running test 12/100: Bank of America
+    comprehensive_classification_e2e_test.go:225: Running test 13/100: Wells Fargo
+    comprehensive_classification_e2e_test.go:225: Running test 14/100: Goldman Sachs
+    comprehensive_classification_e2e_test.go:225: Running test 15/100: Morgan Stanley
+    comprehensive_classification_e2e_test.go:225: Running test 16/100: Walmart
+    comprehensive_classification_e2e_test.go:225: Running test 17/100: Target Corporation
+    comprehensive_classification_e2e_test.go:225: Running test 18/100: Costco Wholesale
+    comprehensive_classification_e2e_test.go:225: Running test 19/100: Home Depot
+    comprehensive_classification_e2e_test.go:225: Running test 20/100: Lowe's
+    comprehensive_classification_e2e_test.go:231: Progress: 20/100 tests completed
+    comprehensive_classification_e2e_test.go:225: Running test 21/100: Starbucks
+    comprehensive_classification_e2e_test.go:225: Running test 22/100: McDonald's
+    comprehensive_classification_e2e_test.go:225: Running test 23/100: Subway
+    comprehensive_classification_e2e_test.go:225: Running test 24/100: General Electric
+    comprehensive_classification_e2e_test.go:225: Running test 25/100: Boeing
+    comprehensive_classification_e2e_test.go:225: Running test 26/100: Caterpillar Inc
+    comprehensive_classification_e2e_test.go:225: Running test 27/100: Ford Motor Company
+    comprehensive_classification_e2e_test.go:225: Running test 28/100: General Motors
+    comprehensive_classification_e2e_test.go:225: Running test 29/100: Harvard University
+    comprehensive_classification_e2e_test.go:225: Running test 30/100: MIT
+    comprehensive_classification_e2e_test.go:231: Progress: 30/100 tests completed
+    comprehensive_classification_e2e_test.go:225: Running test 31/100: Stanford University
+    comprehensive_classification_e2e_test.go:225: Running test 32/100: Zillow
+    comprehensive_classification_e2e_test.go:225: Running test 33/100: Redfin
+    comprehensive_classification_e2e_test.go:225: Running test 34/100: Deloitte
+    comprehensive_classification_e2e_test.go:225: Running test 35/100: McKinsey & Company
+    comprehensive_classification_e2e_test.go:225: Running test 36/100: TechSolutions Inc
+    comprehensive_classification_e2e_test.go:225: Running test 37/100: HealthCarePlus
+    comprehensive_classification_e2e_test.go:225: Running test 38/100: FinanceExpert
+    comprehensive_classification_e2e_test.go:225: Running test 39/100: RetailPro
+    comprehensive_classification_e2e_test.go:225: Running test 40/100: Amazon Web Services
+    comprehensive_classification_e2e_test.go:231: Progress: 40/100 tests completed
+    comprehensive_classification_e2e_test.go:225: Running test 41/100: Walmart Pharmacy
+    comprehensive_classification_e2e_test.go:225: Running test 42/100: Apple Retail Stores
+    comprehensive_classification_e2e_test.go:225: Running test 43/100: Netflix
+    comprehensive_classification_e2e_test.go:225: Running test 44/100: Disney
+    comprehensive_classification_e2e_test.go:225: Running test 45/100: Tesla
+    comprehensive_classification_e2e_test.go:225: Running test 46/100: Nike
+    comprehensive_classification_e2e_test.go:225: Running test 47/100: Coca-Cola
+    comprehensive_classification_e2e_test.go:225: Running test 48/100: PepsiCo
+    comprehensive_classification_e2e_test.go:225: Running test 49/100: IBM
+    comprehensive_classification_e2e_test.go:225: Running test 50/100: Oracle
+    comprehensive_classification_e2e_test.go:231: Progress: 50/100 tests completed
+    comprehensive_classification_e2e_test.go:225: Running test 51/100: Salesforce
+    comprehensive_classification_e2e_test.go:225: Running test 52/100: Adobe
+    comprehensive_classification_e2e_test.go:225: Running test 53/100: Intel
+    comprehensive_classification_e2e_test.go:225: Running test 54/100: NVIDIA
+    comprehensive_classification_e2e_test.go:225: Running test 55/100: AMD
+    comprehensive_classification_e2e_test.go:225: Running test 56/100: Johns Hopkins Hospital
+    comprehensive_classification_e2e_test.go:225: Running test 57/100: Memorial Sloan Kettering
+    comprehensive_classification_e2e_test.go:225: Running test 58/100: Blue Cross Blue Shield
+    comprehensive_classification_e2e_test.go:225: Running test 59/100: Aetna
+    comprehensive_classification_e2e_test.go:225: Running test 60/100: Cigna
+    comprehensive_classification_e2e_test.go:231: Progress: 60/100 tests completed
+    comprehensive_classification_e2e_test.go:225: Running test 61/100: Citigroup
+    comprehensive_classification_e2e_test.go:225: Running test 62/100: American Express
+    comprehensive_classification_e2e_test.go:225: Running test 63/100: Visa
+    comprehensive_classification_e2e_test.go:225: Running test 64/100: Mastercard
+    comprehensive_classification_e2e_test.go:225: Running test 65/100: PayPal
+    comprehensive_classification_e2e_test.go:225: Running test 66/100: Best Buy
+    comprehensive_classification_e2e_test.go:225: Running test 67/100: Macy's
+    comprehensive_classification_e2e_test.go:225: Running test 68/100: Kroger
+    comprehensive_classification_e2e_test.go:225: Running test 69/100: Safeway
+    comprehensive_classification_e2e_test.go:225: Running test 70/100: Whole Foods Market
+    comprehensive_classification_e2e_test.go:231: Progress: 70/100 tests completed
+    comprehensive_classification_e2e_test.go:225: Running test 71/100: Domino's Pizza
+    comprehensive_classification_e2e_test.go:225: Running test 72/100: Pizza Hut
+    comprehensive_classification_e2e_test.go:225: Running test 73/100: Chipotle
+    comprehensive_classification_e2e_test.go:225: Running test 74/100: Lockheed Martin
+    comprehensive_classification_e2e_test.go:225: Running test 75/100: Raytheon Technologies
+    comprehensive_classification_e2e_test.go:225: Running test 76/100: Northrop Grumman
+    comprehensive_classification_e2e_test.go:225: Running test 77/100: Yale University
+    comprehensive_classification_e2e_test.go:225: Running test 78/100: Princeton University
+    comprehensive_classification_e2e_test.go:225: Running test 79/100: Columbia University
+    comprehensive_classification_e2e_test.go:225: Running test 80/100: Re/Max
+    comprehensive_classification_e2e_test.go:231: Progress: 80/100 tests completed
+    comprehensive_classification_e2e_test.go:225: Running test 81/100: Keller Williams
+    comprehensive_classification_e2e_test.go:225: Running test 82/100: PricewaterhouseCoopers
+    comprehensive_classification_e2e_test.go:225: Running test 83/100: Ernst & Young
+    comprehensive_classification_e2e_test.go:225: Running test 84/100: KPMG
+    comprehensive_classification_e2e_test.go:225: Running test 85/100: Accenture
+    comprehensive_classification_e2e_test.go:225: Running test 86/100: Uber
+    comprehensive_classification_e2e_test.go:225: Running test 87/100: Lyft
+    comprehensive_classification_e2e_test.go:225: Running test 88/100: Airbnb
+    comprehensive_classification_e2e_test.go:225: Running test 89/100: Spotify
+    comprehensive_classification_e2e_test.go:225: Running test 90/100: Twitter
+    comprehensive_classification_e2e_test.go:231: Progress: 90/100 tests completed
+    comprehensive_classification_e2e_test.go:225: Running test 91/100: LinkedIn
+    comprehensive_classification_e2e_test.go:225: Running test 92/100: GitHub
+    comprehensive_classification_e2e_test.go:225: Running test 93/100: Stripe
+    comprehensive_classification_e2e_test.go:225: Running test 94/100: Square
+    comprehensive_classification_e2e_test.go:225: Running test 95/100: Shopify
+    comprehensive_classification_e2e_test.go:225: Running test 96/100: Zoom
+    comprehensive_classification_e2e_test.go:225: Running test 97/100: Slack
+    comprehensive_classification_e2e_test.go:225: Running test 98/100: Dropbox
+    comprehensive_classification_e2e_test.go:225: Running test 99/100: Atlassian
+    comprehensive_classification_e2e_test.go:225: Running test 100/100: Twilio
+    comprehensive_classification_e2e_test.go:231: Progress: 100/100 tests completed
+    comprehensive_classification_e2e_test.go:238: ✅ Completed all tests
+    comprehensive_classification_e2e_test.go:55: ✅ Completed all tests in 27m45.647442049s
+    comprehensive_classification_e2e_test.go:936: ❌ Accuracy below threshold: 37.00% (expected ≥95%)
+    comprehensive_classification_e2e_test.go:943: ❌ Average latency too high: 16552ms (expected <2000ms)
+    comprehensive_classification_e2e_test.go:950: ❌ P95 latency too high: 30061ms (expected <5000ms)
+    comprehensive_classification_e2e_test.go:957: ❌ Frontend compatibility below threshold: 52.0% (expected ≥95%)
+    comprehensive_classification_e2e_test.go:71: 📊 Test report saved to test/results/comprehensive_test_results.json
+
+================================================================================
+COMPREHENSIVE CLASSIFICATION E2E TEST SUMMARY
+================================================================================
+
+Total Tests: 100
+Successful: 67 (67.0%)
+Failed: 33 (33.0%)
+
+Overall Accuracy: 37.00%
+
+Performance:
+  Average Latency: 16.55271s
+  P50 Latency: 15.574s
+  P95 Latency: 30.061s
+  P99 Latency: 30.294s
+  Throughput: 0.06 req/s
+
+Strategy Distribution:
+
+Optimizations:
+  Early Exit Rate: 0.0% (0 occurrences)
+  Cache Hit Rate: 0.0% (0 hits)
+
+Frontend Compatibility:
+  All Fields Present: 52.0%
+  Industry Present: 67.0%
+  Codes Present: 56.0%
+  Explanation Present: 67.0%
+  Top 3 Codes Present: 56.0%
+================================================================================
+
+--- FAIL: TestComprehensiveClassificationE2E (1665.68s)
+FAIL
+FAIL	command-line-arguments	1666.690s
+FAIL

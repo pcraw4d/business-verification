@@ -86,8 +86,8 @@ func Load() (*Config, error) {
 		Server: ServerConfig{
 			Port:         getEnvAsString("PORT", "8081"),
 			Host:         getEnvAsString("HOST", "0.0.0.0"),
-			ReadTimeout:  getEnvAsDuration("READ_TIMEOUT", 60*time.Second),  // Increased from 30s to 60s to allow fallback strategies to complete
-			WriteTimeout: getEnvAsDuration("WRITE_TIMEOUT", 60*time.Second), // Increased from 30s to 60s to match client timeout
+			ReadTimeout:  getEnvAsDuration("READ_TIMEOUT", 90*time.Second),  // Increased to 90s to add buffer above client timeout (60s)
+			WriteTimeout: getEnvAsDuration("WRITE_TIMEOUT", 90*time.Second), // Increased to 90s to add buffer above client timeout (60s)
 			IdleTimeout:  getEnvAsDuration("IDLE_TIMEOUT", 60*time.Second),
 		},
 		Supabase: SupabaseConfig{

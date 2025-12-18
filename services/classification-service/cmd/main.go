@@ -276,6 +276,7 @@ func main() {
 
 	// Register routes
 	router.HandleFunc("/health", classificationHandler.HandleHealth).Methods("GET")
+	router.HandleFunc("/health/cache", classificationHandler.HandleCacheHealth).Methods("GET")
 	router.HandleFunc("/v1/classify", classificationHandler.HandleClassification).Methods("POST")
 	router.HandleFunc("/classify", classificationHandler.HandleClassification).Methods("POST") // Alias for backward compatibility
 	// OPTIMIZATION #5.2: Validation API endpoint
