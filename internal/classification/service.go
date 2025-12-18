@@ -4,13 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"math"
-	"net/http"
 	"strings"
 	"sync"
 	"time"
+
+	"go.uber.org/zap"
 
 	"kyb-platform/internal/classification/repository"
 	"kyb-platform/internal/external"
@@ -1468,51 +1468,272 @@ func (s *IndustryDetectionService) isAmbiguousCase(businessName, description str
 }
 
 // getScrapedContentForLayer2 gets ScrapedContent for Layer 2 classification
-// This is a simplified version - in production, you may want to use a cached scraper
+// Implements parallel execution: single-page scrape and smart crawl run concurrently
 func (s *IndustryDetectionService) getScrapedContentForLayer2(ctx context.Context, websiteURL string) (*external.ScrapedContent, error) {
+	return s.getScrapedContentForLayer2Parallel(ctx, websiteURL)
+}
+
+// getScrapedContentForLayer2Parallel gets ScrapedContent using parallel execution
+// Runs single-page scraping and smart crawling in parallel for better performance
+func (s *IndustryDetectionService) getScrapedContentForLayer2Parallel(ctx context.Context, websiteURL string) (*external.ScrapedContent, error) {
 	if websiteURL == "" {
 		return nil, fmt.Errorf("website URL is required for Layer 2")
 	}
 
-	// For now, create a basic scraper instance
-	// In production, you may want to reuse an existing scraper from the service
-	// Note: external.NewWebsiteScraper requires a zap.Logger, but we only have log.Logger
-	// For now, we'll create a minimal scraper or use a simpler approach
-	// TODO: Consider adding a scraper field to IndustryDetectionService or using a shared scraper
-	
-	// Create a basic HTTP client to fetch the page
-	// This is a simplified version - in production, use the full WebsiteScraper
-	client := &http.Client{
-		Timeout: 10 * time.Second,
-	}
-	
-	req, err := http.NewRequestWithContext(ctx, "GET", websiteURL, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
-	}
-	req.Header.Set("User-Agent", "KYB-Platform-Bot/1.0")
-	
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch website: %w", err)
-	}
-	defer resp.Body.Close()
-	
-	// Read content (simplified - in production, use full scraper)
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response: %w", err)
+	// Create channels for parallel execution results
+	type scrapeResult struct {
+		content *external.ScrapedContent
+		err     error
+		method  string
 	}
 
-	// Create basic ScrapedContent
-	// In production, this should use the full WebsiteScraper with structured extraction
+	singlePageChan := make(chan scrapeResult, 1)
+	smartCrawlChan := make(chan scrapeResult, 1)
+
+	// Start single-page scrape in goroutine
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				singlePageChan <- scrapeResult{
+					content: nil,
+					err:     fmt.Errorf("panic in single-page scrape: %v", r),
+					method:  "single_page",
+				}
+			}
+		}()
+
+		// Create scraper with proper logger
+		// Note: We need to convert log.Logger to zap.Logger
+		// Create a no-op zap logger for now (scraper will still work)
+		zapLogger := zap.NewNop() // No-op logger
+		scraper := external.NewWebsiteScraper(external.DefaultScrapingConfig(), zapLogger)
+		content, err := scraper.ScrapeWithStructuredContent(ctx, websiteURL)
+		
+		singlePageChan <- scrapeResult{
+			content: content,
+			err:     err,
+			method:  "single_page",
+		}
+	}()
+
+	// Start smart crawl in goroutine (if crawler is available)
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				smartCrawlChan <- scrapeResult{
+					content: nil,
+					err:     fmt.Errorf("panic in smart crawl: %v", r),
+					method:  "smart_crawl",
+				}
+			}
+		}()
+
+		// Create smart crawler
+		// Note: SmartWebsiteCrawler requires a log.Logger, which we have
+		crawler := NewSmartWebsiteCrawler(s.logger)
+		
+		// Use fast-path crawling with timeout
+		timeoutDuration := 10 * time.Second
+		if deadline, ok := ctx.Deadline(); ok {
+			timeRemaining := time.Until(deadline)
+			if timeRemaining < timeoutDuration {
+				timeoutDuration = timeRemaining / 2 // Use half of remaining time for crawl
+			}
+		}
+
+		crawlResult, err := crawler.CrawlWebsiteFast(ctx, websiteURL, timeoutDuration, 10, 3)
+		if err != nil {
+			smartCrawlChan <- scrapeResult{
+				content: nil,
+				err:     err,
+				method:  "smart_crawl",
+			}
+			return
+		}
+
+		// Convert CrawlResult to ScrapedContent
+		content := convertCrawlResultToScrapedContent(crawlResult, websiteURL)
+		smartCrawlChan <- scrapeResult{
+			content: content,
+			err:     nil,
+			method:  "smart_crawl",
+		}
+	}()
+
+	// Wait for first result or both, with early exit for high-quality content
+	var singlePageResult, smartCrawlResult scrapeResult
+	singlePageReceived := false
+	smartCrawlReceived := false
+
+	for !singlePageReceived || !smartCrawlReceived {
+		select {
+		case result := <-singlePageChan:
+			singlePageResult = result
+			singlePageReceived = true
+			
+			// Early exit if single-page result is high quality
+			if result.content != nil && result.err == nil {
+				if result.content.QualityScore >= 0.8 && result.content.WordCount >= 200 {
+					s.logger.Printf("✅ [ParallelScrape] Early exit: high-quality single-page content (quality=%.2f, words=%d)",
+						result.content.QualityScore, result.content.WordCount)
+					return result.content, nil
+				}
+			}
+
+		case result := <-smartCrawlChan:
+			smartCrawlResult = result
+			smartCrawlReceived = true
+
+		case <-ctx.Done():
+			s.logger.Printf("⚠️ [ParallelScrape] Context cancelled during parallel execution")
+			return nil, ctx.Err()
+		}
+	}
+
+	// Merge results: prefer higher quality score
+	var bestContent *external.ScrapedContent
+	var bestMethod string
+
+	if singlePageResult.content != nil && singlePageResult.err == nil {
+		bestContent = singlePageResult.content
+		bestMethod = "single_page"
+	}
+
+	if smartCrawlResult.content != nil && smartCrawlResult.err == nil {
+		if bestContent == nil || smartCrawlResult.content.QualityScore > bestContent.QualityScore {
+			bestContent = smartCrawlResult.content
+			bestMethod = "smart_crawl"
+		} else {
+			// Merge content from both sources
+			bestContent = mergeScrapedContent(bestContent, smartCrawlResult.content)
+			bestMethod = "merged"
+		}
+	}
+
+	if bestContent != nil {
+		s.logger.Printf("✅ [ParallelScrape] Parallel execution completed: method=%s, quality=%.2f, words=%d",
+			bestMethod, bestContent.QualityScore, bestContent.WordCount)
+		return bestContent, nil
+	}
+
+	// Both failed, return the error from single-page (more reliable)
+	if singlePageResult.err != nil {
+		return nil, fmt.Errorf("parallel scraping failed: single-page error: %w", singlePageResult.err)
+	}
+	if smartCrawlResult.err != nil {
+		return nil, fmt.Errorf("parallel scraping failed: smart-crawl error: %w", smartCrawlResult.err)
+	}
+
+	return nil, fmt.Errorf("parallel scraping failed: both methods returned nil content")
+}
+
+// convertCrawlResultToScrapedContent converts CrawlResult to ScrapedContent
+func convertCrawlResultToScrapedContent(crawlResult *CrawlResult, websiteURL string) *external.ScrapedContent {
+	if crawlResult == nil {
+		return nil
+	}
+
+	// Aggregate text from all pages
+	var allText strings.Builder
+	var allHeadings []string
+	var allProducts []string
+
+	for _, page := range crawlResult.PagesAnalyzed {
+		if page.Title != "" {
+			allText.WriteString(page.Title)
+			allText.WriteString(" ")
+		}
+		// Add page content if available
+		if len(page.Keywords) > 0 {
+			allText.WriteString(strings.Join(page.Keywords, " "))
+			allText.WriteString(" ")
+		}
+		allHeadings = append(allHeadings, page.Title)
+	}
+
+	// Calculate word count
+	text := allText.String()
+	words := strings.Fields(text)
+	wordCount := len(words)
+
+	// Calculate quality score based on pages analyzed and content
+	qualityScore := 0.5 // Base score
+	if len(crawlResult.PagesAnalyzed) >= 3 {
+		qualityScore = 0.7
+	}
+	if len(crawlResult.PagesAnalyzed) >= 5 {
+		qualityScore = 0.8
+	}
+	if wordCount >= 200 {
+		qualityScore = math.Min(qualityScore+0.1, 1.0)
+	}
+
 	return &external.ScrapedContent{
-		RawHTML:   string(body),
-		PlainText: string(body),
-		Title:     "", // Will be extracted if available
-		Domain:    websiteURL,
+		RawHTML:    text,
+		PlainText:  text,
+		Title:      crawlResult.BusinessInfo.BusinessName,
+		MetaDesc:   crawlResult.BusinessInfo.Description,
+		Headings:   allHeadings,
+		NavMenu:    []string{},
+		AboutText:  crawlResult.BusinessInfo.Description,
+		ProductList: allProducts,
+		ContactInfo: crawlResult.BusinessInfo.ContactInfo.Address,
+		MainContent: text,
+		WordCount:   wordCount,
+		QualityScore: qualityScore,
+		Domain:     websiteURL,
+		ScrapedAt:  time.Now(),
+	}
+}
+
+// mergeScrapedContent merges two ScrapedContent objects, preferring higher quality fields
+func mergeScrapedContent(content1, content2 *external.ScrapedContent) *external.ScrapedContent {
+	if content1 == nil {
+		return content2
+	}
+	if content2 == nil {
+		return content1
+	}
+
+	merged := &external.ScrapedContent{
+		Domain:    content1.Domain,
 		ScrapedAt: time.Now(),
-	}, nil
+	}
+
+	// Prefer non-empty fields, with preference for higher quality source
+	if content1.QualityScore >= content2.QualityScore {
+		merged.RawHTML = content1.RawHTML
+		merged.PlainText = content1.PlainText
+		merged.Title = content1.Title
+		merged.MetaDesc = content1.MetaDesc
+		merged.AboutText = content1.AboutText
+		merged.ContactInfo = content1.ContactInfo
+		merged.MainContent = content1.MainContent
+
+		// Merge lists
+		merged.Headings = append(content1.Headings, content2.Headings...)
+		merged.NavMenu = append(content1.NavMenu, content2.NavMenu...)
+		merged.ProductList = append(content1.ProductList, content2.ProductList...)
+	} else {
+		merged.RawHTML = content2.RawHTML
+		merged.PlainText = content2.PlainText
+		merged.Title = content2.Title
+		merged.MetaDesc = content2.MetaDesc
+		merged.AboutText = content2.AboutText
+		merged.ContactInfo = content2.ContactInfo
+		merged.MainContent = content2.MainContent
+
+		// Merge lists
+		merged.Headings = append(content2.Headings, content1.Headings...)
+		merged.NavMenu = append(content2.NavMenu, content1.NavMenu...)
+		merged.ProductList = append(content2.ProductList, content1.ProductList...)
+	}
+
+	// Use maximum quality score and word count
+	merged.QualityScore = math.Max(content1.QualityScore, content2.QualityScore)
+	merged.WordCount = content1.WordCount + content2.WordCount
+
+	return merged
 }
 
 // buildResultFromEmbedding builds IndustryDetectionResult from EmbeddingClassificationResult

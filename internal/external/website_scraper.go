@@ -116,12 +116,26 @@ func NewWebsiteScraperWithStrategies(config *ScrapingConfig, logger *zap.Logger,
 	// Context deadline is typically 20s, so client timeout of 30s could cause issues
 	// The client timeout is a hard limit, but context cancellation should take precedence
 	// For now, we keep 30s as a safety net, but requests use context which will cancel at 20s
-	strategies := []ScraperStrategy{
-		&SimpleHTTPScraper{client: client, logger: logger},
-		&BrowserHeadersScraper{client: client, logger: logger},
+	strategies := []ScraperStrategy{}
+
+	// Add hrequests strategy if service URL is configured (Strategy 0 - fastest)
+	hrequestsServiceURL := os.Getenv("HREQUESTS_SERVICE_URL")
+	if hrequestsServiceURL != "" {
+		hrequestsClient := NewHrequestsClient(logger)
+		strategies = append(strategies, NewHrequestsScraper(hrequestsClient, logger))
+		logger.Info("✅ [Scraper] hrequests strategy enabled",
+			zap.String("service_url", hrequestsServiceURL))
+	} else {
+		logger.Info("ℹ️ [Scraper] hrequests strategy disabled (HREQUESTS_SERVICE_URL not set)")
 	}
 
-	// Add Playwright strategy if URL is provided
+	// Add SimpleHTTP strategy (Strategy 1)
+	strategies = append(strategies, &SimpleHTTPScraper{client: client, logger: logger})
+
+	// Add BrowserHeaders strategy (Strategy 2)
+	strategies = append(strategies, &BrowserHeadersScraper{client: client, logger: logger})
+
+	// Add Playwright strategy if URL is provided (Strategy 3 - fallback)
 	// FIX: Increase client timeout to account for queue wait times (25s) + scrape time (15s) + overhead (10s)
 	// The getClientWithContextTimeout will still respect context deadline, but base timeout needs to be higher
 	// to handle queue wait scenarios
@@ -132,6 +146,10 @@ func NewWebsiteScraperWithStrategies(config *ScrapingConfig, logger *zap.Logger,
 			client:     playwrightClient,
 			logger:     logger,
 		})
+		logger.Info("✅ [Scraper] Playwright strategy enabled",
+			zap.String("service_url", playwrightServiceURL))
+	} else {
+		logger.Info("ℹ️ [Scraper] Playwright strategy disabled (PLAYWRIGHT_SERVICE_URL not set)")
 	}
 
 	return &WebsiteScraper{
@@ -1884,12 +1902,24 @@ func (s *WebsiteScraper) ScrapeWithStructuredContent(ctx context.Context, target
 		// Use logging version for better debugging
 		isValid := content != nil && err == nil && isContentValidWithLogging(content, s.logger, strategy.Name())
 		if err == nil && content != nil && isValid {
+			// Early exit: If content quality is high enough, skip remaining strategies
+			if content.QualityScore >= 0.8 && content.WordCount >= 200 {
+				s.logger.Info("✅ [EarlyExit] High-quality content found, skipping remaining strategies",
+					zap.String("strategy", strategy.Name()),
+					zap.Float64("quality_score", content.QualityScore),
+					zap.Int("word_count", content.WordCount),
+					zap.Duration("strategy_duration_ms", strategyDuration),
+					zap.Duration("total_duration_ms", time.Since(startTime)))
+				return content, nil
+			}
+
 			// Always log quality score for successful scrapes, even if below threshold
 			s.logger.Info("✅ [Phase1] Strategy succeeded",
 				zap.String("strategy", strategy.Name()),
 				zap.Float64("quality_score", content.QualityScore),
 				zap.Int("word_count", content.WordCount),
 				zap.Bool("meets_quality_threshold", content.QualityScore >= 0.7),
+				zap.Bool("meets_early_exit_threshold", content.QualityScore >= 0.8 && content.WordCount >= 200),
 				zap.Duration("strategy_duration_ms", strategyDuration),
 				zap.Duration("total_duration_ms", time.Since(startTime)))
 			return content, nil
@@ -1923,7 +1953,151 @@ func (s *WebsiteScraper) ScrapeWithStructuredContent(ctx context.Context, target
 		zap.Error(lastErr),
 		zap.Duration("total_duration_ms", time.Since(startTime)))
 
+	// Try conditional fallback strategies if they might add value
+	if shouldUseFallback(lastErr, content) {
+		fallbackResult := s.executeConditionalFallback(ctx, targetURL, lastErr, content)
+		if fallbackResult != nil {
+			s.logger.Info("✅ [Fallback] Conditional fallback succeeded",
+				zap.String("url", targetURL),
+				zap.Duration("total_duration_ms", time.Since(startTime)))
+			return fallbackResult, nil
+		}
+	}
+
 	return nil, fmt.Errorf("all scraping strategies failed: %w", lastErr)
+}
+
+// shouldUseFallback determines if fallback strategies should be attempted
+// Returns true only when fallbacks are likely to add value
+func shouldUseFallback(err error, content *ScrapedContent) bool {
+	if err == nil {
+		return false
+	}
+
+	// Check if context was cancelled - no point in fallback
+	if err == context.Canceled || err == context.DeadlineExceeded {
+		return false
+	}
+
+	// Check error message for specific error types
+	errMsg := err.Error()
+
+	// Rate limiting errors (403, 429) - proxy rotation might help
+	if strings.Contains(errMsg, "403") || strings.Contains(errMsg, "429") ||
+		strings.Contains(errMsg, "rate limit") || strings.Contains(errMsg, "forbidden") {
+		return true
+	}
+
+	// Server errors (404, 500) - alternative sources might help
+	if strings.Contains(errMsg, "404") || strings.Contains(errMsg, "500") ||
+		strings.Contains(errMsg, "not found") || strings.Contains(errMsg, "server error") {
+		return true
+	}
+
+	// Timeout errors - alternative sources might help
+	if strings.Contains(errMsg, "timeout") || strings.Contains(errMsg, "deadline exceeded") {
+		return true
+	}
+
+	// Low quality content - user agent rotation might help
+	if content != nil && content.QualityScore > 0 && content.QualityScore < 0.5 {
+		return true
+	}
+
+	return false
+}
+
+// executeConditionalFallback executes appropriate fallback strategy based on error type
+func (s *WebsiteScraper) executeConditionalFallback(
+	ctx context.Context,
+	targetURL string,
+	err error,
+	content *ScrapedContent,
+) *ScrapedContent {
+	// Check if context is cancelled
+	select {
+	case <-ctx.Done():
+		s.logger.Warn("⚠️ [Fallback] Context cancelled, skipping fallback",
+			zap.String("url", targetURL))
+		return nil
+	default:
+	}
+
+	errMsg := err.Error()
+
+	// Initialize fallback manager if not already done
+	// Note: FallbackStrategyManager should be initialized with proper config
+	// For now, we'll create a basic one
+	fallbackConfig := DefaultFallbackConfig()
+	fallbackManager := NewFallbackStrategyManager(fallbackConfig, s.logger)
+
+	// Try proxy rotation for rate limiting errors
+	if strings.Contains(errMsg, "403") || strings.Contains(errMsg, "429") ||
+		strings.Contains(errMsg, "rate limit") || strings.Contains(errMsg, "forbidden") {
+		s.logger.Info("🔄 [Fallback] Attempting proxy rotation for rate limiting",
+			zap.String("url", targetURL))
+		
+		fallbackResult, fallbackErr := fallbackManager.ExecuteFallbackStrategies(ctx, targetURL, err)
+		if fallbackErr == nil && fallbackResult != nil && fallbackResult.Success {
+			// Convert FallbackResult to ScrapedContent
+			return convertFallbackResultToScrapedContent(fallbackResult, targetURL)
+		}
+	}
+
+	// Try alternative sources for server errors or timeouts
+	if strings.Contains(errMsg, "404") || strings.Contains(errMsg, "500") ||
+		strings.Contains(errMsg, "not found") || strings.Contains(errMsg, "server error") ||
+		strings.Contains(errMsg, "timeout") {
+		s.logger.Info("🔄 [Fallback] Attempting alternative data sources",
+			zap.String("url", targetURL))
+		
+		fallbackResult, fallbackErr := fallbackManager.ExecuteFallbackStrategies(ctx, targetURL, err)
+		if fallbackErr == nil && fallbackResult != nil && fallbackResult.Success {
+			return convertFallbackResultToScrapedContent(fallbackResult, targetURL)
+		}
+	}
+
+	// Try user agent rotation for low quality content
+	if content != nil && content.QualityScore > 0 && content.QualityScore < 0.5 {
+		s.logger.Info("🔄 [Fallback] Attempting user agent rotation for low quality",
+			zap.String("url", targetURL),
+			zap.Float64("quality_score", content.QualityScore))
+		
+		fallbackResult, fallbackErr := fallbackManager.ExecuteFallbackStrategies(ctx, targetURL, err)
+		if fallbackErr == nil && fallbackResult != nil && fallbackResult.Success {
+			return convertFallbackResultToScrapedContent(fallbackResult, targetURL)
+		}
+	}
+
+	s.logger.Warn("⚠️ [Fallback] All conditional fallback strategies failed",
+		zap.String("url", targetURL))
+	return nil
+}
+
+// convertFallbackResultToScrapedContent converts FallbackResult to ScrapedContent
+func convertFallbackResultToScrapedContent(result *FallbackResult, url string) *ScrapedContent {
+	if result == nil || !result.Success {
+		return nil
+	}
+
+	// Parse HTML from content to extract structured data
+	doc, err := html.Parse(strings.NewReader(result.Content))
+	if err != nil {
+		// If parsing fails, create basic ScrapedContent
+		return &ScrapedContent{
+			RawHTML:   result.Content,
+			PlainText: result.Content,
+			Domain:    url,
+			ScrapedAt: time.Now(),
+			WordCount: len(strings.Fields(result.Content)),
+		}
+	}
+
+	// Extract structured content
+	content := extractStructuredContent(doc, result.Content, url)
+	content.ScrapedAt = time.Now()
+
+	return content
 }
 
 // logContentValidationDetails logs detailed validation information for debugging
