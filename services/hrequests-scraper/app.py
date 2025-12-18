@@ -195,15 +195,23 @@ def scrape():
         # Scrape with hrequests
         try:
             response = hrequests.get(url, timeout=TIMEOUT)
-            response.raise_for_status()
+            
+            # Check if response is successful
+            if response.status_code >= 400:
+                logger.error(f"HTTP error for {url}: status {response.status_code}")
+                return jsonify({
+                    "success": False,
+                    "error": f"HTTP error: status {response.status_code}",
+                    "latency_ms": int((time.time() - start_time) * 1000)
+                }), 500
             
             # Check content size
-            content_length = len(response.content)
+            content_length = len(response.content) if hasattr(response, 'content') else len(response.text)
             if content_length > MAX_CONTENT_SIZE:
                 logger.warning(f"Content too large: {content_length} bytes, limiting to {MAX_CONTENT_SIZE}")
-                html = response.content[:MAX_CONTENT_SIZE].decode('utf-8', errors='ignore')
+                html = response.content[:MAX_CONTENT_SIZE].decode('utf-8', errors='ignore') if hasattr(response, 'content') else response.text[:MAX_CONTENT_SIZE]
             else:
-                html = response.text
+                html = response.text if hasattr(response, 'text') else str(response.content.decode('utf-8', errors='ignore'))
             
             # Extract structured content
             structured_content = extract_structured_content(html, url)
@@ -220,8 +228,10 @@ def scrape():
                 "latency_ms": latency_ms
             }), 200
             
-        except hrequests.exceptions.RequestException as e:
-            logger.error(f"hrequests error for {url}: {str(e)}")
+        except Exception as e:
+            # Catch all exceptions from hrequests (timeout, connection errors, etc.)
+            error_type = type(e).__name__
+            logger.error(f"hrequests error for {url} ({error_type}): {str(e)}")
             return jsonify({
                 "success": False,
                 "error": f"Scraping failed: {str(e)}",
