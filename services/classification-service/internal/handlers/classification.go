@@ -1871,27 +1871,24 @@ func (h *ClassificationHandler) handleClassificationStreaming(w http.ResponseWri
 					}
 				}
 			}
-			// If still empty and we have early exit metadata in response, set it
+			// If still empty, check if response metadata will have early_exit
 			if path == "" {
-				// Build metadata first to check early_exit
-				metadata := map[string]interface{}{
-					"service":                  "classification-service",
-					"version":                  "2.0.0",
-					"classification_reasoning": enhancedResult.ClassificationReasoning,
-				}
+				// Check if response metadata will indicate early exit
 				if enhancedResult.Metadata != nil {
+					// Check all possible early exit indicators
+					hasEarlyExit := false
 					if earlyExit, ok := enhancedResult.Metadata["early_exit"].(bool); ok && earlyExit {
+						hasEarlyExit = true
+					}
+					if !hasEarlyExit {
+						if strategy, ok := enhancedResult.Metadata["scraping_strategy"].(string); ok && strategy == "early_exit" {
+							hasEarlyExit = true
+						}
+					}
+					if hasEarlyExit {
 						path = "layer1"
 						h.logger.Info("🔧 [FIX] Setting ProcessingPath to layer1 for early exit (final check)",
-							zap.String("request_id", req.RequestID),
-							zap.Bool("early_exit", earlyExit))
-						return path
-					}
-					if strategy, ok := enhancedResult.Metadata["scraping_strategy"].(string); ok && strategy == "early_exit" {
-						path = "layer1"
-						h.logger.Info("🔧 [FIX] Setting ProcessingPath to layer1 for early exit (final scraping_strategy check)",
-							zap.String("request_id", req.RequestID),
-							zap.String("scraping_strategy", strategy))
+							zap.String("request_id", req.RequestID))
 						return path
 					}
 				}
