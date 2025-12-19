@@ -1846,13 +1846,29 @@ func (h *ClassificationHandler) handleClassificationStreaming(w http.ResponseWri
 		ProcessingPath: func() string {
 			path := enhancedResult.ProcessingPath
 			// FIX: Ensure ProcessingPath is set for early exits
-			if path == "" && enhancedResult.Metadata != nil {
-				if earlyExit, ok := enhancedResult.Metadata["early_exit"].(bool); ok && earlyExit {
-					path = "layer1"
-					h.logger.Info("🔧 [FIX] Setting ProcessingPath to layer1 for early exit",
-						zap.String("request_id", req.RequestID),
-						zap.String("original_path", enhancedResult.ProcessingPath),
-						zap.String("new_path", path))
+			// Check both enhancedResult.Metadata and the response metadata being built
+			if path == "" {
+				// Check enhancedResult.Metadata first
+				if enhancedResult.Metadata != nil {
+					if earlyExit, ok := enhancedResult.Metadata["early_exit"].(bool); ok && earlyExit {
+						path = "layer1"
+						h.logger.Info("🔧 [FIX] Setting ProcessingPath to layer1 for early exit (from enhancedResult.Metadata)",
+							zap.String("request_id", req.RequestID),
+							zap.String("original_path", enhancedResult.ProcessingPath),
+							zap.String("new_path", path))
+						return path
+					}
+				}
+				// Also check if scraping_strategy indicates early exit
+				if enhancedResult.Metadata != nil {
+					if strategy, ok := enhancedResult.Metadata["scraping_strategy"].(string); ok && strategy == "early_exit" {
+						path = "layer1"
+						h.logger.Info("🔧 [FIX] Setting ProcessingPath to layer1 for early exit (from scraping_strategy)",
+							zap.String("request_id", req.RequestID),
+							zap.String("scraping_strategy", strategy),
+							zap.String("new_path", path))
+						return path
+					}
 				}
 			}
 			return path
