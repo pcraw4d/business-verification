@@ -1394,6 +1394,17 @@ func (h *ClassificationHandler) HandleClassification(w http.ResponseWriter, r *h
 			w.Header().Set("ETag", fmt.Sprintf(`"%s"`, req.RequestID))
 		}
 
+		// FIX: Ensure ProcessingPath is set if early_exit is true (non-streaming path)
+		// Set before serialization so it's included in the JSON response
+		if response.Metadata != nil {
+			if earlyExit, ok := response.Metadata["early_exit"].(bool); ok && earlyExit && response.ProcessingPath == "" {
+				response.ProcessingPath = "layer1"
+				h.logger.Info("🔧 [FIX] Setting ProcessingPath to layer1 in non-streaming path",
+					zap.String("request_id", req.RequestID),
+					zap.Bool("early_exit", earlyExit))
+			}
+		}
+
 		// Marshal JSON response to bytes first
 		responseBytes, err := json.Marshal(response)
 		if err != nil {
