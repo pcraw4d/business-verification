@@ -1871,6 +1871,31 @@ func (h *ClassificationHandler) handleClassificationStreaming(w http.ResponseWri
 					}
 				}
 			}
+			// If still empty and we have early exit metadata in response, set it
+			if path == "" {
+				// Build metadata first to check early_exit
+				metadata := map[string]interface{}{
+					"service":                  "classification-service",
+					"version":                  "2.0.0",
+					"classification_reasoning": enhancedResult.ClassificationReasoning,
+				}
+				if enhancedResult.Metadata != nil {
+					if earlyExit, ok := enhancedResult.Metadata["early_exit"].(bool); ok && earlyExit {
+						path = "layer1"
+						h.logger.Info("🔧 [FIX] Setting ProcessingPath to layer1 for early exit (final check)",
+							zap.String("request_id", req.RequestID),
+							zap.Bool("early_exit", earlyExit))
+						return path
+					}
+					if strategy, ok := enhancedResult.Metadata["scraping_strategy"].(string); ok && strategy == "early_exit" {
+						path = "layer1"
+						h.logger.Info("🔧 [FIX] Setting ProcessingPath to layer1 for early exit (final scraping_strategy check)",
+							zap.String("request_id", req.RequestID),
+							zap.String("scraping_strategy", strategy))
+						return path
+					}
+				}
+			}
 			return path
 		}(),
 		Metadata: func() map[string]interface{} {
@@ -1967,6 +1992,14 @@ func (h *ClassificationHandler) handleClassificationStreaming(w http.ResponseWri
 			// FIX: Set scraping_strategy to "early_exit" if early_exit is true but strategy is empty
 			if metadata["early_exit"].(bool) && metadata["scraping_strategy"] == "" {
 				metadata["scraping_strategy"] = "early_exit"
+			}
+			
+			// FIX: Ensure ProcessingPath is set if early_exit is true
+			// This is a final check to ensure processing_path is included in response
+			if metadata["early_exit"].(bool) && response.ProcessingPath == "" {
+				response.ProcessingPath = "layer1"
+				h.logger.Info("🔧 [FIX] Setting ProcessingPath to layer1 in response builder",
+					zap.String("request_id", req.RequestID))
 			}
 			
 			return metadata
