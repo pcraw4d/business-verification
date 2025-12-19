@@ -1994,16 +1994,19 @@ func (h *ClassificationHandler) handleClassificationStreaming(w http.ResponseWri
 				metadata["scraping_strategy"] = "early_exit"
 			}
 			
-			// FIX: Ensure ProcessingPath is set if early_exit is true
-			// This is a final check to ensure processing_path is included in response
-			if metadata["early_exit"].(bool) && response.ProcessingPath == "" {
-				response.ProcessingPath = "layer1"
-				h.logger.Info("🔧 [FIX] Setting ProcessingPath to layer1 in response builder",
-					zap.String("request_id", req.RequestID))
-			}
-			
 			return metadata
 		}(),
+	}
+	
+	// FIX: Ensure ProcessingPath is set if early_exit is true
+	// Set after response is built so we can check the metadata
+	if response.Metadata != nil {
+		if earlyExit, ok := response.Metadata["early_exit"].(bool); ok && earlyExit && response.ProcessingPath == "" {
+			response.ProcessingPath = "layer1"
+			h.logger.Info("🔧 [FIX] Setting ProcessingPath to layer1 after response build",
+				zap.String("request_id", req.RequestID),
+				zap.Bool("early_exit", earlyExit))
+		}
 	}
 
 	// Cache the response if enabled
