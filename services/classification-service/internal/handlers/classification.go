@@ -484,7 +484,7 @@ func NewClassificationHandler(
 		if err := handler.redisCache.Health(ctx); err == nil {
 			logger.Info("✅ Redis cache initialized and healthy for classification service",
 				zap.String("redis_url", maskRedisURL(config.Classification.RedisURL)))
-		} else {
+	} else {
 			logger.Warn("⚠️ Redis cache initialized but health check failed, using in-memory fallback",
 				zap.String("redis_url", maskRedisURL(config.Classification.RedisURL)),
 				zap.Error(err))
@@ -1009,7 +1009,10 @@ func (h *ClassificationHandler) HandleClassification(w http.ResponseWriter, r *h
 	// Check cache first if enabled
 	if h.config.Classification.CacheEnabled {
 		if cachedResponse, found := h.getCachedResponse(cacheKey); found {
-			// Cache hit - log metrics
+			// Cache hit - set FromCache flag and log metrics
+			cachedResponse.FromCache = true
+			cachedResponse.CachedAt = &time.Time{}
+			*cachedResponse.CachedAt = time.Now()
 			h.logger.Info("✅ [CACHE-HIT] Classification served from cache",
 				zap.String("request_id", req.RequestID),
 				zap.String("business_name", req.BusinessName),
