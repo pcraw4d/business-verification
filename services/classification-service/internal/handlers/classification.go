@@ -3339,10 +3339,8 @@ func (h *ClassificationHandler) generateEnhancedClassification(ctx context.Conte
 	if goResult != nil {
 		// If ML was skipped due to early termination, mark as early exit
 		if skipML {
-			// Set ProcessingPath to layer1 for early exit
-			if goResult.ProcessingPath == "" {
-				goResult.ProcessingPath = "layer1"
-			}
+			// Set ProcessingPath to layer1 for early exit (always set, don't check if empty)
+			goResult.ProcessingPath = "layer1"
 			
 			// Ensure metadata exists
 			if goResult.Metadata == nil {
