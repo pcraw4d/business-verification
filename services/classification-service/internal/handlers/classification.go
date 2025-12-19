@@ -4579,6 +4579,88 @@ func (h *ClassificationHandler) HandleCacheHealth(w http.ResponseWriter, r *http
 	json.NewEncoder(w).Encode(status)
 }
 
+// HandleResetCircuitBreaker manually resets the ML service circuit breaker
+// This is useful for recovery when the service is healthy but circuit breaker is stuck open
+func (h *ClassificationHandler) HandleResetCircuitBreaker(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	// Simple admin check - in production, use proper authentication
+	adminKey := r.Header.Get("X-Admin-Key")
+	if adminKey == "" {
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"error": "Missing X-Admin-Key header",
+		})
+		return
+	}
+
+	// Check if Python ML service is available
+	if h.pythonMLService == nil {
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"error": "Python ML service not configured",
+		})
+		return
+	}
+
+	// Type assert to get PythonMLService
+	pms, ok := h.pythonMLService.(*infrastructure.PythonMLService)
+	if !ok || pms == nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"error": "Python ML service not available",
+		})
+		return
+	}
+
+	// Get current state before reset
+	oldState := pms.GetCircuitBreakerState()
+	oldMetrics := pms.GetCircuitBreakerMetrics()
+
+	// Reset circuit breaker
+	pms.ResetCircuitBreaker()
+
+	// Get new state after reset
+	newState := pms.GetCircuitBreakerState()
+	newMetrics := pms.GetCircuitBreakerMetrics()
+
+	// Verify service health
+	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+	defer cancel()
+	health, healthErr := pms.HealthCheck(ctx)
+
+	h.logger.Info("Circuit breaker manually reset",
+		zap.String("old_state", oldState.String()),
+		zap.String("new_state", newState.String()),
+		zap.Int("old_failures", oldMetrics.FailureCount),
+		zap.Int("new_failures", newMetrics.FailureCount),
+		zap.Bool("service_healthy", healthErr == nil && health != nil && health.Status == "pass"),
+	)
+
+	response := map[string]interface{}{
+		"success": true,
+		"message": "Circuit breaker reset successfully",
+		"old_state": map[string]interface{}{
+			"state":         oldState.String(),
+			"failure_count": oldMetrics.FailureCount,
+			"success_count": oldMetrics.SuccessCount,
+		},
+		"new_state": map[string]interface{}{
+			"state":         newState.String(),
+			"failure_count": newMetrics.FailureCount,
+			"success_count": newMetrics.SuccessCount,
+		},
+		"service_health": map[string]interface{}{
+			"healthy": healthErr == nil && health != nil && health.Status == "pass",
+			"status":   health.Status,
+			"error":    healthErr,
+		},
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(response)
+}
+
 func (h *ClassificationHandler) HandleHealth(w http.ResponseWriter, r *http.Request) {
 	// Set response headers
 	w.Header().Set("Content-Type", "application/json")

@@ -406,17 +406,9 @@ func (pms *PythonMLService) ClassifyFast(
 	pms.metrics.RequestCount++
 	pms.mu.Unlock()
 
-	// Check circuit breaker state before making request
-	cbState := pms.circuitBreaker.GetState()
-	if cbState == resilience.CircuitOpen {
-		pms.logger.Printf("⚠️ [CircuitBreaker] Circuit is OPEN - failing fast for Python ML service")
-		pms.mu.Lock()
-		pms.metrics.ErrorCount++
-		pms.mu.Unlock()
-		return nil, fmt.Errorf("circuit breaker is open: Python ML service unavailable")
-	}
-
-	// Execute through circuit breaker
+	// Execute through circuit breaker (it will handle state transitions automatically)
+	// Note: We don't check state here - let the circuit breaker handle transitions
+	// from OPEN -> HALF_OPEN -> CLOSED automatically
 	var enhancedResp *EnhancedClassificationResponse
 	var err error
 
@@ -511,17 +503,9 @@ func (pms *PythonMLService) ClassifyEnhanced(
 	pms.metrics.RequestCount++
 	pms.mu.Unlock()
 
-	// Check circuit breaker state before making request
-	cbState := pms.circuitBreaker.GetState()
-	if cbState == resilience.CircuitOpen {
-		pms.logger.Printf("⚠️ [CircuitBreaker] Circuit is OPEN - failing fast for Python ML service")
-		pms.mu.Lock()
-		pms.metrics.ErrorCount++
-		pms.mu.Unlock()
-		return nil, fmt.Errorf("circuit breaker is open: Python ML service unavailable")
-	}
-
-	// Execute through circuit breaker
+	// Execute through circuit breaker (it will handle state transitions automatically)
+	// Note: We don't check state here - let the circuit breaker handle transitions
+	// from OPEN -> HALF_OPEN -> CLOSED automatically
 	var enhancedResp *EnhancedClassificationResponse
 	var err error
 
@@ -577,11 +561,12 @@ func (pms *PythonMLService) ClassifyEnhanced(
 		pms.metrics.ErrorCount++
 		pms.mu.Unlock()
 		
-		// Log circuit breaker state changes
-		newState := pms.circuitBreaker.GetState()
-		if newState != cbState {
-			pms.logger.Printf("🔄 [CircuitBreaker] State changed from %s to %s", 
-				cbState.String(), newState.String())
+		// Log circuit breaker state for debugging
+		currentState := pms.circuitBreaker.GetState()
+		if currentState == resilience.CircuitOpen {
+			pms.logger.Printf("⚠️ [CircuitBreaker] Circuit is OPEN - request rejected")
+		} else if currentState == resilience.CircuitHalfOpen {
+			pms.logger.Printf("🔄 [CircuitBreaker] Circuit is HALF_OPEN - testing recovery")
 		}
 		
 		return nil, err
@@ -798,6 +783,24 @@ func (pms *PythonMLService) startHealthMonitoring(ctx context.Context) {
 			pms.healthStatus.LastCheck = healthCheck.LastCheck
 			pms.healthStatus.Checks["python_ml_service"] = *healthCheck
 			pms.mu.Unlock()
+
+			// Automatic circuit breaker recovery: if service is healthy and circuit is open,
+			// reset the circuit breaker to allow recovery
+			cbState := pms.circuitBreaker.GetState()
+			if healthCheck.Status == "pass" && cbState == resilience.CircuitOpen {
+				// Check if enough time has passed since the circuit opened
+				cbStats := pms.circuitBreaker.GetStats()
+				timeSinceOpen := time.Since(cbStats.StateChange)
+				
+				// Only reset if circuit has been open for at least the timeout period
+				// This prevents premature resets during transient failures
+				if timeSinceOpen >= 60*time.Second {
+					pms.logger.Printf("🔄 [CircuitBreaker] Service is healthy, resetting circuit breaker after %v", timeSinceOpen)
+					pms.ResetCircuitBreaker()
+				} else {
+					pms.logger.Printf("⏳ [CircuitBreaker] Service is healthy but circuit opened recently (%v ago), waiting for timeout", timeSinceOpen)
+				}
+			}
 
 			if healthCheck.Status != "pass" {
 				pms.logger.Printf("⚠️ Python ML Service health check failed: %s", healthCheck.Message)
