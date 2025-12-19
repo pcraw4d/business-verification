@@ -24,7 +24,6 @@ import (
 	"kyb-platform/internal/machine_learning/infrastructure"
 	"kyb-platform/services/classification-service/internal/cache"
 	"kyb-platform/services/classification-service/internal/config"
-	"kyb-platform/services/classification-service/internal/errors"
 	"kyb-platform/services/classification-service/internal/supabase"
 )
 
@@ -575,6 +574,7 @@ func (h *ClassificationHandler) cleanupInFlightRequests(ctx context.Context) {
 
 // getCacheKey generates a cache key from the request
 // OPTIMIZATION: Normalize inputs to improve cache hit rates
+// FIX: Added "classification:" prefix for consistency with internal service cache keys
 func (h *ClassificationHandler) getCacheKey(req *ClassificationRequest) string {
 	// Normalize inputs: trim whitespace, lowercase for case-insensitive matching
 	// This improves cache hit rates by treating "Acme Corp" and "acme corp" as the same
@@ -585,7 +585,61 @@ func (h *ClassificationHandler) getCacheKey(req *ClassificationRequest) string {
 	// Create a hash of the normalized business name, description, and website URL
 	data := fmt.Sprintf("%s|%s|%s", businessName, description, websiteURL)
 	hash := sha256.Sum256([]byte(data))
-	return fmt.Sprintf("%x", hash)
+	return fmt.Sprintf("classification:%x", hash)
+}
+
+// sendErrorResponse sends an error response with frontend-compatible structure
+// FIX: Ensures all error responses include required frontend fields (primary_industry, classification, explanation, confidence_score)
+func (h *ClassificationHandler) sendErrorResponse(
+	w http.ResponseWriter,
+	r *http.Request,
+	req *ClassificationRequest,
+	err error,
+	statusCode int,
+) {
+	response := ClassificationResponse{
+		RequestID:       req.RequestID,
+		BusinessName:    req.BusinessName,
+		Description:     req.Description,
+		PrimaryIndustry: "", // Empty but present for frontend compatibility
+		Classification: &ClassificationResult{
+			Industry:   "",
+			MCCCodes:   []IndustryCode{},
+			NAICSCodes: []IndustryCode{},
+			SICCodes:   []IndustryCode{},
+		},
+		ConfidenceScore: 0.0,
+		Explanation:      fmt.Sprintf("Error: %v", err),
+		Status:           "error",
+		Success:          false,
+		Timestamp:        time.Now(),
+		ProcessingTime:   0,
+		DataSource:       "error",
+		Metadata: map[string]interface{}{
+			"error":       err.Error(),
+			"error_type":  "classification_error",
+			"status_code": statusCode,
+		},
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+	json.NewEncoder(w).Encode(response)
+}
+
+// inferStrategyFromPath infers scraping strategy from processing path
+// FIX: Helper function to infer strategy when metadata is not available
+func inferStrategyFromPath(path string) string {
+	if strings.Contains(path, "layer1") {
+		return "early_exit"
+	}
+	if strings.Contains(path, "layer2") {
+		return "standard_scraping"
+	}
+	if strings.Contains(path, "layer3") {
+		return "deep_scraping"
+	}
+	return "unknown"
 }
 
 // getCachedResponse retrieves a cached response if available and not expired
@@ -929,7 +983,7 @@ func (h *ClassificationHandler) HandleClassification(w http.ResponseWriter, r *h
 		h.logger.Error("❌ [PARSE] Failed to decode request",
 			zap.Error(err),
 			zap.Duration("parse_duration", time.Since(parseStart)))
-		errors.WriteBadRequest(w, r, "Invalid request body: Please provide valid JSON")
+		h.sendErrorResponse(w, r, &req, fmt.Errorf("invalid request body: Please provide valid JSON"), http.StatusBadRequest)
 		return
 	}
 
@@ -940,7 +994,7 @@ func (h *ClassificationHandler) HandleClassification(w http.ResponseWriter, r *h
 
 	// Validate request
 	if req.BusinessName == "" {
-		errors.WriteBadRequest(w, r, "business_name is required")
+		h.sendErrorResponse(w, r, &req, fmt.Errorf("business_name is required"), http.StatusBadRequest)
 		return
 	}
 
@@ -970,7 +1024,7 @@ func (h *ClassificationHandler) HandleClassification(w http.ResponseWriter, r *h
 			zap.Float64("mem_usage_percent", memUsagePercent),
 			zap.Uint64("alloc_bytes", m.Alloc),
 			zap.Uint64("sys_bytes", m.Sys))
-		errors.WriteServiceUnavailable(w, r, "Service temporarily unavailable due to high load")
+		h.sendErrorResponse(w, r, &req, fmt.Errorf("service temporarily unavailable due to high load"), http.StatusServiceUnavailable)
 		return
 	}
 
@@ -980,7 +1034,7 @@ func (h *ClassificationHandler) HandleClassification(w http.ResponseWriter, r *h
 			zap.String("request_id", req.RequestID),
 			zap.Int("queue_size", h.requestQueue.Size()),
 			zap.Int("max_concurrent", h.config.Classification.MaxConcurrentRequests))
-		errors.WriteServiceUnavailable(w, r, "Service queue full, please retry later")
+		h.sendErrorResponse(w, r, &req, fmt.Errorf("service queue full, please retry later"), http.StatusServiceUnavailable)
 		return
 	}
 
@@ -1034,6 +1088,13 @@ func (h *ClassificationHandler) HandleClassification(w http.ResponseWriter, r *h
 
 	// Calculate adaptive timeout based on request characteristics (Hybrid Approach)
 	requestTimeout := h.calculateAdaptiveTimeout(&req)
+	
+	// FIX: Log timeout calculation for performance monitoring
+	h.logger.Info("⏱️ [TIMEOUT] Calculated adaptive timeout",
+		zap.String("request_id", req.RequestID),
+		zap.Duration("request_timeout", requestTimeout),
+		zap.Bool("has_website_url", req.WebsiteURL != ""),
+		zap.String("business_name", req.BusinessName))
 
 	// CONTEXT FLOW DOCUMENTATION (FIX #11):
 	// 1. Entry point (line ~728): Checks parentCtx (r.Context()) for sufficient time
@@ -1152,7 +1213,7 @@ func (h *ClassificationHandler) HandleClassification(w http.ResponseWriter, r *h
 					h.logger.Error("In-flight request failed",
 						zap.String("request_id", req.RequestID),
 						zap.Error(result.err))
-					errors.WriteInternalError(w, r, "Classification failed")
+					h.sendErrorResponse(w, r, &req, result.err, http.StatusInternalServerError)
 					return
 				}
 				h.logger.Info("Classification served from in-flight request",
@@ -1174,7 +1235,7 @@ func (h *ClassificationHandler) HandleClassification(w http.ResponseWriter, r *h
 			case <-ctx.Done():
 				h.logger.Warn("Context cancelled while waiting for in-flight request",
 					zap.String("request_id", req.RequestID))
-				errors.WriteRequestTimeout(w, r, "Request timeout while waiting for duplicate request")
+				h.sendErrorResponse(w, r, &req, fmt.Errorf("request timeout while waiting for duplicate request"), http.StatusRequestTimeout)
 				return
 			}
 		}
@@ -1187,7 +1248,7 @@ func (h *ClassificationHandler) HandleClassification(w http.ResponseWriter, r *h
 			zap.String("request_id", req.RequestID),
 			zap.Int("queue_size", queueSize),
 			zap.Int("max_size", h.requestQueue.maxSize))
-		errors.WriteServiceUnavailable(w, r, "Service temporarily unavailable, request queue is full")
+		h.sendErrorResponse(w, r, &req, fmt.Errorf("service temporarily unavailable, request queue is full"), http.StatusServiceUnavailable)
 		return
 	}
 
@@ -1258,7 +1319,7 @@ func (h *ClassificationHandler) HandleClassification(w http.ResponseWriter, r *h
 		h.logger.Warn("Failed to enqueue request",
 			zap.String("request_id", req.RequestID),
 			zap.Error(err))
-		errors.WriteServiceUnavailable(w, r, "Service temporarily unavailable")
+		h.sendErrorResponse(w, r, &req, fmt.Errorf("service temporarily unavailable: %w", err), http.StatusServiceUnavailable)
 		return
 	}
 
@@ -1328,7 +1389,7 @@ func (h *ClassificationHandler) HandleClassification(w http.ResponseWriter, r *h
 			h.logger.Error("Failed to marshal response",
 				zap.String("request_id", req.RequestID),
 				zap.Error(err))
-			errors.WriteInternalError(w, r, fmt.Sprintf("Failed to marshal response: %v", err))
+			h.sendErrorResponse(w, r, &req, fmt.Errorf("failed to marshal response: %w", err), http.StatusInternalServerError)
 			return
 		}
 
@@ -1400,7 +1461,7 @@ func (h *ClassificationHandler) HandleClassification(w http.ResponseWriter, r *h
 			return
 		}
 
-		errors.WriteInternalError(w, r, fmt.Sprintf("Classification failed: %v", err))
+		h.sendErrorResponse(w, r, &req, err, http.StatusInternalServerError)
 		return
 
 	case <-queueCtx.Done():
@@ -1415,7 +1476,7 @@ func (h *ClassificationHandler) HandleClassification(w http.ResponseWriter, r *h
 			return
 		}
 
-		errors.WriteRequestTimeout(w, r, "Request timeout while waiting for processing")
+		h.sendErrorResponse(w, r, &req, fmt.Errorf("request timeout while waiting for processing"), http.StatusRequestTimeout)
 		return
 
 	case <-r.Context().Done():
@@ -1443,7 +1504,11 @@ func (h *ClassificationHandler) handleClassificationStreaming(w http.ResponseWri
 	flusher, ok := w.(http.Flusher)
 	if !ok {
 		h.logger.Error("Streaming not supported by response writer")
-		errors.WriteInternalError(w, r, "Streaming not supported")
+		// Create minimal request for error response
+		req := ClassificationRequest{
+			RequestID: fmt.Sprintf("req_%d", time.Now().UnixNano()),
+		}
+		h.sendErrorResponse(w, r, &req, fmt.Errorf("streaming not supported"), http.StatusInternalServerError)
 		return
 	}
 
@@ -1817,6 +1882,41 @@ func (h *ClassificationHandler) handleClassificationStreaming(w http.ResponseWri
 					}
 				}
 			}
+			
+			// FIX: Fallback to WebsiteAnalysis.StructuredData if metadata fields are still empty
+			if metadata["scraping_strategy"] == "" && enhancedResult.WebsiteAnalysis != nil {
+				if structuredData := enhancedResult.WebsiteAnalysis.StructuredData; structuredData != nil {
+					if strategy, ok := structuredData["scraping_strategy"].(string); ok && strategy != "" {
+						metadata["scraping_strategy"] = strategy
+					}
+					if earlyExit, ok := structuredData["early_exit"].(bool); ok {
+						metadata["early_exit"] = earlyExit
+					}
+					if fallbackUsed, ok := structuredData["fallback_used"].(bool); ok {
+						metadata["fallback_used"] = fallbackUsed
+					}
+					if fallbackType, ok := structuredData["fallback_type"].(string); ok && fallbackType != "" {
+						metadata["fallback_type"] = fallbackType
+					}
+					if scrapingTime, ok := structuredData["scraping_time_ms"].(float64); ok && scrapingTime > 0 {
+						metadata["scraping_time_ms"] = int64(scrapingTime)
+					}
+					if classificationTime, ok := structuredData["classification_time_ms"].(float64); ok && classificationTime > 0 {
+						metadata["classification_time_ms"] = int64(classificationTime)
+					}
+				}
+			}
+			
+			// FIX: Infer from processing path if still empty
+			if metadata["scraping_strategy"] == "" && enhancedResult.ProcessingPath != "" {
+				metadata["scraping_strategy"] = inferStrategyFromPath(enhancedResult.ProcessingPath)
+			}
+			
+			// FIX: Set early_exit based on processing path if not set
+			if !metadata["early_exit"].(bool) && enhancedResult.ProcessingPath == "layer1" {
+				metadata["early_exit"] = true // Layer1 indicates early exit
+			}
+			
 			return metadata
 		}(),
 	}
@@ -2042,11 +2142,12 @@ func (h *ClassificationHandler) processClassification(ctx context.Context, req *
 
 	// Start timeout alert goroutine
 	// FIX #16: Ensure goroutine properly exits on context cancellation
+	// FIX: Enhanced timeout monitoring for performance investigation
 	timeoutAlertCtx, timeoutAlertCancel := context.WithCancel(ctx)
 	defer timeoutAlertCancel()
 
 	go func() {
-		ticker := time.NewTicker(10 * time.Second)
+		ticker := time.NewTicker(5 * time.Second) // Check every 5 seconds for better granularity
 		defer ticker.Stop()
 
 		for {
@@ -2100,7 +2201,24 @@ func (h *ClassificationHandler) processClassification(ctx context.Context, req *
 		}
 		return nil
 	})
-	classificationTime := time.Since(classificationStartTime)
+	
+	// FIX: Performance monitoring - log slow operations
+	classificationDuration := time.Since(classificationStartTime)
+	if classificationDuration > 10*time.Second {
+		h.logger.Warn("⚠️ [PERF] Slow classification operation detected",
+			zap.String("request_id", req.RequestID),
+			zap.Duration("duration", classificationDuration),
+			zap.Duration("elapsed_since_start", time.Since(startTime)),
+			zap.Bool("has_website_url", req.WebsiteURL != ""))
+	}
+	if classificationDuration > 20*time.Second {
+		h.logger.Error("🚨 [PERF] Very slow classification operation",
+			zap.String("request_id", req.RequestID),
+			zap.Duration("duration", classificationDuration),
+			zap.Duration("elapsed_since_start", time.Since(startTime)),
+			zap.Bool("has_website_url", req.WebsiteURL != ""))
+	}
+	classificationTime := classificationDuration
 	
 	// Add performance metrics to metadata
 	if enhancedResult != nil {
@@ -2123,6 +2241,23 @@ func (h *ClassificationHandler) processClassification(ctx context.Context, req *
 			zap.Error(err))
 		// Continue with result even if context expired (we have the result)
 	}
+	
+	// FIX: Performance summary logging for timeout investigation
+	totalElapsed := time.Since(startTime)
+	if deadline, hasDeadline := ctx.Deadline(); hasDeadline {
+		remaining := time.Until(deadline)
+		if remaining < 10*time.Second {
+			h.logger.Warn("⏰ [PERF-SUMMARY] Request completed with limited time remaining",
+				zap.String("request_id", req.RequestID),
+				zap.Duration("total_elapsed", totalElapsed),
+				zap.Duration("time_remaining", remaining),
+				zap.Duration("classification_duration", classificationTime))
+		}
+	}
+	h.logger.Info("✅ [PERF-SUMMARY] Request processing complete",
+		zap.String("request_id", req.RequestID),
+		zap.Duration("total_elapsed", totalElapsed),
+		zap.Duration("classification_duration", classificationTime))
 
 	// FIX: Defensive check for enhancedResult to prevent nil pointer dereference
 	if enhancedResult == nil {
@@ -2366,17 +2501,63 @@ func (h *ClassificationHandler) processClassification(ctx context.Context, req *
 				"website_analysis":         enhancedResult.WebsiteAnalysis,
 				"method_weights":           enhancedResult.MethodWeights,
 				"smart_crawling_enabled":   true,
+				// Scraping metadata fields (populated from enhancedResult.Metadata if available)
+				"scraping_strategy":   "",
+				"early_exit":          false,
+				"fallback_used":       false,
+				"fallback_type":       "",
+				"scraping_time_ms":    0,
+				"classification_time_ms": 0,
 			}
 			// Include code generation metadata if present
 			if enhancedResult.Metadata != nil {
 				if codeGen, ok := enhancedResult.Metadata["codeGeneration"]; ok {
 					metadata["codeGeneration"] = codeGen
 				}
+				// Extract scraping metadata if present
+				if scrapingStrategy, ok := enhancedResult.Metadata["scraping_strategy"].(string); ok && scrapingStrategy != "" {
+					metadata["scraping_strategy"] = scrapingStrategy
+				}
+				if earlyExit, ok := enhancedResult.Metadata["early_exit"].(bool); ok {
+					metadata["early_exit"] = earlyExit
+				}
+				if fallbackUsed, ok := enhancedResult.Metadata["fallback_used"].(bool); ok {
+					metadata["fallback_used"] = fallbackUsed
+				}
+				if fallbackType, ok := enhancedResult.Metadata["fallback_type"].(string); ok && fallbackType != "" {
+					metadata["fallback_type"] = fallbackType
+				}
+				if scrapingTime, ok := enhancedResult.Metadata["scraping_time_ms"].(float64); ok {
+					metadata["scraping_time_ms"] = int64(scrapingTime)
+				}
+				if classificationTime, ok := enhancedResult.Metadata["classification_time_ms"].(float64); ok {
+					metadata["classification_time_ms"] = int64(classificationTime)
+				}
 				// Include all other metadata fields
 				for k, v := range enhancedResult.Metadata {
-					if k != "explanation" && k != "content_summary" && k != "quantization_enabled" && k != "model_version" {
+					if k != "explanation" && k != "content_summary" && k != "quantization_enabled" && k != "model_version" &&
+						k != "scraping_strategy" && k != "early_exit" && k != "fallback_used" && k != "fallback_type" &&
+						k != "scraping_time_ms" && k != "classification_time_ms" {
 						metadata[k] = v
 					}
+				}
+			}
+			// Also try to extract from WebsiteAnalysis.StructuredData as fallback
+			if enhancedResult.WebsiteAnalysis != nil && enhancedResult.WebsiteAnalysis.StructuredData != nil {
+				if scrapingStrategy, ok := enhancedResult.WebsiteAnalysis.StructuredData["scraping_strategy"].(string); ok && scrapingStrategy != "" && metadata["scraping_strategy"] == "" {
+					metadata["scraping_strategy"] = scrapingStrategy
+				}
+				if earlyExit, ok := enhancedResult.WebsiteAnalysis.StructuredData["early_exit"].(bool); ok && !metadata["early_exit"].(bool) {
+					metadata["early_exit"] = earlyExit
+				}
+				if fallbackUsed, ok := enhancedResult.WebsiteAnalysis.StructuredData["fallback_used"].(bool); ok && !metadata["fallback_used"].(bool) {
+					metadata["fallback_used"] = fallbackUsed
+				}
+				if fallbackType, ok := enhancedResult.WebsiteAnalysis.StructuredData["fallback_type"].(string); ok && fallbackType != "" && metadata["fallback_type"] == "" {
+					metadata["fallback_type"] = fallbackType
+				}
+				if scrapingTime, ok := enhancedResult.WebsiteAnalysis.StructuredData["scraping_time_ms"].(float64); ok && metadata["scraping_time_ms"] == 0 {
+					metadata["scraping_time_ms"] = int64(scrapingTime)
 				}
 			}
 			return metadata
@@ -3583,6 +3764,18 @@ func (h *ClassificationHandler) runGoClassification(ctx context.Context, req *Cl
 		zap.Int("naics_codes_available", len(codesInfo.NAICS)))
 
 	// Step 4: Build website analysis data (simplified for now)
+	// Initialize StructuredData with business info
+	structuredData := map[string]interface{}{
+		"business_type": "Business",
+		"industry":      industryResult.IndustryName,
+	}
+	
+	// If website URL was provided, website scraping may have occurred during DetectIndustry
+	// The scraping metadata (scraping_strategy, early_exit, etc.) is set in ScrapedContent.Metadata
+	// during scraping, but DetectIndustry doesn't expose it. For now, we'll extract it from
+	// enhancedResult.Metadata if it exists (set elsewhere), or leave it empty.
+	// The metadata extraction code in the response builder will handle it.
+	
 	websiteAnalysis := &WebsiteAnalysisData{
 		Success:           req.WebsiteURL != "",
 		PagesAnalyzed:     0, // Will be populated by actual website scraper if implemented
@@ -3593,10 +3786,7 @@ func (h *ClassificationHandler) runGoClassification(ctx context.Context, req *Cl
 		ProcessingTime:    industryResult.ProcessingTime,
 		OverallRelevance:  industryResult.Confidence,
 		ContentQuality:    industryResult.Confidence,
-		StructuredData: map[string]interface{}{
-			"business_type": "Business",
-			"industry":      industryResult.IndustryName,
-		},
+		StructuredData:    structuredData,
 	}
 
 	// Step 5: Build method weights (simplified)
@@ -3714,6 +3904,41 @@ func (h *ClassificationHandler) runGoClassification(ctx context.Context, req *Cl
 			}()))
 	}
 
+	// Build metadata map - ensure it's initialized
+	metadata := make(map[string]interface{})
+	
+	// Extract scraping metadata from WebsiteAnalysis.StructuredData if available
+	// This metadata is set during website scraping (scraping_strategy, early_exit, etc.)
+	if websiteAnalysis != nil && websiteAnalysis.StructuredData != nil {
+		if scrapingStrategy, ok := websiteAnalysis.StructuredData["scraping_strategy"].(string); ok && scrapingStrategy != "" {
+			metadata["scraping_strategy"] = scrapingStrategy
+		}
+		if earlyExit, ok := websiteAnalysis.StructuredData["early_exit"].(bool); ok {
+			metadata["early_exit"] = earlyExit
+		}
+		if fallbackUsed, ok := websiteAnalysis.StructuredData["fallback_used"].(bool); ok {
+			metadata["fallback_used"] = fallbackUsed
+		}
+		if fallbackType, ok := websiteAnalysis.StructuredData["fallback_type"].(string); ok && fallbackType != "" {
+			metadata["fallback_type"] = fallbackType
+		}
+		if scrapingTime, ok := websiteAnalysis.StructuredData["scraping_time_ms"].(float64); ok {
+			metadata["scraping_time_ms"] = scrapingTime
+		}
+	}
+	
+	// Add code generation metadata
+	metadata["codeGeneration"] = map[string]interface{}{
+		"method":            codeGenMethod,
+		"total_codes":       totalCodesGenerated,
+		"keyword_matches":   keywordMatchCount,
+		"industry_matches":  industryMatchCount,
+		"industriesAnalyzed": []string{primaryIndustry},
+		"industryMatches":   industryMatchCount,
+		"keywordMatches":    keywordMatchCount,
+		"sources":           []string{"industry", "keyword"},
+	}
+	
 	result := &EnhancedClassificationResult{
 		BusinessName:            req.BusinessName,
 		PrimaryIndustry:         primaryIndustry, // Use industry from DetectIndustry (e.g., "Wineries")
@@ -3730,6 +3955,7 @@ func (h *ClassificationHandler) runGoClassification(ctx context.Context, req *Cl
 		MethodWeights:           methodWeights,
 		ClassificationExplanation: explanation, // Phase 2: Add explanation
 		Timestamp:               time.Now(),
+		Metadata:                metadata, // Include scraping metadata
 		// Phase 4: Pass through async LLM processing fields
 		LLMProcessingID:         industryResult.LLMProcessingID,
 		LLMStatus:               string(industryResult.LLMStatus),
@@ -4324,7 +4550,12 @@ func (h *ClassificationHandler) HandleCacheHealth(w http.ResponseWriter, r *http
 			status["redis_connected"] = true
 		} else {
 			status["redis_error"] = err.Error()
+			status["redis_connected"] = false
 		}
+	} else {
+		// Redis cache not initialized
+		status["redis_error"] = "Redis cache not initialized"
+		status["redis_connected"] = false
 	}
 	
 	// Get in-memory cache size

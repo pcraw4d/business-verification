@@ -2,6 +2,7 @@ package classification
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -348,21 +349,19 @@ func (s *IndustryDetectionService) performClassification(ctx context.Context, bu
 	s.logger.Printf("🔍 Starting industry detection for: %s (request: %s) [LLM:%v, Embedding:%v, URL:%s]",
 		businessName, requestID, llmAvailable, embeddingAvailable, websiteURL)
 
-	// Phase 5: Check cache if cache is enabled and we have a website URL
-	if s.classificationCache != nil && websiteURL != "" {
-		// Get scraped content to generate cache key
-		scrapedContent, err := s.getScrapedContentForLayer2(ctx, websiteURL)
-		if err == nil && scrapedContent != nil {
-			// Generate cache key from scraped content
-			cacheKey := s.classificationCache.GenerateCacheKey(scrapedContent, websiteURL)
-			
-			// Check cache
-			cachedResult, err := s.classificationCache.Get(ctx, cacheKey)
-			if err == nil && cachedResult != nil {
-				s.logger.Printf("✅ [Phase 5] Returning cached result for: %s (request: %s)", businessName, requestID)
-				cachedResult.ProcessingTime = time.Since(startTime)
-				return cachedResult, nil
-			}
+	// Phase 5: Check cache if cache is enabled
+	// FIX: Use request-based cache key instead of scraped content-based key for consistency
+	if s.classificationCache != nil {
+		// Generate cache key from request parameters (not scraped content)
+		// This ensures cache keys match between GET and SET operations
+		cacheKey := generateRequestCacheKey(businessName, description, websiteURL)
+		
+		// Check cache
+		cachedResult, err := s.classificationCache.Get(ctx, cacheKey)
+		if err == nil && cachedResult != nil {
+			s.logger.Printf("✅ [Phase 5] Returning cached result for: %s (request: %s)", businessName, requestID)
+			cachedResult.ProcessingTime = time.Since(startTime)
+			return cachedResult, nil
 		}
 	}
 
@@ -663,15 +662,14 @@ func (s *IndustryDetectionService) performClassification(ctx context.Context, bu
 	s.logger.Printf("✅ Industry detection completed: %s (confidence: %.2f%%) (request: %s)",
 		result.IndustryName, result.Confidence*100, requestID)
 
-	// Phase 5: Cache the result if cache is enabled and we have a website URL
-	if s.classificationCache != nil && websiteURL != "" {
-		// Get scraped content to generate cache key (reuse if already scraped)
-		scrapedContent, err := s.getScrapedContentForLayer2(ctx, websiteURL)
-		if err == nil && scrapedContent != nil {
-			cacheKey := s.classificationCache.GenerateCacheKey(scrapedContent, websiteURL)
-			// Cache result asynchronously (non-blocking)
-			s.classificationCache.Set(ctx, cacheKey, businessName, websiteURL, result)
-		}
+	// Phase 5: Cache the result if cache is enabled
+	// FIX: Use request-based cache key instead of scraped content-based key for consistency
+	if s.classificationCache != nil {
+		// Generate cache key from request parameters (not scraped content)
+		// This ensures cache keys match between GET and SET operations
+		cacheKey := generateRequestCacheKey(businessName, description, websiteURL)
+		// Cache result asynchronously (non-blocking)
+		s.classificationCache.Set(ctx, cacheKey, businessName, websiteURL, result)
 	}
 
 	// Phase 5: Log metrics asynchronously (non-blocking)
@@ -1868,4 +1866,17 @@ func (s *IndustryDetectionService) buildResultFromLLM(
 		Explanation:    explanation,
 		CreatedAt:      time.Now(),
 	}
+}
+
+// generateRequestCacheKey generates a cache key from request parameters
+// FIX: Standardized cache key generation to match handler's getCacheKey() method
+// This ensures cache keys match between GET and SET operations across all code paths
+func generateRequestCacheKey(businessName, description, websiteURL string) string {
+	businessName = strings.TrimSpace(strings.ToLower(businessName))
+	description = strings.TrimSpace(strings.ToLower(description))
+	websiteURL = strings.TrimSpace(strings.ToLower(websiteURL))
+	
+	data := fmt.Sprintf("%s|%s|%s", businessName, description, websiteURL)
+	hash := sha256.Sum256([]byte(data))
+	return fmt.Sprintf("classification:%x", hash)
 }
