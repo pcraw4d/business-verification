@@ -1,3 +1,6 @@
+//go:build !comprehensive_test
+// +build !comprehensive_test
+
 package integration
 
 import (

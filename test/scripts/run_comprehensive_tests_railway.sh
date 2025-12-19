@@ -114,7 +114,7 @@ echo -e "${BLUE}Starting test execution...${NC}"
 echo -e "${CYAN}Output will be saved to: $TEST_OUTPUT${NC}"
 echo ""
 
-if go test -v -timeout 60m ./test/integration -run TestComprehensiveClassificationE2E 2>&1 | tee "$TEST_OUTPUT"; then
+if go test -v -timeout 60m -tags comprehensive_test ./test/integration -run TestComprehensiveClassificationE2E 2>&1 | tee "$TEST_OUTPUT"; then
     echo ""
     echo -e "${GREEN}✅ Tests completed successfully${NC}"
 else

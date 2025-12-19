@@ -1,3 +1,6 @@
+//go:build !comprehensive_test
+// +build !comprehensive_test
+
 package integration
 
 import (
@@ -16,6 +19,7 @@ import (
 	"kyb-platform/internal/database"
 	"kyb-platform/internal/observability"
 	"kyb-platform/internal/risk"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
