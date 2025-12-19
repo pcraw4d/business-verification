@@ -585,7 +585,18 @@ func (h *ClassificationHandler) getCacheKey(req *ClassificationRequest) string {
 	// Create a hash of the normalized business name, description, and website URL
 	data := fmt.Sprintf("%s|%s|%s", businessName, description, websiteURL)
 	hash := sha256.Sum256([]byte(data))
-	return fmt.Sprintf("classification:%x", hash)
+	cacheKey := fmt.Sprintf("classification:%x", hash)
+	
+	// Log cache key generation for debugging (only first 16 chars for security)
+	keyPrefix := cacheKey
+	if len(cacheKey) > 16 {
+		keyPrefix = cacheKey[:16]
+	}
+	h.logger.Debug("Generated cache key",
+		zap.String("key_prefix", keyPrefix),
+		zap.String("business_name", req.BusinessName))
+	
+	return cacheKey
 }
 
 // sendErrorResponse sends an error response with frontend-compatible structure
@@ -1915,6 +1926,18 @@ func (h *ClassificationHandler) handleClassificationStreaming(w http.ResponseWri
 			// FIX: Set early_exit based on processing path if not set
 			if !metadata["early_exit"].(bool) && enhancedResult.ProcessingPath == "layer1" {
 				metadata["early_exit"] = true // Layer1 indicates early exit
+			}
+			
+			// FIX: Also check if early_exit is set in enhancedResult.Metadata
+			if !metadata["early_exit"].(bool) && enhancedResult.Metadata != nil {
+				if earlyExit, ok := enhancedResult.Metadata["early_exit"].(bool); ok && earlyExit {
+					metadata["early_exit"] = true
+				}
+			}
+			
+			// FIX: Set scraping_strategy to "early_exit" if early_exit is true but strategy is empty
+			if metadata["early_exit"].(bool) && metadata["scraping_strategy"] == "" {
+				metadata["scraping_strategy"] = "early_exit"
 			}
 			
 			return metadata
@@ -3312,7 +3335,41 @@ func (h *ClassificationHandler) generateEnhancedClassification(ctx context.Conte
 	}
 
 	// Fallback to Go classification result
+	// FIX: Set early exit metadata when ML was skipped (early termination)
 	if goResult != nil {
+		// If ML was skipped due to early termination, mark as early exit
+		if skipML {
+			// Set ProcessingPath to layer1 for early exit
+			if goResult.ProcessingPath == "" {
+				goResult.ProcessingPath = "layer1"
+			}
+			
+			// Ensure metadata exists
+			if goResult.Metadata == nil {
+				goResult.Metadata = make(map[string]interface{})
+			}
+			
+			// Set early_exit flag
+			goResult.Metadata["early_exit"] = true
+			
+			// Set scraping_strategy if not set
+			if scrapingStrategy, ok := goResult.Metadata["scraping_strategy"].(string); !ok || scrapingStrategy == "" {
+				goResult.Metadata["scraping_strategy"] = "early_exit"
+			}
+			
+			// Log early exit
+			h.logger.Info("✅ [EARLY-EXIT] Early exit triggered - ML skipped",
+				zap.String("request_id", req.RequestID),
+				zap.String("reason", func() string {
+					if skipMLClassification {
+						return "adaptive_timeout"
+					}
+					return "high_confidence"
+				}()),
+				zap.Float64("confidence", goResult.ConfidenceScore),
+				zap.String("processing_path", goResult.ProcessingPath))
+		}
+		
 		return goResult, nil
 	}
 
