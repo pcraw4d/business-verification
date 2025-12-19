@@ -204,11 +204,6 @@ func (s *testSmartWebsiteCrawlerAdapter) CrawlWebsiteFast(ctx context.Context, w
 		return nil, err
 	}
 	return &testCrawlResultAdapter{result: result}, nil
-	result, err := s.crawler.CrawlWebsite(ctx, websiteURL)
-	if err != nil {
-		return nil, err
-	}
-	return &testCrawlResultAdapter{result: result}, nil
 }
 
 // TestServiceWithRealDatabase tests the service with a real Supabase database

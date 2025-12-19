@@ -887,3 +887,81 @@ func (m *MockKeywordRepository) MatchCodeEmbeddings(
 	return result, nil
 }
 
+// Phase 5: Classification Cache Methods
+
+// GetCachedClassification retrieves a cached classification result
+func (m *MockKeywordRepository) GetCachedClassification(
+	ctx context.Context,
+	contentHash string,
+) (*repository.CachedClassificationResult, error) {
+	if err := m.errorMap["GetCachedClassification"]; err != nil {
+		return nil, err
+	}
+	// Mock implementation - return nil (cache miss) for testing
+	return nil, nil
+}
+
+// SetCachedClassification stores a cached classification result
+func (m *MockKeywordRepository) SetCachedClassification(
+	ctx context.Context,
+	contentHash string,
+	businessName string,
+	websiteURL string,
+	result *repository.CachedClassificationResult,
+) error {
+	if err := m.errorMap["SetCachedClassification"]; err != nil {
+		return err
+	}
+	// Mock implementation - no-op for testing
+	return nil
+}
+
+// GetCacheStats retrieves cache statistics
+func (m *MockKeywordRepository) GetCacheStats(ctx context.Context) (*repository.CacheStats, error) {
+	if err := m.errorMap["GetCacheStats"]; err != nil {
+		return nil, err
+	}
+	return &repository.CacheStats{
+		TotalEntries: 0,
+		HitRate:      0.0,
+		AvgAge:       0,
+		ExpiringSoon: 0,
+	}, nil
+}
+
+// Phase 5: Metrics Logging
+
+// LogClassificationMetrics logs classification metrics
+func (m *MockKeywordRepository) LogClassificationMetrics(
+	ctx context.Context,
+	metrics *repository.ClassificationMetricsRecord,
+) error {
+	if err := m.errorMap["LogClassificationMetrics"]; err != nil {
+		return err
+	}
+	// Mock implementation - no-op for testing
+	return nil
+}
+
+// GetDashboardSummary retrieves dashboard summary data
+func (m *MockKeywordRepository) GetDashboardSummary(
+	ctx context.Context,
+	days int,
+) ([]*repository.DashboardMetric, error) {
+	if err := m.errorMap["GetDashboardSummary"]; err != nil {
+		return nil, err
+	}
+	return []*repository.DashboardMetric{}, nil
+}
+
+// GetTimeSeriesData retrieves time series data
+func (m *MockKeywordRepository) GetTimeSeriesData(
+	ctx context.Context,
+	days int,
+) ([]*repository.TimeSeriesData, error) {
+	if err := m.errorMap["GetTimeSeriesData"]; err != nil {
+		return nil, err
+	}
+	return []*repository.TimeSeriesData{}, nil
+}
+
