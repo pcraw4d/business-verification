@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/redis/go-redis/v9"
 	postgrest "github.com/supabase-community/postgrest-go"
 	"go.uber.org/zap"
 
@@ -47,18 +48,40 @@ func NewMerchantHandler(supabaseClient *supabase.Client, logger *zap.Logger, con
 	// Initialize Redis cache if enabled
 	var redisCache *cache.RedisCacheImpl
 	if config.Merchant.RedisEnabled && config.Merchant.RedisURL != "" {
-		cacheConfig := &cache.RedisCacheConfig{
-			Addr:     config.Merchant.RedisURL,
-			Password: "",
-			DB:       0,
-			TTL:      config.Merchant.CacheTTL,
-			PoolSize: 10,
-		}
-		var err error
-		redisCache, err = cache.NewRedisCache(cacheConfig, logger)
+		// Parse Redis URL to extract host, port, password, and DB
+		redisOpts, err := redis.ParseURL(config.Merchant.RedisURL)
 		if err != nil {
-			logger.Warn("Failed to initialize Redis cache, continuing without cache",
+			logger.Warn("Failed to parse Redis URL, continuing without cache",
+				zap.String("redis_url", maskRedisURL(config.Merchant.RedisURL)),
 				zap.Error(err))
+		} else {
+			// Extract address (host:port) from parsed options
+			addr := redisOpts.Addr
+			
+			// Default pool size if not specified
+			poolSize := redisOpts.PoolSize
+			if poolSize == 0 {
+				poolSize = 10
+			}
+			
+			cacheConfig := &cache.RedisCacheConfig{
+				Addr:     addr,
+				Password: redisOpts.Password,
+				DB:       redisOpts.DB,
+				TTL:      config.Merchant.CacheTTL,
+				PoolSize: poolSize,
+			}
+			
+			redisCache, err = cache.NewRedisCache(cacheConfig, logger)
+			if err != nil {
+				logger.Warn("Failed to initialize Redis cache, continuing without cache",
+					zap.String("redis_url", maskRedisURL(config.Merchant.RedisURL)),
+					zap.Error(err))
+			} else {
+				logger.Info("✅ Redis cache initialized successfully for merchant service",
+					zap.String("redis_addr", addr),
+					zap.Int("db", redisOpts.DB))
+			}
 		}
 	}
 	
@@ -2432,4 +2455,26 @@ func (h *MerchantHandler) HandleMerchantRiskScore(w http.ResponseWriter, r *http
 	}
 
 	json.NewEncoder(w).Encode(response)
+}
+
+// maskRedisURL masks sensitive parts of Redis URL for logging
+func maskRedisURL(url string) string {
+	if url == "" {
+		return ""
+	}
+	// Mask password if present (format: redis://user:password@host:port)
+	if strings.Contains(url, "@") {
+		parts := strings.Split(url, "@")
+		if len(parts) == 2 {
+			authPart := parts[0]
+			if strings.Contains(authPart, ":") {
+				authParts := strings.Split(authPart, ":")
+				if len(authParts) >= 3 {
+					// redis://user:password -> redis://user:***
+					return strings.Join(authParts[:len(authParts)-1], ":") + ":***@" + parts[1]
+				}
+			}
+		}
+	}
+	return url
 }
