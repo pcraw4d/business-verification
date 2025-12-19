@@ -1843,7 +1843,20 @@ func (h *ClassificationHandler) handleClassificationStreaming(w http.ResponseWri
 		// Phase 5: Cache fields
 		FromCache:           enhancedResult.FromCache,
 		CachedAt:            enhancedResult.CachedAt,
-		ProcessingPath:      enhancedResult.ProcessingPath,
+		ProcessingPath: func() string {
+			path := enhancedResult.ProcessingPath
+			// FIX: Ensure ProcessingPath is set for early exits
+			if path == "" && enhancedResult.Metadata != nil {
+				if earlyExit, ok := enhancedResult.Metadata["early_exit"].(bool); ok && earlyExit {
+					path = "layer1"
+					h.logger.Info("🔧 [FIX] Setting ProcessingPath to layer1 for early exit",
+						zap.String("request_id", req.RequestID),
+						zap.String("original_path", enhancedResult.ProcessingPath),
+						zap.String("new_path", path))
+				}
+			}
+			return path
+		}(),
 		Metadata: func() map[string]interface{} {
 			metadata := map[string]interface{}{
 				"service":                  "classification-service",
