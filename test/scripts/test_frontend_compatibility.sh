@@ -34,6 +34,7 @@ REQUIRED_CLASSIFICATION_FIELDS=(
     "mcc_codes"
     "naics_codes"
     "sic_codes"
+    "explanation"
 )
 
 passed=0
@@ -71,6 +72,19 @@ else
             missing_fields+=("classification.$field")
         fi
     done
+    
+    # Check structured explanation fields (if explanation object exists)
+    if echo "$response" | python3 -c "import sys, json; d=json.load(sys.stdin); exp = d.get('classification', {}).get('explanation'); assert exp is not None, 'classification.explanation is null'" 2>/dev/null; then
+        echo "✅ classification.explanation: present (object)"
+        # Check key fields in structured explanation
+        if echo "$response" | python3 -c "import sys, json; d=json.load(sys.stdin); exp = d.get('classification', {}).get('explanation', {}); assert 'primary_reason' in exp, 'Missing primary_reason'" 2>/dev/null; then
+            echo "✅ classification.explanation.primary_reason: present"
+        else
+            missing_fields+=("classification.explanation.primary_reason")
+        fi
+    else
+        missing_fields+=("classification.explanation (null)")
+    fi
     
     # Check that arrays are not null
     if echo "$response" | python3 -c "import sys, json; d=json.load(sys.stdin); assert d.get('classification', {}).get('mcc_codes') is not None, 'mcc_codes is null'" 2>/dev/null; then

@@ -642,6 +642,21 @@ func (h *ClassificationHandler) validateResponse(response *ClassificationRespons
 		if response.Classification.Industry == "" {
 			response.Classification.Industry = response.PrimaryIndustry
 		}
+		// Priority 4 Fix: Ensure structured explanation is present (if classification exists)
+		// The structured explanation provides detailed reasoning for frontend display
+		if response.Classification.Explanation == nil {
+			// Create a minimal structured explanation if missing
+			response.Classification.Explanation = &classification.ClassificationExplanation{
+				PrimaryReason:     response.Explanation, // Use top-level explanation as fallback
+				SupportingFactors: []string{fmt.Sprintf("Confidence score: %.0f%%", response.ConfidenceScore*100)},
+				KeyTermsFound:     []string{},
+				MethodUsed:        "multi_strategy",
+				ProcessingPath:    response.ProcessingPath,
+			}
+			if response.Classification.Explanation.PrimaryReason == "" {
+				response.Classification.Explanation.PrimaryReason = fmt.Sprintf("Classified as '%s' based on business information", response.PrimaryIndustry)
+			}
+		}
 	}
 
 	// Ensure Status is always set
