@@ -3,12 +3,37 @@ package cache
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 )
+
+// maskRedisURL masks sensitive parts of Redis URL for logging
+func maskRedisURL(url string) string {
+	if url == "" {
+		return ""
+	}
+	// Mask password if present (format: redis://user:password@host:port)
+	if strings.Contains(url, "@") {
+		parts := strings.Split(url, "@")
+		if len(parts) == 2 {
+			// Mask the part before @ (contains password)
+			authPart := parts[0]
+			if strings.Contains(authPart, ":") {
+				authParts := strings.Split(authPart, ":")
+				if len(authParts) >= 3 {
+					// redis://user:password format
+					return fmt.Sprintf("redis://%s:***@%s", authParts[1], parts[1])
+				}
+			}
+		}
+	}
+	// If no password detected, return as-is (or mask host if needed)
+	return url
+}
 
 // RedisCache provides distributed caching with Redis, with fallback to in-memory cache
 type RedisCache struct {
@@ -37,10 +62,24 @@ func NewRedisCache(redisURL string, prefix string, logger *zap.Logger) *RedisCac
 
 	// Parse Redis URL and create client
 	if redisURL != "" {
-		opt, err := redis.ParseURL(redisURL)
+		// Fix: Handle Railway template variables - strip template syntax if not resolved
+		// Railway template variables like "r${{ Redis.REDIS_URL }}" need to be resolved
+		// If template variable not resolved, try to extract actual URL or use as-is
+		actualRedisURL := redisURL
+		if strings.Contains(redisURL, "${{") {
+			// Template variable not resolved - try to extract or log warning
+			logger.Warn("Redis URL appears to contain unresolved template variable",
+				zap.String("redis_url", maskRedisURL(redisURL)),
+				zap.String("hint", "Ensure Railway template variables are resolved"))
+			// Try to extract Redis URL from template if possible
+			// For now, return early to use in-memory cache
+			return rc
+		}
+		
+		opt, err := redis.ParseURL(actualRedisURL)
 		if err != nil {
 			logger.Warn("Failed to parse Redis URL, using in-memory cache only",
-				zap.String("redis_url", redisURL),
+				zap.String("redis_url", maskRedisURL(actualRedisURL)),
 				zap.Error(err))
 			return rc
 		}

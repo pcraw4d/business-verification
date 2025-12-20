@@ -4244,12 +4244,17 @@ func (h *ClassificationHandler) combineEnsembleResults(pythonMLResult, goResult 
 	const pythonMLWeight = 0.60
 	const goWeight = 0.40
 
-	h.logger.Info("Combining ensemble results",
+	// Priority 5.4: Enhanced classification decision logging
+	h.logger.Info("🔍 [CLASSIFICATION-DECISION] Combining ensemble results",
 		zap.String("request_id", req.RequestID),
 		zap.String("python_ml_industry", pythonMLResult.PrimaryIndustry),
 		zap.Float64("python_ml_confidence", pythonMLResult.ConfidenceScore),
 		zap.String("go_industry", goResult.PrimaryIndustry),
-		zap.Float64("go_confidence", goResult.ConfidenceScore))
+		zap.Float64("go_confidence", goResult.ConfidenceScore),
+		zap.Strings("python_ml_keywords", pythonMLResult.Keywords),
+		zap.Strings("go_keywords", goResult.Keywords),
+		zap.Int("python_ml_mcc_codes", len(pythonMLResult.MCCCodes)),
+		zap.Int("go_mcc_codes", len(goResult.MCCCodes)))
 
 	// Determine primary industry based on consensus and weighted confidence
 	var primaryIndustry string
@@ -4261,9 +4266,14 @@ func (h *ClassificationHandler) combineEnsembleResults(pythonMLResult, goResult 
 		primaryIndustry = pythonMLResult.PrimaryIndustry
 		// Consensus boost: add 5% to confidence when both agree
 		consensusBoost = 0.05
-		h.logger.Info("Ensemble consensus: Both methods agree on industry",
+		// Priority 5.4: Enhanced consensus logging
+		h.logger.Info("✅ [CLASSIFICATION-DECISION] Ensemble consensus: Both methods agree on industry",
 			zap.String("request_id", req.RequestID),
-			zap.String("industry", primaryIndustry))
+			zap.String("industry", primaryIndustry),
+			zap.Float64("python_ml_confidence", pythonMLResult.ConfidenceScore),
+			zap.Float64("go_confidence", goResult.ConfidenceScore),
+			zap.Float64("consensus_boost", consensusBoost),
+			zap.Float64("final_confidence", confidenceScore))
 	} else {
 		// No consensus - use weighted selection based on confidence
 		pythonMLScore := pythonMLResult.ConfidenceScore * pythonMLWeight
@@ -4274,11 +4284,24 @@ func (h *ClassificationHandler) combineEnsembleResults(pythonMLResult, goResult 
 		} else {
 			primaryIndustry = goResult.PrimaryIndustry
 		}
-		h.logger.Info("Ensemble disagreement: Using weighted selection",
+		// Priority 5.4: Enhanced disagreement logging with reasoning
+		h.logger.Info("⚠️ [CLASSIFICATION-DECISION] Ensemble disagreement: Using weighted selection",
 			zap.String("request_id", req.RequestID),
 			zap.String("selected_industry", primaryIndustry),
+			zap.String("python_ml_industry", pythonMLResult.PrimaryIndustry),
+			zap.String("go_industry", goResult.PrimaryIndustry),
 			zap.Float64("python_ml_weighted_score", pythonMLScore),
-			zap.Float64("go_weighted_score", goScore))
+			zap.Float64("go_weighted_score", goScore),
+			zap.Float64("python_ml_confidence", pythonMLResult.ConfidenceScore),
+			zap.Float64("go_confidence", goResult.ConfidenceScore),
+			zap.Float64("python_ml_weight", pythonMLWeight),
+			zap.Float64("go_weight", goWeight),
+			zap.String("selection_reason", func() string {
+				if pythonMLScore >= goScore {
+					return fmt.Sprintf("Python ML selected (weighted score %.3f >= %.3f)", pythonMLScore, goScore)
+				}
+				return fmt.Sprintf("Go classification selected (weighted score %.3f > %.3f)", goScore, pythonMLScore)
+			}()))
 	}
 
 	// Calculate weighted confidence score

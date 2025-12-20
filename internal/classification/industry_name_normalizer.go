@@ -113,16 +113,27 @@ func buildIndustryMappings() map[string]string {
 		"financial":         "Financial Services",
 		"banking":           "Financial Services",
 		"financial service": "Financial Services",
+		"bank":              "Financial Services",
+		"banks":             "Financial Services",
+		"investment banking": "Financial Services",
+		"investment bank":   "Financial Services",
 
 		// Retail variations
 		"retail":         "Retail",
 		"retailer":       "Retail",
 		"retail shop":    "Retail",
+		"retail & commerce": "Retail",
+		"retail and commerce": "Retail",
+		"commerce":       "Retail",
+		"e-commerce":     "Retail",
+		"ecommerce":      "Retail",
 
 		// Manufacturing variations
 		"manufacturing":  "Manufacturing",
 		"manufacturer":   "Manufacturing",
 		"production":     "Manufacturing",
+		"industrial manufacturing": "Manufacturing",
+		"industrial":     "Manufacturing",
 
 		// Construction variations
 		"construction":   "Construction",
@@ -145,6 +156,15 @@ func buildIndustryMappings() map[string]string {
 		"food":            "Food & Beverage",
 		"beverage":        "Food & Beverage",
 		"dining":          "Food & Beverage",
+		"restaurants":     "Food & Beverage",
+		"restaurant":      "Food & Beverage",
+		"cafes & coffee shops": "Food & Beverage",
+		"cafes":           "Food & Beverage",
+		"cafe":            "Food & Beverage",
+		"coffee shops":    "Food & Beverage",
+		"coffee shop":     "Food & Beverage",
+		"fast food":       "Food & Beverage",
+		"food service":    "Food & Beverage",
 
 		// Catering
 		"catering":        "Catering",
@@ -155,7 +175,6 @@ func buildIndustryMappings() map[string]string {
 		"casual restaurant": "Casual Dining",
 
 		// Fast Food
-		"fast food":       "Fast Food",
 		"fast-food":       "Fast Food",
 
 		// Wineries
@@ -180,9 +199,7 @@ func buildIndustryMappings() map[string]string {
 		"bars":            "Bars & Pubs",
 		"pubs":            "Bars & Pubs",
 
-		// Restaurants
-		"restaurants":     "Restaurants",
-		"restaurant":      "Restaurants",
+		// Restaurants (mapped to Food & Beverage above)
 
 		// Quick Service
 		"quick service":   "Quick Service",
@@ -201,6 +218,17 @@ func buildIndustryMappings() map[string]string {
 		"gaming":          "Gambling",
 		"online casino":   "Gambling",
 		"casino platform": "Gambling",
+
+		// Entertainment variations
+		"entertainment":   "Entertainment",
+		"media":           "Entertainment",
+		"streaming":       "Entertainment",
+		"streaming services": "Entertainment",
+		"entertainment services": "Entertainment",
+		"media services": "Entertainment",
+		"content creation": "Entertainment",
+		"video streaming": "Entertainment",
+		"music streaming": "Entertainment",
 
 		// Additional common variations
 		"it services":     "Technology",
@@ -230,8 +258,6 @@ func buildIndustryMappings() map[string]string {
 		"retail business": "Retail",
 		"retail company":  "Retail",
 		"online retail":   "Retail",
-		"ecommerce":       "Retail",
-		"e-commerce":      "Retail",
 
 		"construction company": "Construction",
 		"construction contractor": "Construction",
@@ -248,7 +274,6 @@ func buildIndustryMappings() map[string]string {
 		"manufacturing company": "Manufacturing",
 		"manufacturing services": "Manufacturing",
 		"production company": "Manufacturing",
-		"industrial manufacturing": "Manufacturing",
 
 		"transportation services": "Transportation",
 		"logistics services": "Transportation",
@@ -303,5 +328,36 @@ func (n *IndustryNameNormalizer) GetIndustryAliases(industryName string) []strin
 	}
 
 	return aliases
+}
+
+// AreIndustriesEquivalent checks if two industry names refer to the same industry
+// Priority 5.3: Enhanced industry matching for accuracy improvement
+func (n *IndustryNameNormalizer) AreIndustriesEquivalent(industry1, industry2 string) bool {
+	if industry1 == "" || industry2 == "" {
+		return false
+	}
+
+	// Normalize both industry names
+	normalized1, _ := n.NormalizeIndustryName(industry1)
+	normalized2, _ := n.NormalizeIndustryName(industry2)
+
+	// Check if normalized names match (case-insensitive)
+	if strings.EqualFold(normalized1, normalized2) {
+		return true
+	}
+
+	// Check if one is an alias of the other
+	aliases1 := n.GetIndustryAliases(normalized1)
+	aliases2 := n.GetIndustryAliases(normalized2)
+
+	for _, alias1 := range aliases1 {
+		for _, alias2 := range aliases2 {
+			if strings.EqualFold(alias1, alias2) {
+				return true
+			}
+		}
+	}
+
+	return false
 }
 
