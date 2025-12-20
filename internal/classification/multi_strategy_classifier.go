@@ -486,6 +486,57 @@ func (msc *MultiStrategyClassifier) tryFastPath(
 		return nil, false // No obvious keywords found
 	}
 
+	// PRIORITY FIX: Check for Food & Beverage and Healthcare keywords FIRST
+	// This ensures they take precedence over Retail/Insurance when both keywords are present
+	descriptionLower := strings.ToLower(description)
+	businessNameLower := strings.ToLower(businessName)
+	
+	// Check for Food & Beverage keywords (coffee, restaurant, food, beverage, etc.)
+	hasFoodBeverageKeywords := false
+	foodBeverageKeywords := []string{"coffee", "restaurant", "cafe", "food", "beverage", "dining", "kitchen", "bakery", "bar", "pub", "brewery", "winery", "pizzeria", "diner", "bistro", "eatery"}
+	for _, fbKw := range foodBeverageKeywords {
+		for _, k := range obviousKeywords {
+			if strings.Contains(strings.ToLower(k), fbKw) {
+				hasFoodBeverageKeywords = true
+				break
+			}
+		}
+		if hasFoodBeverageKeywords {
+			break
+		}
+		// Also check in description and business name
+		if !hasFoodBeverageKeywords {
+			hasFoodBeverageKeywords = strings.Contains(descriptionLower, fbKw) || 
+			                          strings.Contains(businessNameLower, fbKw)
+			if hasFoodBeverageKeywords {
+				break
+			}
+		}
+	}
+	
+	// Check for Healthcare keywords (healthcare, medical, health, clinic, hospital, etc.)
+	hasHealthcareKeywords := false
+	healthcareKeywords := []string{"healthcare", "medical", "health", "clinic", "hospital", "physician", "doctor", "pharmacy", "pharmaceutical"}
+	for _, hcKw := range healthcareKeywords {
+		for _, k := range obviousKeywords {
+			if strings.Contains(strings.ToLower(k), hcKw) {
+				hasHealthcareKeywords = true
+				break
+			}
+		}
+		if hasHealthcareKeywords {
+			break
+		}
+		// Also check in description and business name
+		if !hasHealthcareKeywords {
+			hasHealthcareKeywords = strings.Contains(descriptionLower, hcKw) || 
+			                        strings.Contains(businessNameLower, hcKw)
+			if hasHealthcareKeywords {
+				break
+			}
+		}
+	}
+	
 	// Check each obvious keyword for direct industry match
 	for _, keyword := range obviousKeywords {
 		// Query for high-confidence keyword matches (lower threshold for fast path: 0.70+)
@@ -495,14 +546,35 @@ func (msc *MultiStrategyClassifier) tryFastPath(
 			// Found high-confidence match via obvious keyword
 			industry := matches[0]
 			industryNameLower := strings.ToLower(industry.Name)
-
+			keywordLower := strings.ToLower(keyword)
+			
+			// PRIORITY FIX 1: If Food & Beverage keywords are present, skip Retail/Manufacturing matches
+			// This fixes Starbucks: "Coffee retail" -> should be Food & Beverage, not Retail
+			if hasFoodBeverageKeywords {
+				if strings.Contains(industryNameLower, "retail") && !strings.Contains(industryNameLower, "restaurant") && 
+				   !strings.Contains(industryNameLower, "food") && !strings.Contains(industryNameLower, "beverage") {
+					msc.logger.Printf("⚠️ [FastPath] Skipping fast path - Food & Beverage keywords present but matched Retail industry '%s' (keyword: '%s', description: '%s'). Forcing full classification path.", industry.Name, keyword, description)
+					continue // Skip this match, try next keyword
+				}
+				if strings.Contains(industryNameLower, "manufacturing") && !strings.Contains(descriptionLower, "beverage") {
+					msc.logger.Printf("⚠️ [FastPath] Skipping fast path - Food & Beverage keywords present but matched Manufacturing industry '%s' (keyword: '%s', description: '%s'). Forcing full classification path.", industry.Name, keyword, description)
+					continue // Skip this match, try next keyword
+				}
+			}
+			
+			// PRIORITY FIX 2: If Healthcare keywords are present, skip Insurance matches
+			// This fixes UnitedHealth Group: "Healthcare insurance" -> should be Healthcare, not Insurance
+			if hasHealthcareKeywords {
+				if strings.Contains(industryNameLower, "insurance") && !strings.Contains(industryNameLower, "health") {
+					msc.logger.Printf("⚠️ [FastPath] Skipping fast path - Healthcare keywords present but matched Insurance industry '%s' (keyword: '%s', description: '%s'). Forcing full classification path.", industry.Name, keyword, description)
+					continue // Skip this match, try next keyword
+				}
+			}
+			
 			// FIX: Check for Food & Beverage false positives in fast path
 			// Priority: Check for "beverage" FIRST, then check for "manufacturing"
 			// This prevents Ford (automotive manufacturing) from being classified as Food Production
 			// But allows Coca-Cola (beverage manufacturing) to use fast path for Food & Beverage
-			keywordLower := strings.ToLower(keyword)
-			descriptionLower := strings.ToLower(description)
-			businessNameLower := strings.ToLower(businessName)
 			
 			// FIRST: Check if "beverage" is present (in keywords, description, or business name)
 			hasBeverage := false
@@ -520,7 +592,7 @@ func (msc *MultiStrategyClassifier) tryFastPath(
 			}
 			
 			// SECOND: Check if keyword is "manufacturing" OR if description/business name contains "manufacturing"
-			isManufacturingKeyword := strings.Contains(keywordLower, "manufacturing") || 
+			isManufacturingKeyword := strings.Contains(keywordLower, "manufacturing") ||
 			                        strings.Contains(descriptionLower, "manufacturing") ||
 			                        strings.Contains(businessNameLower, "manufacturing")
 			
