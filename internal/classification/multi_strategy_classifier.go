@@ -574,7 +574,7 @@ func (msc *MultiStrategyClassifier) extractObviousKeywords(businessName, descrip
 		"restaurant": true, "cafe": true, "coffee": true, "bakery": true,
 		"bar": true, "pub": true, "brewery": true, "winery": true,
 		"pizzeria": true, "diner": true, "bistro": true, "pizza": true,
-		"dining": true, "food": true, "eatery": true,
+		"dining": true, "food": true, "eatery": true, "beverage": true,
 
 		// Retail
 		"shop": true, "store": true, "boutique": true, "market": true,
