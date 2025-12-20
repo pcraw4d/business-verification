@@ -76,16 +76,79 @@ for test_case in "${TEST_CASES[@]}"; do
     CONFIDENCE=$(echo "$RESPONSE" | python3 -c "import sys, json; d=json.load(sys.stdin); print(d.get('confidence_score', 0))" 2>/dev/null)
     SUCCESS=$(echo "$RESPONSE" | python3 -c "import sys, json; d=json.load(sys.stdin); print(d.get('success', False))" 2>/dev/null)
     
-    # Check if correct (case-insensitive)
+    # Check if correct using industry name normalization
     IS_CORRECT=false
     if [ "$SUCCESS" = "True" ] && [ -n "$PREDICTED" ] && [ "$PREDICTED" != "Unknown" ]; then
-        # Normalize industry names for comparison
-        EXPECTED_NORM=$(echo "$EXPECTED" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]//g')
-        PREDICTED_NORM=$(echo "$PREDICTED" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]//g')
+        # Use Python to normalize industry names and check equivalence
+        # This matches the logic in industry_name_normalizer.go
+        IS_CORRECT=$(python3 <<PYTHON_SCRIPT
+expected = "$EXPECTED"
+predicted = "$PREDICTED"
+
+# Industry name mappings (from industry_name_normalizer.go)
+# Maps variations to canonical names
+mappings = {
+    'banking': 'Financial Services',
+    'finance': 'Financial Services',
+    'financial': 'Financial Services',
+    'financial services': 'Financial Services',
+    'restaurants': 'Food & Beverage',
+    'restaurant': 'Food & Beverage',
+    'cafes & coffee shops': 'Food & Beverage',
+    'cafes': 'Food & Beverage',
+    'cafe': 'Food & Beverage',
+    'coffee shops': 'Food & Beverage',
+    'coffee shop': 'Food & Beverage',
+    'food & beverage': 'Food & Beverage',
+    'food and beverage': 'Food & Beverage',
+    'food': 'Food & Beverage',
+    'beverage': 'Food & Beverage',
+    'retail': 'Retail',
+    'retail & commerce': 'Retail',
+    'retail and commerce': 'Retail',
+    'commerce': 'Retail',
+    'industrial manufacturing': 'Manufacturing',
+    'manufacturing': 'Manufacturing',
+    'technology': 'Technology',
+    'tech': 'Technology',
+    'healthcare': 'Healthcare',
+    'health': 'Healthcare',
+    'medical': 'Healthcare',
+    'entertainment': 'Entertainment',
+    'media': 'Entertainment',
+    'streaming': 'Entertainment',
+    'education': 'Education',
+}
+
+def normalize(name):
+    if not name:
+        return 'General Business'
+    normalized = name.lower().strip()
+    # First check exact match
+    if normalized in mappings:
+        return mappings[normalized]
+    # Check if any mapping key is contained in the name
+    for key, value in mappings.items():
+        if key in normalized:
+            return value
+    # Return original if no mapping found
+    return name
+
+expected_norm = normalize(expected)
+predicted_norm = normalize(predicted)
+
+# Check if normalized names match (case-insensitive)
+if expected_norm.lower() == predicted_norm.lower():
+    print('true')
+elif expected.lower() == predicted.lower():
+    # Direct match
+    print('true')
+else:
+    print('false')
+PYTHON_SCRIPT
+)
         
-        # Check for exact match or partial match
-        if [ "$EXPECTED_NORM" = "$PREDICTED_NORM" ] || [[ "$PREDICTED_NORM" == *"$EXPECTED_NORM"* ]] || [[ "$EXPECTED_NORM" == *"$PREDICTED_NORM"* ]]; then
-            IS_CORRECT=true
+        if [ "$IS_CORRECT" = "true" ]; then
             CORRECT=$((CORRECT + 1))
         fi
     fi
