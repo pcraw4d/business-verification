@@ -500,20 +500,35 @@ func (msc *MultiStrategyClassifier) tryFastPath(
 			// If "manufacturing" keyword matches Food industry without "beverage", skip fast path
 			// This prevents Ford (automotive manufacturing) from being classified as Food Production
 			keywordLower := strings.ToLower(keyword)
-			if strings.Contains(keywordLower, "manufacturing") {
+			descriptionLower := strings.ToLower(description)
+			businessNameLower := strings.ToLower(businessName)
+			
+			// Check if keyword is "manufacturing" OR if description/business name contains "manufacturing"
+			isManufacturingKeyword := strings.Contains(keywordLower, "manufacturing") || 
+			                        strings.Contains(descriptionLower, "manufacturing") ||
+			                        strings.Contains(businessNameLower, "manufacturing")
+			
+			if isManufacturingKeyword {
 				// Check if it's actually "beverage manufacturing"
 				hasBeverage := false
+				// Check in obvious keywords
 				for _, k := range obviousKeywords {
 					if strings.Contains(strings.ToLower(k), "beverage") {
 						hasBeverage = true
 						break
 					}
 				}
+				// Also check in description and business name
+				if !hasBeverage {
+					hasBeverage = strings.Contains(descriptionLower, "beverage") || 
+					              strings.Contains(businessNameLower, "beverage")
+				}
+				
 				// If "manufacturing" without "beverage" matched Food industry, skip fast path
 				if !hasBeverage && (strings.Contains(industryNameLower, "food") || 
 				                    strings.Contains(industryNameLower, "beverage") ||
 				                    strings.Contains(industryNameLower, "production")) {
-					msc.logger.Printf("⚠️ [FastPath] Skipping fast path - 'manufacturing' without 'beverage' matched Food industry '%s'. Forcing full classification path.", industry.Name)
+					msc.logger.Printf("⚠️ [FastPath] Skipping fast path - 'manufacturing' without 'beverage' matched Food industry '%s' (keyword: '%s', description: '%s'). Forcing full classification path.", industry.Name, keyword, description)
 					return nil, false // Force full classification path where fix can apply
 				}
 			}
@@ -605,6 +620,9 @@ func (msc *MultiStrategyClassifier) extractObviousKeywords(businessName, descrip
 		// Automotive
 		"auto repair": true, "mechanic": true, "car wash": true,
 		"dealership": true, "automotive": true, "auto": true,
+		
+		// Manufacturing
+		"manufacturing": true, "production": true, "factory": true, "industrial": true,
 
 		// Personal Services
 		"salon": true, "barber": true, "spa": true, "gym": true,
