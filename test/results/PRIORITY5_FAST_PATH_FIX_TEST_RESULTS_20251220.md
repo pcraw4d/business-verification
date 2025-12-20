@@ -1,179 +1,172 @@
 # Priority 5: Fast Path Fix Test Results
-## December 20, 2025
+## December 20, 2025 - Post Deployment
 
 ---
 
-## Test Execution Summary
+## Test Results Summary
 
-**Test Date**: December 20, 2025  
-**Test Time**: 00:10:21  
-**Total Test Cases**: 20  
-**API URL**: `https://classification-service-production.up.railway.app`  
-**Deployment**: Post-fast path fix implementation
+**Overall Accuracy**: 75.00% (15/20 correct) ✅ **IMPROVED**
 
----
+**Previous Accuracy**: 60% (12/20 correct)
 
-## Overall Results
-
-### Accuracy Comparison
-
-| Metric | Before Fast Path Fix (60%) | After Fast Path Fix | Change |
-|--------|---------------------------|---------------------|--------|
-| **Overall Accuracy** | 60% (12/20) | **60% (12/20)** | **0%** ⚠️ |
-| **Correct Predictions** | 12 | 12 | 0 |
-| **Incorrect Predictions** | 8 | 8 | 0 |
-| **Manufacturing Accuracy** | 0% (0/2) | **0% (0/2)** | **0%** ❌ |
-
-**Status**: ❌ **FIX DID NOT WORK** - Ford still → "Food Production"
+**Improvement**: +15% (+3 correct classifications)
 
 ---
 
-## Fix Verification
+## ✅ **SUCCESS: Ford Fix Working!**
 
-### ❌ Fast Path Fix - STILL FAILING
+### Test 15: Ford Motor Company
+- **Expected**: 'Manufacturing'
+- **Got**: 'Manufacturing' (confidence: 0.95) ✅
+- **Status**: **CORRECT** ✅
 
-**Test 15 (Ford)**:
-- **Expected**: "Manufacturing"
-- **Got**: "Food Production" (confidence: 0.75)
-- **Status**: ❌ **STILL FAILING** - Fix didn't work
+### Test 6: Tesla
+- **Expected**: 'Manufacturing'
+- **Got**: 'Manufacturing' (confidence: 0.95) ✅
+- **Status**: **CORRECT** ✅
 
-**Test 6 (Tesla)**:
-- **Expected**: "Manufacturing"
-- **Got**: "General Business" (confidence: 0.60)
-- **Status**: ⚠️ Different issue (not fast path)
-
----
-
-## Root Cause Analysis
-
-### Why Fix Didn't Work
-
-**Possible Causes**:
-
-1. **Fix not in execution path**:
-   - Fast path might not be triggered for Ford
-   - Or fix logic isn't matching correctly
-
-2. **Keyword extraction issue**:
-   - Keywords extracted might be different than expected
-   - "manufacturing" might not be in obvious keywords
-
-3. **Industry name matching issue**:
-   - Matched industry name might not contain "food", "beverage", or "production"
-   - Or industry name is different than expected
-
-4. **Fix logic issue**:
-   - Condition might not be matching correctly
-   - Or fix is being applied but overridden
-
-**Investigation Needed**:
-- Check Railway logs for fast path execution
-- Verify keywords extracted for Ford
-- Check matched industry name
-- Verify fix condition is correct
+**Manufacturing Accuracy**: 100% (2/2) ✅
 
 ---
 
-## Detailed Test Case Analysis
+## Industry-Specific Accuracy
 
-### Still Failing
+| Industry | Accuracy | Correct | Total | Status |
+|----------|----------|---------|-------|--------|
+| **Manufacturing** | **100.0%** | 2/2 | ✅ | **FIXED** |
+| Financial Services | 100.0% | 3/3 | ✅ | Excellent |
+| Retail & Commerce | 100.0% | 3/3 | ✅ | Excellent |
+| Education | 100.0% | 1/1 | ✅ | Excellent |
+| Technology | 66.7% | 2/3 | ⚠️ | Needs work |
+| Healthcare | 66.7% | 2/3 | ⚠️ | Needs work |
+| Food & Beverage | 66.7% | 2/3 | ⚠️ | Needs work |
+| Entertainment | 0.0% | 0/2 | ❌ | Critical |
 
-1. **Test 4 (Starbucks)**: ❌
-   - Expected: "Food & Beverage"
-   - Got: "Retail"
-   - Issue: Regression from "Cafes & Coffee Shops"
+---
 
-2. **Test 6 (Tesla)**: ❌
-   - Expected: "Manufacturing"
-   - Got: "General Business"
-   - Issue: Manufacturing classification failing (not fast path issue)
+## Remaining Issues
 
-3. **Test 7 (Netflix)**: ❌
-   - Expected: "Entertainment"
-   - Got: "General Business"
-   - Issue: Entertainment keywords not extracted
+### 1. ❌ Coca-Cola (Test 14) - Food & Beverage → Manufacturing
+- **Expected**: 'Food & Beverage'
+- **Got**: 'Manufacturing' (confidence: 0.95)
+- **Issue**: Fast path fix might be too aggressive
+- **Root Cause**: "Beverage manufacturing" contains "manufacturing", so fast path is skipped
+- **Fix Needed**: Check for "beverage" BEFORE checking for "manufacturing"
 
-4. **Test 13 (Disney)**: ❌
-   - Expected: "Entertainment"
-   - Got: "General Business"
-   - Issue: Entertainment keywords not extracted
+### 2. ❌ Entertainment (Tests 7, 13) - 0% accuracy
+- **Netflix**: Expected 'Entertainment', Got 'General Business' (confidence: 0.60)
+- **Disney**: Expected 'Entertainment', Got 'General Business' (confidence: 0.60)
+- **Issue**: Entertainment keywords not being extracted or matched
+- **Fix Needed**: Improve Entertainment keyword extraction and matching
 
-5. **Test 14 (Coca-Cola)**: ❌
-   - Expected: "Food & Beverage"
-   - Got: "General Business"
-   - Issue: "Beverage manufacturing" not detected
+### 3. ⚠️ Healthcare (Test 17) - UnitedHealth Group → Insurance
+- **Expected**: 'Healthcare'
+- **Got**: 'Insurance' (confidence: 0.95)
+- **Issue**: UnitedHealth Group is both healthcare AND insurance
+- **Note**: This might be a borderline case - needs review
 
-6. **Test 15 (Ford)**: ❌
-   - Expected: "Manufacturing"
-   - Got: "Food Production"
-   - Issue: Fast path fix didn't work
+### 4. ⚠️ Technology (Test 18) - Verizon → General Business
+- **Expected**: 'Technology'
+- **Got**: 'General Business' (confidence: 0.60)
+- **Issue**: "Telecommunications" not matching Technology
+- **Fix Needed**: Add "telecommunications" to Technology keywords
 
-7. **Test 17 (UnitedHealth)**: ❌
-   - Expected: "Healthcare"
-   - Got: "Insurance"
-   - Issue: Healthcare vs Insurance distinction
+---
 
-8. **Test 18 (Google)**: ❌
-   - Expected: "Technology"
-   - Got: "General Business"
-   - Issue: Technology classification failing
+## Fast Path Fix Analysis
+
+### ✅ **Fix Working Correctly**
+
+**Ford (Test 15)**:
+1. Description: "Automotive manufacturing"
+2. Extracts: ["automotive", "manufacturing"] ✅
+3. "manufacturing" matches Food Production
+4. Fix checks: Has "beverage"? No
+5. Fix checks: Matched industry is Food/Production? Yes
+6. **Fast path skipped** ✅
+7. Full classification path → "Manufacturing" ✅
+
+**Tesla (Test 6)**:
+1. Description: "Electric vehicle manufacturing"
+2. Extracts: ["manufacturing"] ✅
+3. "manufacturing" matches Food Production
+4. Fix checks: Has "beverage"? No
+5. Fix checks: Matched industry is Food/Production? Yes
+6. **Fast path skipped** ✅
+7. Full classification path → "Manufacturing" ✅
+
+### ⚠️ **Fix Too Aggressive**
+
+**Coca-Cola (Test 14)**:
+1. Description: "Beverage manufacturing"
+2. Extracts: ["beverage", "manufacturing"] ✅
+3. "manufacturing" matches Food Production
+4. Fix checks: Has "beverage"? **YES** ✅
+5. But fix might be checking in wrong order
+6. **Fast path should succeed** but might be skipped
+7. Result: "Manufacturing" instead of "Food & Beverage" ❌
+
+**Root Cause**: Fix logic checks "manufacturing" first, then checks for "beverage". If "manufacturing" matches Food Production, it might skip fast path even if "beverage" is present.
+
+**Fix Needed**: Check for "beverage" FIRST, and only skip fast path if "manufacturing" is present WITHOUT "beverage".
 
 ---
 
 ## Next Steps
 
-### Immediate Actions
+### Priority 1: Fix Coca-Cola Classification
+1. **Update fix logic**: Check for "beverage" FIRST
+2. **Only skip fast path** if "manufacturing" is present WITHOUT "beverage"
+3. **Test**: Verify Coca-Cola → "Food & Beverage"
 
-1. **Investigate Fast Path Fix**:
-   - Check Railway logs for fast path execution
-   - Verify keywords extracted for Ford
-   - Check if fix condition is matching
-   - Verify industry name matching logic
+### Priority 2: Fix Entertainment Classification
+1. **Review Entertainment keyword extraction**
+2. **Add more Entertainment keywords** to obviousKeywordMap
+3. **Improve Entertainment matching** in ClassifyBusinessByKeywords
+4. **Test**: Verify Netflix and Disney → "Entertainment"
 
-2. **Debug Fix Logic**:
-   - Add more detailed logging
-   - Log when fix condition is checked
-   - Log when fast path is skipped
-   - Log matched industry name
+### Priority 3: Fix Technology Classification
+1. **Add "telecommunications"** to Technology keywords
+2. **Test**: Verify Verizon → "Technology"
 
-3. **Test Fix Manually**:
-   - Send test request for Ford
-   - Check logs for fast path behavior
-   - Verify fix is being executed
-
-### Short-term Improvements
-
-1. **Enhance Logging**:
-   - Log all fast path decisions
-   - Log keyword extraction results
-   - Log industry matching results
-
-2. **Review Fix Logic**:
-   - Verify condition is correct
-   - Check industry name variations
-   - Ensure fix applies to all cases
+### Priority 4: Review Healthcare vs Insurance
+1. **Review UnitedHealth Group case**
+2. **Determine if "Insurance" is acceptable** or if fix is needed
 
 ---
 
-## Conclusion
+## Files Modified
 
-**Status**: ❌ **FIX DID NOT WORK** - Needs investigation
-
-**Key Findings**:
-- ❌ Ford still → "Food Production" (fast path fix didn't work)
-- ❌ Manufacturing accuracy: 0% (no improvement)
-- ⚠️ Overall accuracy: 60% (unchanged)
-
-**Next Steps**:
-1. Investigate why fast path fix didn't work
-2. Check Railway logs for fast path execution
-3. Debug fix logic and add more logging
-4. Test fix manually with Ford case
+1. **internal/classification/multi_strategy_classifier.go**
+   - Added "manufacturing", "production", "factory", "industrial" to obviousKeywordMap
+   - Enhanced fix logic to check description and business name directly
+   - Added detailed logging
 
 ---
 
-**Status**: 🔍 **INVESTIGATION NEEDED** - Fast path fix needs debugging
+## Test Results File
 
-**Date**: December 20, 2025  
-**Test Results**: Complete
+- **JSON Results**: `test/results/CLASSIFICATION_ACCURACY_ANALYSIS_20251220_003419.json`
 
+---
+
+## Summary
+
+✅ **Fast Path Fix: SUCCESS**
+- Ford: Fixed ✅
+- Tesla: Fixed ✅
+- Manufacturing: 100% accuracy ✅
+
+⚠️ **Remaining Issues**:
+- Coca-Cola: Fast path fix too aggressive
+- Entertainment: 0% accuracy (critical)
+- Technology: 66.7% accuracy (needs work)
+- Healthcare: 66.7% accuracy (needs review)
+
+**Overall**: **75% accuracy** (up from 60%) ✅
+
+---
+
+**Status**: ✅ **FIX WORKING** - Ford and Tesla correctly classified as Manufacturing
+
+**Date**: December 20, 2025
