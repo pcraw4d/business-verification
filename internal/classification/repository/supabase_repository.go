@@ -2891,19 +2891,46 @@ func (r *SupabaseKeywordRepository) ClassifyBusinessByKeywords(ctx context.Conte
 	}
 	
 	// If Entertainment keywords are present but not matched, boost Entertainment industry
-	if hasEntertainmentKeywords && bestIndustryID != 26 {
-		// Check if Entertainment industry exists in matches
+	// Note: Database industry name is "Arts, Entertainment, and Recreation" not just "Entertainment"
+	if hasEntertainmentKeywords {
+		// First check if Entertainment industry exists in matches
 		for industryID, matched := range industryMatches {
 			industry, err := r.GetIndustryByID(ctx, industryID)
-			if err == nil && strings.Contains(strings.ToLower(industry.Name), "entertainment") {
-				// Boost Entertainment score significantly
-				entertainmentScore := industryScores[industryID] / float64(len(keywords))
-				entertainmentScore *= 1.5 // 50% boost for Entertainment keywords
-				if entertainmentScore > bestScore {
-					bestScore = entertainmentScore
-					bestIndustryID = industryID
-					bestMatchedKeywords = matched
-					r.logger.Printf("🎬 [Priority 5.3] Boosted Entertainment industry due to Entertainment keywords")
+			if err == nil {
+				industryNameLower := strings.ToLower(industry.Name)
+				// Check for various Entertainment industry name variations
+				if strings.Contains(industryNameLower, "entertainment") || 
+				   strings.Contains(industryNameLower, "arts") && strings.Contains(industryNameLower, "recreation") {
+					// Boost Entertainment score significantly
+					entertainmentScore := industryScores[industryID] / float64(len(keywords))
+					entertainmentScore *= 1.5 // 50% boost for Entertainment keywords
+					if entertainmentScore > bestScore {
+						bestScore = entertainmentScore
+						bestIndustryID = industryID
+						bestMatchedKeywords = matched
+						r.logger.Printf("🎬 [Priority 5.3] Boosted Entertainment industry (%s) due to Entertainment keywords", industry.Name)
+					}
+				}
+			}
+		}
+		
+		// If Entertainment industry not in matches and we're falling back to General Business, search all industries
+		if bestIndustryID == 26 {
+			allIndustries, err := r.GetAllIndustries(ctx)
+			if err == nil {
+				for _, industry := range allIndustries {
+					industryNameLower := strings.ToLower(industry.Name)
+					if strings.Contains(industryNameLower, "entertainment") || 
+					   (strings.Contains(industryNameLower, "arts") && strings.Contains(industryNameLower, "recreation")) {
+						// Create a minimal score for Entertainment industry
+						entertainmentScore := 0.5 // Base score for Entertainment keywords
+						entertainmentScore *= 1.5 // 50% boost
+						bestScore = entertainmentScore
+						bestIndustryID = industry.ID
+						bestMatchedKeywords = []string{"entertainment", "streaming", "media"} // Default keywords
+						r.logger.Printf("🎬 [Priority 5.3] Found Entertainment industry (%s) via full search, boosting due to Entertainment keywords", industry.Name)
+						break
+					}
 				}
 			}
 		}
@@ -2925,22 +2952,38 @@ func (r *SupabaseKeywordRepository) ClassifyBusinessByKeywords(ctx context.Conte
 		}
 	}
 	
-	// If Food & Beverage keywords are present and Retail is winning, boost Food & Beverage
+	// If Food & Beverage keywords are present and Retail or Manufacturing is winning, boost Food & Beverage
 	if hasFoodBeverageKeywords && bestIndustryID != 26 {
 		bestIndustry, _ := r.GetIndustryByID(ctx, bestIndustryID)
-		if bestIndustry != nil && strings.Contains(strings.ToLower(bestIndustry.Name), "retail") {
-			// Check if Food & Beverage industry exists in matches
-			for industryID, matched := range industryMatches {
-				industry, err := r.GetIndustryByID(ctx, industryID)
-				if err == nil && (strings.Contains(strings.ToLower(industry.Name), "food") || strings.Contains(strings.ToLower(industry.Name), "beverage") || strings.Contains(strings.ToLower(industry.Name), "restaurant")) {
-					// Boost Food & Beverage score significantly
-					foodBeverageScore := industryScores[industryID] / float64(len(keywords))
-					foodBeverageScore *= 1.4 // 40% boost for Food & Beverage keywords
-					if foodBeverageScore > bestScore*0.9 { // Allow Food & Beverage to win even if slightly lower
-						bestScore = foodBeverageScore
-						bestIndustryID = industryID
-						bestMatchedKeywords = matched
-						r.logger.Printf("🍽️ [Priority 5.3] Boosted Food & Beverage industry over Retail due to Food & Beverage keywords")
+		if bestIndustry != nil {
+			bestIndustryNameLower := strings.ToLower(bestIndustry.Name)
+			// Check if winning industry is Retail or Manufacturing
+			isRetailOrManufacturing := strings.Contains(bestIndustryNameLower, "retail") || 
+			                           strings.Contains(bestIndustryNameLower, "manufacturing") ||
+			                           strings.Contains(bestIndustryNameLower, "production")
+			
+			if isRetailOrManufacturing {
+				// Check if Food & Beverage industry exists in matches
+				for industryID, matched := range industryMatches {
+					industry, err := r.GetIndustryByID(ctx, industryID)
+					if err == nil {
+						industryNameLower := strings.ToLower(industry.Name)
+						// Check for Food & Beverage industry variations
+						if strings.Contains(industryNameLower, "food") || 
+						   strings.Contains(industryNameLower, "beverage") || 
+						   strings.Contains(industryNameLower, "restaurant") ||
+						   strings.Contains(industryNameLower, "cafe") ||
+						   strings.Contains(industryNameLower, "coffee") {
+							// Boost Food & Beverage score significantly
+							foodBeverageScore := industryScores[industryID] / float64(len(keywords))
+							foodBeverageScore *= 1.4 // 40% boost for Food & Beverage keywords
+							if foodBeverageScore > bestScore*0.9 { // Allow Food & Beverage to win even if slightly lower
+								bestScore = foodBeverageScore
+								bestIndustryID = industryID
+								bestMatchedKeywords = matched
+								r.logger.Printf("🍽️ [Priority 5.3] Boosted Food & Beverage industry (%s) over %s due to Food & Beverage keywords", industry.Name, bestIndustry.Name)
+							}
+						}
 					}
 				}
 			}
@@ -2963,22 +3006,37 @@ func (r *SupabaseKeywordRepository) ClassifyBusinessByKeywords(ctx context.Conte
 		}
 	}
 	
-	// If Healthcare keywords are present and Insurance is winning, boost Healthcare
+	// If Healthcare keywords are present and Insurance or Retail is winning, boost Healthcare
 	if hasHealthcareKeywords && bestIndustryID != 26 {
 		bestIndustry, _ := r.GetIndustryByID(ctx, bestIndustryID)
-		if bestIndustry != nil && strings.Contains(strings.ToLower(bestIndustry.Name), "insurance") {
-			// Check if Healthcare industry exists in matches
-			for industryID, matched := range industryMatches {
-				industry, err := r.GetIndustryByID(ctx, industryID)
-				if err == nil && (strings.Contains(strings.ToLower(industry.Name), "healthcare") || strings.Contains(strings.ToLower(industry.Name), "health") || strings.Contains(strings.ToLower(industry.Name), "medical")) {
-					// Boost Healthcare score significantly
-					healthcareScore := industryScores[industryID] / float64(len(keywords))
-					healthcareScore *= 1.5 // 50% boost for Healthcare keywords
-					if healthcareScore > bestScore*0.85 { // Allow Healthcare to win even if slightly lower
-						bestScore = healthcareScore
-						bestIndustryID = industryID
-						bestMatchedKeywords = matched
-						r.logger.Printf("🏥 [Priority 5.3] Boosted Healthcare industry over Insurance due to Healthcare keywords")
+		if bestIndustry != nil {
+			bestIndustryNameLower := strings.ToLower(bestIndustry.Name)
+			// Check if winning industry is Insurance or Retail
+			isInsuranceOrRetail := strings.Contains(bestIndustryNameLower, "insurance") || 
+			                       strings.Contains(bestIndustryNameLower, "retail")
+			
+			if isInsuranceOrRetail {
+				// Check if Healthcare industry exists in matches
+				for industryID, matched := range industryMatches {
+					industry, err := r.GetIndustryByID(ctx, industryID)
+					if err == nil {
+						industryNameLower := strings.ToLower(industry.Name)
+						// Check for Healthcare industry variations
+						if strings.Contains(industryNameLower, "healthcare") || 
+						   strings.Contains(industryNameLower, "health") || 
+						   strings.Contains(industryNameLower, "medical") ||
+						   strings.Contains(industryNameLower, "hospital") ||
+						   strings.Contains(industryNameLower, "clinic") {
+							// Boost Healthcare score significantly
+							healthcareScore := industryScores[industryID] / float64(len(keywords))
+							healthcareScore *= 1.5 // 50% boost for Healthcare keywords
+							if healthcareScore > bestScore*0.85 { // Allow Healthcare to win even if slightly lower
+								bestScore = healthcareScore
+								bestIndustryID = industryID
+								bestMatchedKeywords = matched
+								r.logger.Printf("🏥 [Priority 5.3] Boosted Healthcare industry (%s) over %s due to Healthcare keywords", industry.Name, bestIndustry.Name)
+							}
+						}
 					}
 				}
 			}
