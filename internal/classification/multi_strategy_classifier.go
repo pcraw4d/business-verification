@@ -550,14 +550,30 @@ func (msc *MultiStrategyClassifier) tryFastPath(
 			
 			// PRIORITY FIX 1: If Food & Beverage keywords are present, skip Retail/Manufacturing matches
 			// This fixes Starbucks: "Coffee retail" -> should be Food & Beverage, not Retail
+			// This fixes Coca-Cola: "Beverage manufacturing" -> should be Food & Beverage, not Manufacturing
 			if hasFoodBeverageKeywords {
 				if strings.Contains(industryNameLower, "retail") && !strings.Contains(industryNameLower, "restaurant") && 
 				   !strings.Contains(industryNameLower, "food") && !strings.Contains(industryNameLower, "beverage") {
 					msc.logger.Printf("⚠️ [FastPath] Skipping fast path - Food & Beverage keywords present but matched Retail industry '%s' (keyword: '%s', description: '%s'). Forcing full classification path.", industry.Name, keyword, description)
 					continue // Skip this match, try next keyword
 				}
-				if strings.Contains(industryNameLower, "manufacturing") && !strings.Contains(descriptionLower, "beverage") {
-					msc.logger.Printf("⚠️ [FastPath] Skipping fast path - Food & Beverage keywords present but matched Manufacturing industry '%s' (keyword: '%s', description: '%s'). Forcing full classification path.", industry.Name, keyword, description)
+				// FIX: Skip Manufacturing match if Food & Beverage keywords are present
+				// This handles "beverage manufacturing" (Coca-Cola) - should be Food & Beverage, not Manufacturing
+				// Also handles "coffee manufacturing" or other food-related manufacturing
+				if strings.Contains(industryNameLower, "manufacturing") {
+					// Check if "beverage" is in description/business name (indicates beverage manufacturing)
+					hasBeverageInText := strings.Contains(descriptionLower, "beverage") || 
+					                     strings.Contains(businessNameLower, "beverage")
+					// Check if "beverage" is in obvious keywords
+					for _, k := range obviousKeywords {
+						if strings.Contains(strings.ToLower(k), "beverage") {
+							hasBeverageInText = true
+							break
+						}
+					}
+					// If Food & Beverage keywords are present, skip Manufacturing match
+					// This allows "beverage manufacturing" to go through full classification path where Food & Beverage fix can apply
+					msc.logger.Printf("⚠️ [FastPath] Skipping fast path - Food & Beverage keywords present but matched Manufacturing industry '%s' (keyword: '%s', description: '%s', hasBeverage: %v). Forcing full classification path.", industry.Name, keyword, description, hasBeverageInText)
 					continue // Skip this match, try next keyword
 				}
 			}
