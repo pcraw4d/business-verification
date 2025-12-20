@@ -12,13 +12,14 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/gorilla/mux"
-	"github.com/redis/go-redis/v9"
-	"golang.org/x/time/rate"
-	"go.uber.org/zap"
 	"runtime"
 	"runtime/debug"
 	"strconv"
+
+	"github.com/gorilla/mux"
+	"github.com/redis/go-redis/v9"
+	"go.uber.org/zap"
+	"golang.org/x/time/rate"
 
 	"kyb-platform/internal/classification"
 	classificationAdapters "kyb-platform/internal/classification/adapters"
@@ -272,7 +273,8 @@ func main() {
 	router.Use(loggingMiddleware(logger))
 	router.Use(corsMiddleware())
 	router.Use(rateLimitMiddleware())
-	router.Use(timeoutMiddleware(30 * time.Second)) // Phase 5: 30s request timeout middleware
+	// Priority 3 Fix: Increased timeout to 120s to match worker pool timeout and allow website scraping (86s adaptive timeout)
+	router.Use(timeoutMiddleware(120 * time.Second)) // Increased from 30s to 120s for website scraping support
 
 	// Register routes
 	router.HandleFunc("/health", classificationHandler.HandleHealth).Methods("GET")
@@ -634,9 +636,13 @@ func rateLimitMiddleware() func(http.Handler) http.Handler {
 }
 
 // timeoutMiddleware adds request timeout middleware (Phase 5)
+// Priority 3 Fix: Enhanced with timeout monitoring and logging
 func timeoutMiddleware(timeout time.Duration) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			startTime := time.Now()
+			requestPath := r.URL.Path
+			
 			// Create context with timeout
 			ctx, cancel := context.WithTimeout(r.Context(), timeout)
 			defer cancel()
@@ -658,9 +664,19 @@ func timeoutMiddleware(timeout time.Duration) func(http.Handler) http.Handler {
 			select {
 			case <-done:
 				// Request completed successfully
+				duration := time.Since(startTime)
+				// Log slow requests (>30s) for monitoring
+				if duration > 30*time.Second {
+					log.Printf("⏱️ [TIMEOUT-MIDDLEWARE] Slow request completed: %s %s (duration: %v, timeout: %v)",
+						r.Method, requestPath, duration, timeout)
+				}
 				return
 			case <-ctx.Done():
 				// Timeout occurred
+				duration := time.Since(startTime)
+				log.Printf("❌ [TIMEOUT-MIDDLEWARE] Request timeout: %s %s (duration: %v, timeout: %v)",
+					r.Method, requestPath, duration, timeout)
+				
 				if !wrapped.wroteHeader {
 					wrapped.mu.Lock()
 					if !wrapped.wroteHeader {
