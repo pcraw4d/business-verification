@@ -2964,21 +2964,48 @@ func (r *SupabaseKeywordRepository) ClassifyBusinessByKeywords(ctx context.Conte
 
 	// Fix 2: Prioritize Food & Beverage over Retail when Food & Beverage keywords are present
 	// Priority 5.3: Extended with beverage manufacturing patterns for Coca-Cola fix
-	foodBeverageKeywords := []string{"restaurant", "restaurants", "cafe", "cafes", "coffee", "food", "dining", "kitchen", "catering", "bakery", "bar", "pub", "brewery", "winery", "wine", "beer", "cocktail", "menu", "chef", "cook", "cuisine", "delivery", "takeout", "fast food", "casual dining", "fine dining", "bistro", "eatery", "diner", "tavern", "gastropub", "food truck", "beverage", "beverage manufacturing", "drink", "alcohol", "spirits", "liquor", "soft drink", "soda", "juice", "bottled beverage", "carbonated", "cola"}
+	// FIX: Use word boundary matching to prevent false positives (e.g., "manufacturing" matching "beverage manufacturing")
+	foodBeverageKeywords := []string{"restaurant", "restaurants", "cafe", "cafes", "coffee", "food", "dining", "kitchen", "catering", "bakery", "bar", "pub", "brewery", "winery", "wine", "beer", "cocktail", "menu", "chef", "cook", "cuisine", "delivery", "takeout", "fast food", "casual dining", "fine dining", "bistro", "eatery", "diner", "tavern", "gastropub", "food truck", "beverage", "drink", "alcohol", "spirits", "liquor", "soft drink", "soda", "juice", "bottled beverage", "carbonated", "cola"}
+	// Phrase keywords that require exact phrase matching (not substring)
+	foodBeveragePhrases := []string{"beverage manufacturing", "manufacturing beverage", "food production", "production food"}
 	hasFoodBeverageKeywords := false
 	var matchedFoodBeverageKeywords []string
+	
+	// First check for phrase matches (exact phrase required)
 	for _, kw := range keywords {
 		kwLower := strings.ToLower(kw)
-		for _, fbKw := range foodBeverageKeywords {
-			// Check for exact match or substring match (including phrase matches)
-			if strings.Contains(kwLower, fbKw) || strings.Contains(fbKw, kwLower) {
+		for _, phrase := range foodBeveragePhrases {
+			// Use word boundary regex for exact phrase matching
+			matched, _ := regexp.MatchString(`\b`+regexp.QuoteMeta(phrase)+`\b`, kwLower)
+			if matched {
 				hasFoodBeverageKeywords = true
 				matchedFoodBeverageKeywords = append(matchedFoodBeverageKeywords, kw)
+				r.logger.Printf("🍽️ [Priority 5.3] Food & Beverage phrase matched: '%s' in keyword '%s'", phrase, kw)
 				break
 			}
 		}
 		if hasFoodBeverageKeywords {
 			break
+		}
+	}
+	
+	// Then check for single-word keywords (use word boundary to prevent substring false positives)
+	if !hasFoodBeverageKeywords {
+		for _, kw := range keywords {
+			kwLower := strings.ToLower(kw)
+			for _, fbKw := range foodBeverageKeywords {
+				// Use word boundary regex to prevent substring false positives
+				// This ensures "manufacturing" doesn't match "beverage manufacturing"
+				matched, _ := regexp.MatchString(`\b`+regexp.QuoteMeta(fbKw)+`\b`, kwLower)
+				if matched {
+					hasFoodBeverageKeywords = true
+					matchedFoodBeverageKeywords = append(matchedFoodBeverageKeywords, kw)
+					break
+				}
+			}
+			if hasFoodBeverageKeywords {
+				break
+			}
 		}
 	}
 	

@@ -677,15 +677,15 @@ func timeoutMiddleware(timeout time.Duration) func(http.Handler) http.Handler {
 				log.Printf("❌ [TIMEOUT-MIDDLEWARE] Request timeout: %s %s (duration: %v, timeout: %v)",
 					r.Method, requestPath, duration, timeout)
 				
+				// FIX: Acquire lock BEFORE checking wroteHeader to prevent race condition
+				// This prevents concurrent map read/write errors
+				wrapped.mu.Lock()
 				if !wrapped.wroteHeader {
-					wrapped.mu.Lock()
-					if !wrapped.wroteHeader {
-						wrapped.wroteHeader = true
-						wrapped.mu.Unlock()
-						errors.WriteError(w, r, http.StatusRequestTimeout, "REQUEST_TIMEOUT", "Request timeout", fmt.Sprintf("Request exceeded timeout of %v", timeout))
-					} else {
-						wrapped.mu.Unlock()
-					}
+					wrapped.wroteHeader = true
+					wrapped.mu.Unlock()
+					errors.WriteError(w, r, http.StatusRequestTimeout, "REQUEST_TIMEOUT", "Request timeout", fmt.Sprintf("Request exceeded timeout of %v", timeout))
+				} else {
+					wrapped.mu.Unlock()
 				}
 			}
 		})
