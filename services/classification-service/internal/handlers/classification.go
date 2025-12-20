@@ -599,6 +599,72 @@ func (h *ClassificationHandler) getCacheKey(req *ClassificationRequest) string {
 	return cacheKey
 }
 
+// validateResponse ensures all required frontend fields are present in the response
+// Priority 4 Fix: Ensures 100% frontend compatibility by validating and fixing missing fields
+func (h *ClassificationHandler) validateResponse(response *ClassificationResponse, req *ClassificationRequest) {
+	// Ensure PrimaryIndustry is always set (use "Unknown" if empty to avoid omitempty tag omitting it)
+	// Note: PrimaryIndustry has omitempty tag, so empty strings are omitted from JSON
+	// Setting to "Unknown" ensures the field is always present in the response
+	if response.PrimaryIndustry == "" {
+		response.PrimaryIndustry = "Unknown" // Set non-empty default to ensure field is present
+	}
+
+	// Ensure Explanation is always set (even if empty)
+	if response.Explanation == "" {
+		response.Explanation = "" // Explicitly set empty string (not omitted)
+	}
+
+	// Ensure Metadata is always set (never nil)
+	if response.Metadata == nil {
+		response.Metadata = make(map[string]interface{})
+	}
+
+	// Ensure Classification is never nil
+	if response.Classification == nil {
+		response.Classification = &ClassificationResult{
+			Industry:   response.PrimaryIndustry,
+			MCCCodes:   []IndustryCode{},
+			NAICSCodes: []IndustryCode{},
+			SICCodes:   []IndustryCode{},
+		}
+	} else {
+		// Ensure code arrays are never nil (use empty arrays)
+		if response.Classification.MCCCodes == nil {
+			response.Classification.MCCCodes = []IndustryCode{}
+		}
+		if response.Classification.NAICSCodes == nil {
+			response.Classification.NAICSCodes = []IndustryCode{}
+		}
+		if response.Classification.SICCodes == nil {
+			response.Classification.SICCodes = []IndustryCode{}
+		}
+		// Ensure Industry field is set
+		if response.Classification.Industry == "" {
+			response.Classification.Industry = response.PrimaryIndustry
+		}
+	}
+
+	// Ensure Status is always set
+	if response.Status == "" {
+		response.Status = "success"
+		if !response.Success {
+			response.Status = "error"
+		}
+	}
+
+	// Ensure Timestamp is set
+	if response.Timestamp.IsZero() {
+		response.Timestamp = time.Now()
+	}
+
+	h.logger.Debug("Response validated for frontend compatibility",
+		zap.String("request_id", req.RequestID),
+		zap.Bool("has_primary_industry", response.PrimaryIndustry != ""),
+		zap.Bool("has_explanation", response.Explanation != ""),
+		zap.Bool("has_metadata", response.Metadata != nil),
+		zap.Bool("has_classification", response.Classification != nil))
+}
+
 // sendErrorResponse sends an error response with frontend-compatible structure
 // FIX: Ensures all error responses include required frontend fields (primary_industry, classification, explanation, confidence_score)
 func (h *ClassificationHandler) sendErrorResponse(
@@ -612,9 +678,9 @@ func (h *ClassificationHandler) sendErrorResponse(
 		RequestID:       req.RequestID,
 		BusinessName:    req.BusinessName,
 		Description:     req.Description,
-		PrimaryIndustry: "", // Empty but present for frontend compatibility
+		PrimaryIndustry: "Unknown", // Set to "Unknown" to ensure field is present (omitempty tag would omit empty string)
 		Classification: &ClassificationResult{
-			Industry:   "",
+			Industry:   "Unknown",
 			MCCCodes:   []IndustryCode{},
 			NAICSCodes: []IndustryCode{},
 			SICCodes:   []IndustryCode{},
@@ -632,6 +698,9 @@ func (h *ClassificationHandler) sendErrorResponse(
 			"status_code": statusCode,
 		},
 	}
+
+	// Priority 4 Fix: Validate error response to ensure all required frontend fields are present
+	h.validateResponse(&response, req)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
@@ -1404,6 +1473,9 @@ func (h *ClassificationHandler) HandleClassification(w http.ResponseWriter, r *h
 					zap.Bool("early_exit", earlyExit))
 			}
 		}
+
+		// Priority 4 Fix: Validate response to ensure all required frontend fields are present
+		h.validateResponse(response, &req)
 
 		// Marshal JSON response to bytes first
 		responseBytes, err := json.Marshal(response)
@@ -2433,11 +2505,25 @@ func (h *ClassificationHandler) processClassification(ctx context.Context, req *
 		zap.Int("key_terms", len(enhancedResult.ClassificationExplanation.KeyTermsFound)))
 
 	// Convert enhanced result to response format
+	// Priority 4 Fix: Ensure code arrays are never nil (use empty arrays)
+	mccCodes := enhancedResult.MCCCodes
+	if mccCodes == nil {
+		mccCodes = []IndustryCode{}
+	}
+	sicCodes := enhancedResult.SICCodes
+	if sicCodes == nil {
+		sicCodes = []IndustryCode{}
+	}
+	naicsCodes := enhancedResult.NAICSCodes
+	if naicsCodes == nil {
+		naicsCodes = []IndustryCode{}
+	}
+
 	classificationResult := &ClassificationResult{
 		Industry:   enhancedResult.PrimaryIndustry,
-		MCCCodes:   convertIndustryCodes(enhancedResult.MCCCodes),
-		SICCodes:   convertIndustryCodes(enhancedResult.SICCodes),
-		NAICSCodes: convertIndustryCodes(enhancedResult.NAICSCodes),
+		MCCCodes:   convertIndustryCodes(mccCodes),
+		SICCodes:   convertIndustryCodes(sicCodes),
+		NAICSCodes: convertIndustryCodes(naicsCodes),
 		WebsiteContent: &WebsiteContent{
 			Scraped: enhancedResult.WebsiteAnalysis != nil && enhancedResult.WebsiteAnalysis.Success,
 			ContentLength: func() int {
@@ -2659,6 +2745,9 @@ func (h *ClassificationHandler) processClassification(ctx context.Context, req *
 			return metadata
 		}(),
 	}
+
+	// Priority 4 Fix: Validate response to ensure all required frontend fields are present
+	h.validateResponse(response, req)
 
 	// Log the final response for debugging
 	h.logger.Info("Classification response prepared",
@@ -4442,7 +4531,11 @@ func (z *zapLoggerAdapter) Write(p []byte) (n int, err error) {
 }
 
 // convertIndustryCodes converts IndustryCode to handlers.IndustryCode
+// Priority 4 Fix: Ensures arrays are never nil (returns empty array if nil)
 func convertIndustryCodes(codes []IndustryCode) []IndustryCode {
+	if codes == nil {
+		return []IndustryCode{}
+	}
 	return codes // Same type, no conversion needed
 }
 
