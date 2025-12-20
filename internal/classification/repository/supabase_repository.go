@@ -2877,11 +2877,13 @@ func (r *SupabaseKeywordRepository) ClassifyBusinessByKeywords(ctx context.Conte
 	// Fix 1: Prioritize Entertainment when Entertainment keywords are present
 	entertainmentKeywords := []string{"entertainment", "streaming", "media", "video", "audio", "podcast", "music", "film", "movie", "cinema", "television", "tv", "broadcasting", "publishing", "content", "creative", "art", "gaming", "game", "esports", "sports", "events", "concert", "festival", "theater", "theatre", "performance", "show", "production", "studio", "record", "label", "artist", "actor", "director", "producer"}
 	hasEntertainmentKeywords := false
+	var matchedEntertainmentKeywords []string
 	for _, kw := range keywords {
 		kwLower := strings.ToLower(kw)
 		for _, entKw := range entertainmentKeywords {
 			if strings.Contains(kwLower, entKw) || strings.Contains(entKw, kwLower) {
 				hasEntertainmentKeywords = true
+				matchedEntertainmentKeywords = append(matchedEntertainmentKeywords, kw)
 				break
 			}
 		}
@@ -2890,9 +2892,17 @@ func (r *SupabaseKeywordRepository) ClassifyBusinessByKeywords(ctx context.Conte
 		}
 	}
 	
+	// Log Entertainment keyword detection
+	if hasEntertainmentKeywords {
+		r.logger.Printf("🎬 [Priority 5.3] Entertainment keywords detected: %v (from input keywords: %v)", matchedEntertainmentKeywords, keywords)
+	} else {
+		r.logger.Printf("🎬 [Priority 5.3] No Entertainment keywords found in input keywords: %v", keywords)
+	}
+	
 	// If Entertainment keywords are present but not matched, boost Entertainment industry
 	// Note: Database industry name is "Arts, Entertainment, and Recreation" not just "Entertainment"
 	if hasEntertainmentKeywords {
+		r.logger.Printf("🎬 [Priority 5.3] Checking for Entertainment industry in %d matched industries", len(industryMatches))
 		// First check if Entertainment industry exists in matches
 		for industryID, matched := range industryMatches {
 			industry, err := r.GetIndustryByID(ctx, industryID)
@@ -2900,50 +2910,70 @@ func (r *SupabaseKeywordRepository) ClassifyBusinessByKeywords(ctx context.Conte
 				industryNameLower := strings.ToLower(industry.Name)
 				// Check for various Entertainment industry name variations
 				if strings.Contains(industryNameLower, "entertainment") || 
-				   strings.Contains(industryNameLower, "arts") && strings.Contains(industryNameLower, "recreation") {
+				   (strings.Contains(industryNameLower, "arts") && strings.Contains(industryNameLower, "recreation")) {
+					r.logger.Printf("🎬 [Priority 5.3] Found Entertainment industry in matches: %s (ID: %d)", industry.Name, industryID)
 					// Boost Entertainment score significantly
 					entertainmentScore := industryScores[industryID] / float64(len(keywords))
 					entertainmentScore *= 1.5 // 50% boost for Entertainment keywords
+					r.logger.Printf("🎬 [Priority 5.3] Entertainment score: %.3f, bestScore: %.3f", entertainmentScore, bestScore)
 					if entertainmentScore > bestScore {
 						bestScore = entertainmentScore
 						bestIndustryID = industryID
 						bestMatchedKeywords = matched
-						r.logger.Printf("🎬 [Priority 5.3] Boosted Entertainment industry (%s) due to Entertainment keywords", industry.Name)
+						r.logger.Printf("🎬 [Priority 5.3] ✅ Boosted Entertainment industry (%s) due to Entertainment keywords", industry.Name)
+					} else {
+						r.logger.Printf("🎬 [Priority 5.3] ⚠️ Entertainment score (%.3f) not higher than bestScore (%.3f)", entertainmentScore, bestScore)
 					}
 				}
+			} else {
+				r.logger.Printf("🎬 [Priority 5.3] ⚠️ Failed to get industry by ID %d: %v", industryID, err)
 			}
 		}
 		
 		// If Entertainment industry not in matches and we're falling back to General Business, search all industries
 		if bestIndustryID == 26 {
+			r.logger.Printf("🎬 [Priority 5.3] Entertainment industry not in matches, searching all industries...")
 			allIndustries, err := r.GetAllIndustries(ctx)
-			if err == nil {
+			if err != nil {
+				r.logger.Printf("🎬 [Priority 5.3] ❌ Failed to get all industries: %v", err)
+			} else {
+				r.logger.Printf("🎬 [Priority 5.3] Searching through %d industries for Entertainment", len(allIndustries))
 				for _, industry := range allIndustries {
 					industryNameLower := strings.ToLower(industry.Name)
 					if strings.Contains(industryNameLower, "entertainment") || 
 					   (strings.Contains(industryNameLower, "arts") && strings.Contains(industryNameLower, "recreation")) {
+						r.logger.Printf("🎬 [Priority 5.3] ✅ Found Entertainment industry via full search: %s (ID: %d)", industry.Name, industry.ID)
 						// Create a minimal score for Entertainment industry
 						entertainmentScore := 0.5 // Base score for Entertainment keywords
 						entertainmentScore *= 1.5 // 50% boost
 						bestScore = entertainmentScore
 						bestIndustryID = industry.ID
 						bestMatchedKeywords = []string{"entertainment", "streaming", "media"} // Default keywords
-						r.logger.Printf("🎬 [Priority 5.3] Found Entertainment industry (%s) via full search, boosting due to Entertainment keywords", industry.Name)
+						r.logger.Printf("🎬 [Priority 5.3] ✅ Set Entertainment industry (%s) with score %.3f", industry.Name, entertainmentScore)
 						break
 					}
 				}
+				if bestIndustryID == 26 {
+					r.logger.Printf("🎬 [Priority 5.3] ❌ Entertainment industry not found in any of %d industries", len(allIndustries))
+				}
 			}
+		} else {
+			r.logger.Printf("🎬 [Priority 5.3] Entertainment industry already matched (ID: %d), skipping full search", bestIndustryID)
 		}
 	}
 
 	// Fix 2: Prioritize Food & Beverage over Retail when Food & Beverage keywords are present
-	foodBeverageKeywords := []string{"restaurant", "restaurants", "cafe", "cafes", "coffee", "food", "dining", "kitchen", "catering", "bakery", "bar", "pub", "brewery", "winery", "wine", "beer", "cocktail", "menu", "chef", "cook", "cuisine", "delivery", "takeout", "fast food", "casual dining", "fine dining", "bistro", "eatery", "diner", "tavern", "gastropub", "food truck", "beverage", "drink", "alcohol", "spirits", "liquor"}
+	// Priority 5.3: Extended with beverage manufacturing patterns for Coca-Cola fix
+	foodBeverageKeywords := []string{"restaurant", "restaurants", "cafe", "cafes", "coffee", "food", "dining", "kitchen", "catering", "bakery", "bar", "pub", "brewery", "winery", "wine", "beer", "cocktail", "menu", "chef", "cook", "cuisine", "delivery", "takeout", "fast food", "casual dining", "fine dining", "bistro", "eatery", "diner", "tavern", "gastropub", "food truck", "beverage", "beverage manufacturing", "drink", "alcohol", "spirits", "liquor", "soft drink", "soda", "juice", "bottled beverage", "carbonated", "cola"}
 	hasFoodBeverageKeywords := false
+	var matchedFoodBeverageKeywords []string
 	for _, kw := range keywords {
 		kwLower := strings.ToLower(kw)
 		for _, fbKw := range foodBeverageKeywords {
+			// Check for exact match or substring match (including phrase matches)
 			if strings.Contains(kwLower, fbKw) || strings.Contains(fbKw, kwLower) {
 				hasFoodBeverageKeywords = true
+				matchedFoodBeverageKeywords = append(matchedFoodBeverageKeywords, kw)
 				break
 			}
 		}
@@ -2952,39 +2982,111 @@ func (r *SupabaseKeywordRepository) ClassifyBusinessByKeywords(ctx context.Conte
 		}
 	}
 	
+	// Also check if description contains Food & Beverage patterns (for cases like "Beverage manufacturing")
+	// This handles cases where keywords might not be extracted but description has the pattern
+	if !hasFoodBeverageKeywords && len(keywords) > 0 {
+		// Check if any keyword contains "beverage" or "manufacturing" together
+		for _, kw := range keywords {
+			kwLower := strings.ToLower(kw)
+			if strings.Contains(kwLower, "beverage") || strings.Contains(kwLower, "manufacturing") {
+				// If we have both "beverage" and "manufacturing" in keywords, it's likely Food & Beverage
+				hasBeverage := false
+				hasManufacturing := false
+				for _, k := range keywords {
+					kl := strings.ToLower(k)
+					if strings.Contains(kl, "beverage") {
+						hasBeverage = true
+					}
+					if strings.Contains(kl, "manufacturing") {
+						hasManufacturing = true
+					}
+				}
+				if hasBeverage && hasManufacturing {
+					hasFoodBeverageKeywords = true
+					matchedFoodBeverageKeywords = append(matchedFoodBeverageKeywords, "beverage manufacturing")
+					r.logger.Printf("🍽️ [Priority 5.3] Detected 'beverage manufacturing' pattern in keywords: %v", keywords)
+					break
+				}
+			}
+		}
+	}
+	
+	// Log Food & Beverage keyword detection
+	if hasFoodBeverageKeywords {
+		r.logger.Printf("🍽️ [Priority 5.3] Food & Beverage keywords detected: %v (from input keywords: %v)", matchedFoodBeverageKeywords, keywords)
+	}
+	
 	// If Food & Beverage keywords are present and Retail or Manufacturing is winning, boost Food & Beverage
-	if hasFoodBeverageKeywords && bestIndustryID != 26 {
-		bestIndustry, _ := r.GetIndustryByID(ctx, bestIndustryID)
-		if bestIndustry != nil {
-			bestIndustryNameLower := strings.ToLower(bestIndustry.Name)
-			// Check if winning industry is Retail or Manufacturing
-			isRetailOrManufacturing := strings.Contains(bestIndustryNameLower, "retail") || 
-			                           strings.Contains(bestIndustryNameLower, "manufacturing") ||
-			                           strings.Contains(bestIndustryNameLower, "production")
-			
-			if isRetailOrManufacturing {
-				// Check if Food & Beverage industry exists in matches
-				for industryID, matched := range industryMatches {
-					industry, err := r.GetIndustryByID(ctx, industryID)
-					if err == nil {
-						industryNameLower := strings.ToLower(industry.Name)
-						// Check for Food & Beverage industry variations
-						if strings.Contains(industryNameLower, "food") || 
-						   strings.Contains(industryNameLower, "beverage") || 
-						   strings.Contains(industryNameLower, "restaurant") ||
-						   strings.Contains(industryNameLower, "cafe") ||
-						   strings.Contains(industryNameLower, "coffee") {
-							// Boost Food & Beverage score significantly
-							foodBeverageScore := industryScores[industryID] / float64(len(keywords))
-							foodBeverageScore *= 1.4 // 40% boost for Food & Beverage keywords
-							if foodBeverageScore > bestScore*0.9 { // Allow Food & Beverage to win even if slightly lower
-								bestScore = foodBeverageScore
-								bestIndustryID = industryID
-								bestMatchedKeywords = matched
-								r.logger.Printf("🍽️ [Priority 5.3] Boosted Food & Beverage industry (%s) over %s due to Food & Beverage keywords", industry.Name, bestIndustry.Name)
+	// Also handle case where we're falling back to General Business but have Food & Beverage keywords
+	if hasFoodBeverageKeywords {
+		if bestIndustryID != 26 {
+			bestIndustry, _ := r.GetIndustryByID(ctx, bestIndustryID)
+			if bestIndustry != nil {
+				bestIndustryNameLower := strings.ToLower(bestIndustry.Name)
+				// Check if winning industry is Retail or Manufacturing
+				isRetailOrManufacturing := strings.Contains(bestIndustryNameLower, "retail") || 
+				                           strings.Contains(bestIndustryNameLower, "manufacturing") ||
+				                           strings.Contains(bestIndustryNameLower, "production")
+				
+				if isRetailOrManufacturing {
+					r.logger.Printf("🍽️ [Priority 5.3] Food & Beverage keywords present, but %s is winning. Checking for Food & Beverage industry...", bestIndustry.Name)
+					// Check if Food & Beverage industry exists in matches
+					for industryID, matched := range industryMatches {
+						industry, err := r.GetIndustryByID(ctx, industryID)
+						if err == nil {
+							industryNameLower := strings.ToLower(industry.Name)
+							// Check for Food & Beverage industry variations
+							if strings.Contains(industryNameLower, "food") || 
+							   strings.Contains(industryNameLower, "beverage") || 
+							   strings.Contains(industryNameLower, "restaurant") ||
+							   strings.Contains(industryNameLower, "cafe") ||
+							   strings.Contains(industryNameLower, "coffee") {
+								// Boost Food & Beverage score significantly
+								foodBeverageScore := industryScores[industryID] / float64(len(keywords))
+								foodBeverageScore *= 1.4 // 40% boost for Food & Beverage keywords
+								r.logger.Printf("🍽️ [Priority 5.3] Food & Beverage score: %.3f, bestScore: %.3f (threshold: %.3f)", foodBeverageScore, bestScore, bestScore*0.9)
+								if foodBeverageScore > bestScore*0.9 { // Allow Food & Beverage to win even if slightly lower
+									bestScore = foodBeverageScore
+									bestIndustryID = industryID
+									bestMatchedKeywords = matched
+									r.logger.Printf("🍽️ [Priority 5.3] ✅ Boosted Food & Beverage industry (%s) over %s due to Food & Beverage keywords", industry.Name, bestIndustry.Name)
+								} else {
+									r.logger.Printf("🍽️ [Priority 5.3] ⚠️ Food & Beverage score (%.3f) not above threshold (%.3f)", foodBeverageScore, bestScore*0.9)
+								}
 							}
 						}
 					}
+				}
+			}
+		} else {
+			// Falling back to General Business but have Food & Beverage keywords - search all industries
+			r.logger.Printf("🍽️ [Priority 5.3] Food & Beverage keywords present but falling back to General Business. Searching all industries...")
+			allIndustries, err := r.GetAllIndustries(ctx)
+			if err != nil {
+				r.logger.Printf("🍽️ [Priority 5.3] ❌ Failed to get all industries: %v", err)
+			} else {
+				r.logger.Printf("🍽️ [Priority 5.3] Searching through %d industries for Food & Beverage", len(allIndustries))
+				for _, industry := range allIndustries {
+					industryNameLower := strings.ToLower(industry.Name)
+					// Check for Food & Beverage industry variations
+					if strings.Contains(industryNameLower, "food") || 
+					   strings.Contains(industryNameLower, "beverage") || 
+					   strings.Contains(industryNameLower, "restaurant") ||
+					   strings.Contains(industryNameLower, "cafe") ||
+					   strings.Contains(industryNameLower, "coffee") {
+						r.logger.Printf("🍽️ [Priority 5.3] ✅ Found Food & Beverage industry via full search: %s (ID: %d)", industry.Name, industry.ID)
+						// Create a minimal score for Food & Beverage industry
+						foodBeverageScore := 0.5 // Base score for Food & Beverage keywords
+						foodBeverageScore *= 1.4 // 40% boost
+						bestScore = foodBeverageScore
+						bestIndustryID = industry.ID
+						bestMatchedKeywords = matchedFoodBeverageKeywords
+						r.logger.Printf("🍽️ [Priority 5.3] ✅ Set Food & Beverage industry (%s) with score %.3f", industry.Name, foodBeverageScore)
+						break
+					}
+				}
+				if bestIndustryID == 26 {
+					r.logger.Printf("🍽️ [Priority 5.3] ❌ Food & Beverage industry not found in any of %d industries", len(allIndustries))
 				}
 			}
 		}
