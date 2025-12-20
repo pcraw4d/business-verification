@@ -494,6 +494,29 @@ func (msc *MultiStrategyClassifier) tryFastPath(
 		if len(matches) > 0 {
 			// Found high-confidence match via obvious keyword
 			industry := matches[0]
+			industryNameLower := strings.ToLower(industry.Name)
+
+			// FIX: Check for Food & Beverage false positives in fast path
+			// If "manufacturing" keyword matches Food industry without "beverage", skip fast path
+			// This prevents Ford (automotive manufacturing) from being classified as Food Production
+			keywordLower := strings.ToLower(keyword)
+			if strings.Contains(keywordLower, "manufacturing") {
+				// Check if it's actually "beverage manufacturing"
+				hasBeverage := false
+				for _, k := range obviousKeywords {
+					if strings.Contains(strings.ToLower(k), "beverage") {
+						hasBeverage = true
+						break
+					}
+				}
+				// If "manufacturing" without "beverage" matched Food industry, skip fast path
+				if !hasBeverage && (strings.Contains(industryNameLower, "food") || 
+				                    strings.Contains(industryNameLower, "beverage") ||
+				                    strings.Contains(industryNameLower, "production")) {
+					msc.logger.Printf("⚠️ [FastPath] Skipping fast path - 'manufacturing' without 'beverage' matched Food industry '%s'. Forcing full classification path.", industry.Name)
+					return nil, false // Force full classification path where fix can apply
+				}
+			}
 
 			// Create a strategy result for fast path
 			strategy := ClassificationStrategy{
