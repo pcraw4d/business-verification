@@ -536,8 +536,8 @@ func (ews *EnhancedWebsiteScraper) extractBusinessKeywords(textContent string) [
 
 	// Enhanced business-relevant keyword patterns
 	businessPatterns := []string{
-		// Food & Beverage
-		`\b(restaurant|cafe|coffee|food|dining|kitchen|catering|bakery|bar|pub|brewery|winery|wine|beer|cocktail|menu|chef|cook|cuisine|delivery|takeout)\b`,
+		// Food & Beverage (Priority 5.3: Enhanced keywords)
+		`\b(restaurant|restaurants|cafe|cafes|coffee|coffee shop|coffeehouse|food|dining|kitchen|catering|bakery|bakeries|bar|bars|pub|pubs|brewery|breweries|winery|wineries|wine|beer|cocktail|cocktails|menu|chef|chefs|cook|cooking|cuisine|cuisines|delivery|takeout|take-out|dine-in|fast food|fast-food|casual dining|fine dining|bistro|eatery|diner|tavern|gastropub|brewpub|food truck|food trucks|food service|foodservice|beverage|beverages|drink|drinks|alcohol|alcoholic|spirits|liquor|wine bar|wine shop|wine store|wine merchant|wine tasting|wine cellar|sommelier|vintner|vineyard|grapes|grapevine|vintage|bottle|cellar|tasting|oenology|distillery|distilleries|cocktail bar|mixology|bartender|server|waiter|waitress|host|hostess|reservation|reservations|table|seating|patio|outdoor|indoor|ambiance|atmosphere|decor|design|cuisine type|cuisine style|specialty|signature|dish|dishes|appetizer|appetizers|entree|entrees|dessert|desserts|brunch|breakfast|lunch|dinner|supper|happy hour|happy-hour|specials|promotion|promotions|gift card|gift cards|loyalty|rewards|membership|franchise|chain|location|locations|branch|branches)\b`,
 		// Technology
 		`\b(technology|software|tech|app|digital|web|mobile|cloud|ai|ml|data|cyber|security|programming|development|IT|computer|internet|online|platform|api|database)\b`,
 		// Healthcare
@@ -558,8 +558,8 @@ func (ews *EnhancedWebsiteScraper) extractBusinessKeywords(textContent string) [
 		`\b(manufacturing|production|factory|industrial|automotive|machinery|equipment|assembly|production|industrial|machinery)\b`,
 		// Transportation & Logistics
 		`\b(transportation|logistics|shipping|delivery|freight|warehouse|supply chain|trucking|logistics|shipping|delivery)\b`,
-		// Entertainment & Media
-		`\b(entertainment|media|marketing|advertising|design|creative|art|music|film|television|broadcasting|publishing|content)\b`,
+		// Entertainment & Media (Priority 5.3: Enhanced keywords)
+		`\b(entertainment|media|streaming|video|audio|podcast|music|film|movie|cinema|television|tv|broadcasting|publishing|content|creative|art|gaming|game|esports|sports|events|concert|festival|theater|theatre|performance|show|production|studio|record|label|artist|actor|director|producer|cinematography|animation|visual effects|vfx|post-production|editing|sound|recording|distribution|platform|channel|network|broadcast|live|stream|on-demand|subscription|ticket|venue|arena|stadium)\b`,
 		// Energy & Utilities
 		`\b(energy|utilities|renewable|solar|wind|oil|gas|power|electricity|energy|utilities|renewable|solar|wind)\b`,
 		// Agriculture

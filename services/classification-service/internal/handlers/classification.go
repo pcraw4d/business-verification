@@ -4239,10 +4239,22 @@ func (h *ClassificationHandler) runGoClassification(ctx context.Context, req *Cl
 }
 
 // combineEnsembleResults combines Python ML and Go classification results with weighted voting
-// Python ML: 60% weight, Go classification: 40% weight
+// Priority 5.3: Configurable weights (default: Python ML 60%, Go 40%)
 func (h *ClassificationHandler) combineEnsembleResults(pythonMLResult, goResult *EnhancedClassificationResult, req *ClassificationRequest) *EnhancedClassificationResult {
-	const pythonMLWeight = 0.60
-	const goWeight = 0.40
+	// Priority 5.3: Use configurable weights (can be adjusted based on accuracy analysis)
+	pythonMLWeight := h.config.Classification.PythonMLWeight
+	goWeight := h.config.Classification.GoClassificationWeight
+	
+	// Normalize weights to ensure they sum to 1.0
+	totalWeight := pythonMLWeight + goWeight
+	if totalWeight > 0 {
+		pythonMLWeight = pythonMLWeight / totalWeight
+		goWeight = goWeight / totalWeight
+	} else {
+		// Fallback to defaults if both are 0
+		pythonMLWeight = 0.60
+		goWeight = 0.40
+	}
 
 	// Priority 5.4: Enhanced classification decision logging
 	h.logger.Info("🔍 [CLASSIFICATION-DECISION] Combining ensemble results",

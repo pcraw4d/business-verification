@@ -2902,10 +2902,10 @@ func (r *SupabaseKeywordRepository) ClassifyBusinessByKeywords(ctx context.Conte
 	}
 
 	// Phase 7.2: Industry confidence thresholds (adaptive)
-	// Lower thresholds for better industry detection
+	// Priority 5.3: Reduced threshold to reduce "General Business" fallback
 	const (
 		MinKeywordCount    = 2    // Minimum keywords required for high confidence (reduced from 3)
-		MinConfidenceScore = 0.35 // Minimum confidence threshold (reduced from 0.6 for better detection)
+		MinConfidenceScore = 0.25 // Priority 5.3: Reduced from 0.35 to 0.25 to reduce fallback (was 0.6 originally)
 	)
 
 	// Calculate enhanced confidence score with dynamic factors

@@ -1163,6 +1163,7 @@ func (s *IndustryDetectionService) extractKeywordsFromNameAndDescription(busines
 	}
 
 	// Also extract industry-specific terms from common patterns
+	// Priority 5.3: Enhanced keyword patterns for Entertainment and Food & Beverage
 	industryPatterns := map[string][]string{
 		"technology":     {"software", "tech", "digital", "computer", "internet", "web", "app", "platform", "system", "data", "cloud", "ai", "ml", "api"},
 		"healthcare":     {"health", "medical", "hospital", "clinic", "doctor", "patient", "care", "treatment", "pharmacy", "diagnostic", "therapy"},
@@ -1172,6 +1173,10 @@ func (s *IndustryDetectionService) extractKeywordsFromNameAndDescription(busines
 		"construction":  {"construction", "contractor", "building", "construction", "architect", "engineering", "renovation", "development"},
 		"transportation": {"transport", "transportation", "logistics", "shipping", "delivery", "freight", "trucking", "airline", "railway"},
 		"professional":  {"consulting", "professional", "service", "advisory", "legal", "accounting", "management", "consultant"},
+		// Priority 5.3: Enhanced Entertainment keywords
+		"entertainment":  {"entertainment", "media", "streaming", "video", "audio", "podcast", "music", "film", "movie", "cinema", "television", "tv", "broadcasting", "publishing", "content", "creative", "art", "gaming", "game", "esports", "sports", "events", "concert", "festival", "theater", "theatre", "performance", "show", "production", "studio", "record", "label", "artist", "actor", "director", "producer"},
+		// Priority 5.3: Enhanced Food & Beverage keywords
+		"food_beverage": {"restaurant", "restaurants", "cafe", "cafes", "coffee", "coffee shop", "food", "dining", "kitchen", "catering", "bakery", "bar", "pub", "brewery", "winery", "wine", "beer", "cocktail", "menu", "chef", "cook", "cuisine", "delivery", "takeout", "fast food", "casual dining", "fine dining", "bistro", "eatery", "diner", "tavern", "gastropub", "food truck", "beverage", "drink", "alcohol", "spirits", "liquor"},
 	}
 
 	textLower := strings.ToLower(text)

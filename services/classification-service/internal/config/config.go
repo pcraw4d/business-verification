@@ -68,6 +68,9 @@ type ClassificationConfig struct {
 	EarlyTerminationConfidenceThreshold float64
 	MinContentLengthForML               int
 	SkipFullCrawlIfContentSufficient    bool
+	// Priority 5.3: Ensemble weight configuration
+	PythonMLWeight float64 // Weight for Python ML service (default: 0.60)
+	GoClassificationWeight float64 // Weight for Go classification (default: 0.40)
 	// Phase 3: Embedding service configuration
 	EmbeddingServiceURL string // URL of the embedding service (optional)
 	// Phase 4: LLM service configuration
@@ -133,6 +136,9 @@ func Load() (*Config, error) {
 			EarlyTerminationConfidenceThreshold: getEnvAsFloat("EARLY_TERMINATION_CONFIDENCE_THRESHOLD", 0.85),
 			MinContentLengthForML:               getEnvAsInt("MIN_CONTENT_LENGTH_FOR_ML", 50),
 			SkipFullCrawlIfContentSufficient:    getEnvAsBool("SKIP_FULL_CRAWL_IF_CONTENT_SUFFICIENT", true),
+			// Priority 5.3: Ensemble weight configuration (adjustable based on accuracy)
+			PythonMLWeight:          getEnvAsFloat("PYTHON_ML_WEIGHT", 0.60),
+			GoClassificationWeight:  getEnvAsFloat("GO_CLASSIFICATION_WEIGHT", 0.40),
 			// Phase 3: Embedding service configuration
 			EmbeddingServiceURL: getEnvAsString("EMBEDDING_SERVICE_URL", ""),
 			// Phase 4: LLM service configuration
