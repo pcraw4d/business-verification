@@ -1853,11 +1853,51 @@ func (s *WebsiteScraper) ScrapeWithStructuredContent(ctx context.Context, target
 			zap.Uint64("sys_bytes", m.Sys))
 	}
 
+	// OPTIMIZATION 3.3.1: Detect simple sites for lightweight scraping
+	// Check if site appears simple (static HTML, no JS required) to skip heavy strategies
+	isSimpleSite := s.detectSimpleSite(targetURL, parsedURL)
+	if isSimpleSite {
+		s.logger.Info("🚀 [Optimization] Detected simple site, will prioritize lightweight strategies",
+			zap.String("url", targetURL),
+			zap.String("domain", parsedURL.Host))
+	}
+
+	// OPTIMIZATION 3.3.2: Per-strategy timeout limits (don't wait forever)
+	// Calculate per-strategy timeout based on context deadline
+	var perStrategyTimeout time.Duration
+	if hasDeadline {
+		// Allocate time across strategies: divide available time by number of strategies
+		// But cap at reasonable limits per strategy
+		perStrategyTimeout = contextDeadline / time.Duration(len(s.strategies))
+		if perStrategyTimeout > 30*time.Second {
+			perStrategyTimeout = 30 * time.Second // Cap at 30s per strategy
+		}
+		if perStrategyTimeout < 5*time.Second {
+			perStrategyTimeout = 5 * time.Second // Minimum 5s per strategy
+		}
+	} else {
+		perStrategyTimeout = 20 * time.Second // Default 20s if no deadline
+	}
+
+	s.logger.Info("⏱️ [Optimization] Per-strategy timeout configured",
+		zap.String("url", targetURL),
+		zap.Duration("per_strategy_timeout", perStrategyTimeout),
+		zap.Int("strategy_count", len(s.strategies)))
+
 	// Try strategies in order
 	var lastErr error
 	var content *ScrapedContent
 
 	for i, strategy := range s.strategies {
+		// OPTIMIZATION 3.3.1: Skip heavy strategies for simple sites
+		if isSimpleSite && (strategy.Name() == "playwright" || strategy.Name() == "browser-headers") {
+			s.logger.Info("🚀 [Optimization] Skipping heavy strategy for simple site",
+				zap.String("strategy", strategy.Name()),
+				zap.String("url", targetURL),
+				zap.Int("attempt", i+1))
+			continue
+		}
+
 		// Skip Playwright if memory usage is high
 		if skipPlaywright && strategy.Name() == "playwright" {
 			s.logger.Info("Skipping Playwright strategy due to high memory usage",
@@ -1872,12 +1912,21 @@ func (s *WebsiteScraper) ScrapeWithStructuredContent(ctx context.Context, target
 			zap.String("url", targetURL),
 			zap.Int("attempt", i+1))
 
+		// OPTIMIZATION 3.3.2: Create timeout context for this strategy
+		strategyCtx := ctx
+		if hasDeadline {
+			// Create a context with per-strategy timeout
+			var strategyCancel context.CancelFunc
+			strategyCtx, strategyCancel = context.WithTimeout(ctx, perStrategyTimeout)
+			defer strategyCancel()
+		}
+
 		// CRITICAL DEBUG: Log right before strategy call
 		s.logger.Info("🔍 [Phase1] [DEBUG] About to call strategy.Scrape()",
 			zap.String("strategy", strategy.Name()),
 			zap.String("url", targetURL))
 
-		content, err = strategy.Scrape(ctx, targetURL)
+		content, err = strategy.Scrape(strategyCtx, targetURL)
 		strategyDuration := time.Since(strategyStartTime)
 
 		// CRITICAL DEBUG: Log immediately after strategy returns
@@ -1996,6 +2045,56 @@ func (s *WebsiteScraper) ScrapeWithStructuredContent(ctx context.Context, target
 	}
 
 	return nil, fmt.Errorf("all scraping strategies failed: %w", lastErr)
+}
+
+// detectSimpleSite detects if a website appears to be a simple static site
+// Simple sites don't require heavy scraping strategies (Playwright, BrowserHeaders)
+// OPTIMIZATION 3.3.1: Lightweight scraping for simple sites
+func (s *WebsiteScraper) detectSimpleSite(targetURL string, parsedURL *url.URL) bool {
+	// Heuristics to detect simple sites:
+	// 1. Common static site domains (GitHub Pages, Netlify, etc.)
+	// 2. File extensions (.html, .htm)
+	// 3. Simple domain patterns
+	
+	host := strings.ToLower(parsedURL.Host)
+	path := strings.ToLower(parsedURL.Path)
+	
+	// Check for static site hosting
+	staticSiteHosts := []string{
+		"github.io",
+		"netlify.app",
+		"vercel.app",
+		"pages.dev",
+		"surge.sh",
+		"firebaseapp.com",
+		"appspot.com",
+	}
+	
+	for _, staticHost := range staticSiteHosts {
+		if strings.Contains(host, staticHost) {
+			s.logger.Info("🚀 [Optimization] Detected static site host",
+				zap.String("host", host),
+				zap.String("static_host", staticHost))
+			return true
+		}
+	}
+	
+	// Check for HTML file extensions
+	if strings.HasSuffix(path, ".html") || strings.HasSuffix(path, ".htm") {
+		s.logger.Info("🚀 [Optimization] Detected HTML file extension",
+			zap.String("path", path))
+		return true
+	}
+	
+	// Check for simple path patterns (root or simple paths)
+	// Complex paths with many segments often indicate dynamic sites
+	pathSegments := strings.Split(strings.Trim(path, "/"), "/")
+	if len(pathSegments) <= 1 && path != "" {
+		// Simple path structure suggests static site
+		return true
+	}
+	
+	return false
 }
 
 // shouldUseFallback determines if fallback strategies should be attempted
