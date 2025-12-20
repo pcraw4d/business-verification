@@ -497,37 +497,40 @@ func (msc *MultiStrategyClassifier) tryFastPath(
 			industryNameLower := strings.ToLower(industry.Name)
 
 			// FIX: Check for Food & Beverage false positives in fast path
-			// If "manufacturing" keyword matches Food industry without "beverage", skip fast path
+			// Priority: Check for "beverage" FIRST, then check for "manufacturing"
 			// This prevents Ford (automotive manufacturing) from being classified as Food Production
+			// But allows Coca-Cola (beverage manufacturing) to use fast path for Food & Beverage
 			keywordLower := strings.ToLower(keyword)
 			descriptionLower := strings.ToLower(description)
 			businessNameLower := strings.ToLower(businessName)
 			
-			// Check if keyword is "manufacturing" OR if description/business name contains "manufacturing"
+			// FIRST: Check if "beverage" is present (in keywords, description, or business name)
+			hasBeverage := false
+			// Check in obvious keywords
+			for _, k := range obviousKeywords {
+				if strings.Contains(strings.ToLower(k), "beverage") {
+					hasBeverage = true
+					break
+				}
+			}
+			// Also check in description and business name
+			if !hasBeverage {
+				hasBeverage = strings.Contains(descriptionLower, "beverage") || 
+				              strings.Contains(businessNameLower, "beverage")
+			}
+			
+			// SECOND: Check if keyword is "manufacturing" OR if description/business name contains "manufacturing"
 			isManufacturingKeyword := strings.Contains(keywordLower, "manufacturing") || 
 			                        strings.Contains(descriptionLower, "manufacturing") ||
 			                        strings.Contains(businessNameLower, "manufacturing")
 			
-			if isManufacturingKeyword {
-				// Check if it's actually "beverage manufacturing"
-				hasBeverage := false
-				// Check in obvious keywords
-				for _, k := range obviousKeywords {
-					if strings.Contains(strings.ToLower(k), "beverage") {
-						hasBeverage = true
-						break
-					}
-				}
-				// Also check in description and business name
-				if !hasBeverage {
-					hasBeverage = strings.Contains(descriptionLower, "beverage") || 
-					              strings.Contains(businessNameLower, "beverage")
-				}
-				
-				// If "manufacturing" without "beverage" matched Food industry, skip fast path
-				if !hasBeverage && (strings.Contains(industryNameLower, "food") || 
-				                    strings.Contains(industryNameLower, "beverage") ||
-				                    strings.Contains(industryNameLower, "production")) {
+			// If "manufacturing" is present WITHOUT "beverage" AND matched Food industry, skip fast path
+			// This allows "beverage manufacturing" (Coca-Cola) to use fast path for Food & Beverage
+			// But prevents "automotive manufacturing" (Ford) from using fast path for Food Production
+			if isManufacturingKeyword && !hasBeverage {
+				if strings.Contains(industryNameLower, "food") || 
+				   strings.Contains(industryNameLower, "beverage") ||
+				   strings.Contains(industryNameLower, "production") {
 					msc.logger.Printf("⚠️ [FastPath] Skipping fast path - 'manufacturing' without 'beverage' matched Food industry '%s' (keyword: '%s', description: '%s'). Forcing full classification path.", industry.Name, keyword, description)
 					return nil, false // Force full classification path where fix can apply
 				}
@@ -587,6 +590,8 @@ func (msc *MultiStrategyClassifier) extractObviousKeywords(businessName, descrip
 		// Technology & Cloud
 		"cloud": true, "computing": true, "software": true, "technology": true,
 		"tech": true, "it": true, "saas": true, "platform": true,
+		"telecommunications": true, "telecom": true, "wireless": true, "mobile": true,
+		"internet": true, "network": true, "broadband": true,
 
 		// Insurance & Finance
 		"insurance": true, "brokerage": true, "bank": true, "banking": true,
@@ -637,6 +642,14 @@ func (msc *MultiStrategyClassifier) extractObviousKeywords(businessName, descrip
 		"tutoring": true, "academy": true, "education": true,
 		"edtech": true, "edutech": true, "learning": true,
 		"elearning": true, "online learning": true,
+
+		// Entertainment & Media
+		"entertainment": true, "media": true, "streaming": true, "video": true,
+		"film": true, "movie": true, "television": true, "tv": true,
+		"music": true, "audio": true, "podcast": true, "radio": true,
+		"gaming": true, "game": true, "gamer": true, "esports": true,
+		"theater": true, "theatre": true, "broadcast": true, "content": true,
+		"studio": true, "animation": true, "cinema": true,
 
 		// Compound tech terms (first part determines industry)
 		"fintech": true, "finhealth": true,  // Financial
