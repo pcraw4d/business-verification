@@ -2327,13 +2327,16 @@ func isContentValid(content *ScrapedContent) bool {
 		return false
 	}
 
+	// FIX Track 5.1: Lower word count requirement from 50 to 30 to accept more valid content
 	// Minimum word count
-	if content.WordCount < 50 {
+	if content.WordCount < 30 {
 		return false
 	}
 
-	// Must have basic metadata
-	if content.Title == "" && content.MetaDesc == "" {
+	// FIX Track 5.1: Make metadata optional - remove strict requirement
+	// Some valid sites may not have both title and meta description
+	// Only reject if we have no content at all
+	if content.Title == "" && content.MetaDesc == "" && content.PlainText == "" {
 		return false
 	}
 
@@ -2342,8 +2345,9 @@ func isContentValid(content *ScrapedContent) bool {
 		return false
 	}
 
+	// FIX Track 5.1: Lower quality score threshold from 0.5 to 0.3 to accept more valid content
 	// Quality score threshold
-	if content.QualityScore < 0.5 {
+	if content.QualityScore < 0.3 {
 		return false
 	}
 
@@ -2357,17 +2361,19 @@ func isContentValidWithLogging(content *ScrapedContent, logger *zap.Logger, stra
 		return false
 	}
 
+	// FIX Track 5.1: Lower word count requirement from 50 to 30
 	// Minimum word count
-	if content.WordCount < 50 {
+	if content.WordCount < 30 {
 		logger.Debug("❌ [Phase1] [Validation] Word count too low",
 			zap.Int("word_count", content.WordCount),
-			zap.Int("required", 50))
+			zap.Int("required", 30))
 		return false
 	}
 
-	// Must have basic metadata
-	if content.Title == "" && content.MetaDesc == "" {
-		logger.Debug("❌ [Phase1] [Validation] Missing title and meta description")
+	// FIX Track 5.1: Make metadata optional - only reject if no content at all
+	// Must have some content (title, meta description, or plain text)
+	if content.Title == "" && content.MetaDesc == "" && content.PlainText == "" {
+		logger.Debug("❌ [Phase1] [Validation] Missing all content (title, meta description, and plain text)")
 		return false
 	}
 
@@ -2378,11 +2384,12 @@ func isContentValidWithLogging(content *ScrapedContent, logger *zap.Logger, stra
 		return false
 	}
 
+	// FIX Track 5.1: Lower quality score threshold from 0.5 to 0.3
 	// Quality score threshold
-	if content.QualityScore < 0.5 {
+	if content.QualityScore < 0.3 {
 		logger.Debug("❌ [Phase1] [Validation] Quality score too low",
 			zap.Float64("quality_score", content.QualityScore),
-			zap.Float64("required", 0.5))
+			zap.Float64("required", 0.3))
 		return false
 	}
 

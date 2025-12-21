@@ -411,12 +411,13 @@ func (g *ClassificationCodeGenerator) mergeCodeResults(
 	industryConfidence float64,
 	codeType string,
 ) []RankedCode {
+	// FIX Track 4.2: Lower confidence threshold to improve code generation rate and accuracy
 	// Adaptive confidence threshold: Lower when industry confidence is low
 	// This ensures codes are generated even with lower confidence classifications
-	confidenceThreshold := 0.6
+	confidenceThreshold := 0.4  // Lowered from 0.6 to 0.4 to generate more codes
 	if industryConfidence < 0.5 {
 		// Lower threshold for low-confidence industries to ensure codes are generated
-		confidenceThreshold = 0.3
+		confidenceThreshold = 0.2  // Lowered from 0.3 to 0.2
 		g.logger.Printf("📊 Lowered confidence threshold to %.2f due to low industry confidence (%.2f)", confidenceThreshold, industryConfidence)
 	}
 	
@@ -434,6 +435,7 @@ func (g *ClassificationCodeGenerator) mergeCodeResults(
 				continue
 			}
 
+			// FIX Track 4.2: Boost industry-based codes to improve accuracy
 			// Industry-based codes: Use industry confidence with adjustment
 			// Skip industry-based codes when confidence is very low (likely "General Business")
 			// to avoid generating generic/default codes
@@ -444,11 +446,15 @@ func (g *ClassificationCodeGenerator) mergeCodeResults(
 				continue
 			} else if industryConfidence < 0.5 {
 				// For low-confidence industries, use a minimum floor
-				confidence = 0.3 // Minimum floor for industry-based codes
+				confidence = 0.4 // Increased from 0.3 to 0.4 to boost industry-based codes
 			} else {
-				// For high-confidence industries, use the original formula
-				confidence = industryConfidence * 0.9
+				// For high-confidence industries, boost confidence to prioritize industry-based codes
+				confidence = industryConfidence * 0.95 // Increased from 0.9 to 0.95 to boost industry-based codes
 			}
+			
+			// FIX Track 4.2: Boost industry-based codes - they are more reliable
+			// Industry-based codes from direct industry lookup should be prioritized
+			// Additional boost is applied in ranking logic below
 
 		if existing, exists := codeMap[code.ID]; exists {
 			// Code already exists from keyword match - combine sources
@@ -512,18 +518,38 @@ func (g *ClassificationCodeGenerator) mergeCodeResults(
 		}
 	}
 
-	// Sort by combined confidence (descending), then by code
+	// FIX Track 4.2: Improve code ranking to prioritize industry-based codes
+	// Sort by combined confidence (descending), then by source priority, then by code
 	// Boost codes matched by both sources (already applied in merge logic)
 	sort.Slice(results, func(i, j int) bool {
 		// Primary sort: combined confidence
 		if results[i].CombinedConfidence != results[j].CombinedConfidence {
 			return results[i].CombinedConfidence > results[j].CombinedConfidence
 		}
-		// Secondary sort: number of sources (more sources = better)
+		// Secondary sort: prioritize industry-based codes over keyword-based
+		// Industry-based codes are more reliable for accuracy
+		iHasIndustry := false
+		jHasIndustry := false
+		for _, source := range results[i].Sources {
+			if source == "industry" {
+				iHasIndustry = true
+				break
+			}
+		}
+		for _, source := range results[j].Sources {
+			if source == "industry" {
+				jHasIndustry = true
+				break
+			}
+		}
+		if iHasIndustry != jHasIndustry {
+			return iHasIndustry // Industry-based codes come first
+		}
+		// Tertiary sort: number of sources (more sources = better)
 		if len(results[i].Sources) != len(results[j].Sources) {
 			return len(results[i].Sources) > len(results[j].Sources)
 		}
-		// Tertiary sort: code value
+		// Quaternary sort: code value
 		return results[i].Code.Code < results[j].Code.Code
 	})
 
@@ -918,14 +944,29 @@ func (g *ClassificationCodeGenerator) getNAICSCandidates(
 }
 
 // selectTopCodes selects the top N codes by confidence (Phase 2)
+// FIX Track 4.2: Improve ranking to prioritize industry_match over keyword_match
 func (g *ClassificationCodeGenerator) selectTopCodes(candidates []CodeResult, limit int) []CodeResult {
 	if len(candidates) == 0 {
 		return []CodeResult{}
 	}
 
-	// Sort by confidence (highest first)
+	// Sort by confidence (highest first), then by source priority
+	// Industry-based codes are more reliable and should be prioritized
 	sort.Slice(candidates, func(i, j int) bool {
-		return candidates[i].Confidence > candidates[j].Confidence
+		// Primary sort: confidence
+		if candidates[i].Confidence != candidates[j].Confidence {
+			return candidates[i].Confidence > candidates[j].Confidence
+		}
+		// Secondary sort: prioritize industry_match over keyword_match
+		// Industry_match is more reliable for accuracy
+		if candidates[i].Source == "industry_match" && candidates[j].Source != "industry_match" {
+			return true
+		}
+		if candidates[i].Source != "industry_match" && candidates[j].Source == "industry_match" {
+			return false
+		}
+		// Tertiary sort: code value (for stability)
+		return candidates[i].Code < candidates[j].Code
 	})
 
 	// Return top N
