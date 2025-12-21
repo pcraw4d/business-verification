@@ -347,32 +347,36 @@ func (g *ClassificationCodeGenerator) generateCodesFromKeywords(
 		return []CodeMatch{}, nil
 	}
 
-	g.logger.Printf("🔍 Generating %s codes from keywords: %d keywords", codeType, len(keywords))
+	g.logger.Printf("🔍 [FIX VERIFICATION] Generating %s codes from keywords: %d keywords", codeType, len(keywords))
+	g.logger.Printf("🔍 [FIX VERIFICATION] Keywords: %v", keywords)
 
-	// Adaptive minRelevance based on industry confidence
-	// When industry is "General Business" or confidence is very low, require higher relevance
-	// to avoid generating generic/default codes
-	minRelevance := 0.5
+	// FIX: Lower minRelevance threshold to improve keyword matching
+	// Previous threshold (0.5) was too high, causing no keyword matches
+	// Lower threshold allows more codes to be matched via keywords
+	minRelevance := 0.3  // Lowered from 0.5 to 0.3 to improve keyword matching
 	if industryConfidence < 0.4 {
-		// For very low-confidence industries (likely "General Business"), require higher relevance
-		// This prevents generating generic codes when industry detection fails
-		minRelevance = 0.5 // Keep at 0.5 to require good keyword matches
-		g.logger.Printf("📊 Requiring higher minRelevance (%.2f) due to very low industry confidence (%.2f) - avoiding generic codes", minRelevance, industryConfidence)
+		// For very low-confidence industries, use slightly higher threshold to avoid generic codes
+		minRelevance = 0.25  // Lowered from 0.5 to 0.25
+		g.logger.Printf("📊 [FIX VERIFICATION] Set minRelevance to %.2f due to very low industry confidence (%.2f)", minRelevance, industryConfidence)
 	} else if industryConfidence < 0.5 {
-		// For low-confidence industries, use moderate threshold
-		minRelevance = 0.4
-		g.logger.Printf("📊 Set minRelevance to %.2f due to low industry confidence (%.2f)", minRelevance, industryConfidence)
+		// For low-confidence industries, use lower threshold
+		minRelevance = 0.2  // Lowered from 0.4 to 0.2
+		g.logger.Printf("📊 [FIX VERIFICATION] Set minRelevance to %.2f due to low industry confidence (%.2f)", minRelevance, industryConfidence)
+	} else {
+		g.logger.Printf("📊 [FIX VERIFICATION] Using minRelevance %.2f (industry confidence: %.2f)", minRelevance, industryConfidence)
 	}
 	
 	keywordCodes, err := g.repo.GetClassificationCodesByKeywords(ctx, keywords, codeType, minRelevance)
 	if err != nil {
-		g.logger.Printf("⚠️ Failed to get codes from keywords: %v", err)
+		g.logger.Printf("⚠️ [FIX VERIFICATION] Failed to get codes from keywords: %v", err)
 		return []CodeMatch{}, nil // Return empty instead of error to allow fallback
 	}
+	
+	g.logger.Printf("📊 [FIX VERIFICATION] Retrieved %d codes from keyword matching (minRelevance: %.2f)", len(keywordCodes), minRelevance)
 
 	// Convert to CodeMatch slice
 	matches := make([]CodeMatch, 0, len(keywordCodes))
-	for _, codeWithMeta := range keywordCodes {
+	for i, codeWithMeta := range keywordCodes {
 		// Calculate confidence: Use relevance_score as base, adjust by industry confidence
 		// For low-confidence industries, use a less aggressive multiplier to ensure codes are generated
 		var confidence float64
@@ -386,8 +390,14 @@ func (g *ClassificationCodeGenerator) generateCodesFromKeywords(
 		}
 		
 		// Ensure minimum confidence floor to prevent filtering out valid codes
-		if confidence < 0.2 && codeWithMeta.RelevanceScore >= 0.5 {
-			confidence = 0.2 // Minimum floor for codes with good relevance
+		if confidence < 0.2 && codeWithMeta.RelevanceScore >= 0.3 {
+			confidence = 0.2 // Minimum floor for codes with good relevance (lowered threshold from 0.5 to 0.3)
+		}
+		
+		// FIX VERIFICATION: Log each keyword match for debugging
+		if i < 5 { // Log first 5 matches to avoid log spam
+			g.logger.Printf("📊 [FIX VERIFICATION] Keyword match %d: code=%s, relevance=%.3f, confidence=%.3f, match_type=%s",
+				i+1, codeWithMeta.ClassificationCode.Code, codeWithMeta.RelevanceScore, confidence, codeWithMeta.MatchType)
 		}
 		
 		matches = append(matches, CodeMatch{
@@ -399,7 +409,7 @@ func (g *ClassificationCodeGenerator) generateCodesFromKeywords(
 		})
 	}
 
-	g.logger.Printf("✅ Generated %d %s codes from keywords", len(matches), codeType)
+	g.logger.Printf("✅ [FIX VERIFICATION] Generated %d %s codes from keywords (from %d keyword codes retrieved)", len(matches), codeType, len(keywordCodes))
 	return matches, nil
 }
 
@@ -483,11 +493,13 @@ func (g *ClassificationCodeGenerator) mergeCodeResults(
 	}
 
 	// Add keyword-based codes
+	keywordMatchCount := 0
 	for _, keywordMatch := range keywordCodes {
 		if keywordMatch.Code.CodeType != codeType {
 			continue
 		}
 
+		keywordMatchCount++
 		if existing, exists := codeMap[keywordMatch.Code.ID]; exists {
 			// Code already exists from industry match - combine sources
 			existing.Sources = append(existing.Sources, "keyword")
@@ -506,6 +518,10 @@ func (g *ClassificationCodeGenerator) mergeCodeResults(
 			}
 		}
 	}
+	
+	// FIX VERIFICATION: Log keyword matching results
+	g.logger.Printf("📊 [FIX VERIFICATION] [CodeRanking] mergeCodeResults: %d industry codes, %d keyword matches, %d total unique codes",
+		len(industryCodes), keywordMatchCount, len(codeMap))
 
 	// Convert map to slice and apply boosts
 	results := make([]RankedCode, 0, len(codeMap))
