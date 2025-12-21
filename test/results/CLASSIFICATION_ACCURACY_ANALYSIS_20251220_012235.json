@@ -1,0 +1,430 @@
+{
+  "timestamp": "20251220_012235",
+  "api_url": "https://classification-service-production.up.railway.app",
+  "summary": {
+    "total_tests": 20,
+    "correct": 17,
+    "incorrect": 3,
+    "overall_accuracy": 85.0,
+    "industry_accuracy": {
+      "Technology": {
+        "accuracy": 100.0,
+        "correct": 3,
+        "total": 3,
+        "common_misclassifications": {
+          "Technology": 2,
+          "Professional, Scientific, and Technical Services": 1
+        }
+      },
+      "Financial Services": {
+        "accuracy": 100.0,
+        "correct": 3,
+        "total": 3,
+        "common_misclassifications": {
+          "Banking": 2,
+          "Financial Services": 1
+        }
+      },
+      "Healthcare": {
+        "accuracy": 66.66666666666666,
+        "correct": 2,
+        "total": 3,
+        "common_misclassifications": {
+          "Healthcare": 2,
+          "Insurance": 1
+        }
+      },
+      "Food & Beverage": {
+        "accuracy": 33.33333333333333,
+        "correct": 1,
+        "total": 3,
+        "common_misclassifications": {
+          "Retail": 1,
+          "Restaurants": 1,
+          "Manufacturing": 1
+        }
+      },
+      "Retail & Commerce": {
+        "accuracy": 100.0,
+        "correct": 3,
+        "total": 3,
+        "common_misclassifications": {
+          "Retail": 3
+        }
+      },
+      "Manufacturing": {
+        "accuracy": 100.0,
+        "correct": 2,
+        "total": 2,
+        "common_misclassifications": {
+          "Manufacturing": 2
+        }
+      },
+      "Entertainment": {
+        "accuracy": 100.0,
+        "correct": 2,
+        "total": 2,
+        "common_misclassifications": {
+          "Arts, Entertainment, and Recreation": 2
+        }
+      },
+      "Education": {
+        "accuracy": 100.0,
+        "correct": 1,
+        "total": 1,
+        "common_misclassifications": {
+          "Education": 1
+        }
+      }
+    },
+    "misclassification_patterns": {
+      "Food & Beverage -> Retail": 1,
+      "Food & Beverage -> Manufacturing": 1,
+      "Healthcare -> Insurance": 1
+    },
+    "confidence_analysis": {
+      "correct_mean": 0.9253860294117644,
+      "incorrect_mean": 0.9499999999999998,
+      "correct_min": 0.5315625,
+      "incorrect_min": 0.95,
+      "correct_max": 0.95,
+      "incorrect_max": 0.95
+    },
+    "method_analysis": {
+      "unknown": {
+        "total": 20,
+        "correct": 17
+      }
+    },
+    "early_exit_analysis": {
+      "total": 19,
+      "correct": 16,
+      "incorrect": 3
+    }
+  },
+  "detailed_results": [
+    {
+      "test_number": 1,
+      "expected_industry": "Technology",
+      "predicted_industry": "Technology",
+      "confidence_score": 0.95,
+      "is_correct": true,
+      "success": true,
+      "business_name": "Microsoft Corporation",
+      "description": "Software development and cloud services",
+      "method": "unknown",
+      "processing_path": "layer1",
+      "early_exit": true
+    },
+    {
+      "test_number": 2,
+      "expected_industry": "Financial Services",
+      "predicted_industry": "Banking",
+      "confidence_score": 0.95,
+      "is_correct": true,
+      "success": true,
+      "business_name": "JPMorgan Chase",
+      "description": "Banking and financial services",
+      "method": "unknown",
+      "processing_path": "layer1",
+      "early_exit": true
+    },
+    {
+      "test_number": 3,
+      "expected_industry": "Healthcare",
+      "predicted_industry": "Healthcare",
+      "confidence_score": 0.95,
+      "is_correct": true,
+      "success": true,
+      "business_name": "Mayo Clinic",
+      "description": "Healthcare and medical services",
+      "method": "unknown",
+      "processing_path": "layer1",
+      "early_exit": true
+    },
+    {
+      "test_number": 4,
+      "expected_industry": "Food & Beverage",
+      "predicted_industry": "Retail",
+      "confidence_score": 0.95,
+      "is_correct": false,
+      "success": true,
+      "business_name": "Starbucks",
+      "description": "Coffee retail and food service",
+      "method": "unknown",
+      "processing_path": "layer1",
+      "early_exit": true
+    },
+    {
+      "test_number": 5,
+      "expected_industry": "Retail & Commerce",
+      "predicted_industry": "Retail",
+      "confidence_score": 0.95,
+      "is_correct": true,
+      "success": true,
+      "business_name": "Amazon",
+      "description": "E-commerce and retail",
+      "method": "unknown",
+      "processing_path": "layer1",
+      "early_exit": true
+    },
+    {
+      "test_number": 6,
+      "expected_industry": "Manufacturing",
+      "predicted_industry": "Manufacturing",
+      "confidence_score": 0.95,
+      "is_correct": true,
+      "success": true,
+      "business_name": "Tesla",
+      "description": "Electric vehicle manufacturing",
+      "method": "unknown",
+      "processing_path": "layer1",
+      "early_exit": true
+    },
+    {
+      "test_number": 7,
+      "expected_industry": "Entertainment",
+      "predicted_industry": "Arts, Entertainment, and Recreation",
+      "confidence_score": 0.95,
+      "is_correct": true,
+      "success": true,
+      "business_name": "Netflix",
+      "description": "Streaming entertainment services",
+      "method": "unknown",
+      "processing_path": "layer1",
+      "early_exit": true
+    },
+    {
+      "test_number": 8,
+      "expected_industry": "Education",
+      "predicted_industry": "Education",
+      "confidence_score": 0.95,
+      "is_correct": true,
+      "success": true,
+      "business_name": "Harvard University",
+      "description": "Higher education",
+      "method": "unknown",
+      "processing_path": "layer1",
+      "early_exit": true
+    },
+    {
+      "test_number": 9,
+      "expected_industry": "Financial Services",
+      "predicted_industry": "Banking",
+      "confidence_score": 0.95,
+      "is_correct": true,
+      "success": true,
+      "business_name": "Goldman Sachs",
+      "description": "Investment banking",
+      "method": "unknown",
+      "processing_path": "layer1",
+      "early_exit": true
+    },
+    {
+      "test_number": 10,
+      "expected_industry": "Retail & Commerce",
+      "predicted_industry": "Retail",
+      "confidence_score": 0.95,
+      "is_correct": true,
+      "success": true,
+      "business_name": "Walmart",
+      "description": "Retail stores",
+      "method": "unknown",
+      "processing_path": "layer1",
+      "early_exit": true
+    },
+    {
+      "test_number": 11,
+      "expected_industry": "Technology",
+      "predicted_industry": "Technology",
+      "confidence_score": 0.95,
+      "is_correct": true,
+      "success": true,
+      "business_name": "Apple Inc",
+      "description": "Technology and consumer electronics",
+      "method": "unknown",
+      "processing_path": "layer1",
+      "early_exit": true
+    },
+    {
+      "test_number": 12,
+      "expected_industry": "Food & Beverage",
+      "predicted_industry": "Restaurants",
+      "confidence_score": 0.95,
+      "is_correct": true,
+      "success": true,
+      "business_name": "McDonalds",
+      "description": "Fast food restaurant chain",
+      "method": "unknown",
+      "processing_path": "layer1",
+      "early_exit": true
+    },
+    {
+      "test_number": 13,
+      "expected_industry": "Entertainment",
+      "predicted_industry": "Arts, Entertainment, and Recreation",
+      "confidence_score": 0.95,
+      "is_correct": true,
+      "success": true,
+      "business_name": "Disney",
+      "description": "Entertainment and media",
+      "method": "unknown",
+      "processing_path": "layer1",
+      "early_exit": true
+    },
+    {
+      "test_number": 14,
+      "expected_industry": "Food & Beverage",
+      "predicted_industry": "Manufacturing",
+      "confidence_score": 0.95,
+      "is_correct": false,
+      "success": true,
+      "business_name": "Coca-Cola",
+      "description": "Beverage manufacturing",
+      "method": "unknown",
+      "processing_path": "layer1",
+      "early_exit": true
+    },
+    {
+      "test_number": 15,
+      "expected_industry": "Manufacturing",
+      "predicted_industry": "Manufacturing",
+      "confidence_score": 0.95,
+      "is_correct": true,
+      "success": true,
+      "business_name": "Ford Motor Company",
+      "description": "Automotive manufacturing",
+      "method": "unknown",
+      "processing_path": "layer1",
+      "early_exit": true
+    },
+    {
+      "test_number": 16,
+      "expected_industry": "Retail & Commerce",
+      "predicted_industry": "Retail",
+      "confidence_score": 0.95,
+      "is_correct": true,
+      "success": true,
+      "business_name": "Home Depot",
+      "description": "Home improvement retail",
+      "method": "unknown",
+      "processing_path": "layer1",
+      "early_exit": true
+    },
+    {
+      "test_number": 17,
+      "expected_industry": "Healthcare",
+      "predicted_industry": "Insurance",
+      "confidence_score": 0.95,
+      "is_correct": false,
+      "success": true,
+      "business_name": "UnitedHealth Group",
+      "description": "Healthcare insurance",
+      "method": "unknown",
+      "processing_path": "layer1",
+      "early_exit": true
+    },
+    {
+      "test_number": 18,
+      "expected_industry": "Technology",
+      "predicted_industry": "Professional, Scientific, and Technical Services",
+      "confidence_score": 0.5315625,
+      "is_correct": true,
+      "success": true,
+      "business_name": "Verizon",
+      "description": "Telecommunications services",
+      "method": "unknown",
+      "processing_path": "",
+      "early_exit": false
+    },
+    {
+      "test_number": 19,
+      "expected_industry": "Financial Services",
+      "predicted_industry": "Financial Services",
+      "confidence_score": 0.95,
+      "is_correct": true,
+      "success": true,
+      "business_name": "Bank of America",
+      "description": "Banking services",
+      "method": "unknown",
+      "processing_path": "layer1",
+      "early_exit": true
+    },
+    {
+      "test_number": 20,
+      "expected_industry": "Healthcare",
+      "predicted_industry": "Healthcare",
+      "confidence_score": 0.95,
+      "is_correct": true,
+      "success": true,
+      "business_name": "CVS Health",
+      "description": "Pharmacy and healthcare retail",
+      "method": "unknown",
+      "processing_path": "layer1",
+      "early_exit": true
+    }
+  ],
+  "industry_stats": {
+    "Technology": {
+      "total": 3,
+      "correct": 3,
+      "predictions": {
+        "Technology": 2,
+        "Professional, Scientific, and Technical Services": 1
+      }
+    },
+    "Financial Services": {
+      "total": 3,
+      "correct": 3,
+      "predictions": {
+        "Banking": 2,
+        "Financial Services": 1
+      }
+    },
+    "Healthcare": {
+      "total": 3,
+      "correct": 2,
+      "predictions": {
+        "Healthcare": 2,
+        "Insurance": 1
+      }
+    },
+    "Food & Beverage": {
+      "total": 3,
+      "correct": 1,
+      "predictions": {
+        "Retail": 1,
+        "Restaurants": 1,
+        "Manufacturing": 1
+      }
+    },
+    "Retail & Commerce": {
+      "total": 3,
+      "correct": 3,
+      "predictions": {
+        "Retail": 3
+      }
+    },
+    "Manufacturing": {
+      "total": 2,
+      "correct": 2,
+      "predictions": {
+        "Manufacturing": 2
+      }
+    },
+    "Entertainment": {
+      "total": 2,
+      "correct": 2,
+      "predictions": {
+        "Arts, Entertainment, and Recreation": 2
+      }
+    },
+    "Education": {
+      "total": 1,
+      "correct": 1,
+      "predictions": {
+        "Education": 1
+      }
+    }
+  }
+}

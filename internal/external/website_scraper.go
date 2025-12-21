@@ -1834,6 +1834,29 @@ func (s *WebsiteScraper) ScrapeWithStructuredContent(ctx context.Context, target
 		}
 	}
 
+	// FIX: Validate hostname for invalid characters before DNS lookup
+	// This catches malformed URLs like "www.modernarts&entertainmentindust.com"
+	if parsedURL.Host != "" {
+		hostname := parsedURL.Hostname()
+		// Check for invalid characters in hostname (RFC 1123)
+		// Valid characters: a-z, A-Z, 0-9, hyphen (-), and dot (.)
+		invalidHostnameChars := regexp.MustCompile(`[^a-zA-Z0-9.\-]`)
+		if invalidHostnameChars.MatchString(hostname) {
+			s.logger.Error("Invalid hostname characters detected",
+				zap.String("url", targetURL),
+				zap.String("hostname", hostname),
+				zap.String("stage", "url_validation"))
+			return nil, fmt.Errorf("invalid hostname contains invalid characters: %s (URL: %s)", hostname, targetURL)
+		}
+		// Check for empty hostname
+		if hostname == "" {
+			s.logger.Error("Empty hostname in URL",
+				zap.String("url", targetURL),
+				zap.String("stage", "url_validation"))
+			return nil, fmt.Errorf("empty hostname in URL: %s", targetURL)
+		}
+	}
+
 	s.logger.Info("🌐 [Phase1] Starting scrape with structured content extraction",
 		zap.String("url", targetURL),
 		zap.Time("timestamp", startTime))

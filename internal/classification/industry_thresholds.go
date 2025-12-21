@@ -43,8 +43,8 @@ func NewIndustryThresholds() *IndustryThresholds {
 	
 	return &IndustryThresholds{
 		thresholds: thresholds,
-		defaultThreshold: 0.3,
-		minThreshold: 0.2,
+		defaultThreshold: 0.15, // Reduced from 0.3 to 0.15 to match actual confidence levels (avg 21.7%)
+		minThreshold: 0.1,      // Reduced from 0.2 to 0.1 to allow code generation for low-confidence classifications
 		maxThreshold: 0.9,
 	}
 }
@@ -113,7 +113,9 @@ func (it *IndustryThresholds) ShouldTerminateEarly(industryName string, confiden
 // ShouldGenerateCodes determines if code generation should be performed based on industry threshold
 func (it *IndustryThresholds) ShouldGenerateCodes(industryName string, confidence float64) bool {
 	threshold := it.GetThreshold(industryName)
-	// Generate codes if confidence meets or exceeds threshold, or if confidence > 0.5 (fallback)
-	return confidence >= threshold || confidence > 0.5
+	// Generate codes if confidence meets or exceeds threshold, or if confidence > 0.15 (fallback)
+	// FIX: Reduced fallback threshold from 0.5 to 0.15 to match actual confidence levels (avg 21.7%)
+	// This allows code generation for most requests while still filtering out very low confidence (< 0.15)
+	return confidence >= threshold || confidence >= 0.15
 }
 

@@ -1,0 +1,451 @@
+=== RUN   TestRailwayComprehensiveE2EClassification
+    railway_comprehensive_e2e_classification_test.go:37: Using Railway URL from environment: https://classification-service-production.up.railway.app
+    railway_comprehensive_e2e_classification_test.go:105: ✅ Service health check passed
+    railway_comprehensive_e2e_classification_test.go:47: 🚀 Starting comprehensive Railway E2E tests with 385 samples
+    railway_comprehensive_e2e_classification_test.go:470: 🚀 Starting comprehensive Railway E2E tests with 385 samples
+    railway_comprehensive_e2e_classification_test.go:511: Running test 2/385: Shopify
+    railway_comprehensive_e2e_classification_test.go:511: Running test 3/385: eBay
+    railway_comprehensive_e2e_classification_test.go:511: Running test 1/385: Amazon
+    railway_comprehensive_e2e_classification_test.go:511: Running test 24/385: JPMorgan Chase
+    railway_comprehensive_e2e_classification_test.go:511: Running test 18/385: Domino's Pizza
+    railway_comprehensive_e2e_classification_test.go:511: Running test 19/385: Subway
+    railway_comprehensive_e2e_classification_test.go:511: Running test 20/385: UnitedHealth Group
+    railway_comprehensive_e2e_classification_test.go:511: Running test 21/385: CVS Health
+    railway_comprehensive_e2e_classification_test.go:511: Running test 22/385: Walgreens
+    railway_comprehensive_e2e_classification_test.go:511: Running test 23/385: Mayo Clinic
+    railway_comprehensive_e2e_classification_test.go:511: Running test 10/385: Stripe
+    railway_comprehensive_e2e_classification_test.go:511: Running test 4/385: Walmart
+    railway_comprehensive_e2e_classification_test.go:511: Running test 5/385: Target
+    railway_comprehensive_e2e_classification_test.go:511: Running test 6/385: Microsoft
+    railway_comprehensive_e2e_classification_test.go:511: Running test 7/385: Apple
+    railway_comprehensive_e2e_classification_test.go:511: Running test 8/385: Google
+    railway_comprehensive_e2e_classification_test.go:511: Running test 9/385: Meta
+    railway_comprehensive_e2e_classification_test.go:511: Running test 32/385: Netflix
+    railway_comprehensive_e2e_classification_test.go:511: Running test 25/385: Bank of America
+    railway_comprehensive_e2e_classification_test.go:511: Running test 26/385: Wells Fargo
+    railway_comprehensive_e2e_classification_test.go:511: Running test 27/385: Goldman Sachs
+    railway_comprehensive_e2e_classification_test.go:511: Running test 28/385: PayPal
+    railway_comprehensive_e2e_classification_test.go:511: Running test 17/385: PepsiCo
+    railway_comprehensive_e2e_classification_test.go:511: Running test 14/385: Starbucks
+    railway_comprehensive_e2e_classification_test.go:511: Running test 15/385: McDonald's
+    railway_comprehensive_e2e_classification_test.go:511: Running test 16/385: Coca-Cola
+    railway_comprehensive_e2e_classification_test.go:511: Running test 29/385: Tesla
+    railway_comprehensive_e2e_classification_test.go:511: Running test 30/385: Ford Motor Company
+    railway_comprehensive_e2e_classification_test.go:511: Running test 31/385: General Electric
+    railway_comprehensive_e2e_classification_test.go:511: Running test 12/385: Oracle
+    railway_comprehensive_e2e_classification_test.go:511: Running test 40/385: Uber
+    railway_comprehensive_e2e_classification_test.go:511: Running test 11/385: Salesforce
+    railway_comprehensive_e2e_classification_test.go:511: Running test 33/385: Disney
+    railway_comprehensive_e2e_classification_test.go:511: Running test 34/385: Spotify
+    railway_comprehensive_e2e_classification_test.go:511: Running test 35/385: Deloitte
+    railway_comprehensive_e2e_classification_test.go:511: Running test 36/385: PricewaterhouseCoopers
+    railway_comprehensive_e2e_classification_test.go:511: Running test 37/385: Ernst & Young
+    railway_comprehensive_e2e_classification_test.go:511: Running test 38/385: Caterpillar
+    railway_comprehensive_e2e_classification_test.go:511: Running test 39/385: Zillow
+    railway_comprehensive_e2e_classification_test.go:511: Running test 44/385: National technology Systems
+    railway_comprehensive_e2e_classification_test.go:511: Running test 41/385: FedEx
+    railway_comprehensive_e2e_classification_test.go:511: Running test 42/385: ExxonMobil
+    railway_comprehensive_e2e_classification_test.go:511: Running test 13/385: IBM
+    railway_comprehensive_e2e_classification_test.go:511: Running test 58/385: Premier technology Systems
+    railway_comprehensive_e2e_classification_test.go:511: Running test 49/385: Services technology Holdings
+    railway_comprehensive_e2e_classification_test.go:511: Running test 50/385: Corp technology Solutions
+    railway_comprehensive_e2e_classification_test.go:511: Running test 51/385: LLC technology Systems
+    railway_comprehensive_e2e_classification_test.go:511: Running test 52/385: Associates technology Industries
+    railway_comprehensive_e2e_classification_test.go:511: Running test 53/385: Tech technology Group
+    railway_comprehensive_e2e_classification_test.go:511: Running test 54/385: Smart technology Company
+    railway_comprehensive_e2e_classification_test.go:511: Running test 46/385: City technology Group
+    railway_comprehensive_e2e_classification_test.go:511: Running test 45/385: Local technology Industries
+    railway_comprehensive_e2e_classification_test.go:511: Running test 63/385: Local technology Holdings
+    railway_comprehensive_e2e_classification_test.go:511: Running test 59/385: Advanced technology Industries
+    railway_comprehensive_e2e_classification_test.go:511: Running test 60/385: Prime technology Group
+    railway_comprehensive_e2e_classification_test.go:511: Running test 61/385: Ultimate technology Company
+    railway_comprehensive_e2e_classification_test.go:511: Running test 48/385: Valley technology Associates
+    railway_comprehensive_e2e_classification_test.go:511: Running test 62/385: National technology Associates
+    railway_comprehensive_e2e_classification_test.go:511: Running test 47/385: Coastal technology Company
+    railway_comprehensive_e2e_classification_test.go:511: Running test 66/385: Valley technology Industries
+    railway_comprehensive_e2e_classification_test.go:511: Running test 64/385: City technology Solutions
+    railway_comprehensive_e2e_classification_test.go:511: Running test 56/385: Future technology Holdings
+    railway_comprehensive_e2e_classification_test.go:511: Running test 88/385: Associates technology Group
+    railway_comprehensive_e2e_classification_test.go:511: Running test 70/385: Associates technology Holdings
+    railway_comprehensive_e2e_classification_test.go:511: Running test 65/385: Coastal technology Systems
+    railway_comprehensive_e2e_classification_test.go:511: Running test 98/385: Modern retail Industries
+    railway_comprehensive_e2e_classification_test.go:511: Running test 89/385: Tech technology Company
+    railway_comprehensive_e2e_classification_test.go:511: Running test 90/385: Smart technology Associates
+    railway_comprehensive_e2e_classification_test.go:511: Running test 91/385: Modern technology Holdings
+    railway_comprehensive_e2e_classification_test.go:511: Running test 69/385: LLC technology Associates
+    railway_comprehensive_e2e_classification_test.go:511: Running test 67/385: Services technology Group
+    railway_comprehensive_e2e_classification_test.go:511: Running test 68/385: Corp technology Company
+    railway_comprehensive_e2e_classification_test.go:511: Running test 79/385: Ultimate technology Systems
+    railway_comprehensive_e2e_classification_test.go:511: Running test 55/385: Modern technology Associates
+    railway_comprehensive_e2e_classification_test.go:511: Running test 57/385: ProTech technology Solutions
+    railway_comprehensive_e2e_classification_test.go:511: Running test 96/385: Tech retail Solutions
+    railway_comprehensive_e2e_classification_test.go:511: Running test 93/385: Corp retail Company
+    railway_comprehensive_e2e_classification_test.go:511: Running test 43/385: Ultimate technology Solutions
+    railway_comprehensive_e2e_classification_test.go:511: Running test 94/385: LLC retail Associates
+    railway_comprehensive_e2e_classification_test.go:511: Running test 83/385: Coastal technology Associates
+    railway_comprehensive_e2e_classification_test.go:511: Running test 80/385: National technology Industries
+    railway_comprehensive_e2e_classification_test.go:511: Running test 81/385: Local technology Group
+    railway_comprehensive_e2e_classification_test.go:511: Running test 82/385: City technology Company
+    railway_comprehensive_e2e_classification_test.go:511: Running test 117/385: Future retail Solutions
+    railway_comprehensive_e2e_classification_test.go:511: Running test 99/385: Future retail Group
+    railway_comprehensive_e2e_classification_test.go:511: Running test 72/385: Smart technology Systems
+    railway_comprehensive_e2e_classification_test.go:511: Running test 73/385: Modern technology Industries
+    railway_comprehensive_e2e_classification_test.go:511: Running test 74/385: Future technology Group
+    railway_comprehensive_e2e_classification_test.go:511: Running test 75/385: ProTech technology Company
+    railway_comprehensive_e2e_classification_test.go:511: Running test 92/385: Future technology Solutions
+    railway_comprehensive_e2e_classification_test.go:511: Running test 130/385: LLC retail Holdings
+    railway_comprehensive_e2e_classification_test.go:511: Running test 118/385: ProTech retail Systems
+    railway_comprehensive_e2e_classification_test.go:511: Running test 100/385: ProTech retail Company
+    railway_comprehensive_e2e_classification_test.go:511: Running test 101/385: Premier retail Associates
+    railway_comprehensive_e2e_classification_test.go:511: Running test 102/385: Advanced retail Holdings
+    railway_comprehensive_e2e_classification_test.go:511: Running test 103/385: Prime retail Solutions
+    railway_comprehensive_e2e_classification_test.go:511: Running test 95/385: Associates retail Holdings
+    railway_comprehensive_e2e_classification_test.go:511: Running test 71/385: Tech technology Solutions
+    railway_comprehensive_e2e_classification_test.go:511: Running test 76/385: Premier technology Associates
+    railway_comprehensive_e2e_classification_test.go:511: Running test 84/385: Valley technology Holdings
+    railway_comprehensive_e2e_classification_test.go:511: Running test 77/385: Advanced technology Holdings
+    railway_comprehensive_e2e_classification_test.go:511: Running test 104/385: Ultimate retail Systems
+    railway_comprehensive_e2e_classification_test.go:511: Running test 78/385: Prime technology Solutions
+    railway_comprehensive_e2e_classification_test.go:511: Running test 105/385: National retail Industries
+    railway_comprehensive_e2e_classification_test.go:511: Running test 172/385: Enterprises food & beverage Partners
+    railway_comprehensive_e2e_classification_test.go:511: Running test 106/385: Local retail Group
+    railway_comprehensive_e2e_classification_test.go:511: Running test 107/385: City retail Company
+    railway_comprehensive_e2e_classification_test.go:511: Running test 85/385: Services technology Solutions
+    railway_comprehensive_e2e_classification_test.go:511: Running test 86/385: Corp technology Systems
+    railway_comprehensive_e2e_classification_test.go:511: Running test 119/385: Premier retail Industries
+    railway_comprehensive_e2e_classification_test.go:511: Running test 120/385: Advanced retail Group
+    railway_comprehensive_e2e_classification_test.go:511: Running test 121/385: Prime retail Company
+    railway_comprehensive_e2e_classification_test.go:511: Running test 122/385: Ultimate retail Associates
+    railway_comprehensive_e2e_classification_test.go:511: Running test 155/385: Digital food & beverage Technologies
+    railway_comprehensive_e2e_classification_test.go:511: Running test 131/385: Associates retail Solutions
+    railway_comprehensive_e2e_classification_test.go:511: Running test 132/385: Tech retail Systems
+    railway_comprehensive_e2e_classification_test.go:511: Running test 97/385: Smart retail Systems
+    railway_comprehensive_e2e_classification_test.go:511: Running test 123/385: National retail Holdings
+    railway_comprehensive_e2e_classification_test.go:511: Running test 185/385: Metro healthcare Partners
+    railway_comprehensive_e2e_classification_test.go:511: Running test 124/385: Local retail Solutions
+    railway_comprehensive_e2e_classification_test.go:511: Running test 125/385: City retail Systems
+    railway_comprehensive_e2e_classification_test.go:511: Running test 173/385: Digital food & beverage Enterprises
+    railway_comprehensive_e2e_classification_test.go:511: Running test 126/385: Coastal retail Industries
+    railway_comprehensive_e2e_classification_test.go:511: Running test 174/385: Innovative food & beverage Consulting
+    railway_comprehensive_e2e_classification_test.go:511: Running test 133/385: Smart retail Industries
+    railway_comprehensive_e2e_classification_test.go:511: Running test 134/385: Modern retail Group
+    railway_comprehensive_e2e_classification_test.go:511: Running test 135/385: Future retail Company
+    railway_comprehensive_e2e_classification_test.go:511: Running test 136/385: ProTech retail Associates
+    railway_comprehensive_e2e_classification_test.go:511: Running test 127/385: Valley retail Group
+    railway_comprehensive_e2e_classification_test.go:511: Running test 128/385: Services retail Company
+    railway_comprehensive_e2e_classification_test.go:511: Running test 129/385: Corp retail Associates
+    railway_comprehensive_e2e_classification_test.go:511: Running test 146/385: Regional food & beverage Consulting
+    railway_comprehensive_e2e_classification_test.go:511: Running test 180/385: Elite healthcare Consulting
+    railway_comprehensive_e2e_classification_test.go:511: Running test 176/385: NextGen food & beverage Technologies
+    railway_comprehensive_e2e_classification_test.go:511: Running test 177/385: Global food & beverage Ventures
+    railway_comprehensive_e2e_classification_test.go:511: Running test 178/385: NextGen healthcare Partners
+    railway_comprehensive_e2e_classification_test.go:511: Running test 179/385: Global healthcare Enterprises
+    railway_comprehensive_e2e_classification_test.go:511: Running test 142/385: Elite food & beverage Ventures
+    railway_comprehensive_e2e_classification_test.go:511: Running test 137/385: Premier retail Holdings
+    railway_comprehensive_e2e_classification_test.go:511: Running test 147/385: Metro food & beverage Services
+    railway_comprehensive_e2e_classification_test.go:511: Running test 148/385: State food & beverage Technologies
+    railway_comprehensive_e2e_classification_test.go:511: Running test 149/385: Mountain food & beverage Ventures
+    railway_comprehensive_e2e_classification_test.go:511: Running test 139/385: Next food & beverage Consulting
+    railway_comprehensive_e2e_classification_test.go:511: Running test 175/385: Next food & beverage Services
+    railway_comprehensive_e2e_classification_test.go:511: Running test 181/385: Pro healthcare Services
+    railway_comprehensive_e2e_classification_test.go:511: Running test 182/385: Superior healthcare Technologies
+    railway_comprehensive_e2e_classification_test.go:511: Running test 183/385: Premium healthcare Ventures
+    railway_comprehensive_e2e_classification_test.go:511: Running test 150/385: Solutions food & beverage Corporation
+    railway_comprehensive_e2e_classification_test.go:511: Running test 151/385: Group food & beverage Partners
+    railway_comprehensive_e2e_classification_test.go:511: Running test 152/385: Inc food & beverage Enterprises
+    railway_comprehensive_e2e_classification_test.go:511: Running test 153/385: Partners food & beverage Consulting
+    railway_comprehensive_e2e_classification_test.go:511: Running test 154/385: Enterprises food & beverage Services
+    railway_comprehensive_e2e_classification_test.go:511: Running test 144/385: Superior food & beverage Partners
+    railway_comprehensive_e2e_classification_test.go:511: Running test 143/385: Pro food & beverage Corporation
+    railway_comprehensive_e2e_classification_test.go:511: Running test 112/385: LLC retail Industries
+    railway_comprehensive_e2e_classification_test.go:511: Running test 184/385: Regional healthcare Corporation
+    railway_comprehensive_e2e_classification_test.go:511: Running test 114/385: Tech retail Company
+    railway_comprehensive_e2e_classification_test.go:511: Running test 113/385: Associates retail Group
+    railway_comprehensive_e2e_classification_test.go:511: Running test 110/385: Services retail Solutions
+    railway_comprehensive_e2e_classification_test.go:511: Running test 111/385: Corp retail Systems
+    railway_comprehensive_e2e_classification_test.go:511: Running test 115/385: Smart retail Associates
+    railway_comprehensive_e2e_classification_test.go:511: Running test 141/385: Global food & beverage Technologies
+    railway_comprehensive_e2e_classification_test.go:511: Running test 145/385: Premium food & beverage Enterprises
+    railway_comprehensive_e2e_classification_test.go:511: Running test 109/385: Valley retail Holdings
+    railway_comprehensive_e2e_classification_test.go:511: Running test 247/385: Smart financial services Solutions
+    railway_comprehensive_e2e_classification_test.go:511: Running test 226/385: LLC financial services Solutions
+    railway_comprehensive_e2e_classification_test.go:511: Running test 227/385: Associates financial services Systems
+    railway_comprehensive_e2e_classification_test.go:511: Running test 225/385: Corp financial services Holdings
+    railway_comprehensive_e2e_classification_test.go:511: Running test 186/385: State healthcare Enterprises
+    railway_comprehensive_e2e_classification_test.go:511: Running test 187/385: Mountain healthcare Consulting
+    railway_comprehensive_e2e_classification_test.go:511: Running test 188/385: Solutions healthcare Services
+    railway_comprehensive_e2e_classification_test.go:511: Running test 108/385: Coastal retail Associates
+    railway_comprehensive_e2e_classification_test.go:511: Running test 116/385: Modern retail Holdings
+    railway_comprehensive_e2e_classification_test.go:511: Running test 237/385: National financial services Company
+    railway_comprehensive_e2e_classification_test.go:511: Running test 229/385: Smart financial services Group
+    railway_comprehensive_e2e_classification_test.go:511: Running test 228/385: Tech financial services Industries
+    railway_comprehensive_e2e_classification_test.go:511: Running test 238/385: Local financial services Associates
+    railway_comprehensive_e2e_classification_test.go:511: Running test 239/385: City financial services Holdings
+    railway_comprehensive_e2e_classification_test.go:511: Running test 240/385: Coastal financial services Solutions
+    railway_comprehensive_e2e_classification_test.go:511: Running test 230/385: Modern financial services Company
+    railway_comprehensive_e2e_classification_test.go:511: Running test 231/385: Future financial services Associates
+    railway_comprehensive_e2e_classification_test.go:511: Running test 232/385: ProTech financial services Holdings
+    railway_comprehensive_e2e_classification_test.go:511: Running test 233/385: Premier financial services Solutions
+    railway_comprehensive_e2e_classification_test.go:511: Running test 234/385: Advanced financial services Systems
+    railway_comprehensive_e2e_classification_test.go:511: Running test 235/385: Prime financial services Industries
+    railway_comprehensive_e2e_classification_test.go:511: Running test 236/385: Ultimate financial services Group
+    railway_comprehensive_e2e_classification_test.go:511: Running test 207/385: Group healthcare Enterprises
+    railway_comprehensive_e2e_classification_test.go:511: Running test 241/385: Valley financial services Systems
+    railway_comprehensive_e2e_classification_test.go:511: Running test 242/385: Services financial services Industries
+    railway_comprehensive_e2e_classification_test.go:511: Running test 243/385: Corp financial services Group
+    railway_comprehensive_e2e_classification_test.go:511: Running test 244/385: LLC financial services Company
+    railway_comprehensive_e2e_classification_test.go:511: Running test 190/385: Inc healthcare Ventures
+    railway_comprehensive_e2e_classification_test.go:511: Running test 191/385: Partners healthcare Corporation
+    railway_comprehensive_e2e_classification_test.go:511: Running test 192/385: Enterprises healthcare Partners
+    railway_comprehensive_e2e_classification_test.go:511: Running test 193/385: Digital healthcare Enterprises
+    railway_comprehensive_e2e_classification_test.go:511: Running test 194/385: Innovative healthcare Consulting
+    railway_comprehensive_e2e_classification_test.go:511: Running test 195/385: Next healthcare Services
+    railway_comprehensive_e2e_classification_test.go:511: Running test 196/385: NextGen healthcare Technologies
+    railway_comprehensive_e2e_classification_test.go:511: Running test 197/385: Global healthcare Ventures
+    railway_comprehensive_e2e_classification_test.go:511: Running test 245/385: Associates financial services Associates
+    railway_comprehensive_e2e_classification_test.go:511: Running test 246/385: Tech financial services Holdings
+    railway_comprehensive_e2e_classification_test.go:511: Running test 202/385: Regional healthcare Services
+    railway_comprehensive_e2e_classification_test.go:511: Running test 199/385: Pro healthcare Partners
+    railway_comprehensive_e2e_classification_test.go:511: Running test 140/385: NextGen food & beverage Services
+    railway_comprehensive_e2e_classification_test.go:511: Running test 317/385: Ultimate professional services Company
+    railway_comprehensive_e2e_classification_test.go:511: Running test 249/385: NextGen manufacturing Enterprises
+    railway_comprehensive_e2e_classification_test.go:511: Running test 250/385: Global manufacturing Consulting
+    railway_comprehensive_e2e_classification_test.go:511: Running test 248/385: Next manufacturing Partners
+    railway_comprehensive_e2e_classification_test.go:511: Running test 318/385: National professional services Associates
+    railway_comprehensive_e2e_classification_test.go:511: Running test 319/385: Local professional services Holdings
+    railway_comprehensive_e2e_classification_test.go:511: Running test 320/385: City professional services Solutions
+    railway_comprehensive_e2e_classification_test.go:511: Running test 251/385: Elite manufacturing Services
+    railway_comprehensive_e2e_classification_test.go:511: Running test 252/385: Pro manufacturing Technologies
+    railway_comprehensive_e2e_classification_test.go:511: Running test 253/385: Superior manufacturing Ventures
+    railway_comprehensive_e2e_classification_test.go:511: Running test 254/385: Premium manufacturing Corporation
+    railway_comprehensive_e2e_classification_test.go:511: Running test 198/385: Elite healthcare Corporation
+    railway_comprehensive_e2e_classification_test.go:511: Running test 255/385: Regional manufacturing Partners
+    railway_comprehensive_e2e_classification_test.go:511: Running test 256/385: Metro manufacturing Enterprises
+    railway_comprehensive_e2e_classification_test.go:511: Running test 257/385: State manufacturing Consulting
+    railway_comprehensive_e2e_classification_test.go:511: Running test 203/385: Metro healthcare Technologies
+    railway_comprehensive_e2e_classification_test.go:511: Running test 204/385: State healthcare Ventures
+    railway_comprehensive_e2e_classification_test.go:511: Running test 321/385: Coastal professional services Systems
+    railway_comprehensive_e2e_classification_test.go:511: Running test 205/385: Mountain healthcare Corporation
+    railway_comprehensive_e2e_classification_test.go:511: Running test 322/385: Valley professional services Industries
+    railway_comprehensive_e2e_classification_test.go:511: Running test 323/385: Services professional services Group
+    railway_comprehensive_e2e_classification_test.go:511: Running test 324/385: Corp professional services Company
+    railway_comprehensive_e2e_classification_test.go:511: Running test 258/385: Mountain manufacturing Services
+    railway_comprehensive_e2e_classification_test.go:511: Running test 206/385: Solutions healthcare Partners
+    railway_comprehensive_e2e_classification_test.go:511: Running test 216/385: Advanced financial services Company
+    railway_comprehensive_e2e_classification_test.go:511: Running test 208/385: Inc healthcare Consulting
+    railway_comprehensive_e2e_classification_test.go:511: Running test 209/385: Partners healthcare Services
+    railway_comprehensive_e2e_classification_test.go:511: Running test 200/385: Superior healthcare Enterprises
+    railway_comprehensive_e2e_classification_test.go:511: Running test 201/385: Premium healthcare Consulting
+    railway_comprehensive_e2e_classification_test.go:511: Running test 164/385: Regional food & beverage Corporation
+    railway_comprehensive_e2e_classification_test.go:511: Running test 157/385: Next food & beverage Corporation
+    railway_comprehensive_e2e_classification_test.go:511: Running test 210/385: Enterprises healthcare Technologies
+    railway_comprehensive_e2e_classification_test.go:511: Running test 211/385: Digital healthcare Ventures
+    railway_comprehensive_e2e_classification_test.go:511: Running test 158/385: NextGen food & beverage Partners
+    railway_comprehensive_e2e_classification_test.go:511: Running test 159/385: Global food & beverage Enterprises
+    railway_comprehensive_e2e_classification_test.go:511: Running test 160/385: Elite food & beverage Consulting
+    railway_comprehensive_e2e_classification_test.go:511: Running test 161/385: Pro food & beverage Services
+    railway_comprehensive_e2e_classification_test.go:511: Running test 212/385: Innovative healthcare Corporation
+    railway_comprehensive_e2e_classification_test.go:511: Running test 259/385: Solutions manufacturing Technologies
+    railway_comprehensive_e2e_classification_test.go:511: Running test 213/385: Future financial services Systems
+    railway_comprehensive_e2e_classification_test.go:511: Running test 260/385: Group manufacturing Ventures
+    railway_comprehensive_e2e_classification_test.go:511: Running test 162/385: Superior food & beverage Technologies
+    railway_comprehensive_e2e_classification_test.go:511: Running test 261/385: Inc manufacturing Corporation
+    railway_comprehensive_e2e_classification_test.go:511: Running test 163/385: Premium food & beverage Ventures
+    railway_comprehensive_e2e_classification_test.go:511: Running test 262/385: Partners manufacturing Partners
+    railway_comprehensive_e2e_classification_test.go:511: Running test 215/385: Premier financial services Group
+    railway_comprehensive_e2e_classification_test.go:511: Running test 355/385: Valley arts & entertainment Holdings
+    railway_comprehensive_e2e_classification_test.go:511: Running test 214/385: ProTech financial services Industries
+    railway_comprehensive_e2e_classification_test.go:511: Running test 370/385: Inc real estate Technologies
+    railway_comprehensive_e2e_classification_test.go:511: Running test 356/385: Services arts & entertainment Solutions
+    railway_comprehensive_e2e_classification_test.go:511: Running test 357/385: Corp arts & entertainment Systems
+    railway_comprehensive_e2e_classification_test.go:511: Running test 358/385: NextGen real estate Corporation
+    railway_comprehensive_e2e_classification_test.go:511: Running test 359/385: Global real estate Partners
+    railway_comprehensive_e2e_classification_test.go:511: Running test 360/385: Elite real estate Enterprises
+    railway_comprehensive_e2e_classification_test.go:511: Running test 361/385: Pro real estate Consulting
+    railway_comprehensive_e2e_classification_test.go:511: Running test 263/385: Enterprises manufacturing Enterprises
+    railway_comprehensive_e2e_classification_test.go:511: Running test 264/385: Digital manufacturing Consulting
+    railway_comprehensive_e2e_classification_test.go:511: Running test 265/385: Innovative manufacturing Services
+    railway_comprehensive_e2e_classification_test.go:511: Running test 266/385: Next manufacturing Technologies
+    railway_comprehensive_e2e_classification_test.go:511: Running test 267/385: NextGen manufacturing Ventures
+    railway_comprehensive_e2e_classification_test.go:511: Running test 268/385: Global manufacturing Corporation
+    railway_comprehensive_e2e_classification_test.go:511: Running test 269/385: Elite manufacturing Partners
+    railway_comprehensive_e2e_classification_test.go:511: Running test 270/385: Pro manufacturing Enterprises
+    railway_comprehensive_e2e_classification_test.go:511: Running test 362/385: Superior real estate Services
+    railway_comprehensive_e2e_classification_test.go:511: Running test 363/385: Premium real estate Technologies
+    railway_comprehensive_e2e_classification_test.go:511: Running test 364/385: Regional real estate Ventures
+    railway_comprehensive_e2e_classification_test.go:511: Running test 365/385: Metro real estate Corporation
+    railway_comprehensive_e2e_classification_test.go:511: Running test 271/385: Superior manufacturing Consulting
+    railway_comprehensive_e2e_classification_test.go:511: Running test 272/385: Premium manufacturing Services
+    railway_comprehensive_e2e_classification_test.go:511: Running test 273/385: Regional manufacturing Technologies
+    railway_comprehensive_e2e_classification_test.go:511: Running test 274/385: Metro manufacturing Ventures
+    railway_comprehensive_e2e_classification_test.go:511: Running test 366/385: State real estate Partners
+    railway_comprehensive_e2e_classification_test.go:511: Running test 367/385: Mountain real estate Enterprises
+    railway_comprehensive_e2e_classification_test.go:511: Running test 368/385: Solutions real estate Consulting
+    railway_comprehensive_e2e_classification_test.go:511: Running test 369/385: Group real estate Services
+    railway_comprehensive_e2e_classification_test.go:511: Running test 326/385: Associates professional services Holdings
+    railway_comprehensive_e2e_classification_test.go:511: Running test 327/385: Tech professional services Solutions
+    railway_comprehensive_e2e_classification_test.go:511: Running test 328/385: Smart professional services Systems
+    railway_comprehensive_e2e_classification_test.go:511: Running test 329/385: Modern professional services Industries
+    railway_comprehensive_e2e_classification_test.go:511: Running test 296/385: Enterprises construction Ventures
+    railway_comprehensive_e2e_classification_test.go:511: Running test 276/385: Mountain manufacturing Partners
+    railway_comprehensive_e2e_classification_test.go:511: Running test 277/385: Solutions manufacturing Enterprises
+    railway_comprehensive_e2e_classification_test.go:511: Running test 278/385: Enterprises construction Enterprises
+    railway_comprehensive_e2e_classification_test.go:511: Running test 275/385: State manufacturing Corporation
+    railway_comprehensive_e2e_classification_test.go:511: Running test 297/385: Digital construction Corporation
+    railway_comprehensive_e2e_classification_test.go:511: Running test 298/385: Innovative construction Partners
+    railway_comprehensive_e2e_classification_test.go:511: Running test 299/385: Next construction Enterprises
+    railway_comprehensive_e2e_classification_test.go:511: Running test 330/385: Future professional services Group
+    railway_comprehensive_e2e_classification_test.go:511: Running test 331/385: ProTech professional services Company
+    railway_comprehensive_e2e_classification_test.go:511: Running test 332/385: Premier professional services Associates
+    railway_comprehensive_e2e_classification_test.go:511: Running test 333/385: National arts & entertainment Associates
+    railway_comprehensive_e2e_classification_test.go:511: Running test 334/385: Local arts & entertainment Holdings
+    railway_comprehensive_e2e_classification_test.go:511: Running test 335/385: City arts & entertainment Solutions
+    railway_comprehensive_e2e_classification_test.go:511: Running test 336/385: Coastal arts & entertainment Systems
+    railway_comprehensive_e2e_classification_test.go:511: Running test 337/385: Valley arts & entertainment Industries
+    railway_comprehensive_e2e_classification_test.go:511: Running test 279/385: Digital construction Consulting
+    railway_comprehensive_e2e_classification_test.go:511: Running test 280/385: Innovative construction Services
+    railway_comprehensive_e2e_classification_test.go:511: Running test 281/385: Next construction Technologies
+    railway_comprehensive_e2e_classification_test.go:511: Running test 282/385: NextGen construction Ventures
+    railway_comprehensive_e2e_classification_test.go:511: Running test 338/385: Services arts & entertainment Group
+    railway_comprehensive_e2e_classification_test.go:511: Running test 339/385: Corp arts & entertainment Company
+    railway_comprehensive_e2e_classification_test.go:511: Running test 340/385: LLC arts & entertainment Associates
+    railway_comprehensive_e2e_classification_test.go:511: Running test 341/385: Associates arts & entertainment Holdings
+    railway_comprehensive_e2e_classification_test.go:511: Running test 300/385: NextGen construction Consulting
+    railway_comprehensive_e2e_classification_test.go:511: Running test 301/385: Global construction Services
+    railway_comprehensive_e2e_classification_test.go:511: Running test 302/385: Elite construction Technologies
+    railway_comprehensive_e2e_classification_test.go:511: Running test 303/385: Coastal professional services Company
+    railway_comprehensive_e2e_classification_test.go:511: Running test 283/385: Global construction Corporation
+    railway_comprehensive_e2e_classification_test.go:511: Running test 284/385: Elite construction Partners
+    railway_comprehensive_e2e_classification_test.go:511: Running test 285/385: Pro construction Enterprises
+    railway_comprehensive_e2e_classification_test.go:511: Running test 286/385: Superior construction Consulting
+    railway_comprehensive_e2e_classification_test.go:511: Running test 304/385: Valley professional services Associates
+    railway_comprehensive_e2e_classification_test.go:511: Running test 305/385: Services professional services Holdings
+    railway_comprehensive_e2e_classification_test.go:511: Running test 306/385: Corp professional services Solutions
+    railway_comprehensive_e2e_classification_test.go:511: Running test 307/385: LLC professional services Systems
+    railway_comprehensive_e2e_classification_test.go:511: Running test 287/385: Premium construction Services
+    railway_comprehensive_e2e_classification_test.go:511: Running test 288/385: Regional construction Technologies
+    railway_comprehensive_e2e_classification_test.go:511: Running test 289/385: Metro construction Ventures
+    railway_comprehensive_e2e_classification_test.go:511: Running test 290/385: State construction Corporation
+    railway_comprehensive_e2e_classification_test.go:511: Running test 308/385: Associates professional services Industries
+    railway_comprehensive_e2e_classification_test.go:511: Running test 309/385: Tech professional services Group
+    railway_comprehensive_e2e_classification_test.go:511: Running test 310/385: Smart professional services Company
+    railway_comprehensive_e2e_classification_test.go:511: Running test 311/385: Modern professional services Associates
+    railway_comprehensive_e2e_classification_test.go:511: Running test 291/385: Mountain construction Partners
+    railway_comprehensive_e2e_classification_test.go:511: Running test 292/385: Solutions construction Enterprises
+    railway_comprehensive_e2e_classification_test.go:511: Running test 293/385: Group construction Consulting
+    railway_comprehensive_e2e_classification_test.go:511: Running test 294/385: Inc construction Services
+    railway_comprehensive_e2e_classification_test.go:511: Running test 312/385: Future professional services Holdings
+    railway_comprehensive_e2e_classification_test.go:511: Running test 313/385: ProTech professional services Solutions
+    railway_comprehensive_e2e_classification_test.go:511: Running test 314/385: Premier professional services Systems
+    railway_comprehensive_e2e_classification_test.go:511: Running test 295/385: Partners construction Technologies
+    railway_comprehensive_e2e_classification_test.go:511: Running test 315/385: Advanced professional services Industries
+    railway_comprehensive_e2e_classification_test.go:511: Running test 168/385: Solutions food & beverage Services
+    railway_comprehensive_e2e_classification_test.go:511: Running test 165/385: Metro food & beverage Partners
+    railway_comprehensive_e2e_classification_test.go:511: Running test 166/385: State food & beverage Enterprises
+    railway_comprehensive_e2e_classification_test.go:511: Running test 316/385: Prime professional services Group
+    railway_comprehensive_e2e_classification_test.go:511: Running test 220/385: Local financial services Systems
+    railway_comprehensive_e2e_classification_test.go:511: Running test 217/385: Prime financial services Associates
+    railway_comprehensive_e2e_classification_test.go:511: Running test 218/385: Ultimate financial services Holdings
+    railway_comprehensive_e2e_classification_test.go:511: Running test 342/385: Tech arts & entertainment Solutions
+    railway_comprehensive_e2e_classification_test.go:511: Running test 343/385: Smart arts & entertainment Systems
+    railway_comprehensive_e2e_classification_test.go:511: Running test 344/385: Modern arts & entertainment Industries
+    railway_comprehensive_e2e_classification_test.go:500: ⚠️ Skipping test 171/385: Partners food & beverage Corporation (context cancelled)
+    railway_comprehensive_e2e_classification_test.go:500: ⚠️ Skipping test 377/385: Global real estate Technologies (context cancelled)
+    railway_comprehensive_e2e_classification_test.go:500: ⚠️ Skipping test 373/385: Digital real estate Partners (context cancelled)
+    railway_comprehensive_e2e_classification_test.go:500: ⚠️ Skipping test 371/385: Partners real estate Ventures (context cancelled)
+    railway_comprehensive_e2e_classification_test.go:500: ⚠️ Skipping test 384/385: Innovative transportation Enterprises (context cancelled)
+    railway_comprehensive_e2e_classification_test.go:500: ⚠️ Skipping test 325/385: LLC professional services Associates (context cancelled)
+    railway_comprehensive_e2e_classification_test.go:500: ⚠️ Skipping test 348/385: Advanced arts & entertainment Holdings (context cancelled)
+    railway_comprehensive_e2e_classification_test.go:500: ⚠️ Skipping test 349/385: Prime arts & entertainment Solutions (context cancelled)
+    railway_comprehensive_e2e_classification_test.go:500: ⚠️ Skipping test 347/385: Premier arts & entertainment Associates (context cancelled)
+    railway_comprehensive_e2e_classification_test.go:500: ⚠️ Skipping test 372/385: Enterprises real estate Corporation (context cancelled)
+    railway_comprehensive_e2e_classification_test.go:500: ⚠️ Skipping test 169/385: Group food & beverage Technologies (context cancelled)
+    railway_comprehensive_e2e_classification_test.go:500: ⚠️ Skipping test 375/385: Next real estate Consulting (context cancelled)
+    railway_comprehensive_e2e_classification_test.go:500: ⚠️ Skipping test 221/385: City financial services Industries (context cancelled)
+    railway_comprehensive_e2e_classification_test.go:500: ⚠️ Skipping test 222/385: Coastal financial services Group (context cancelled)
+    railway_comprehensive_e2e_classification_test.go:500: ⚠️ Skipping test 378/385: Solutions transportation Consulting (context cancelled)
+    railway_comprehensive_e2e_classification_test.go:500: ⚠️ Skipping test 383/385: Digital transportation Partners (context cancelled)
+    railway_comprehensive_e2e_classification_test.go:500: ⚠️ Skipping test 170/385: Inc food & beverage Ventures (context cancelled)
+    railway_comprehensive_e2e_classification_test.go:500: ⚠️ Skipping test 351/385: National arts & entertainment Industries (context cancelled)
+    railway_comprehensive_e2e_classification_test.go:500: ⚠️ Skipping test 353/385: City arts & entertainment Company (context cancelled)
+    railway_comprehensive_e2e_classification_test.go:500: ⚠️ Skipping test 352/385: Local arts & entertainment Group (context cancelled)
+    railway_comprehensive_e2e_classification_test.go:500: ⚠️ Skipping test 156/385: Innovative food & beverage Ventures (context cancelled)
+    railway_comprehensive_e2e_classification_test.go:500: ⚠️ Skipping test 385/385: Next transportation Consulting (context cancelled)
+    railway_comprehensive_e2e_classification_test.go:500: ⚠️ Skipping test 376/385: NextGen real estate Services (context cancelled)
+    railway_comprehensive_e2e_classification_test.go:500: ⚠️ Skipping test 354/385: Coastal arts & entertainment Associates (context cancelled)
+    railway_comprehensive_e2e_classification_test.go:500: ⚠️ Skipping test 223/385: Valley financial services Company (context cancelled)
+    railway_comprehensive_e2e_classification_test.go:500: ⚠️ Skipping test 87/385: LLC technology Industries (context cancelled)
+    railway_comprehensive_e2e_classification_test.go:500: ⚠️ Skipping test 138/385: Innovative food & beverage Enterprises (context cancelled)
+    railway_comprehensive_e2e_classification_test.go:500: ⚠️ Skipping test 381/385: Partners transportation Ventures (context cancelled)
+    railway_comprehensive_e2e_classification_test.go:500: ⚠️ Skipping test 374/385: Innovative real estate Enterprises (context cancelled)
+    railway_comprehensive_e2e_classification_test.go:500: ⚠️ Skipping test 167/385: Mountain food & beverage Consulting (context cancelled)
+    railway_comprehensive_e2e_classification_test.go:500: ⚠️ Skipping test 350/385: Ultimate arts & entertainment Systems (context cancelled)
+    railway_comprehensive_e2e_classification_test.go:500: ⚠️ Skipping test 379/385: Group transportation Services (context cancelled)
+    railway_comprehensive_e2e_classification_test.go:500: ⚠️ Skipping test 345/385: Future arts & entertainment Group (context cancelled)
+    railway_comprehensive_e2e_classification_test.go:500: ⚠️ Skipping test 219/385: National financial services Solutions (context cancelled)
+    railway_comprehensive_e2e_classification_test.go:500: ⚠️ Skipping test 380/385: Inc transportation Technologies (context cancelled)
+    railway_comprehensive_e2e_classification_test.go:500: ⚠️ Skipping test 346/385: ProTech arts & entertainment Company (context cancelled)
+    railway_comprehensive_e2e_classification_test.go:500: ⚠️ Skipping test 189/385: Group healthcare Technologies (context cancelled)
+    railway_comprehensive_e2e_classification_test.go:535: ⚠️ Test run timed out, waiting for in-flight requests to complete...
+    railway_comprehensive_e2e_classification_test.go:500: ⚠️ Skipping test 224/385: Services financial services Associates (context cancelled)
+    railway_comprehensive_e2e_classification_test.go:500: ⚠️ Skipping test 382/385: Enterprises transportation Corporation (context cancelled)
+    railway_comprehensive_e2e_classification_test.go:539: ✅ All in-flight tests completed
+    railway_comprehensive_e2e_classification_test.go:57: ✅ Completed all tests in 1h25m0.005415845s
+    railway_comprehensive_e2e_classification_test.go:1455: ❌ Scraping success rate below threshold: 10.4% (expected ≥70%)
+    railway_comprehensive_e2e_classification_test.go:1463: ❌ Classification accuracy below threshold: 9.5% (expected ≥80%)
+    railway_comprehensive_e2e_classification_test.go:1471: ❌ Code generation rate below threshold: 23.1% (expected ≥90%)
+    railway_comprehensive_e2e_classification_test.go:1479: ❌ Overall code accuracy below threshold: 27.5% (expected ≥70%)
+    railway_comprehensive_e2e_classification_test.go:1486: ❌ MCC top 3 accuracy below threshold: 31.2% (expected ≥60%)
+    railway_comprehensive_e2e_classification_test.go:1494: ❌ Average latency too high: 43720ms (expected <10000ms)
+    railway_comprehensive_e2e_classification_test.go:79: 📊 Test report saved to test/results/railway_e2e_classification_20251221_001707.json
+    railway_comprehensive_e2e_classification_test.go:85: 📊 Analysis report saved to test/results/railway_e2e_analysis_20251221_001707.json
+
+================================================================================
+RAILWAY COMPREHENSIVE E2E CLASSIFICATION TEST SUMMARY
+================================================================================
+
+📊 Test Overview:
+  Total Tests: 346
+  Successful: 94 (27.2%)
+  Failed: 252 (72.8%)
+
+🌐 Scraping & Crawling:
+  Success Rate: 10.4%
+  Avg Pages Crawled: 0.0
+  Strategy Distribution: map[early_exit:71]
+
+🎯 Classification:
+  Accuracy: 9.5%
+  Avg Confidence: 0.22
+
+📝 Code Generation:
+  Generation Rate: 23.1%
+  Top 3 Code Rate: 23.1%
+  Avg Code Confidence: 0.87
+
+🎯 Code Accuracy (Enhanced):
+  Overall Code Accuracy: 27.5%
+  MCC - Top 1: 10.0%, Top 3: 31.2%, Score: 0.28
+  NAICS - Top 1: 0.0%, Top 3: 0.0%, Score: 0.00
+  SIC - Top 1: 0.0%, Top 3: 0.0%, Score: 0.00
+
+💬 Explanation Generation:
+  Generation Rate: 27.2%
+  Avg Quality: 0.82
+  Avg Length: 262 chars
+
+⚡ Performance:
+  Avg Latency: 43.720624277s
+  P95 Latency: 1m0.005s
+  Cache Hit Rate: 0.0%
+  Early Exit Rate: 20.5%
+
+❌ Errors:
+  Error Rate: 67.1%
+  Error Distribution: map[timeout_error:232]
+================================================================================
+
+--- FAIL: TestRailwayComprehensiveE2EClassification (5105.23s)
+FAIL
+FAIL	kyb-platform-tests/integration	5105.766s
+FAIL

@@ -1,0 +1,1360 @@
+=== RUN   TestRailwayComprehensiveE2EClassification
+    railway_comprehensive_e2e_classification_test.go:36: Using Railway URL from environment: https://classification-service-production.up.railway.app
+    railway_comprehensive_e2e_classification_test.go:104: ✅ Service health check passed
+    railway_comprehensive_e2e_classification_test.go:46: 🚀 Starting comprehensive Railway E2E tests with 385 samples
+    railway_comprehensive_e2e_classification_test.go:469: 🚀 Starting comprehensive Railway E2E tests with 385 samples
+    railway_comprehensive_e2e_classification_test.go:482: Running test 8/385: Google
+    railway_comprehensive_e2e_classification_test.go:482: Running test 4/385: Walmart
+    railway_comprehensive_e2e_classification_test.go:482: Running test 1/385: Amazon
+    railway_comprehensive_e2e_classification_test.go:482: Running test 2/385: Shopify
+    railway_comprehensive_e2e_classification_test.go:482: Running test 3/385: eBay
+    railway_comprehensive_e2e_classification_test.go:482: Running test 6/385: Microsoft
+    railway_comprehensive_e2e_classification_test.go:482: Running test 5/385: Target
+    railway_comprehensive_e2e_classification_test.go:482: Running test 7/385: Apple
+    railway_comprehensive_e2e_classification_test.go:482: Running test 44/385: National technology Systems
+    railway_comprehensive_e2e_classification_test.go:482: Running test 9/385: Meta
+    railway_comprehensive_e2e_classification_test.go:482: Running test 27/385: Goldman Sachs
+    railway_comprehensive_e2e_classification_test.go:482: Running test 28/385: PayPal
+    railway_comprehensive_e2e_classification_test.go:482: Running test 29/385: Tesla
+    railway_comprehensive_e2e_classification_test.go:482: Running test 30/385: Ford Motor Company
+    railway_comprehensive_e2e_classification_test.go:482: Running test 31/385: General Electric
+    railway_comprehensive_e2e_classification_test.go:482: Running test 32/385: Netflix
+    railway_comprehensive_e2e_classification_test.go:482: Running test 33/385: Disney
+    railway_comprehensive_e2e_classification_test.go:482: Running test 34/385: Spotify
+    railway_comprehensive_e2e_classification_test.go:482: Running test 40/385: Uber
+    railway_comprehensive_e2e_classification_test.go:482: Running test 41/385: FedEx
+    railway_comprehensive_e2e_classification_test.go:482: Running test 42/385: ExxonMobil
+    railway_comprehensive_e2e_classification_test.go:482: Running test 26/385: Wells Fargo
+    railway_comprehensive_e2e_classification_test.go:482: Running test 10/385: Stripe
+    railway_comprehensive_e2e_classification_test.go:482: Running test 11/385: Salesforce
+    railway_comprehensive_e2e_classification_test.go:482: Running test 12/385: Oracle
+    railway_comprehensive_e2e_classification_test.go:482: Running test 43/385: Ultimate technology Solutions
+    railway_comprehensive_e2e_classification_test.go:482: Running test 39/385: Zillow
+    railway_comprehensive_e2e_classification_test.go:482: Running test 37/385: Ernst & Young
+    railway_comprehensive_e2e_classification_test.go:482: Running test 38/385: Caterpillar
+    railway_comprehensive_e2e_classification_test.go:482: Running test 35/385: Deloitte
+    railway_comprehensive_e2e_classification_test.go:482: Running test 19/385: Subway
+    railway_comprehensive_e2e_classification_test.go:482: Running test 17/385: PepsiCo
+    railway_comprehensive_e2e_classification_test.go:482: Running test 18/385: Domino's Pizza
+    railway_comprehensive_e2e_classification_test.go:482: Running test 98/385: Modern retail Industries
+    railway_comprehensive_e2e_classification_test.go:482: Running test 45/385: Local technology Industries
+    railway_comprehensive_e2e_classification_test.go:482: Running test 13/385: IBM
+    railway_comprehensive_e2e_classification_test.go:482: Running test 23/385: Mayo Clinic
+    railway_comprehensive_e2e_classification_test.go:482: Running test 24/385: JPMorgan Chase
+    railway_comprehensive_e2e_classification_test.go:482: Running test 25/385: Bank of America
+    railway_comprehensive_e2e_classification_test.go:482: Running test 16/385: Coca-Cola
+    railway_comprehensive_e2e_classification_test.go:482: Running test 14/385: Starbucks
+    railway_comprehensive_e2e_classification_test.go:482: Running test 15/385: McDonald's
+    railway_comprehensive_e2e_classification_test.go:482: Running test 20/385: UnitedHealth Group
+    railway_comprehensive_e2e_classification_test.go:482: Running test 131/385: Associates retail Solutions
+    railway_comprehensive_e2e_classification_test.go:482: Running test 99/385: Future retail Group
+    railway_comprehensive_e2e_classification_test.go:482: Running test 100/385: ProTech retail Company
+    railway_comprehensive_e2e_classification_test.go:482: Running test 101/385: Premier retail Associates
+    railway_comprehensive_e2e_classification_test.go:482: Running test 132/385: Tech retail Systems
+    railway_comprehensive_e2e_classification_test.go:482: Running test 140/385: NextGen food & beverage Services
+    railway_comprehensive_e2e_classification_test.go:482: Running test 36/385: PricewaterhouseCoopers
+    railway_comprehensive_e2e_classification_test.go:482: Running test 102/385: Advanced retail Holdings
+    railway_comprehensive_e2e_classification_test.go:482: Running test 21/385: CVS Health
+    railway_comprehensive_e2e_classification_test.go:482: Running test 72/385: Smart technology Systems
+    railway_comprehensive_e2e_classification_test.go:482: Running test 47/385: Coastal technology Company
+    railway_comprehensive_e2e_classification_test.go:482: Running test 48/385: Valley technology Associates
+    railway_comprehensive_e2e_classification_test.go:482: Running test 103/385: Prime retail Solutions
+    railway_comprehensive_e2e_classification_test.go:482: Running test 104/385: Ultimate retail Systems
+    railway_comprehensive_e2e_classification_test.go:482: Running test 105/385: National retail Industries
+    railway_comprehensive_e2e_classification_test.go:482: Running test 150/385: Solutions food & beverage Corporation
+    railway_comprehensive_e2e_classification_test.go:482: Running test 141/385: Global food & beverage Technologies
+    railway_comprehensive_e2e_classification_test.go:482: Running test 142/385: Elite food & beverage Ventures
+    railway_comprehensive_e2e_classification_test.go:482: Running test 143/385: Pro food & beverage Corporation
+    railway_comprehensive_e2e_classification_test.go:482: Running test 144/385: Superior food & beverage Partners
+    railway_comprehensive_e2e_classification_test.go:482: Running test 145/385: Premium food & beverage Enterprises
+    railway_comprehensive_e2e_classification_test.go:482: Running test 146/385: Regional food & beverage Consulting
+    railway_comprehensive_e2e_classification_test.go:482: Running test 147/385: Metro food & beverage Services
+    railway_comprehensive_e2e_classification_test.go:482: Running test 133/385: Smart retail Industries
+    railway_comprehensive_e2e_classification_test.go:482: Running test 134/385: Modern retail Group
+    railway_comprehensive_e2e_classification_test.go:482: Running test 49/385: Services technology Holdings
+    railway_comprehensive_e2e_classification_test.go:482: Running test 50/385: Corp technology Solutions
+    railway_comprehensive_e2e_classification_test.go:482: Running test 51/385: LLC technology Systems
+    railway_comprehensive_e2e_classification_test.go:482: Running test 52/385: Associates technology Industries
+    railway_comprehensive_e2e_classification_test.go:482: Running test 46/385: City technology Group
+    railway_comprehensive_e2e_classification_test.go:482: Running test 73/385: Modern technology Industries
+    railway_comprehensive_e2e_classification_test.go:482: Running test 74/385: Future technology Group
+    railway_comprehensive_e2e_classification_test.go:482: Running test 75/385: ProTech technology Company
+    railway_comprehensive_e2e_classification_test.go:482: Running test 53/385: Tech technology Group
+    railway_comprehensive_e2e_classification_test.go:482: Running test 54/385: Smart technology Company
+    railway_comprehensive_e2e_classification_test.go:482: Running test 55/385: Modern technology Associates
+    railway_comprehensive_e2e_classification_test.go:482: Running test 56/385: Future technology Holdings
+    railway_comprehensive_e2e_classification_test.go:482: Running test 57/385: ProTech technology Solutions
+    railway_comprehensive_e2e_classification_test.go:482: Running test 58/385: Premier technology Systems
+    railway_comprehensive_e2e_classification_test.go:482: Running test 59/385: Advanced technology Industries
+    railway_comprehensive_e2e_classification_test.go:482: Running test 60/385: Prime technology Group
+    railway_comprehensive_e2e_classification_test.go:482: Running test 76/385: Premier technology Associates
+    railway_comprehensive_e2e_classification_test.go:482: Running test 77/385: Advanced technology Holdings
+    railway_comprehensive_e2e_classification_test.go:482: Running test 78/385: Prime technology Solutions
+    railway_comprehensive_e2e_classification_test.go:482: Running test 79/385: Ultimate technology Systems
+    railway_comprehensive_e2e_classification_test.go:482: Running test 80/385: National technology Industries
+    railway_comprehensive_e2e_classification_test.go:482: Running test 81/385: Local technology Group
+    railway_comprehensive_e2e_classification_test.go:482: Running test 82/385: City technology Company
+    railway_comprehensive_e2e_classification_test.go:482: Running test 83/385: Coastal technology Associates
+    railway_comprehensive_e2e_classification_test.go:482: Running test 84/385: Valley technology Holdings
+    railway_comprehensive_e2e_classification_test.go:482: Running test 85/385: Services technology Solutions
+    railway_comprehensive_e2e_classification_test.go:482: Running test 86/385: Corp technology Systems
+    railway_comprehensive_e2e_classification_test.go:482: Running test 87/385: LLC technology Industries
+    railway_comprehensive_e2e_classification_test.go:482: Running test 88/385: Associates technology Group
+    railway_comprehensive_e2e_classification_test.go:482: Running test 89/385: Tech technology Company
+    railway_comprehensive_e2e_classification_test.go:482: Running test 90/385: Smart technology Associates
+    railway_comprehensive_e2e_classification_test.go:482: Running test 61/385: Ultimate technology Company
+    railway_comprehensive_e2e_classification_test.go:482: Running test 91/385: Modern technology Holdings
+    railway_comprehensive_e2e_classification_test.go:482: Running test 62/385: National technology Associates
+    railway_comprehensive_e2e_classification_test.go:482: Running test 63/385: Local technology Holdings
+    railway_comprehensive_e2e_classification_test.go:482: Running test 64/385: City technology Solutions
+    railway_comprehensive_e2e_classification_test.go:482: Running test 106/385: Local retail Group
+    railway_comprehensive_e2e_classification_test.go:482: Running test 107/385: City retail Company
+    railway_comprehensive_e2e_classification_test.go:482: Running test 108/385: Coastal retail Associates
+    railway_comprehensive_e2e_classification_test.go:482: Running test 109/385: Valley retail Holdings
+    railway_comprehensive_e2e_classification_test.go:482: Running test 92/385: Future technology Solutions
+    railway_comprehensive_e2e_classification_test.go:482: Running test 93/385: Corp retail Company
+    railway_comprehensive_e2e_classification_test.go:482: Running test 94/385: LLC retail Associates
+    railway_comprehensive_e2e_classification_test.go:482: Running test 95/385: Associates retail Holdings
+    railway_comprehensive_e2e_classification_test.go:482: Running test 22/385: Walgreens
+    railway_comprehensive_e2e_classification_test.go:482: Running test 149/385: Mountain food & beverage Ventures
+    railway_comprehensive_e2e_classification_test.go:482: Running test 239/385: City financial services Holdings
+    railway_comprehensive_e2e_classification_test.go:482: Running test 151/385: Group food & beverage Partners
+    railway_comprehensive_e2e_classification_test.go:482: Running test 97/385: Smart retail Systems
+    railway_comprehensive_e2e_classification_test.go:482: Running test 68/385: Corp technology Company
+    railway_comprehensive_e2e_classification_test.go:482: Running test 66/385: Valley technology Industries
+    railway_comprehensive_e2e_classification_test.go:482: Running test 67/385: Services technology Group
+    railway_comprehensive_e2e_classification_test.go:482: Running test 65/385: Coastal technology Systems
+    railway_comprehensive_e2e_classification_test.go:482: Running test 69/385: LLC technology Associates
+    railway_comprehensive_e2e_classification_test.go:482: Running test 70/385: Associates technology Holdings
+    railway_comprehensive_e2e_classification_test.go:482: Running test 120/385: Advanced retail Group
+    railway_comprehensive_e2e_classification_test.go:482: Running test 71/385: Tech technology Solutions
+    railway_comprehensive_e2e_classification_test.go:482: Running test 111/385: Corp retail Systems
+    railway_comprehensive_e2e_classification_test.go:482: Running test 112/385: LLC retail Industries
+    railway_comprehensive_e2e_classification_test.go:482: Running test 113/385: Associates retail Group
+    railway_comprehensive_e2e_classification_test.go:482: Running test 290/385: State construction Corporation
+    railway_comprehensive_e2e_classification_test.go:482: Running test 240/385: Coastal financial services Solutions
+    railway_comprehensive_e2e_classification_test.go:482: Running test 241/385: Valley financial services Systems
+    railway_comprehensive_e2e_classification_test.go:482: Running test 242/385: Services financial services Industries
+    railway_comprehensive_e2e_classification_test.go:482: Running test 243/385: Corp financial services Group
+    railway_comprehensive_e2e_classification_test.go:482: Running test 244/385: LLC financial services Company
+    railway_comprehensive_e2e_classification_test.go:482: Running test 245/385: Associates financial services Associates
+    railway_comprehensive_e2e_classification_test.go:482: Running test 246/385: Tech financial services Holdings
+    railway_comprehensive_e2e_classification_test.go:482: Running test 114/385: Tech retail Company
+    railway_comprehensive_e2e_classification_test.go:482: Running test 115/385: Smart retail Associates
+    railway_comprehensive_e2e_classification_test.go:482: Running test 116/385: Modern retail Holdings
+    railway_comprehensive_e2e_classification_test.go:482: Running test 117/385: Future retail Solutions
+    railway_comprehensive_e2e_classification_test.go:482: Running test 247/385: Smart financial services Solutions
+    railway_comprehensive_e2e_classification_test.go:482: Running test 248/385: Next manufacturing Partners
+    railway_comprehensive_e2e_classification_test.go:482: Running test 249/385: NextGen manufacturing Enterprises
+    railway_comprehensive_e2e_classification_test.go:482: Running test 250/385: Global manufacturing Consulting
+    railway_comprehensive_e2e_classification_test.go:482: Running test 385/385: Next transportation Consulting
+    railway_comprehensive_e2e_classification_test.go:482: Running test 291/385: Mountain construction Partners
+    railway_comprehensive_e2e_classification_test.go:482: Running test 292/385: Solutions construction Enterprises
+    railway_comprehensive_e2e_classification_test.go:482: Running test 96/385: Tech retail Solutions
+    railway_comprehensive_e2e_classification_test.go:482: Running test 293/385: Group construction Consulting
+    railway_comprehensive_e2e_classification_test.go:482: Running test 294/385: Inc construction Services
+    railway_comprehensive_e2e_classification_test.go:482: Running test 295/385: Partners construction Technologies
+    railway_comprehensive_e2e_classification_test.go:482: Running test 270/385: Pro manufacturing Enterprises
+    railway_comprehensive_e2e_classification_test.go:482: Running test 296/385: Enterprises construction Ventures
+    railway_comprehensive_e2e_classification_test.go:482: Running test 252/385: Pro manufacturing Technologies
+    railway_comprehensive_e2e_classification_test.go:482: Running test 253/385: Superior manufacturing Ventures
+    railway_comprehensive_e2e_classification_test.go:482: Running test 297/385: Digital construction Corporation
+    railway_comprehensive_e2e_classification_test.go:482: Running test 298/385: Innovative construction Partners
+    railway_comprehensive_e2e_classification_test.go:482: Running test 299/385: Next construction Enterprises
+    railway_comprehensive_e2e_classification_test.go:482: Running test 300/385: NextGen construction Consulting
+    railway_comprehensive_e2e_classification_test.go:482: Running test 301/385: Global construction Services
+    railway_comprehensive_e2e_classification_test.go:482: Running test 302/385: Elite construction Technologies
+    railway_comprehensive_e2e_classification_test.go:482: Running test 303/385: Coastal professional services Company
+    railway_comprehensive_e2e_classification_test.go:482: Running test 304/385: Valley professional services Associates
+    railway_comprehensive_e2e_classification_test.go:482: Running test 305/385: Services professional services Holdings
+    railway_comprehensive_e2e_classification_test.go:482: Running test 306/385: Corp professional services Solutions
+    railway_comprehensive_e2e_classification_test.go:482: Running test 307/385: LLC professional services Systems
+    railway_comprehensive_e2e_classification_test.go:482: Running test 308/385: Associates professional services Industries
+    railway_comprehensive_e2e_classification_test.go:482: Running test 118/385: ProTech retail Systems
+    railway_comprehensive_e2e_classification_test.go:482: Running test 119/385: Premier retail Industries
+    railway_comprehensive_e2e_classification_test.go:482: Running test 125/385: City retail Systems
+    railway_comprehensive_e2e_classification_test.go:482: Running test 121/385: Prime retail Company
+    railway_comprehensive_e2e_classification_test.go:482: Running test 309/385: Tech professional services Group
+    railway_comprehensive_e2e_classification_test.go:482: Running test 310/385: Smart professional services Company
+    railway_comprehensive_e2e_classification_test.go:482: Running test 311/385: Modern professional services Associates
+    railway_comprehensive_e2e_classification_test.go:482: Running test 312/385: Future professional services Holdings
+    railway_comprehensive_e2e_classification_test.go:482: Running test 254/385: Premium manufacturing Corporation
+    railway_comprehensive_e2e_classification_test.go:482: Running test 255/385: Regional manufacturing Partners
+    railway_comprehensive_e2e_classification_test.go:482: Running test 256/385: Metro manufacturing Enterprises
+    railway_comprehensive_e2e_classification_test.go:482: Running test 257/385: State manufacturing Consulting
+    railway_comprehensive_e2e_classification_test.go:482: Running test 313/385: ProTech professional services Solutions
+    railway_comprehensive_e2e_classification_test.go:482: Running test 314/385: Premier professional services Systems
+    railway_comprehensive_e2e_classification_test.go:482: Running test 315/385: Advanced professional services Industries
+    railway_comprehensive_e2e_classification_test.go:482: Running test 316/385: Prime professional services Group
+    railway_comprehensive_e2e_classification_test.go:482: Running test 148/385: State food & beverage Technologies
+    railway_comprehensive_e2e_classification_test.go:482: Running test 280/385: Innovative construction Services
+    railway_comprehensive_e2e_classification_test.go:482: Running test 271/385: Superior manufacturing Consulting
+    railway_comprehensive_e2e_classification_test.go:482: Running test 272/385: Premium manufacturing Services
+    railway_comprehensive_e2e_classification_test.go:482: Running test 317/385: Ultimate professional services Company
+    railway_comprehensive_e2e_classification_test.go:482: Running test 318/385: National professional services Associates
+    railway_comprehensive_e2e_classification_test.go:482: Running test 319/385: Local professional services Holdings
+    railway_comprehensive_e2e_classification_test.go:482: Running test 320/385: City professional services Solutions
+    railway_comprehensive_e2e_classification_test.go:482: Running test 273/385: Regional manufacturing Technologies
+    railway_comprehensive_e2e_classification_test.go:482: Running test 274/385: Metro manufacturing Ventures
+    railway_comprehensive_e2e_classification_test.go:482: Running test 275/385: State manufacturing Corporation
+    railway_comprehensive_e2e_classification_test.go:482: Running test 276/385: Mountain manufacturing Partners
+    railway_comprehensive_e2e_classification_test.go:482: Running test 321/385: Coastal professional services Systems
+    railway_comprehensive_e2e_classification_test.go:482: Running test 322/385: Valley professional services Industries
+    railway_comprehensive_e2e_classification_test.go:482: Running test 323/385: Services professional services Group
+    railway_comprehensive_e2e_classification_test.go:482: Running test 324/385: Corp professional services Company
+    railway_comprehensive_e2e_classification_test.go:482: Running test 325/385: LLC professional services Associates
+    railway_comprehensive_e2e_classification_test.go:482: Running test 326/385: Associates professional services Holdings
+    railway_comprehensive_e2e_classification_test.go:482: Running test 327/385: Tech professional services Solutions
+    railway_comprehensive_e2e_classification_test.go:482: Running test 328/385: Smart professional services Systems
+    railway_comprehensive_e2e_classification_test.go:482: Running test 277/385: Solutions manufacturing Enterprises
+    railway_comprehensive_e2e_classification_test.go:482: Running test 329/385: Modern professional services Industries
+    railway_comprehensive_e2e_classification_test.go:482: Running test 330/385: Future professional services Group
+    railway_comprehensive_e2e_classification_test.go:482: Running test 331/385: ProTech professional services Company
+    railway_comprehensive_e2e_classification_test.go:482: Running test 332/385: Premier professional services Associates
+    railway_comprehensive_e2e_classification_test.go:482: Running test 278/385: Enterprises construction Enterprises
+    railway_comprehensive_e2e_classification_test.go:482: Running test 279/385: Digital construction Consulting
+    railway_comprehensive_e2e_classification_test.go:482: Running test 359/385: Global real estate Partners
+    railway_comprehensive_e2e_classification_test.go:482: Running test 333/385: National arts & entertainment Associates
+    railway_comprehensive_e2e_classification_test.go:482: Running test 360/385: Elite real estate Enterprises
+    railway_comprehensive_e2e_classification_test.go:482: Running test 361/385: Pro real estate Consulting
+    railway_comprehensive_e2e_classification_test.go:482: Running test 362/385: Superior real estate Services
+    railway_comprehensive_e2e_classification_test.go:482: Running test 258/385: Mountain manufacturing Services
+    railway_comprehensive_e2e_classification_test.go:482: Running test 259/385: Solutions manufacturing Technologies
+    railway_comprehensive_e2e_classification_test.go:482: Running test 260/385: Group manufacturing Ventures
+    railway_comprehensive_e2e_classification_test.go:482: Running test 261/385: Inc manufacturing Corporation
+    railway_comprehensive_e2e_classification_test.go:482: Running test 334/385: Local arts & entertainment Holdings
+    railway_comprehensive_e2e_classification_test.go:482: Running test 335/385: City arts & entertainment Solutions
+    railway_comprehensive_e2e_classification_test.go:482: Running test 336/385: Coastal arts & entertainment Systems
+    railway_comprehensive_e2e_classification_test.go:482: Running test 337/385: Valley arts & entertainment Industries
+    railway_comprehensive_e2e_classification_test.go:482: Running test 338/385: Services arts & entertainment Group
+    railway_comprehensive_e2e_classification_test.go:482: Running test 339/385: Corp arts & entertainment Company
+    railway_comprehensive_e2e_classification_test.go:482: Running test 340/385: LLC arts & entertainment Associates
+    railway_comprehensive_e2e_classification_test.go:482: Running test 341/385: Associates arts & entertainment Holdings
+    railway_comprehensive_e2e_classification_test.go:482: Running test 262/385: Partners manufacturing Partners
+    railway_comprehensive_e2e_classification_test.go:482: Running test 263/385: Enterprises manufacturing Enterprises
+    railway_comprehensive_e2e_classification_test.go:482: Running test 264/385: Digital manufacturing Consulting
+panic: test timed out after 1h30m0s
+	running tests:
+		TestRailwayComprehensiveE2EClassification (1h30m0s)
+
+goroutine 726 [running]:
+testing.(*M).startAlarm.func1()
+	/usr/local/Cellar/go/1.25.5/libexec/src/testing/testing.go:2682 +0x345
+created by time.goFunc
+	/usr/local/Cellar/go/1.25.5/libexec/src/time/sleep.go:215 +0x2d
+
+goroutine 1 [chan receive, 88 minutes]:
+testing.(*T).Run(0xc000003c00, {0xc32b5bb?, 0xc00014fb30?}, 0xc467578)
+	/usr/local/Cellar/go/1.25.5/libexec/src/testing/testing.go:2005 +0x485
+testing.runTests.func1(0xc000003c00)
+	/usr/local/Cellar/go/1.25.5/libexec/src/testing/testing.go:2477 +0x37
+testing.tRunner(0xc000003c00, 0xc00014fc70)
+	/usr/local/Cellar/go/1.25.5/libexec/src/testing/testing.go:1934 +0xea
+testing.runTests(0xc0000101c8, {0xc6f0c00, 0x12, 0x12}, {0x7?, 0xc000038c80?, 0xc6f8100?})
+	/usr/local/Cellar/go/1.25.5/libexec/src/testing/testing.go:2475 +0x4b4
+testing.(*M).Run(0xc00007ac80)
+	/usr/local/Cellar/go/1.25.5/libexec/src/testing/testing.go:2337 +0x63a
+main.main()
+	_testmain.go:79 +0x9b
+
+goroutine 7 [sync.WaitGroup.Wait, 88 minutes]:
+sync.runtime_SemacquireWaitGroup(0xc0002e3960?, 0x0?)
+	/usr/local/Cellar/go/1.25.5/libexec/src/runtime/sema.go:114 +0x2e
+sync.(*WaitGroup).Wait(0xc0000cd2f0)
+	/usr/local/Cellar/go/1.25.5/libexec/src/sync/waitgroup.go:206 +0x85
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests(0xc0000e2000, {0xc0000b4000, 0x181, 0x181})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:491 +0x2cd
+kyb-platform-tests/integration.TestRailwayComprehensiveE2EClassification(0xc000003dc0)
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:53 +0x439
+testing.tRunner(0xc000003dc0, 0xc467578)
+	/usr/local/Cellar/go/1.25.5/libexec/src/testing/testing.go:1934 +0xea
+created by testing.(*T).Run in goroutine 1
+	/usr/local/Cellar/go/1.25.5/libexec/src/testing/testing.go:1997 +0x465
+
+goroutine 20 [IO wait]:
+internal/poll.runtime_pollWait(0x53217c00, 0x72)
+	/usr/local/Cellar/go/1.25.5/libexec/src/runtime/netpoll.go:351 +0x85
+internal/poll.(*pollDesc).wait(0xc00013c500?, 0xc0004ba000?, 0x0)
+	/usr/local/Cellar/go/1.25.5/libexec/src/internal/poll/fd_poll_runtime.go:84 +0x27
+internal/poll.(*pollDesc).waitRead(...)
+	/usr/local/Cellar/go/1.25.5/libexec/src/internal/poll/fd_poll_runtime.go:89
+internal/poll.(*FD).Read(0xc00013c500, {0xc0004ba000, 0x2500, 0x2500})
+	/usr/local/Cellar/go/1.25.5/libexec/src/internal/poll/fd_unix.go:165 +0x279
+net.(*netFD).Read(0xc00013c500, {0xc0004ba000?, 0xc0004ba052?, 0x5?})
+	/usr/local/Cellar/go/1.25.5/libexec/src/net/fd_posix.go:68 +0x25
+net.(*conn).Read(0xc000186000, {0xc0004ba000?, 0x53247c08?, 0xc772108?})
+	/usr/local/Cellar/go/1.25.5/libexec/src/net/net.go:196 +0x45
+crypto/tls.(*atLeastReader).Read(0xc0001a4168, {0xc0004ba000?, 0x24a9?, 0x1?})
+	/usr/local/Cellar/go/1.25.5/libexec/src/crypto/tls/conn.go:816 +0x3b
+bytes.(*Buffer).ReadFrom(0xc00018a2a8, {0xc46cb20, 0xc0001a4168})
+	/usr/local/Cellar/go/1.25.5/libexec/src/bytes/buffer.go:217 +0x98
+crypto/tls.(*Conn).readFromUntil(0xc00018a008, {0x5343a108, 0xc000186000}, 0xbfeed14?)
+	/usr/local/Cellar/go/1.25.5/libexec/src/crypto/tls/conn.go:838 +0xde
+crypto/tls.(*Conn).readRecordOrCCS(0xc00018a008, 0x0)
+	/usr/local/Cellar/go/1.25.5/libexec/src/crypto/tls/conn.go:627 +0x3db
+crypto/tls.(*Conn).readRecord(...)
+	/usr/local/Cellar/go/1.25.5/libexec/src/crypto/tls/conn.go:589
+crypto/tls.(*Conn).Read(0xc00018a008, {0xc000215000, 0x1000, 0xc0005edca8?})
+	/usr/local/Cellar/go/1.25.5/libexec/src/crypto/tls/conn.go:1392 +0x145
+bufio.(*Reader).Read(0xc00020e360, {0xc0001e04a0, 0x9, 0xbfbed80?})
+	/usr/local/Cellar/go/1.25.5/libexec/src/bufio/bufio.go:245 +0x197
+io.ReadAtLeast({0xc46bc20, 0xc00020e360}, {0xc0001e04a0, 0x9, 0x9}, 0x9)
+	/usr/local/Cellar/go/1.25.5/libexec/src/io/io.go:335 +0x8e
+io.ReadFull(...)
+	/usr/local/Cellar/go/1.25.5/libexec/src/io/io.go:354
+net/http.http2readFrameHeader({0xc0001e04a0, 0x9, 0xc250fbf?}, {0xc46bc20?, 0xc00020e360?})
+	/usr/local/Cellar/go/1.25.5/libexec/src/net/http/h2_bundle.go:1811 +0x65
+net/http.(*http2Framer).ReadFrame(0xc0001e0460)
+	/usr/local/Cellar/go/1.25.5/libexec/src/net/http/h2_bundle.go:2078 +0x7d
+net/http.(*http2clientConnReadLoop).run(0xc0005edfa8)
+	/usr/local/Cellar/go/1.25.5/libexec/src/net/http/h2_bundle.go:9539 +0xda
+net/http.(*http2ClientConn).readLoop(0xc0001988c0)
+	/usr/local/Cellar/go/1.25.5/libexec/src/net/http/h2_bundle.go:9408 +0x79
+created by net/http.(*http2Transport).newClientConn in goroutine 19
+	/usr/local/Cellar/go/1.25.5/libexec/src/net/http/h2_bundle.go:8192 +0xde5
+
+goroutine 142 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x6d, {{0xc0000cc4f7, 0x7}, {0xc00009d320, 0x19}, {0xc00009d340, 0x1c}, {0xc0000cad80, 0x27}, {0xc317415, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 154 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x79, {{0xc0000cc5d7, 0x7}, {0xc00009d460, 0x1a}, {0xc00009d480, 0x1c}, {0xc0000cb080, 0x28}, {0xc317415, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 155 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x7a, {{0xc0000cc600, 0x7}, {0xc0000c9050, 0x18}, {0xc00009d4a0, 0x1f}, {0xc0000cb0b0, 0x26}, {0xc317415, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 156 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x7b, {{0xc0000cc607, 0x7}, {0xc0000c9098, 0x16}, {0xc0000cb0e0, 0x21}, {0xc0000cb110, 0x24}, {0xc317415, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 158 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x7d, {{0xc0000cc627, 0x7}, {0xc00009d4e0, 0x19}, {0xc00009d500, 0x1f}, {0xc0000cb170, 0x27}, {0xc317415, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 159 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x7e, {{0xc0000cc640, 0x7}, {0xc0000c9170, 0x13}, {0xc0000cb1a0, 0x21}, {0xc0000cb1d0, 0x21}, {0xc317415, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 160 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x7f, {{0xc0000cc647, 0x7}, {0xc0000c91d0, 0x17}, {0xc00009d520, 0x1c}, {0xc0000cb200, 0x25}, {0xc317415, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 161 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x80, {{0xc0000cc670, 0x7}, {0xc0000c9218, 0x16}, {0xc00009d540, 0x1f}, {0xc0000cb230, 0x24}, {0xc317415, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 162 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x81, {{0xc0000cc677, 0x7}, {0xc0000c9260, 0x13}, {0xc0000cb260, 0x21}, {0xc0000cb290, 0x21}, {0xc317415, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 167 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x86, {{0xc0000cc6e0, 0x7}, {0xc0000c93b0, 0x15}, {0xc00009d620, 0x1f}, {0xc0000cb3b0, 0x23}, {0xc317415, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 168 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x87, {{0xc0000cc6e7, 0x7}, {0xc00009d640, 0x19}, {0xc0000cb3e0, 0x21}, {0xc0000cb410, 0x27}, {0xc317415, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 169 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x88, {{0xc0000cc700, 0x7}, {0xc0000c9440, 0x17}, {0xc00009d660, 0x1c}, {0xc0000cb440, 0x25}, {0xc317415, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 170 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x89, {{0xc0000cc707, 0x7}, {0xc0000cb470, 0x26}, {0xc00009d6a0, 0x20}, {0x0, 0x0}, {0xc31b2fc, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 171 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x8a, {{0xc0000cc710, 0x7}, {0xc00009d6c0, 0x1f}, {0xc00009d6e0, 0x19}, {0xc0000cb4a0, 0x2b}, {0xc31b2fc, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 184 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x97, {{0xc0000cc777, 0x7}, {0xc00009dbe0, 0x1f}, {0xc00009dc00, 0x1a}, {0xc0000cb7a0, 0x2b}, {0xc31b2fc, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 185 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x98, {{0xc0000cc780, 0x7}, {0xc0000cb7d0, 0x23}, {0xc00009dc80, 0x20}, {0x0, 0x0}, {0xc31b2fc, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 186 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x99, {{0xc0000cc787, 0x7}, {0xc0000cb800, 0x24}, {0xc00009dca0, 0x19}, {0xc0000cb830, 0x2e}, {0xc31b2fc, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 187 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x9a, {{0xc0000cc790, 0x7}, {0xc0000cb860, 0x24}, {0xc00009dd00, 0x1a}, {0xc0000cb890, 0x2e}, {0xc31b2fc, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 188 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x9b, {{0xc0000cc797, 0x7}, {0xc0000cb8c0, 0x23}, {0xc00009dd80, 0x20}, {0x0, 0x0}, {0xc31b2fc, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 189 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x9c, {{0xc0000cc7a0, 0x7}, {0xc00009dda0, 0x20}, {0xc00009ddc0, 0x19}, {0xc0000cb8f0, 0x2c}, {0xc31b2fc, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 190 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x9d, {{0xc0000cc7a7, 0x7}, {0xc00009de20, 0x20}, {0xc00009de40, 0x1a}, {0xc0000cb920, 0x2c}, {0xc31b2fc, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 191 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x9e, {{0xc0000cc7b0, 0x7}, {0xc0000cb950, 0x22}, {0xc00009dec0, 0x20}, {0x0, 0x0}, {0xc31b2fc, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 192 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x9f, {{0xc0000cc7b7, 0x7}, {0xc00009dee0, 0x20}, {0xc00009df00, 0x19}, {0xc0000cb980, 0x2c}, {0xc31b2fc, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 193 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xa0, {{0xc0000cc7c0, 0x7}, {0xc00009df60, 0x1c}, {0xc00009df80, 0x1a}, {0xc0000cb9b0, 0x28}, {0xc31b2fc, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 194 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xa1, {{0xc0000cc7c7, 0x7}, {0xc0000cb9e0, 0x25}, {0xc00009dfc0, 0x20}, {0x0, 0x0}, {0xc31b2fc, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 195 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xa2, {{0xc0000cc7d0, 0x7}, {0xc00009dfe0, 0x20}, {0xc0000d0000, 0x19}, {0xc0000cba10, 0x2c}, {0xc31b2fc, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 196 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xa3, {{0xc0000cc7d7, 0x7}, {0xc0000cba40, 0x24}, {0xc0000d0060, 0x1a}, {0xc0000cba70, 0x2e}, {0xc31b2fc, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 197 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xa4, {{0xc0000cc7e0, 0x7}, {0xc0000d00c0, 0x1e}, {0xc0000d0100, 0x20}, {0x0, 0x0}, {0xc31b2fc, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 198 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xa5, {{0xc0000cc7e7, 0x7}, {0xc0000cbaa0, 0x21}, {0xc0000d0120, 0x19}, {0xc0000cbad0, 0x2d}, {0xc31b2fc, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 199 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xa6, {{0xc0000cc7f0, 0x7}, {0xc0000cbb00, 0x23}, {0xc0000d0180, 0x1a}, {0xc0000cbb30, 0x2e}, {0xc31b2fc, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 200 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xa7, {{0xc0000cc7f7, 0x7}, {0xc0000cbb60, 0x22}, {0xc0000d0200, 0x20}, {0x0, 0x0}, {0xc31b2fc, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 201 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xa8, {{0xc0000cc800, 0x7}, {0xc0000cbb90, 0x22}, {0xc0000d0220, 0x19}, {0xc0000cbbc0, 0x2e}, {0xc31b2fc, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 202 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xa9, {{0xc0000cc807, 0x7}, {0xc0000d0280, 0x1c}, {0xc0000d02a0, 0x1a}, {0xc0000cbbf0, 0x28}, {0xc31b2fc, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 203 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xaa, {{0xc0000cc810, 0x7}, {0xc0000cbc20, 0x24}, {0xc0000d02e0, 0x20}, {0x0, 0x0}, {0xc31b2fc, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 204 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xab, {{0xc0000cc817, 0x7}, {0xc0000cbc50, 0x24}, {0xc0000d0300, 0x19}, {0xc0000cbc80, 0x2e}, {0xc31b2fc, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 205 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xac, {{0xc0000cc820, 0x7}, {0xc0000cbcb0, 0x23}, {0xc0000d0360, 0x1a}, {0xc0000cbce0, 0x2e}, {0xc31b2fc, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 206 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xad, {{0xc0000cc827, 0x7}, {0xc0000cbd10, 0x25}, {0xc0000d03e0, 0x20}, {0x0, 0x0}, {0xc31b2fc, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 207 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xae, {{0xc0000cc830, 0x7}, {0xc0000d0400, 0x1d}, {0xc0000d0420, 0x19}, {0xc0000cbd40, 0x29}, {0xc31b2fc, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 208 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xaf, {{0xc0000cc837, 0x7}, {0xc0000cbd70, 0x24}, {0xc0000d0480, 0x1a}, {0xc0000cbda0, 0x2e}, {0xc31b2fc, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 209 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xb0, {{0xc0000cc840, 0x7}, {0xc0000d04e0, 0x1f}, {0xc0000d0520, 0x20}, {0x0, 0x0}, {0xc31b2fc, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 210 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xb1, {{0xc0000cc847, 0x7}, {0xc0000d0540, 0x1b}, {0xc0000c9758, 0x12}, {0xc0000cbdd0, 0x29}, {0xc318c34, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 211 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xb2, {{0xc0000cc850, 0x7}, {0xc0000d05a0, 0x1d}, {0xc0000c9770, 0x15}, {0xc0000cbe00, 0x2b}, {0xc318c34, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 212 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xb3, {{0xc0000cc857, 0x7}, {0xc0000d0600, 0x1b}, {0xc0000c9788, 0x13}, {0xc0000cbe30, 0x29}, {0xc318c34, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 213 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xb4, {{0xc0000cc860, 0x7}, {0xc0000c97a0, 0x17}, {0xc0000c97b8, 0x12}, {0xc0000cbe60, 0x25}, {0xc318c34, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 214 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xb5, {{0xc0000cc867, 0x7}, {0xc0000d0660, 0x20}, {0xc0000c9800, 0x15}, {0xc0000cbe90, 0x2e}, {0xc318c34, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 215 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xb6, {{0xc0000cc870, 0x7}, {0xc0000d06c0, 0x1b}, {0xc0000c9818, 0x13}, {0xc0000cbec0, 0x29}, {0xc318c34, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 216 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xb7, {{0xc0000cc877, 0x7}, {0xc0000d0720, 0x1f}, {0xc0000c9830, 0x12}, {0xc0000cbef0, 0x2d}, {0xc318c34, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 217 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xb8, {{0xc0000cc880, 0x7}, {0xc0000d0780, 0x19}, {0xc0000c9848, 0x15}, {0xc0000cbf20, 0x27}, {0xc318c34, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 218 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xb9, {{0xc0000cc887, 0x7}, {0xc0000d07a0, 0x1c}, {0xc0000c9890, 0x13}, {0xc0000cbf50, 0x2a}, {0xc318c34, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 219 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xba, {{0xc0000cc890, 0x7}, {0xc0000d0800, 0x1e}, {0xc0000c98a8, 0x12}, {0xc0000cbf80, 0x2c}, {0xc318c34, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 220 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xbb, {{0xc0000cc897, 0x7}, {0xc0000d0860, 0x1d}, {0xc0000c98c0, 0x15}, {0xc0000cbfb0, 0x2b}, {0xc318c34, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 221 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xbc, {{0xc0000cc8a0, 0x7}, {0xc0000d08c0, 0x1d}, {0xc0000c98d8, 0x13}, {0xc0000d2000, 0x2b}, {0xc318c34, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 222 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xbd, {{0xc0000cc8a7, 0x7}, {0xc0000c98f0, 0x17}, {0xc0000c9908, 0x12}, {0xc0000d2030, 0x25}, {0xc318c34, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 223 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xbe, {{0xc0000cc8b0, 0x7}, {0xc0000d0920, 0x1f}, {0xc0000c9950, 0x15}, {0xc0000d2060, 0x2d}, {0xc318c34, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 224 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xbf, {{0xc0000cc8b7, 0x7}, {0xc0000d0980, 0x1f}, {0xc0000c9968, 0x13}, {0xc0000d2090, 0x2d}, {0xc318c34, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 225 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xc0, {{0xc0000cc8c0, 0x7}, {0xc0000d09e0, 0x1e}, {0xc0000c9980, 0x12}, {0xc0000d20c0, 0x2c}, {0xc318c34, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 226 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xc1, {{0xc0000cc8c7, 0x7}, {0xc0000d0a40, 0x20}, {0xc0000c9998, 0x15}, {0xc0000d20f0, 0x2e}, {0xc318c34, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 227 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xc2, {{0xc0000cc8d0, 0x7}, {0xc0000c99b0, 0x18}, {0xc0000c99c8, 0x13}, {0xc0000d2120, 0x26}, {0xc318c34, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 228 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xc3, {{0xc0000cc8d7, 0x7}, {0xc0000d0aa0, 0x1f}, {0xc0000c9a10, 0x12}, {0xc0000d2150, 0x2d}, {0xc318c34, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 229 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xc4, {{0xc0000cc8e0, 0x7}, {0xc0000d0b00, 0x1a}, {0xc0000c9a28, 0x15}, {0xc0000d2180, 0x28}, {0xc318c34, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 230 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xc5, {{0xc0000cc8e7, 0x7}, {0xc0000d0b20, 0x1c}, {0xc0000c9a70, 0x13}, {0xc0000d21b0, 0x2a}, {0xc318c34, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 231 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xc6, {{0xc0000cc8f0, 0x7}, {0xc0000c9a88, 0x17}, {0xc0000c9aa0, 0x12}, {0xc0000d21e0, 0x25}, {0xc318c34, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 232 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xc7, {{0xc0000cc8f7, 0x7}, {0xc0000d0b80, 0x1f}, {0xc0000c9ae8, 0x15}, {0xc0000d2210, 0x2d}, {0xc318c34, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 233 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xc8, {{0xc0000cc900, 0x7}, {0xc0000d0be0, 0x1d}, {0xc0000c9b00, 0x13}, {0xc0000d2240, 0x2b}, {0xc318c34, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 234 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xc9, {{0xc0000cc907, 0x7}, {0xc0000d0c40, 0x1c}, {0xc0000c9b18, 0x12}, {0xc0000d2270, 0x2a}, {0xc318c34, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 235 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xca, {{0xc0000cc910, 0x7}, {0xc0000d0ca0, 0x1d}, {0xc0000c9b30, 0x15}, {0xc0000d22a0, 0x2b}, {0xc318c34, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 236 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xcb, {{0xc0000cc917, 0x7}, {0xc0000d0d00, 0x19}, {0xc0000c9b48, 0x13}, {0xc0000d22d0, 0x27}, {0xc318c34, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 237 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xcc, {{0xc0000cc920, 0x7}, {0xc0000d0d20, 0x1f}, {0xc0000c9b90, 0x12}, {0xc0000d2300, 0x2d}, {0xc318c34, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 238 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xcd, {{0xc0000cc927, 0x7}, {0xc0000d0d80, 0x1d}, {0xc0000c9ba8, 0x15}, {0xc0000d2330, 0x2b}, {0xc318c34, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 239 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xce, {{0xc0000cc930, 0x7}, {0xc0000d0de0, 0x1c}, {0xc0000c9bc0, 0x13}, {0xc0000d2360, 0x2a}, {0xc318c34, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 240 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xcf, {{0xc0000cc937, 0x7}, {0xc0000d0e40, 0x19}, {0xc0000c9bd8, 0x12}, {0xc0000d2390, 0x27}, {0xc318c34, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 241 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xd0, {{0xc0000cc940, 0x7}, {0xc0000d0e60, 0x1c}, {0xc0000c9c20, 0x15}, {0xc0000d23c0, 0x2a}, {0xc318c34, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 242 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xd1, {{0xc0000cc947, 0x7}, {0xc0000d23f0, 0x23}, {0xc0000c9c38, 0x13}, {0xc0000d2480, 0x2e}, {0xc318c34, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 243 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xd2, {{0xc0000cc950, 0x7}, {0xc0000d0ec0, 0x1b}, {0xc0000c9c50, 0x12}, {0xc0000d24b0, 0x29}, {0xc318c34, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 244 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xd3, {{0xc0000cc957, 0x7}, {0xc0000d24e0, 0x21}, {0xc0000c9c68, 0x15}, {0xc0000d2510, 0x2e}, {0xc318c34, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 245 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xd4, {{0xc0000cc960, 0x7}, {0xc0000d2540, 0x21}, {0xc0000d0f60, 0x1a}, {0xc0000d2570, 0x2e}, {0xc31ccf5, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 246 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xd5, {{0xc0000cc967, 0x7}, {0xc0000d25a0, 0x25}, {0xc0000d0fc0, 0x1c}, {0xc0000d2630, 0x2e}, {0xc31ccf5, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 247 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xd6, {{0xc0000cc970, 0x7}, {0xc0000d0fe0, 0x20}, {0xc0000d1000, 0x1a}, {0xc0000d2660, 0x2d}, {0xc31ccf5, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 248 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xd7, {{0xc0000cc977, 0x7}, {0xc0000d2690, 0x23}, {0xc0000d1060, 0x1a}, {0xc0000d26c0, 0x2e}, {0xc31ccf5, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 249 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xd8, {{0xc0000cc980, 0x7}, {0xc0000d26f0, 0x23}, {0xc0000d10c0, 0x1c}, {0xc0000d2720, 0x2e}, {0xc31ccf5, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 250 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xd9, {{0xc0000cc987, 0x7}, {0xc0000d2750, 0x24}, {0xc0000d1120, 0x1a}, {0xc0000d27e0, 0x2e}, {0xc31ccf5, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 251 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xda, {{0xc0000cc990, 0x7}, {0xc0000d2810, 0x25}, {0xc0000d1140, 0x1a}, {0xc0000d28a0, 0x2e}, {0xc31ccf5, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 252 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xdb, {{0xc0000cc997, 0x7}, {0xc0000d1160, 0x20}, {0xc0000d1180, 0x1c}, {0xc0000d28d0, 0x2d}, {0xc31ccf5, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 253 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xdc, {{0xc0000cc9a0, 0x7}, {0xc0000d2900, 0x22}, {0xc0000d11e0, 0x1a}, {0xc0000d2930, 0x2e}, {0xc31ccf5, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 254 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xdd, {{0xc0000cc9a7, 0x7}, {0xc0000d1240, 0x20}, {0xc0000d1260, 0x1a}, {0xc0000d2960, 0x2d}, {0xc31ccf5, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 255 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xde, {{0xc0000cc9b0, 0x7}, {0xc0000d2990, 0x21}, {0xc0000d12c0, 0x1c}, {0xc0000d29c0, 0x2e}, {0xc31ccf5, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 256 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xdf, {{0xc0000cc9b7, 0x7}, {0xc0000d29f0, 0x26}, {0xc0000d1320, 0x1a}, {0xc0000d2a80, 0x2e}, {0xc31ccf5, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 257 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xe0, {{0xc0000cc9c0, 0x7}, {0xc0000d1340, 0x20}, {0xc0000d1360, 0x1a}, {0xc0000d2ab0, 0x2d}, {0xc31ccf5, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 258 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xe1, {{0xc0000cc9c7, 0x7}, {0xc0000d13c0, 0x20}, {0xc0000d13e0, 0x1c}, {0xc0000d2ae0, 0x2d}, {0xc31ccf5, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 259 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xe2, {{0xc0000cc9d0, 0x7}, {0xc0000d2b10, 0x25}, {0xc0000d1440, 0x1a}, {0xc0000d2ba0, 0x2e}, {0xc31ccf5, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 260 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xe3, {{0xc0000cc9d7, 0x7}, {0xc0000d2bd0, 0x22}, {0xc0000d1460, 0x1a}, {0xc0000d2c00, 0x2e}, {0xc31ccf5, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 261 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xe4, {{0xc0000cc9e0, 0x7}, {0xc0000d14c0, 0x1e}, {0xc0000d14e0, 0x1c}, {0xc0000d2c30, 0x2b}, {0xc31ccf5, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 262 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xe5, {{0xc0000cc9e7, 0x7}, {0xc0000d2c60, 0x21}, {0xc0000d1540, 0x1a}, {0xc0000d2c90, 0x2e}, {0xc31ccf5, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 263 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xe6, {{0xc0000cc9f0, 0x7}, {0xc0000d2cc0, 0x24}, {0xc0000d15a0, 0x1a}, {0xc0000d2d50, 0x2e}, {0xc31ccf5, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 264 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xe7, {{0xc0000cc9f7, 0x7}, {0xc0000d2d80, 0x23}, {0xc0000d15c0, 0x1c}, {0xc0000d2db0, 0x2e}, {0xc31ccf5, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 265 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xe8, {{0xc0000cca00, 0x7}, {0xc0000d2de0, 0x24}, {0xc0000d1620, 0x1a}, {0xc0000d2e70, 0x2e}, {0xc31ccf5, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 266 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xe9, {{0xc0000cca07, 0x7}, {0xc0000d2ea0, 0x23}, {0xc0000d1640, 0x1a}, {0xc0000d2ed0, 0x2e}, {0xc31ccf5, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 267 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xea, {{0xc0000cca10, 0x7}, {0xc0000d2f00, 0x23}, {0xc0000d16a0, 0x1c}, {0xc0000d2f30, 0x2e}, {0xc31ccf5, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 268 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xeb, {{0xc0000cca17, 0x7}, {0xc0000d2f60, 0x21}, {0xc0000d1700, 0x1a}, {0xc0000d2f90, 0x2e}, {0xc31ccf5, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 269 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xec, {{0xc0000cca20, 0x7}, {0xc0000d2fc0, 0x23}, {0xc0000d1760, 0x1a}, {0xc0000d2ff0, 0x2e}, {0xc31ccf5, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 270 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xed, {{0xc0000cca27, 0x7}, {0xc0000d3020, 0x23}, {0xc0000d17c0, 0x1c}, {0xc0000d3050, 0x2e}, {0xc31ccf5, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 283 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0xfa, {{0xc0000cca90, 0x7}, {0xc0000d1ca0, 0x1c}, {0xc0000d1cc0, 0x1b}, {0xc0000d3500, 0x2a}, {0xc31a364, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 294 [select]:
+net/http.(*http2ClientConn).roundTrip(0xc0001988c0, 0xc0000e43c0, 0x0)
+	/usr/local/Cellar/go/1.25.5/libexec/src/net/http/h2_bundle.go:8680 +0x53f
+net/http.(*http2ClientConn).RoundTrip(...)
+	/usr/local/Cellar/go/1.25.5/libexec/src/net/http/h2_bundle.go:8595
+net/http.(*http2Transport).RoundTripOpt(0xc00007afa0, 0xc0000e43c0, {0x40?, 0xe1?})
+	/usr/local/Cellar/go/1.25.5/libexec/src/net/http/h2_bundle.go:7921 +0x1ec
+net/http.(*http2Transport).RoundTrip(...)
+	/usr/local/Cellar/go/1.25.5/libexec/src/net/http/h2_bundle.go:7872
+net/http.http2noDialH2RoundTripper.RoundTrip({0xc6f0a60?}, 0xc0000e43c0?)
+	/usr/local/Cellar/go/1.25.5/libexec/src/net/http/h2_bundle.go:10475 +0x1c
+net/http.(*Transport).roundTrip(0xc6f0a60, 0xc0000e4280)
+	/usr/local/Cellar/go/1.25.5/libexec/src/net/http/transport.go:615 +0x473
+net/http.(*Transport).RoundTrip(0xc0000e4280?, 0xc46c2c0?)
+	/usr/local/Cellar/go/1.25.5/libexec/src/net/http/roundtrip.go:33 +0x18
+net/http.send(0xc0000e4140, {0xc46c2c0, 0xc6f0a60}, {0xc00022ef01?, 0xc04e4b3?, 0xc6f8100?})
+	/usr/local/Cellar/go/1.25.5/libexec/src/net/http/client.go:259 +0x5e2
+net/http.(*Client).send(0xc0000a8660, 0xc0000e4140, {0xc00022ef78?, 0xbfcf796?, 0xc6f8100?})
+	/usr/local/Cellar/go/1.25.5/libexec/src/net/http/client.go:180 +0x91
+net/http.(*Client).do(0xc0000a8660, 0xc0000e4140)
+	/usr/local/Cellar/go/1.25.5/libexec/src/net/http/client.go:729 +0x9c9
+net/http.(*Client).Do(...)
+	/usr/local/Cellar/go/1.25.5/libexec/src/net/http/client.go:587
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).runSingleTest(_, {{0xc0000ccb20, 0x7}, {0xc0000d61a0, 0x1f}, {0xc0000d61c0, 0x1b}, {0xc0000d37d0, 0x2d}, {0xc31a364, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:541 +0x81b
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x105, {{0xc0000ccb20, 0x7}, {0xc0000d61a0, 0x1f}, {0xc0000d61c0, 0x1b}, {0xc0000d37d0, 0x2d}, {0xc31a364, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:483 +0x1c9
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 295 [select]:
+net/http.(*http2ClientConn).roundTrip(0xc0001988c0, 0xc0000e48c0, 0x0)
+	/usr/local/Cellar/go/1.25.5/libexec/src/net/http/h2_bundle.go:8680 +0x53f
+net/http.(*http2ClientConn).RoundTrip(...)
+	/usr/local/Cellar/go/1.25.5/libexec/src/net/http/h2_bundle.go:8595
+net/http.(*http2Transport).RoundTripOpt(0xc00007afa0, 0xc0000e48c0, {0xe0?, 0xe1?})
+	/usr/local/Cellar/go/1.25.5/libexec/src/net/http/h2_bundle.go:7921 +0x1ec
+net/http.(*http2Transport).RoundTrip(...)
+	/usr/local/Cellar/go/1.25.5/libexec/src/net/http/h2_bundle.go:7872
+net/http.http2noDialH2RoundTripper.RoundTrip({0xc6f0a60?}, 0xc0000e48c0?)
+	/usr/local/Cellar/go/1.25.5/libexec/src/net/http/h2_bundle.go:10475 +0x1c
+net/http.(*Transport).roundTrip(0xc6f0a60, 0xc0000e4780)
+	/usr/local/Cellar/go/1.25.5/libexec/src/net/http/transport.go:615 +0x473
+net/http.(*Transport).RoundTrip(0xc0000e4780?, 0xc46c2c0?)
+	/usr/local/Cellar/go/1.25.5/libexec/src/net/http/roundtrip.go:33 +0x18
+net/http.send(0xc0000e4640, {0xc46c2c0, 0xc6f0a60}, {0xc000292f01?, 0xc04e4b3?, 0xc6f8100?})
+	/usr/local/Cellar/go/1.25.5/libexec/src/net/http/client.go:259 +0x5e2
+net/http.(*Client).send(0xc0000a8660, 0xc0000e4640, {0xbfc6ab4?, 0xc?, 0xc6f8100?})
+	/usr/local/Cellar/go/1.25.5/libexec/src/net/http/client.go:180 +0x91
+net/http.(*Client).do(0xc0000a8660, 0xc0000e4640)
+	/usr/local/Cellar/go/1.25.5/libexec/src/net/http/client.go:729 +0x9c9
+net/http.(*Client).Do(...)
+	/usr/local/Cellar/go/1.25.5/libexec/src/net/http/client.go:587
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).runSingleTest(_, {{0xc0000ccb30, 0x7}, {0xc0000d3800, 0x25}, {0xc0000d6220, 0x1b}, {0xc0000d3890, 0x2e}, {0xc31a364, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:541 +0x81b
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x106, {{0xc0000ccb30, 0x7}, {0xc0000d3800, 0x25}, {0xc0000d6220, 0x1b}, {0xc0000d3890, 0x2e}, {0xc31a364, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:483 +0x1c9
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 296 [select]:
+net/http.(*http2ClientConn).roundTrip(0xc0001988c0, 0xc000344280, 0x0)
+	/usr/local/Cellar/go/1.25.5/libexec/src/net/http/h2_bundle.go:8680 +0x53f
+net/http.(*http2ClientConn).RoundTrip(...)
+	/usr/local/Cellar/go/1.25.5/libexec/src/net/http/h2_bundle.go:8595
+net/http.(*http2Transport).RoundTripOpt(0xc00007afa0, 0xc000344280, {0x70?, 0xe3?})
+	/usr/local/Cellar/go/1.25.5/libexec/src/net/http/h2_bundle.go:7921 +0x1ec
+net/http.(*http2Transport).RoundTrip(...)
+	/usr/local/Cellar/go/1.25.5/libexec/src/net/http/h2_bundle.go:7872
+net/http.http2noDialH2RoundTripper.RoundTrip({0xc6f0a60?}, 0xc000344280?)
+	/usr/local/Cellar/go/1.25.5/libexec/src/net/http/h2_bundle.go:10475 +0x1c
+net/http.(*Transport).roundTrip(0xc6f0a60, 0xc000344140)
+	/usr/local/Cellar/go/1.25.5/libexec/src/net/http/transport.go:615 +0x473
+net/http.(*Transport).RoundTrip(0xc000344140?, 0xc46c2c0?)
+	/usr/local/Cellar/go/1.25.5/libexec/src/net/http/roundtrip.go:33 +0x18
+net/http.send(0xc000344000, {0xc46c2c0, 0xc6f0a60}, {0xc00014af01?, 0xc04e4b3?, 0xc6f8100?})
+	/usr/local/Cellar/go/1.25.5/libexec/src/net/http/client.go:259 +0x5e2
+net/http.(*Client).send(0xc0000a8660, 0xc000344000, {0xc00014af78?, 0xbfcf796?, 0xc6f8100?})
+	/usr/local/Cellar/go/1.25.5/libexec/src/net/http/client.go:180 +0x91
+net/http.(*Client).do(0xc0000a8660, 0xc000344000)
+	/usr/local/Cellar/go/1.25.5/libexec/src/net/http/client.go:729 +0x9c9
+net/http.(*Client).Do(...)
+	/usr/local/Cellar/go/1.25.5/libexec/src/net/http/client.go:587
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).runSingleTest(_, {{0xc0000ccb40, 0x7}, {0xc0000d6240, 0x20}, {0xc0000d6260, 0x1b}, {0xc0000d38c0, 0x2e}, {0xc31a364, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:541 +0x81b
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x107, {{0xc0000ccb40, 0x7}, {0xc0000d6240, 0x20}, {0xc0000d6260, 0x1b}, {0xc0000d38c0, 0x2e}, {0xc31a364, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:483 +0x1c9
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 297 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x108, {{0xc0000ccb50, 0x7}, {0xc0000d38f0, 0x21}, {0xc0000d62c0, 0x1b}, {0xc0000d3920, 0x2e}, {0xc31a364, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 298 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x109, {{0xc0000ccb60, 0x7}, {0xc0000d6320, 0x1f}, {0xc0000d6340, 0x1b}, {0xc0000d3950, 0x2d}, {0xc31a364, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 299 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x10a, {{0xc0000ccb70, 0x7}, {0xc0000d63a0, 0x1e}, {0xc0000d63c0, 0x1b}, {0xc0000d3980, 0x2c}, {0xc31a364, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 300 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x10b, {{0xc0000ccb80, 0x7}, {0xc0000d6420, 0x20}, {0xc0000d6440, 0x1b}, {0xc0000d39b0, 0x2e}, {0xc31a364, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 301 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x10c, {{0xc0000ccb90, 0x7}, {0xc0000d64a0, 0x1c}, {0xc0000d64c0, 0x1b}, {0xc0000d39e0, 0x2a}, {0xc31a364, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 313 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x118, {{0xc0000ccc50, 0x7}, {0xc0000d68e0, 0x1e}, {0xc0000d6900, 0x19}, {0x0, 0x0}, {0xc319bd7, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 314 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x119, {{0xc0000ccc60, 0x7}, {0xc0000d6920, 0x1d}, {0xc0000d6940, 0x19}, {0x0, 0x0}, {0xc319bd7, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 315 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x11a, {{0xc0000ccc70, 0x7}, {0xc0000d6960, 0x1f}, {0xc0000d6980, 0x19}, {0x0, 0x0}, {0xc319bd7, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 316 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x11b, {{0xc0000ccc80, 0x7}, {0xc0000d69a0, 0x1b}, {0xc0000d69c0, 0x19}, {0x0, 0x0}, {0xc319bd7, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 317 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x11c, {{0xc0000ccc90, 0x7}, {0xc0000d69e0, 0x1c}, {0xc0000d6a00, 0x19}, {0x0, 0x0}, {0xc319bd7, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 318 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x11d, {{0xc0000ccca0, 0x7}, {0xc0000d6a20, 0x20}, {0xc0000d6a40, 0x19}, {0x0, 0x0}, {0xc319bd7, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 319 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x11e, {{0xc0000cccb0, 0x7}, {0xc0000d6a60, 0x1d}, {0xc0000d6a80, 0x19}, {0x0, 0x0}, {0xc319bd7, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 320 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x11f, {{0xc0000cccc0, 0x7}, {0xc0000d3d10, 0x22}, {0xc0000d6aa0, 0x19}, {0x0, 0x0}, {0xc319bd7, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 337 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x120, {{0xc0000cccd0, 0x7}, {0xc0000d6ac0, 0x1b}, {0xc0000d6ae0, 0x19}, {0x0, 0x0}, {0xc319bd7, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 739 [select]:
+net/http.(*http2clientStream).writeRequest(0xc000128180, 0xc0000e43c0, 0x0)
+	/usr/local/Cellar/go/1.25.5/libexec/src/net/http/h2_bundle.go:8850 +0xc65
+net/http.(*http2clientStream).doRequest(0xc000128180, 0x3?, 0x105?)
+	/usr/local/Cellar/go/1.25.5/libexec/src/net/http/h2_bundle.go:8711 +0x56
+created by net/http.(*http2ClientConn).roundTrip in goroutine 294
+	/usr/local/Cellar/go/1.25.5/libexec/src/net/http/h2_bundle.go:8616 +0x485
+
+goroutine 740 [select]:
+net/http.(*http2clientStream).writeRequest(0xc000128300, 0xc0000e48c0, 0x0)
+	/usr/local/Cellar/go/1.25.5/libexec/src/net/http/h2_bundle.go:8850 +0xc65
+net/http.(*http2clientStream).doRequest(0xc000128300, 0x3?, 0x106?)
+	/usr/local/Cellar/go/1.25.5/libexec/src/net/http/h2_bundle.go:8711 +0x56
+created by net/http.(*http2ClientConn).roundTrip in goroutine 295
+	/usr/local/Cellar/go/1.25.5/libexec/src/net/http/h2_bundle.go:8616 +0x485
+
+goroutine 725 [select]:
+net/http.(*http2clientStream).writeRequest(0xc00034c000, 0xc000344280, 0x0)
+	/usr/local/Cellar/go/1.25.5/libexec/src/net/http/h2_bundle.go:8850 +0xc65
+net/http.(*http2clientStream).doRequest(0xc00034c000, 0x3?, 0x107?)
+	/usr/local/Cellar/go/1.25.5/libexec/src/net/http/h2_bundle.go:8711 +0x56
+created by net/http.(*http2ClientConn).roundTrip in goroutine 296
+	/usr/local/Cellar/go/1.25.5/libexec/src/net/http/h2_bundle.go:8616 +0x485
+
+goroutine 390 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x155, {{0xc0000cd020, 0x7}, {0xc0000db6b0, 0x23}, {0xc0000db6e0, 0x22}, {0xc0000db710, 0x2e}, {0xc31e257, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 391 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x156, {{0xc0000cd030, 0x7}, {0xc0000db740, 0x22}, {0xc0000d7600, 0x1e}, {0xc0000db770, 0x2e}, {0xc31e257, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 392 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x157, {{0xc0000cd040, 0x7}, {0xc0000db7a0, 0x26}, {0xc0000d7660, 0x1a}, {0xc0000db830, 0x2e}, {0xc31e257, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 393 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x158, {{0xc0000cd050, 0x7}, {0xc0000db860, 0x21}, {0xc0000db890, 0x22}, {0xc0000db8c0, 0x2d}, {0xc31e257, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 394 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x159, {{0xc0000cd060, 0x7}, {0xc0000db8f0, 0x24}, {0xc0000d76c0, 0x1e}, {0xc0000db920, 0x2e}, {0xc31e257, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 395 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x15a, {{0xc0000cd070, 0x7}, {0xc0000db950, 0x27}, {0xc0000d7720, 0x1a}, {0xc0000db9e0, 0x2e}, {0xc31e257, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 396 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x15b, {{0xc0000cd080, 0x7}, {0xc0000dba10, 0x26}, {0xc0000dba40, 0x22}, {0xc0000dbad0, 0x2e}, {0xc31e257, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 397 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x15c, {{0xc0000cd090, 0x7}, {0xc0000dbb00, 0x24}, {0xc0000d7740, 0x1e}, {0xc0000dbb30, 0x2e}, {0xc31e257, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 398 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x15d, {{0xc0000cd0a0, 0x7}, {0xc0000dbb60, 0x25}, {0xc0000d77a0, 0x1a}, {0xc0000dbbf0, 0x2e}, {0xc31e257, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 399 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x15e, {{0xc0000cd0b0, 0x7}, {0xc0000dbc20, 0x28}, {0xc0000dbc50, 0x22}, {0xc0000dbce0, 0x2e}, {0xc31e257, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 400 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x15f, {{0xc0000cd0c0, 0x7}, {0xc0000d77c0, 0x20}, {0xc0000d77e0, 0x1e}, {0xc0000dbd10, 0x2c}, {0xc31e257, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 401 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x160, {{0xc0000cd0d0, 0x7}, {0xc0000dbd40, 0x21}, {0xc0000d7840, 0x1a}, {0xc0000dbd70, 0x2d}, {0xc31e257, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 402 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x161, {{0xc0000cd0e0, 0x7}, {0xc0000dbda0, 0x27}, {0xc0000dbdd0, 0x22}, {0xc0000dbe60, 0x2e}, {0xc31e257, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 403 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x162, {{0xc0000cd0f0, 0x7}, {0xc0000dbe90, 0x24}, {0xc0000d78a0, 0x1e}, {0xc0000dbec0, 0x2e}, {0xc31e257, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 404 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x163, {{0xc0000cd100, 0x7}, {0xc0000dbef0, 0x27}, {0xc0000d7900, 0x1a}, {0xc0000dbf80, 0x2e}, {0xc31e257, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 405 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x164, {{0xc0000cd110, 0x7}, {0xc0000dbfb0, 0x21}, {0xc0000dc000, 0x22}, {0xc0000dc030, 0x2d}, {0xc31e257, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 406 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x165, {{0xc0000cd120, 0x7}, {0xc0000d7960, 0x1f}, {0xc0000c9c80, 0x17}, {0xc0000dc060, 0x2c}, {0xc31946a, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 411 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x16a, {{0xc0000cd170, 0x7}, {0xc0000d7ac0, 0x20}, {0xc0000c9d58, 0x17}, {0xc0000dc150, 0x2d}, {0xc31946a, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 412 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x16b, {{0xc0000cd180, 0x7}, {0xc0000d7b20, 0x1d}, {0xc0000c9d70, 0x17}, {0xc0000dc180, 0x2a}, {0xc31946a, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 413 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x16c, {{0xc0000cd190, 0x7}, {0xc0000d7b80, 0x1d}, {0xc0000c9d88, 0x17}, {0xc0000dc1b0, 0x2a}, {0xc31946a, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 414 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x16d, {{0xc0000cd1a0, 0x7}, {0xc0000d7be0, 0x1a}, {0xc0000c9da0, 0x17}, {0xc0000dc1e0, 0x27}, {0xc31946a, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 415 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x16e, {{0xc0000cd1b0, 0x7}, {0xc0000d7c00, 0x20}, {0xc0000c9de8, 0x17}, {0xc0000dc210, 0x2d}, {0xc31946a, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 416 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x16f, {{0xc0000cd1c0, 0x7}, {0xc0000d7c60, 0x20}, {0xc0000c9e00, 0x17}, {0xc0000dc240, 0x2d}, {0xc31946a, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 417 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x170, {{0xc0000cd1d0, 0x7}, {0xc0000d7cc0, 0x1a}, {0xc0000c9e18, 0x17}, {0xc0000dc270, 0x27}, {0xc31946a, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 418 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x171, {{0xc0000cd1e0, 0x7}, {0xc0000d7ce0, 0x1c}, {0xc0000c9e60, 0x17}, {0xc0000dc2a0, 0x29}, {0xc31946a, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 419 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x172, {{0xc0000cd1f0, 0x7}, {0xc0000d7d40, 0x1d}, {0xc0000c9e78, 0x17}, {0xc0000dc2d0, 0x2a}, {0xc31946a, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 420 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x173, {{0xc0000cd200, 0x7}, {0xc0000dc300, 0x23}, {0xc0000c9e90, 0x17}, {0xc0000dc330, 0x2e}, {0xc31946a, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 421 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x174, {{0xc0000cd210, 0x7}, {0xc0000d7de0, 0x1c}, {0xc0000c9ea8, 0x17}, {0xc0000dc360, 0x29}, {0xc31946a, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 422 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x175, {{0xc0000cd220, 0x7}, {0xc0000dc390, 0x22}, {0xc0000c9ec0, 0x17}, {0xc0000dc3c0, 0x2e}, {0xc31946a, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 423 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x176, {{0xc0000cd230, 0x7}, {0xc0000d7e80, 0x1b}, {0xc0000c9ed8, 0x17}, {0xc0000dc3f0, 0x28}, {0xc31946a, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 424 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x177, {{0xc0000cd240, 0x7}, {0xc0000d7ea0, 0x1c}, {0xc0000c9f20, 0x17}, {0xc0000dc420, 0x29}, {0xc31946a, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 425 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x178, {{0xc0000cd250, 0x7}, {0xc0000d7f00, 0x1f}, {0xc0000c9f38, 0x17}, {0xc0000dc450, 0x2c}, {0xc31946a, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 426 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x179, {{0xc0000cd260, 0x7}, {0xc0000dc480, 0x23}, {0xc0000d7f60, 0x1d}, {0xc0000dc510, 0x2e}, {0xc31ab13, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 427 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x17a, {{0xc0000cd270, 0x7}, {0xc0000d7f80, 0x1d}, {0xc0000d7fa0, 0x1d}, {0xc0000dc540, 0x2b}, {0xc31ab13, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 428 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x17b, {{0xc0000cd280, 0x7}, {0xc0000e0000, 0x1f}, {0xc0000e0020, 0x1d}, {0xc0000dc570, 0x2d}, {0xc31ab13, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 429 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x17c, {{0xc0000cd290, 0x7}, {0xc0000e0080, 0x20}, {0xc0000e00a0, 0x1d}, {0xc0000dc5a0, 0x2e}, {0xc31ab13, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 430 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x17d, {{0xc0000cd2a0, 0x7}, {0xc0000dc5d0, 0x26}, {0xc0000e0100, 0x1d}, {0xc0000dc660, 0x2e}, {0xc31ab13, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 431 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x17e, {{0xc0000cd2b0, 0x7}, {0xc0000e0120, 0x1f}, {0xc0000e0140, 0x1d}, {0xc0000dc690, 0x2d}, {0xc31ab13, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+
+goroutine 432 [chan send, 88 minutes]:
+kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests.func1(0x17f, {{0xc0000cd2c0, 0x7}, {0xc0000dc6c0, 0x25}, {0xc0000e01a0, 0x1d}, {0xc0000dc750, 0x2e}, {0xc31ab13, ...}, ...})
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:479 +0x99
+created by kyb-platform-tests/integration.(*RailwayE2ETestRunner).RunComprehensiveTests in goroutine 7
+	/Users/petercrawford/New tool/test/integration/railway_comprehensive_e2e_classification_test.go:477 +0xe5
+FAIL	kyb-platform-tests/integration	5400.470s
+FAIL

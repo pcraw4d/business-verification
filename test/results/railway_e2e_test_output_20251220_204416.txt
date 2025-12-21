@@ -1,0 +1,5 @@
+# kyb-platform-tests/integration
+package kyb-platform-tests/integration (test)
+	test/integration/api_test.go:15:2: use of internal package kyb-platform/internal/api/handlers not allowed
+FAIL	kyb-platform-tests/integration [setup failed]
+FAIL

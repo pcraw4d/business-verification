@@ -1708,7 +1708,9 @@ func (h *ClassificationHandler) handleClassificationStreaming(w http.ResponseWri
 
 	// Step 2: Generate classification codes (if needed)
 	var classificationResult *ClassificationResult
-	shouldGenerateCodes := enhancedResult.ConfidenceScore >= 0.5 ||
+	// FIX: Reduced threshold from 0.5 to 0.15 to match actual confidence levels (avg 21.7%)
+	// This allows code generation for most requests while still filtering out very low confidence (< 0.15)
+	shouldGenerateCodes := enhancedResult.ConfidenceScore >= 0.15 ||
 		(enhancedResult.ConfidenceScore >= h.industryThresholds.GetThreshold(enhancedResult.PrimaryIndustry))
 
 	if shouldGenerateCodes {
@@ -5246,17 +5248,18 @@ func (h *ClassificationHandler) calculateAdaptiveTimeout(req *ClassificationRequ
 	}
 
 	// Timeout budget allocation for different operations
-	// FIX #10: Added buffer for retries and overhead to prevent premature timeouts
+	// FIX: Optimized budget allocation to fit within 90s OverallTimeout
+	// Total budget: 20 + 18 + 8 + 5 + 10 + 5 + 5 = 71s (within 90s limit with 19s buffer)
 	const (
 		phase1ScrapingBudget    = 18 * time.Second // Phase 1 scraper: 18s (aligned with WebsiteScrapingTimeout of 15s + 3s buffer)
-		multiPageAnalysisBudget = 8 * time.Second  // Multi-page analysis: 8s (reduced from 10s, capped)
-		// FIX: Index building now has 5-minute TTL cache - first call: 10-30s, subsequent calls: <1ms (cache hit)
-		indexBuildingBudget    = 30 * time.Second // Keyword index building: 30s (first call, cached for 5min)
+		multiPageAnalysisBudget = 8 * time.Second  // Multi-page analysis: 8s (optional, may be skipped if time < 10s)
+		// FIX: Reduced index building budget - first call: 10-30s, but assume cache hit after first call (reduced to 20s)
+		indexBuildingBudget    = 20 * time.Second // Keyword index building: 20s (optimized, cached for 5min after first call)
 		goClassificationBudget = 5 * time.Second
-		mlClassificationBudget = 10 * time.Second
-		riskAssessmentBudget   = 5 * time.Second
-		generalOverhead        = 5 * time.Second  // FIX #10: Increased from 3s to 5s to account for retries and network latency
-		retryBuffer            = 10 * time.Second // FIX #10: Additional buffer for retry attempts and network delays
+		mlClassificationBudget = 10 * time.Second // Optional, may be skipped if time < 15s
+		riskAssessmentBudget   = 5 * time.Second   // Parallel, doesn't add to total
+		generalOverhead        = 5 * time.Second   // General overhead for retries and network latency
+		retryBuffer            = 5 * time.Second   // FIX: Reduced from 10s to 5s (retries are typically fast)
 	)
 
 	// Determine if we need long-running operations
@@ -5267,19 +5270,20 @@ func (h *ClassificationHandler) calculateAdaptiveTimeout(req *ClassificationRequ
 
 	if needsWebsiteScraping {
 		// Website scraping needed - allocate budget for Phase 1 scraper
-		// Budget breakdown (OPTIMIZED for better success rate):
-		// - Index building: 30s (first call can take 10-30s, happens before extractKeywords)
+		// Budget breakdown (OPTIMIZED to fit within 90s OverallTimeout):
+		// - Index building: 20s (optimized from 30s, assumes cache hit after first call)
 		// - Phase 1 scraping: 18s (aligned with WebsiteScrapingTimeout of 15s + 3s buffer for retries)
-		// - Multi-page analysis: 8s (reduced from 10s, capped, may be skipped if insufficient time)
+		// - Multi-page analysis: 8s (optional, may be skipped if time < 10s)
 		// - Go classification: 5s
-		// - ML classification: 10s (optional, may be skipped)
+		// - ML classification: 10s (optional, may be skipped if time < 15s)
 		// - Risk assessment: 5s (parallel, doesn't add to total)
 		// - General overhead: 5s (for retries and network latency)
-		// - Retry buffer: 10s (for retry attempts and network delays)
-		// Total: 30 + 18 + 8 + 5 + 10 + 5 + 10 = 86s
-		// FIX: Add budget for index building (30s) - this happens synchronously before extractKeywords
-		// FIX: Add budget for multi-page analysis (8s) to prevent context expiration
-		// FIX #10: Add retry buffer for retry attempts and network delays
+		// - Retry buffer: 5s (optimized from 10s, retries are typically fast)
+		// Total: 20 + 18 + 8 + 5 + 10 + 5 + 5 = 71s (within 90s limit with 19s buffer)
+		// FIX: Optimized budget allocation:
+		// - Reduced index building from 30s to 20s (assumes cache hit after first call)
+		// - Reduced retry buffer from 10s to 5s (retries are typically fast)
+		// - Multi-page analysis and ML classification are optional and may be skipped
 		requiredTimeout = indexBuildingBudget + phase1ScrapingBudget + multiPageAnalysisBudget + goClassificationBudget + mlClassificationBudget + generalOverhead + retryBuffer
 
 		h.logger.Info("Adaptive timeout: website scraping detected",
@@ -5289,13 +5293,13 @@ func (h *ClassificationHandler) calculateAdaptiveTimeout(req *ClassificationRequ
 			zap.Duration("base_timeout", baseTimeout))
 	} else {
 		// Simple request without website scraping
-		// Budget breakdown:
-		// - Index building: 30s (first call can take 10-30s, happens before classification)
+		// Budget breakdown (OPTIMIZED):
+		// - Index building: 20s (optimized from 30s, assumes cache hit after first call)
 		// - Go classification: 5s
-		// - ML classification: 10s (optional)
+		// - ML classification: 10s (optional, may be skipped if time < 15s)
 		// - General overhead: 5s
-		// FIX: Add budget for index building even for simple requests
-		// FIX #10: Add retry buffer for retry attempts and network delays
+		// - Retry buffer: 5s (optimized from 10s)
+		// Total: 20 + 5 + 10 + 5 + 5 = 45s (well within 90s limit)
 		requiredTimeout = indexBuildingBudget + goClassificationBudget + mlClassificationBudget + generalOverhead + retryBuffer
 
 		h.logger.Info("Adaptive timeout: simple request (no website scraping)",

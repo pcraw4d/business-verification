@@ -1,0 +1,87 @@
+==========================================
+Classification Accuracy Analysis
+==========================================
+
+API URL: https://classification-service-production.up.railway.app
+Test Cases: 20
+Output File: test/results/CLASSIFICATION_ACCURACY_ANALYSIS_20251220_012235.json
+
+Test 1: Expected 'Technology'
+  ✅ Correct: 'Technology' (confidence: 0.95)
+Test 2: Expected 'Financial Services'
+  ✅ Correct: 'Banking' (confidence: 0.95)
+Test 3: Expected 'Healthcare'
+  ✅ Correct: 'Healthcare' (confidence: 0.95)
+Test 4: Expected 'Food & Beverage'
+  ❌ Incorrect: Expected 'Food & Beverage', Got 'Retail' (confidence: 0.95)
+Test 5: Expected 'Retail & Commerce'
+  ✅ Correct: 'Retail' (confidence: 0.95)
+Test 6: Expected 'Manufacturing'
+  ✅ Correct: 'Manufacturing' (confidence: 0.95)
+Test 7: Expected 'Entertainment'
+  ✅ Correct: 'Arts, Entertainment, and Recreation' (confidence: 0.95)
+Test 8: Expected 'Education'
+  ✅ Correct: 'Education' (confidence: 0.95)
+Test 9: Expected 'Financial Services'
+  ✅ Correct: 'Banking' (confidence: 0.95)
+Test 10: Expected 'Retail & Commerce'
+  ✅ Correct: 'Retail' (confidence: 0.95)
+Test 11: Expected 'Technology'
+  ✅ Correct: 'Technology' (confidence: 0.95)
+Test 12: Expected 'Food & Beverage'
+  ✅ Correct: 'Restaurants' (confidence: 0.95)
+Test 13: Expected 'Entertainment'
+  ✅ Correct: 'Arts, Entertainment, and Recreation' (confidence: 0.95)
+Test 14: Expected 'Food & Beverage'
+  ❌ Incorrect: Expected 'Food & Beverage', Got 'Manufacturing' (confidence: 0.95)
+Test 15: Expected 'Manufacturing'
+  ✅ Correct: 'Manufacturing' (confidence: 0.95)
+Test 16: Expected 'Retail & Commerce'
+  ✅ Correct: 'Retail' (confidence: 0.95)
+Test 17: Expected 'Healthcare'
+  ❌ Incorrect: Expected 'Healthcare', Got 'Insurance' (confidence: 0.95)
+Test 18: Expected 'Technology'
+  ✅ Correct: 'Professional, Scientific, and Technical Services' (confidence: 0.5315625)
+Test 19: Expected 'Financial Services'
+  ✅ Correct: 'Financial Services' (confidence: 0.95)
+Test 20: Expected 'Healthcare'
+  ✅ Correct: 'Healthcare' (confidence: 0.95)
+
+==========================================
+Analysis Complete
+==========================================
+
+Overall Accuracy: 85.00%
+Correct: 17 / 20
+
+Results saved to: test/results/CLASSIFICATION_ACCURACY_ANALYSIS_20251220_012235.json
+
+Industry Accuracy:
+  Technology: 100.0% (3/3)
+    Common misclassifications: Technology, Professional, Scientific, and Technical Services
+  Financial Services: 100.0% (3/3)
+    Common misclassifications: Banking, Financial Services
+  Retail & Commerce: 100.0% (3/3)
+    Common misclassifications: Retail
+  Manufacturing: 100.0% (2/2)
+    Common misclassifications: Manufacturing
+  Entertainment: 100.0% (2/2)
+    Common misclassifications: Arts, Entertainment, and Recreation
+  Education: 100.0% (1/1)
+    Common misclassifications: Education
+  Healthcare: 66.7% (2/3)
+    Common misclassifications: Healthcare, Insurance
+  Food & Beverage: 33.3% (1/3)
+    Common misclassifications: Retail, Restaurants, Manufacturing
+
+Top Misclassification Patterns:
+  Food & Beverage -> Retail: 1 times
+  Food & Beverage -> Manufacturing: 1 times
+  Healthcare -> Insurance: 1 times
+
+Confidence Analysis:
+  Correct predictions: mean=0.93, min=0.53, max=0.95
+  Incorrect predictions: mean=0.95, min=0.95, max=0.95
+
+Method Analysis:
+  unknown: 85.0% (17/20)

@@ -5,12 +5,12 @@ package integration
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
-	"sort"
 	"strings"
 	"sync"
 	"testing"
@@ -51,7 +51,7 @@ func TestRailwayComprehensiveE2EClassification(t *testing.T) {
 
 	// Run comprehensive tests
 	startTime := time.Now()
-	results := runner.RunComprehensiveTests(testSamples)
+	_ = runner.RunComprehensiveTests(testSamples)
 	totalDuration := time.Since(startTime)
 
 	t.Logf("✅ Completed all tests in %v", totalDuration)
@@ -465,38 +465,97 @@ func generateComprehensiveTestSamples() []TestSample {
 	return samples
 }
 
-// RunComprehensiveTests runs all test samples
+// RunComprehensiveTests runs all test samples with proper timeout and cancellation
 func (r *RailwayE2ETestRunner) RunComprehensiveTests(samples []TestSample) []RailwayE2ETestResult {
 	r.t.Logf("🚀 Starting comprehensive Railway E2E tests with %d samples", len(samples))
+
+	// Create context with timeout for the entire test run
+	ctx, cancel := context.WithTimeout(context.Background(), 85*time.Minute) // Slightly less than test timeout
+	defer cancel()
 
 	// Run tests with controlled concurrency to avoid overwhelming Railway
 	semaphore := make(chan struct{}, 3) // Max 3 concurrent requests
 	var wg sync.WaitGroup
 
 	for i, sample := range samples {
+		// Check if context is cancelled (timeout or test failure)
+		select {
+		case <-ctx.Done():
+			r.t.Logf("⚠️ Test run cancelled: %v", ctx.Err())
+			break
+		default:
+		}
+
 		wg.Add(1)
 		go func(idx int, s TestSample) {
 			defer wg.Done()
-			semaphore <- struct{}{} // Acquire
-			defer func() { <-semaphore }() // Release
+
+			// Acquire semaphore with context cancellation support
+			select {
+			case semaphore <- struct{}{}:
+				// Successfully acquired semaphore
+				defer func() { <-semaphore }() // Release
+			case <-ctx.Done():
+				// Context cancelled, don't run test
+				r.t.Logf("⚠️ Skipping test %d/%d: %s (context cancelled)", idx+1, len(samples), s.BusinessName)
+				return
+			}
+
+			// Check context again before running test
+			select {
+			case <-ctx.Done():
+				return
+			default:
+			}
 
 			r.t.Logf("Running test %d/%d: %s", idx+1, len(samples), s.BusinessName)
-			result := r.runSingleTest(s)
+			result := r.runSingleTestWithContext(ctx, s)
 			r.addResult(result)
 
-			// Small delay to avoid rate limiting
-			time.Sleep(500 * time.Millisecond)
+			// Small delay to avoid rate limiting (with context cancellation)
+			select {
+			case <-time.After(500 * time.Millisecond):
+			case <-ctx.Done():
+				return
+			}
 		}(i, sample)
 	}
 
-	wg.Wait()
+	// Wait for all goroutines with timeout
+	done := make(chan struct{})
+	go func() {
+		wg.Wait()
+		close(done)
+	}()
 
-	r.t.Logf("✅ Completed all tests")
+	select {
+	case <-done:
+		r.t.Logf("✅ Completed all tests")
+	case <-ctx.Done():
+		r.t.Logf("⚠️ Test run timed out, waiting for in-flight requests to complete...")
+		// Give a short grace period for in-flight requests
+		select {
+		case <-done:
+			r.t.Logf("✅ All in-flight tests completed")
+		case <-time.After(30 * time.Second):
+			r.t.Logf("⚠️ Some tests may still be running")
+		}
+	}
+
 	return r.results
 }
 
+// runSingleTestWithContext runs a single comprehensive test with context for cancellation
+func (r *RailwayE2ETestRunner) runSingleTestWithContext(ctx context.Context, sample TestSample) RailwayE2ETestResult {
+	// Create a context with per-request timeout (60 seconds)
+	requestCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
+	defer cancel()
+
+	return r.runSingleTest(requestCtx, sample)
+}
+
 // runSingleTest runs a single comprehensive test
-func (r *RailwayE2ETestRunner) runSingleTest(sample TestSample) RailwayE2ETestResult {
+func (r *RailwayE2ETestRunner) runSingleTest(ctx context.Context, sample TestSample) RailwayE2ETestResult {
 	result := RailwayE2ETestResult{
 		ClassificationTestResult: ClassificationTestResult{
 			SampleID:     sample.ID,
@@ -530,7 +589,7 @@ func (r *RailwayE2ETestRunner) runSingleTest(sample TestSample) RailwayE2ETestRe
 		return result
 	}
 
-	req, err := http.NewRequest("POST", r.apiURL+"/v1/classify", bytes.NewBuffer(reqJSON))
+	req, err := http.NewRequestWithContext(ctx, "POST", r.apiURL+"/v1/classify", bytes.NewBuffer(reqJSON))
 	if err != nil {
 		result.Error = fmt.Sprintf("Failed to create request: %v", err)
 		result.ErrorType = "request_error"
@@ -539,14 +598,37 @@ func (r *RailwayE2ETestRunner) runSingleTest(sample TestSample) RailwayE2ETestRe
 	}
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := r.httpClient.Do(req)
+	// Use a client with shorter timeout for individual requests
+	client := &http.Client{
+		Timeout: 60 * time.Second, // Per-request timeout
+	}
+
+	resp, err := client.Do(req)
 	if err != nil {
-		result.Error = fmt.Sprintf("HTTP request failed: %v", err)
-		result.ErrorType = "network_error"
+		// Check if error is due to context cancellation/timeout
+		if ctx.Err() == context.DeadlineExceeded {
+			result.Error = fmt.Sprintf("Request timeout: %v", err)
+			result.ErrorType = "timeout_error"
+		} else if ctx.Err() == context.Canceled {
+			result.Error = fmt.Sprintf("Request cancelled: %v", err)
+			result.ErrorType = "cancelled_error"
+		} else {
+			result.Error = fmt.Sprintf("HTTP request failed: %v", err)
+			result.ErrorType = "network_error"
+		}
 		result.ProcessingTime = DurationMsFromDuration(time.Since(startTime))
 		return result
 	}
 	defer resp.Body.Close()
+
+	// Check context again after request completes
+	select {
+	case <-ctx.Done():
+		result.Error = "Request cancelled after completion"
+		result.ErrorType = "cancelled_error"
+		return result
+	default:
+	}
 
 	result.ProcessingTime = DurationMsFromDuration(time.Since(startTime))
 

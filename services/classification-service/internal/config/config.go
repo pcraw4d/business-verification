@@ -89,8 +89,8 @@ func Load() (*Config, error) {
 		Server: ServerConfig{
 			Port:         getEnvAsString("PORT", "8081"),
 			Host:         getEnvAsString("HOST", "0.0.0.0"),
-			ReadTimeout:  getEnvAsDuration("READ_TIMEOUT", 90*time.Second),  // Increased to 90s to add buffer above client timeout (60s)
-			WriteTimeout: getEnvAsDuration("WRITE_TIMEOUT", 90*time.Second), // Increased to 90s to add buffer above client timeout (60s)
+			ReadTimeout:  getEnvAsDuration("READ_TIMEOUT", 120*time.Second),  // Increased to 120s to accommodate long-running classification requests
+			WriteTimeout: getEnvAsDuration("WRITE_TIMEOUT", 120*time.Second), // Increased to 120s to accommodate long-running classification requests
 			IdleTimeout:  getEnvAsDuration("IDLE_TIMEOUT", 60*time.Second),
 		},
 		Supabase: SupabaseConfig{
@@ -115,7 +115,7 @@ func Load() (*Config, error) {
 			// Multi-page analysis configuration
 			MaxPagesToAnalyze:   getEnvAsInt("CLASSIFICATION_MAX_PAGES_TO_ANALYZE", 15),
 			PageAnalysisTimeout: getEnvAsDuration("CLASSIFICATION_PAGE_ANALYSIS_TIMEOUT", 15*time.Second),
-			OverallTimeout:      getEnvAsDuration("CLASSIFICATION_OVERALL_TIMEOUT", 60*time.Second),
+			OverallTimeout:      getEnvAsDuration("CLASSIFICATION_OVERALL_TIMEOUT", 90*time.Second), // Increased from 60s to 90s to accommodate timeout budget (86s)
 			ConcurrentPages:     getEnvAsInt("CLASSIFICATION_CONCURRENT_PAGES", 5),
 			BrandMatchEnabled:   getEnvAsBool("CLASSIFICATION_BRAND_MATCH_ENABLED", true),
 			BrandMatchMCCRange:  getEnvAsString("CLASSIFICATION_BRAND_MATCH_MCC_RANGE", "3000-3831"),

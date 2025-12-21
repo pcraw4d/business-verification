@@ -1,4 +1,5 @@
 # Priority 5: Fast Path Fix Test Results
+
 ## December 20, 2025 - Post Deployment
 
 ---
@@ -16,11 +17,13 @@
 ## ✅ **SUCCESS: Ford Fix Working!**
 
 ### Test 15: Ford Motor Company
+
 - **Expected**: 'Manufacturing'
 - **Got**: 'Manufacturing' (confidence: 0.95) ✅
 - **Status**: **CORRECT** ✅
 
 ### Test 6: Tesla
+
 - **Expected**: 'Manufacturing'
 - **Got**: 'Manufacturing' (confidence: 0.95) ✅
 - **Status**: **CORRECT** ✅
@@ -31,22 +34,23 @@
 
 ## Industry-Specific Accuracy
 
-| Industry | Accuracy | Correct | Total | Status |
-|----------|----------|---------|-------|--------|
-| **Manufacturing** | **100.0%** | 2/2 | ✅ | **FIXED** |
-| Financial Services | 100.0% | 3/3 | ✅ | Excellent |
-| Retail & Commerce | 100.0% | 3/3 | ✅ | Excellent |
-| Education | 100.0% | 1/1 | ✅ | Excellent |
-| Technology | 66.7% | 2/3 | ⚠️ | Needs work |
-| Healthcare | 66.7% | 2/3 | ⚠️ | Needs work |
-| Food & Beverage | 66.7% | 2/3 | ⚠️ | Needs work |
-| Entertainment | 0.0% | 0/2 | ❌ | Critical |
+| Industry           | Accuracy   | Correct | Total | Status     |
+| ------------------ | ---------- | ------- | ----- | ---------- |
+| **Manufacturing**  | **100.0%** | 2/2     | ✅    | **FIXED**  |
+| Financial Services | 100.0%     | 3/3     | ✅    | Excellent  |
+| Retail & Commerce  | 100.0%     | 3/3     | ✅    | Excellent  |
+| Education          | 100.0%     | 1/1     | ✅    | Excellent  |
+| Technology         | 66.7%      | 2/3     | ⚠️    | Needs work |
+| Healthcare         | 66.7%      | 2/3     | ⚠️    | Needs work |
+| Food & Beverage    | 66.7%      | 2/3     | ⚠️    | Needs work |
+| Entertainment      | 0.0%       | 0/2     | ❌    | Critical   |
 
 ---
 
 ## Remaining Issues
 
 ### 1. ❌ Coca-Cola (Test 14) - Food & Beverage → Manufacturing
+
 - **Expected**: 'Food & Beverage'
 - **Got**: 'Manufacturing' (confidence: 0.95)
 - **Issue**: Fast path fix might be too aggressive
@@ -54,18 +58,21 @@
 - **Fix Needed**: Check for "beverage" BEFORE checking for "manufacturing"
 
 ### 2. ❌ Entertainment (Tests 7, 13) - 0% accuracy
+
 - **Netflix**: Expected 'Entertainment', Got 'General Business' (confidence: 0.60)
 - **Disney**: Expected 'Entertainment', Got 'General Business' (confidence: 0.60)
 - **Issue**: Entertainment keywords not being extracted or matched
 - **Fix Needed**: Improve Entertainment keyword extraction and matching
 
 ### 3. ⚠️ Healthcare (Test 17) - UnitedHealth Group → Insurance
+
 - **Expected**: 'Healthcare'
 - **Got**: 'Insurance' (confidence: 0.95)
 - **Issue**: UnitedHealth Group is both healthcare AND insurance
 - **Note**: This might be a borderline case - needs review
 
 ### 4. ⚠️ Technology (Test 18) - Verizon → General Business
+
 - **Expected**: 'Technology'
 - **Got**: 'General Business' (confidence: 0.60)
 - **Issue**: "Telecommunications" not matching Technology
@@ -78,6 +85,7 @@
 ### ✅ **Fix Working Correctly**
 
 **Ford (Test 15)**:
+
 1. Description: "Automotive manufacturing"
 2. Extracts: ["automotive", "manufacturing"] ✅
 3. "manufacturing" matches Food Production
@@ -87,6 +95,7 @@
 7. Full classification path → "Manufacturing" ✅
 
 **Tesla (Test 6)**:
+
 1. Description: "Electric vehicle manufacturing"
 2. Extracts: ["manufacturing"] ✅
 3. "manufacturing" matches Food Production
@@ -98,6 +107,7 @@
 ### ⚠️ **Fix Too Aggressive**
 
 **Coca-Cola (Test 14)**:
+
 1. Description: "Beverage manufacturing"
 2. Extracts: ["beverage", "manufacturing"] ✅
 3. "manufacturing" matches Food Production
@@ -115,21 +125,25 @@
 ## Next Steps
 
 ### Priority 1: Fix Coca-Cola Classification
+
 1. **Update fix logic**: Check for "beverage" FIRST
 2. **Only skip fast path** if "manufacturing" is present WITHOUT "beverage"
 3. **Test**: Verify Coca-Cola → "Food & Beverage"
 
 ### Priority 2: Fix Entertainment Classification
+
 1. **Review Entertainment keyword extraction**
 2. **Add more Entertainment keywords** to obviousKeywordMap
 3. **Improve Entertainment matching** in ClassifyBusinessByKeywords
 4. **Test**: Verify Netflix and Disney → "Entertainment"
 
 ### Priority 3: Fix Technology Classification
+
 1. **Add "telecommunications"** to Technology keywords
 2. **Test**: Verify Verizon → "Technology"
 
 ### Priority 4: Review Healthcare vs Insurance
+
 1. **Review UnitedHealth Group case**
 2. **Determine if "Insurance" is acceptable** or if fix is needed
 
@@ -153,11 +167,13 @@
 ## Summary
 
 ✅ **Fast Path Fix: SUCCESS**
+
 - Ford: Fixed ✅
 - Tesla: Fixed ✅
 - Manufacturing: 100% accuracy ✅
 
 ⚠️ **Remaining Issues**:
+
 - Coca-Cola: Fast path fix too aggressive
 - Entertainment: 0% accuracy (critical)
 - Technology: 66.7% accuracy (needs work)

@@ -1,5 +1,5 @@
-//go:build !comprehensive_test
-// +build !comprehensive_test
+//go:build !comprehensive_test && !e2e_railway
+// +build !comprehensive_test,!e2e_railway
 
 package integration
 
