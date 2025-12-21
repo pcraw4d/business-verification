@@ -1,0 +1,115 @@
+=== RUN   TestRailwayComprehensiveE2EClassification
+    railway_comprehensive_e2e_classification_test.go:37: Using Railway URL from environment: https://classification-service-production.up.railway.app
+    railway_comprehensive_e2e_classification_test.go:113: ✅ Service health check passed
+    railway_comprehensive_e2e_classification_test.go:55: 🚀 Starting Railway E2E validation test with 50 samples (from 385 total)
+    railway_comprehensive_e2e_classification_test.go:478: 🚀 Starting comprehensive Railway E2E tests with 50 samples
+    railway_comprehensive_e2e_classification_test.go:519: Running test 1/50: Amazon
+    railway_comprehensive_e2e_classification_test.go:519: Running test 9/50: Meta
+    railway_comprehensive_e2e_classification_test.go:519: Running test 30/50: Ford Motor Company
+    railway_comprehensive_e2e_classification_test.go:519: Running test 5/50: Target
+    railway_comprehensive_e2e_classification_test.go:519: Running test 2/50: Shopify
+    railway_comprehensive_e2e_classification_test.go:519: Running test 3/50: eBay
+    railway_comprehensive_e2e_classification_test.go:519: Running test 4/50: Walmart
+    railway_comprehensive_e2e_classification_test.go:519: Running test 7/50: Apple
+    railway_comprehensive_e2e_classification_test.go:519: Running test 6/50: Microsoft
+    railway_comprehensive_e2e_classification_test.go:519: Running test 19/50: Subway
+    railway_comprehensive_e2e_classification_test.go:519: Running test 10/50: Stripe
+    railway_comprehensive_e2e_classification_test.go:519: Running test 11/50: Salesforce
+    railway_comprehensive_e2e_classification_test.go:519: Running test 12/50: Oracle
+    railway_comprehensive_e2e_classification_test.go:519: Running test 13/50: IBM
+    railway_comprehensive_e2e_classification_test.go:519: Running test 29/50: Tesla
+    railway_comprehensive_e2e_classification_test.go:519: Running test 20/50: UnitedHealth Group
+    railway_comprehensive_e2e_classification_test.go:519: Running test 21/50: CVS Health
+    railway_comprehensive_e2e_classification_test.go:519: Running test 22/50: Walgreens
+    railway_comprehensive_e2e_classification_test.go:519: Running test 31/50: General Electric
+    railway_comprehensive_e2e_classification_test.go:519: Running test 32/50: Netflix
+    railway_comprehensive_e2e_classification_test.go:519: Running test 23/50: Mayo Clinic
+    railway_comprehensive_e2e_classification_test.go:519: Running test 24/50: JPMorgan Chase
+    railway_comprehensive_e2e_classification_test.go:519: Running test 25/50: Bank of America
+    railway_comprehensive_e2e_classification_test.go:519: Running test 26/50: Wells Fargo
+    railway_comprehensive_e2e_classification_test.go:519: Running test 27/50: Goldman Sachs
+    railway_comprehensive_e2e_classification_test.go:519: Running test 28/50: PayPal
+    railway_comprehensive_e2e_classification_test.go:519: Running test 8/50: Google
+    railway_comprehensive_e2e_classification_test.go:519: Running test 15/50: McDonald's
+    railway_comprehensive_e2e_classification_test.go:519: Running test 14/50: Starbucks
+    railway_comprehensive_e2e_classification_test.go:519: Running test 18/50: Domino's Pizza
+    railway_comprehensive_e2e_classification_test.go:519: Running test 35/50: Deloitte
+    railway_comprehensive_e2e_classification_test.go:519: Running test 17/50: PepsiCo
+    railway_comprehensive_e2e_classification_test.go:519: Running test 34/50: Spotify
+    railway_comprehensive_e2e_classification_test.go:519: Running test 36/50: PricewaterhouseCoopers
+    railway_comprehensive_e2e_classification_test.go:519: Running test 39/50: Zillow
+    railway_comprehensive_e2e_classification_test.go:519: Running test 38/50: Caterpillar
+    railway_comprehensive_e2e_classification_test.go:519: Running test 46/50: City technology Group
+    railway_comprehensive_e2e_classification_test.go:519: Running test 43/50: Ultimate technology Solutions
+    railway_comprehensive_e2e_classification_test.go:519: Running test 44/50: National technology Systems
+    railway_comprehensive_e2e_classification_test.go:519: Running test 45/50: Local technology Industries
+    railway_comprehensive_e2e_classification_test.go:519: Running test 40/50: Uber
+    railway_comprehensive_e2e_classification_test.go:519: Running test 33/50: Disney
+    railway_comprehensive_e2e_classification_test.go:519: Running test 49/50: Services technology Holdings
+    railway_comprehensive_e2e_classification_test.go:519: Running test 50/50: Corp technology Solutions
+    railway_comprehensive_e2e_classification_test.go:519: Running test 41/50: FedEx
+    railway_comprehensive_e2e_classification_test.go:519: Running test 48/50: Valley technology Associates
+    railway_comprehensive_e2e_classification_test.go:519: Running test 37/50: Ernst & Young
+    railway_comprehensive_e2e_classification_test.go:519: Running test 47/50: Coastal technology Company
+    railway_comprehensive_e2e_classification_test.go:519: Running test 16/50: Coca-Cola
+    railway_comprehensive_e2e_classification_test.go:519: Running test 42/50: ExxonMobil
+    railway_comprehensive_e2e_classification_test.go:541: ✅ Completed all tests
+    railway_comprehensive_e2e_classification_test.go:65: ✅ Completed all tests in 7m13.597039224s
+    railway_comprehensive_e2e_classification_test.go:1463: ❌ Scraping success rate below threshold: 0.0% (expected ≥70%)
+    railway_comprehensive_e2e_classification_test.go:1471: ❌ Classification accuracy below threshold: 32.0% (expected ≥80%)
+    railway_comprehensive_e2e_classification_test.go:1479: ❌ Code generation rate below threshold: 48.0% (expected ≥90%)
+    railway_comprehensive_e2e_classification_test.go:1487: ❌ Overall code accuracy below threshold: 10.8% (expected ≥70%)
+    railway_comprehensive_e2e_classification_test.go:1494: ❌ MCC top 3 accuracy below threshold: 12.5% (expected ≥60%)
+    railway_comprehensive_e2e_classification_test.go:1502: ❌ Average latency too high: 25100ms (expected <10000ms)
+    railway_comprehensive_e2e_classification_test.go:87: 📊 Test report saved to test/results/railway_e2e_classification_20251221_174121.json
+    railway_comprehensive_e2e_classification_test.go:93: 📊 Analysis report saved to test/results/railway_e2e_analysis_20251221_174121.json
+
+================================================================================
+RAILWAY COMPREHENSIVE E2E CLASSIFICATION TEST SUMMARY
+================================================================================
+
+📊 Test Overview:
+  Total Tests: 50
+  Successful: 32 (64.0%)
+  Failed: 18 (36.0%)
+
+🌐 Scraping & Crawling:
+  Success Rate: 0.0%
+  Avg Pages Crawled: 0.0
+  Strategy Distribution: map[early_exit:29]
+
+🎯 Classification:
+  Accuracy: 32.0%
+  Avg Confidence: 0.59
+
+📝 Code Generation:
+  Generation Rate: 48.0%
+  Top 3 Code Rate: 48.0%
+  Avg Code Confidence: 0.88
+
+🎯 Code Accuracy (Enhanced):
+  Overall Code Accuracy: 10.8%
+  MCC - Top 1: 0.0%, Top 3: 12.5%, Score: 0.11
+  NAICS - Top 1: 0.0%, Top 3: 0.0%, Score: 0.00
+  SIC - Top 1: 0.0%, Top 3: 0.0%, Score: 0.00
+
+💬 Explanation Generation:
+  Generation Rate: 64.0%
+  Avg Quality: 0.78
+  Avg Length: 328 chars
+
+⚡ Performance:
+  Avg Latency: 25.10022s
+  P95 Latency: 1m0.004s
+  Cache Hit Rate: 0.0%
+  Early Exit Rate: 58.0%
+
+❌ Errors:
+  Error Rate: 22.0%
+  Error Distribution: map[timeout_error:11]
+================================================================================
+
+--- FAIL: TestRailwayComprehensiveE2EClassification (434.07s)
+FAIL
+FAIL	kyb-platform-tests/integration	434.914s
+FAIL

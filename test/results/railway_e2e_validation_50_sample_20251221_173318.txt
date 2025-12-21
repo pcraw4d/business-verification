@@ -1,0 +1,4 @@
+# ./test/integration
+open /Users/petercrawford/Library/Caches/go-build/6a/6a480654331d6e9a8e7117c72ccc7d0185374796feb52e83066b7356a1d61df8-a: operation not permitted
+FAIL	./test/integration [setup failed]
+FAIL

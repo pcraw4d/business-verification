@@ -3663,8 +3663,12 @@ func (r *SupabaseKeywordRepository) ClassifyBusinessByContextualKeywords(ctx con
 			if industryResult.industryErr != nil {
 				r.logger.Printf("⚠️ Failed to get industry %d: %v", enhancedResult.IndustryID, industryResult.industryErr)
 				bestIndustry = &Industry{Name: "General Business", ID: 26}
-			} else {
+			} else if industryResult.industry != nil {
 				bestIndustry = industryResult.industry
+			} else {
+				// FIX: Handle case where industry is nil but no error (shouldn't happen, but defensive)
+				r.logger.Printf("⚠️ Industry result is nil for industry %d (no error), using default", enhancedResult.IndustryID)
+				bestIndustry = &Industry{Name: "General Business", ID: 26}
 			}
 
 			// Process codes result
@@ -3724,6 +3728,12 @@ func (r *SupabaseKeywordRepository) ClassifyBusinessByContextualKeywords(ctx con
 	// Check if timeout was exceeded
 	if classificationCtx.Err() == context.DeadlineExceeded {
 		r.logger.Printf("⚠️ [TIMEOUT] Classification timeout exceeded after %v", totalDuration)
+	}
+
+	// FIX: Ensure bestIndustry is never nil before accessing .Name (prevents panic at line 3733)
+	if bestIndustry == nil {
+		r.logger.Printf("⚠️ bestIndustry is nil, using default industry")
+		bestIndustry = &Industry{Name: "General Business", ID: 26}
 	}
 
 	reasoning := fmt.Sprintf("Enhanced classification as %s with confidence %.3f based on %d contextual keywords. "+

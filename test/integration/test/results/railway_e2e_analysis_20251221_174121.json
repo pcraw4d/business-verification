@@ -1,0 +1,22 @@
+{
+  "opportunities": [
+    "Increase cache hit rate to improve performance and reduce costs",
+    "Improve top 3 code generation rate for better classification completeness",
+    "Improve MCC top 1 accuracy - codes are often in top 3 but not top 1"
+  ],
+  "recommendations": [
+    "Consider implementing ensemble methods or ML models to improve classification accuracy",
+    "Review and improve code matching algorithms, especially for top 1 position accuracy",
+    "Optimize scraping and crawling strategies to reduce latency",
+    "Implement better error handling and retry mechanisms"
+  ],
+  "strengths": [],
+  "weaknesses": [
+    "Low scraping success rate (0.0%) - may need better error handling or retry logic",
+    "Classification accuracy below target (32.0%) - may need improved classification algorithms",
+    "Low overall code accuracy (10.8%) - may need improved code matching algorithms",
+    "Low MCC top 1 accuracy (0.0%) - primary code selection needs improvement",
+    "High average latency (25100ms) - may need performance optimization",
+    "High error rate (22.0%) - needs investigation"
+  ]
+}
