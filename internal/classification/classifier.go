@@ -418,7 +418,9 @@ func (g *ClassificationCodeGenerator) mergeCodeResults(
 	if industryConfidence < 0.5 {
 		// Lower threshold for low-confidence industries to ensure codes are generated
 		confidenceThreshold = 0.2  // Lowered from 0.3 to 0.2
-		g.logger.Printf("📊 Lowered confidence threshold to %.2f due to low industry confidence (%.2f)", confidenceThreshold, industryConfidence)
+		g.logger.Printf("📊 [FIX VERIFICATION] Lowered confidence threshold to %.2f due to low industry confidence (%.2f)", confidenceThreshold, industryConfidence)
+	} else {
+		g.logger.Printf("📊 [FIX VERIFICATION] Using confidence threshold %.2f (industry confidence: %.2f)", confidenceThreshold, industryConfidence)
 	}
 	
 	// Configuration constants
@@ -521,6 +523,17 @@ func (g *ClassificationCodeGenerator) mergeCodeResults(
 	// FIX Track 4.2: Improve code ranking to prioritize industry-based codes
 	// Sort by combined confidence (descending), then by source priority, then by code
 	// Boost codes matched by both sources (already applied in merge logic)
+	industryBasedCount := 0
+	for _, r := range results {
+		for _, source := range r.Sources {
+			if source == "industry" {
+				industryBasedCount++
+				break
+			}
+		}
+	}
+	g.logger.Printf("📊 [FIX VERIFICATION] Code ranking: %d total codes, %d industry-based codes (prioritizing industry-based)", len(results), industryBasedCount)
+	
 	sort.Slice(results, func(i, j int) bool {
 		// Primary sort: combined confidence
 		if results[i].CombinedConfidence != results[j].CombinedConfidence {
@@ -949,6 +962,18 @@ func (g *ClassificationCodeGenerator) selectTopCodes(candidates []CodeResult, li
 	if len(candidates) == 0 {
 		return []CodeResult{}
 	}
+
+	// FIX VERIFICATION: Count industry_match vs keyword_match codes
+	industryMatchCount := 0
+	keywordMatchCount := 0
+	for _, c := range candidates {
+		if c.Source == "industry_match" {
+			industryMatchCount++
+		} else if c.Source == "keyword_match" {
+			keywordMatchCount++
+		}
+	}
+	g.logger.Printf("📊 [FIX VERIFICATION] [CodeRanking] selectTopCodes: %d candidates (%d industry_match, %d keyword_match) - prioritizing industry_match", len(candidates), industryMatchCount, keywordMatchCount)
 
 	// Sort by confidence (highest first), then by source priority
 	// Industry-based codes are more reliable and should be prioritized

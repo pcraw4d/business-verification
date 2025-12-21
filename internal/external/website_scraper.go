@@ -2361,6 +2361,14 @@ func isContentValidWithLogging(content *ScrapedContent, logger *zap.Logger, stra
 		return false
 	}
 
+	// FIX VERIFICATION: Log that we're using lowered thresholds (Track 5.1)
+	logger.Info("📊 [FIX VERIFICATION] [ContentValidation] Validating content with lowered thresholds",
+		zap.String("strategy", strategyName),
+		zap.Int("word_count", content.WordCount),
+		zap.Int("word_count_threshold", 30), // Lowered from 50
+		zap.Float64("quality_score", content.QualityScore),
+		zap.Float64("quality_score_threshold", 0.3)) // Lowered from 0.5
+
 	// FIX Track 5.1: Lower word count requirement from 50 to 30
 	// Minimum word count
 	if content.WordCount < 30 {
@@ -2392,6 +2400,12 @@ func isContentValidWithLogging(content *ScrapedContent, logger *zap.Logger, stra
 			zap.Float64("required", 0.3))
 		return false
 	}
+
+	// FIX VERIFICATION: Log successful validation
+	logger.Info("✅ [FIX VERIFICATION] [ContentValidation] Content validation passed with lowered thresholds",
+		zap.String("strategy", strategyName),
+		zap.Int("word_count", content.WordCount),
+		zap.Float64("quality_score", content.QualityScore))
 
 	logger.Debug("✅ [Phase1] [Validation] Content is valid",
 		zap.String("strategy", strategyName),
