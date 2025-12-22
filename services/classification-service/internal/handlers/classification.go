@@ -922,6 +922,21 @@ type requestTrace struct {
 	totalDuration time.Duration
 	startTime     time.Time
 	endTime       time.Time
+	// Enhanced metrics for bottleneck analysis
+	cacheLookupDuration    time.Duration
+	scrapingDuration       time.Duration
+	scrapingStrategy       string
+	codeGenDuration        time.Duration
+	mccGenDuration         time.Duration
+	naicsGenDuration       time.Duration
+	sicGenDuration         time.Duration
+	dbQueryDuration        time.Duration
+	mlServiceDuration      time.Duration
+	playwrightDuration     time.Duration
+	supabaseQueryDuration  time.Duration
+	responseBuildDuration  time.Duration
+	queueWaitDuration      time.Duration
+	queueDepth             int
 }
 
 // stageTiming tracks timing for a single processing stage
@@ -1155,18 +1170,25 @@ func (h *ClassificationHandler) HandleClassification(w http.ResponseWriter, r *h
 	// Generate cache key for deduplication
 	cacheKey := h.getCacheKey(&req)
 
+	// Track cache lookup duration
+	cacheLookupStart := time.Now()
+	var cacheLookupDuration time.Duration
+
 	// Check cache first if enabled
 	if h.config.Classification.CacheEnabled {
 		if cachedResponse, found := h.getCachedResponse(cacheKey); found {
+			cacheLookupDuration = time.Since(cacheLookupStart)
 			// Cache hit - set FromCache flag and log metrics
 			cachedResponse.FromCache = true
 			cachedResponse.CachedAt = &time.Time{}
 			*cachedResponse.CachedAt = time.Now()
+			cacheLookupDuration = time.Since(cacheLookupStart)
 			h.logger.Info("✅ [CACHE-HIT] Classification served from cache",
 				zap.String("request_id", req.RequestID),
 				zap.String("business_name", req.BusinessName),
 				zap.String("cache_key", cacheKey),
 				zap.Duration("cache_ttl", h.config.Classification.CacheTTL),
+				zap.Duration("cache_lookup_duration", cacheLookupDuration),
 				zap.Duration("response_time", time.Since(startTime)))
 			w.Header().Set("X-Cache", "HIT")
 			w.Header().Set("Cache-Control", fmt.Sprintf("public, max-age=%d", int(h.config.Classification.CacheTTL.Seconds())))
@@ -1174,11 +1196,15 @@ func (h *ClassificationHandler) HandleClassification(w http.ResponseWriter, r *h
 			return
 		}
 		// Cache miss - log metrics
+		cacheLookupDuration = time.Since(cacheLookupStart)
 		h.logger.Info("❌ [CACHE-MISS] Cache miss, processing new request",
 			zap.String("request_id", req.RequestID),
 			zap.String("business_name", req.BusinessName),
-			zap.String("cache_key", cacheKey))
+			zap.String("cache_key", cacheKey),
+			zap.Duration("cache_lookup_duration", cacheLookupDuration))
 		w.Header().Set("X-Cache", "MISS")
+	} else {
+		cacheLookupDuration = time.Since(cacheLookupStart)
 	}
 
 	// Calculate adaptive timeout based on request characteristics (Hybrid Approach)
@@ -2182,7 +2208,7 @@ func (h *ClassificationHandler) traceStage(trace *requestTrace, stageName string
 	return stage.error
 }
 
-// logRequestTrace logs complete request trace
+// logRequestTrace logs complete request trace with enhanced metrics
 func (h *ClassificationHandler) logRequestTrace(trace *requestTrace) {
 	trace.endTime = time.Now()
 	trace.totalDuration = trace.endTime.Sub(trace.startTime)
@@ -2192,11 +2218,35 @@ func (h *ClassificationHandler) logRequestTrace(trace *requestTrace) {
 		stageDurations[stage.stage] = stage.duration
 	}
 
+	// Build comprehensive trace summary for bottleneck analysis
+	traceSummary := map[string]interface{}{
+		"request_id":           trace.requestID,
+		"total_duration_ms":    trace.totalDuration.Milliseconds(),
+		"stage_count":          len(trace.stages),
+		"stage_durations":      stageDurations,
+		"cache_lookup_ms":      trace.cacheLookupDuration.Milliseconds(),
+		"scraping_duration_ms": trace.scrapingDuration.Milliseconds(),
+		"scraping_strategy":    trace.scrapingStrategy,
+		"code_gen_duration_ms": trace.codeGenDuration.Milliseconds(),
+		"mcc_gen_duration_ms": trace.mccGenDuration.Milliseconds(),
+		"naics_gen_duration_ms": trace.naicsGenDuration.Milliseconds(),
+		"sic_gen_duration_ms":  trace.sicGenDuration.Milliseconds(),
+		"db_query_duration_ms": trace.dbQueryDuration.Milliseconds(),
+		"ml_service_duration_ms": trace.mlServiceDuration.Milliseconds(),
+		"playwright_duration_ms": trace.playwrightDuration.Milliseconds(),
+		"supabase_query_duration_ms": trace.supabaseQueryDuration.Milliseconds(),
+		"response_build_duration_ms": trace.responseBuildDuration.Milliseconds(),
+		"queue_wait_duration_ms":     trace.queueWaitDuration.Milliseconds(),
+		"queue_depth":                trace.queueDepth,
+	}
+
+	// Log as structured JSON for easy parsing
 	h.logger.Info("📊 [TRACE-COMPLETE] Request trace complete",
 		zap.String("request_id", trace.requestID),
 		zap.Duration("total_duration", trace.totalDuration),
 		zap.Int("stage_count", len(trace.stages)),
 		zap.Any("stage_durations", stageDurations),
+		zap.Any("trace_summary", traceSummary),
 		zap.Any("stages", trace.stages))
 }
 
@@ -2212,11 +2262,13 @@ func (h *ClassificationHandler) processClassification(ctx context.Context, req *
 		}
 	}()
 
-	// Initialize request trace
+	// Initialize request trace with enhanced metrics
 	trace := &requestTrace{
-		requestID: req.RequestID,
-		startTime: startTime,
-		stages:    make([]stageTiming, 0),
+		requestID:          req.RequestID,
+		startTime:          startTime,
+		stages:             make([]stageTiming, 0),
+		queueDepth:         h.requestQueue.Size(),
+		queueWaitDuration:  time.Since(startTime), // Will be updated when processing starts
 	}
 	defer h.logRequestTrace(trace)
 
@@ -2384,6 +2436,25 @@ func (h *ClassificationHandler) processClassification(ctx context.Context, req *
 			}
 			return fmt.Errorf("classification failed: %w", err)
 		}
+		
+		// Extract scraping metrics from enhancedResult metadata
+		if enhancedResult != nil && enhancedResult.Metadata != nil {
+			if scrapingTime, ok := enhancedResult.Metadata["scraping_time_ms"].(float64); ok {
+				trace.scrapingDuration = time.Duration(scrapingTime) * time.Millisecond
+			}
+			if scrapingStrategy, ok := enhancedResult.Metadata["scraping_strategy"].(string); ok {
+				trace.scrapingStrategy = scrapingStrategy
+			}
+			// Track ML service duration if available
+			if mlDuration, ok := enhancedResult.Metadata["ml_service_duration_ms"].(float64); ok {
+				trace.mlServiceDuration = time.Duration(mlDuration) * time.Millisecond
+			}
+			// Track Playwright duration if available
+			if playwrightDuration, ok := enhancedResult.Metadata["playwright_duration_ms"].(float64); ok {
+				trace.playwrightDuration = time.Duration(playwrightDuration) * time.Millisecond
+			}
+		}
+		
 		return nil
 	})
 	
@@ -2763,8 +2834,13 @@ func (h *ClassificationHandler) processClassification(ctx context.Context, req *
 		}(),
 	}
 
+	// Track response building duration
+	responseBuildStart := time.Now()
+	
 	// Priority 4 Fix: Validate response to ensure all required frontend fields are present
 	h.validateResponse(response, req)
+	
+	trace.responseBuildDuration = time.Since(responseBuildStart)
 
 	// Log the final response for debugging
 	h.logger.Info("Classification response prepared",
