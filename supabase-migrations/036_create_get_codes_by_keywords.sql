@@ -5,6 +5,8 @@
 
 -- Function to get classification codes by keywords from code_keywords table
 -- This function is used by GetCodesByKeywords in supabase_repository.go
+-- Note: code_keywords table has code_id (FK to classification_codes.id), not code/code_type
+-- Note: code_keywords has relevance_score, not weight
 CREATE OR REPLACE FUNCTION get_codes_by_keywords(
     p_code_type text,
     p_keywords text[],
@@ -20,15 +22,15 @@ AS $$
 BEGIN
     RETURN QUERY
     SELECT DISTINCT
-        ck.code,
+        cc.code,
         cc.description,
-        MAX(ck.weight) as max_weight
+        MAX(ck.relevance_score) as max_weight
     FROM code_keywords ck
-    JOIN classification_codes cc ON cc.code = ck.code AND cc.code_type = ck.code_type
-    WHERE ck.code_type = p_code_type
+    JOIN classification_codes cc ON cc.id = ck.code_id
+    WHERE cc.code_type = p_code_type
         AND ck.keyword = ANY(p_keywords)
         AND cc.is_active = true
-    GROUP BY ck.code, cc.description
+    GROUP BY cc.code, cc.description
     ORDER BY max_weight DESC
     LIMIT p_limit;
 END;
@@ -39,9 +41,12 @@ COMMENT ON FUNCTION get_codes_by_keywords IS
      Used by GetCodesByKeywords for keyword-based code matching.';
 
 -- Ensure indexes exist for performance
-CREATE INDEX IF NOT EXISTS idx_code_keywords_code_type_keyword 
-    ON code_keywords(code_type, keyword);
+-- Note: code_keywords doesn't have code_type column, so we index on keyword only
+-- The code_type filter is done via JOIN with classification_codes
+CREATE INDEX IF NOT EXISTS idx_code_keywords_keyword_lookup 
+    ON code_keywords(keyword) 
+    WHERE keyword IS NOT NULL;
 
-COMMENT ON INDEX idx_code_keywords_code_type_keyword IS 
-    'Index on code_keywords(code_type, keyword) for fast keyword matching in get_codes_by_keywords function';
+COMMENT ON INDEX idx_code_keywords_keyword_lookup IS 
+    'Index on code_keywords(keyword) for fast keyword matching in get_codes_by_keywords function';
 
