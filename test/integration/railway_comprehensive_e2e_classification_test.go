@@ -338,6 +338,15 @@ func generateComprehensiveTestSamples() []TestSample {
 		{ID: "energy_001", BusinessName: "ExxonMobil", Description: "Oil and gas corporation", WebsiteURL: "https://www.exxonmobil.com", ExpectedIndustry: "energy", ExpectedMCC: []string{"5542", "5541"}, Category: "energy", Complexity: "high", ScrapingDifficulty: "low"},
 	}
 	
+	// FIX: Filter out invalid URLs from real-world samples
+	realWorldSamples := make([]TestSample, 0, len(realWorldSamplesRaw))
+	for _, sample := range realWorldSamplesRaw {
+		if sample.WebsiteURL == "" || isValidURL(sample.WebsiteURL) {
+			realWorldSamples = append(realWorldSamples, sample)
+		}
+		// Skip samples with invalid URLs
+	}
+	
 	samples = append(samples, realWorldSamples...)
 	
 	// Generate additional samples programmatically to reach 385 total
