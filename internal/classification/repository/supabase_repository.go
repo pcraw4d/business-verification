@@ -2036,6 +2036,29 @@ func (r *SupabaseKeywordRepository) GetCodesByKeywords(
 		}{}
 	}
 
+	// #region agent log
+	debugLogPathE2 := os.Getenv("DEBUG_LOG_PATH")
+	if debugLogPathE2 == "" {
+		debugLogPathE2 = "/tmp/debug.log"
+	}
+	logFileE2, _ := os.OpenFile(debugLogPathE2, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if logFileE2 != nil {
+		resultsDataE2 := make([]map[string]interface{}, 0, len(results))
+		for _, r := range results {
+			resultsDataE2 = append(resultsDataE2, map[string]interface{}{
+				"code": r.Code, "weight": r.Weight, "description": r.Description,
+			})
+		}
+		logDataE2, _ := json.Marshal(map[string]interface{}{
+			"sessionId": "debug-session", "runId": "run1", "hypothesisId": "E",
+			"location": "supabase_repository.go:2039", "message": "GetCodesByKeywords returning results",
+			"data": map[string]interface{}{"results_count": len(results), "results": resultsDataE2},
+			"timestamp": time.Now().UnixMilli(),
+		})
+		logFileE2.WriteString(string(logDataE2) + "\n")
+		logFileE2.Close()
+	}
+	// #endregion agent log
 	r.logger.Printf("✅ Retrieved %d codes by keywords for type %s", len(results), codeType)
 	
 	// Convert to return type (matching interface signature)

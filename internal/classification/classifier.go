@@ -753,11 +753,15 @@ func (g *ClassificationCodeGenerator) getMCCCandidates(
 	// #endregion agent log
 	keywordCodes := g.repo.GetCodesByKeywords(ctx, "MCC", keywords)
 	// #region agent log
-	logFile2, _ := os.OpenFile("/Users/petercrawford/New tool/.cursor/debug.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	debugLogPathC2 := os.Getenv("DEBUG_LOG_PATH")
+	if debugLogPathC2 == "" {
+		debugLogPathC2 = "/tmp/debug.log"
+	}
+	logFile2, _ := os.OpenFile(debugLogPathC2, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if logFile2 != nil {
 		logData2, _ := json.Marshal(map[string]interface{}{
 			"sessionId": "debug-session", "runId": "run1", "hypothesisId": "C",
-			"location": "classifier.go:678", "message": "GetCodesByKeywords returned",
+			"location": "classifier.go:754", "message": "GetCodesByKeywords returned",
 			"data": map[string]interface{}{"codes_count": len(keywordCodes)},
 			"timestamp": time.Now().UnixMilli(),
 		})
@@ -765,40 +769,93 @@ func (g *ClassificationCodeGenerator) getMCCCandidates(
 		logFile2.Close()
 	}
 	// #endregion agent log
+	// #region agent log
+	debugLogPath3 := os.Getenv("DEBUG_LOG_PATH")
+	if debugLogPath3 == "" {
+		debugLogPath3 = "/tmp/debug.log"
+	}
+	logFile3, _ := os.OpenFile(debugLogPath3, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if logFile3 != nil {
+		logData3, _ := json.Marshal(map[string]interface{}{
+			"sessionId": "debug-session", "runId": "run1", "hypothesisId": "F",
+			"location": "classifier.go:768", "message": "Processing keyword codes, before industry filter",
+			"data": map[string]interface{}{"keyword_codes_count": len(keywordCodes), "industry_name": industryName, "has_code_metadata_repo": g.codeMetadataRepo != nil},
+			"timestamp": time.Now().UnixMilli(),
+		})
+		logFile3.WriteString(string(logData3) + "\n")
+		logFile3.Close()
+	}
+	// #endregion agent log
+	keywordCodesFiltered := 0
+	keywordCodesAdded := 0
 	for _, kc := range keywordCodes {
-		// Filter by industry relevance if industry name is available
+		// FIX: Remove industry relevance filter - it was filtering out ALL keyword codes
+		// Instead, use industry relevance to BOOST confidence, not filter codes
+		// This allows keyword matching to work while still preferring industry-relevant codes
+		var confidence float64 = kc.Weight
+		isIndustryRelevant := false
+		
 		if industryName != "" && g.codeMetadataRepo != nil {
-			// Check if code is relevant to the detected industry
+			// Check if code is relevant to the detected industry for confidence boost
 			industryCodes, err := g.codeMetadataRepo.GetCodesByIndustryMapping(ctx, industryName, "MCC")
 			if err == nil {
 				// Check if this code is in the industry-relevant codes
-				isRelevant := false
 				for _, ic := range industryCodes {
 					if ic.Code == kc.Code {
-						isRelevant = true
+						isIndustryRelevant = true
+						// Boost confidence for industry-relevant keyword codes
+						confidence = math.Min(confidence*1.2, 0.98)
 						break
 					}
 				}
-				// Skip codes not relevant to the industry (unless no industry codes found)
-				if !isRelevant && len(industryCodes) > 0 {
-					continue
-				}
 			}
 		}
+		
+		// #region agent log
+		logFile4, _ := os.OpenFile(debugLogPath3, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		if logFile4 != nil {
+			logData4, _ := json.Marshal(map[string]interface{}{
+				"sessionId": "debug-session", "runId": "run1", "hypothesisId": "F",
+				"location": "classifier.go:800", "message": "Processing keyword code",
+				"data": map[string]interface{}{"code": kc.Code, "weight": kc.Weight, "confidence": confidence, "is_industry_relevant": isIndustryRelevant},
+				"timestamp": time.Now().UnixMilli(),
+			})
+			logFile4.WriteString(string(logData4) + "\n")
+			logFile4.Close()
+		}
+		// #endregion agent log
 		
 		key := kc.Code
 		if existing, exists := candidates[key]; exists {
 			// Boost confidence if found through multiple strategies
 			existing.Confidence = math.Min(existing.Confidence+0.1, 0.98)
+			// Update source to include keyword if not already present
+			if existing.Source != "keyword_match" && existing.Source != "both" {
+				existing.Source = "both"
+			}
 		} else {
+			keywordCodesAdded++
 			candidates[key] = &CodeResult{
 				Code:        kc.Code,
 				Description: kc.Description,
-				Confidence:  kc.Weight, // Use keyword weight as confidence
+				Confidence:  confidence, // Use adjusted confidence (boosted if industry-relevant)
 				Source:      "keyword_match",
 			}
 		}
 	}
+	// #region agent log
+	logFile5, _ := os.OpenFile(debugLogPath3, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if logFile5 != nil {
+		logData5, _ := json.Marshal(map[string]interface{}{
+			"sessionId": "debug-session", "runId": "run1", "hypothesisId": "F",
+			"location": "classifier.go:820", "message": "Keyword codes processing complete",
+			"data": map[string]interface{}{"total_keyword_codes": len(keywordCodes), "filtered_out": keywordCodesFiltered, "added": keywordCodesAdded},
+			"timestamp": time.Now().UnixMilli(),
+		})
+		logFile5.WriteString(string(logData5) + "\n")
+		logFile5.Close()
+	}
+	// #endregion agent log
 
 	// Strategy 3: Trigram similarity (fuzzy matching, filtered by industry)
 	if industryName != "" {
@@ -878,22 +935,21 @@ func (g *ClassificationCodeGenerator) getSICCandidates(
 		}
 	}
 
-	// Strategy 2: Keyword matching (filtered by industry relevance)
+	// Strategy 2: Keyword matching (FIX: removed industry filter - use for confidence boost only)
 	keywordCodes := g.repo.GetCodesByKeywords(ctx, "SIC", keywords)
 	for _, kc := range keywordCodes {
-		// Filter by industry relevance if industry name is available
+		// FIX: Remove industry relevance filter - it was filtering out ALL keyword codes
+		// Instead, use industry relevance to BOOST confidence, not filter codes
+		var confidence float64 = kc.Weight
 		if industryName != "" && g.codeMetadataRepo != nil {
 			industryCodes, err := g.codeMetadataRepo.GetCodesByIndustryMapping(ctx, industryName, "SIC")
 			if err == nil {
-				isRelevant := false
 				for _, ic := range industryCodes {
 					if ic.Code == kc.Code {
-						isRelevant = true
+						// Boost confidence for industry-relevant keyword codes
+						confidence = math.Min(confidence*1.2, 0.98)
 						break
 					}
-				}
-				if !isRelevant && len(industryCodes) > 0 {
-					continue
 				}
 			}
 		}
@@ -901,11 +957,14 @@ func (g *ClassificationCodeGenerator) getSICCandidates(
 		key := kc.Code
 		if existing, exists := candidates[key]; exists {
 			existing.Confidence = math.Min(existing.Confidence+0.1, 0.98)
+			if existing.Source != "keyword_match" && existing.Source != "both" {
+				existing.Source = "both"
+			}
 		} else {
 			candidates[key] = &CodeResult{
 				Code:        kc.Code,
 				Description: kc.Description,
-				Confidence:  kc.Weight,
+				Confidence:  confidence, // Use adjusted confidence (boosted if industry-relevant)
 				Source:      "keyword_match",
 			}
 		}
@@ -986,22 +1045,21 @@ func (g *ClassificationCodeGenerator) getNAICSCandidates(
 		}
 	}
 
-	// Strategy 2: Keyword matching (filtered by industry relevance)
+	// Strategy 2: Keyword matching (FIX: removed industry filter - use for confidence boost only)
 	keywordCodes := g.repo.GetCodesByKeywords(ctx, "NAICS", keywords)
 	for _, kc := range keywordCodes {
-		// Filter by industry relevance if industry name is available
+		// FIX: Remove industry relevance filter - it was filtering out ALL keyword codes
+		// Instead, use industry relevance to BOOST confidence, not filter codes
+		var confidence float64 = kc.Weight
 		if industryName != "" && g.codeMetadataRepo != nil {
 			industryCodes, err := g.codeMetadataRepo.GetCodesByIndustryMapping(ctx, industryName, "NAICS")
 			if err == nil {
-				isRelevant := false
 				for _, ic := range industryCodes {
 					if ic.Code == kc.Code {
-						isRelevant = true
+						// Boost confidence for industry-relevant keyword codes
+						confidence = math.Min(confidence*1.2, 0.98)
 						break
 					}
-				}
-				if !isRelevant && len(industryCodes) > 0 {
-					continue
 				}
 			}
 		}
@@ -1009,11 +1067,14 @@ func (g *ClassificationCodeGenerator) getNAICSCandidates(
 		key := kc.Code
 		if existing, exists := candidates[key]; exists {
 			existing.Confidence = math.Min(existing.Confidence+0.1, 0.98)
+			if existing.Source != "keyword_match" && existing.Source != "both" {
+				existing.Source = "both"
+			}
 		} else {
 			candidates[key] = &CodeResult{
 				Code:        kc.Code,
 				Description: kc.Description,
-				Confidence:  kc.Weight,
+				Confidence:  confidence, // Use adjusted confidence (boosted if industry-relevant)
 				Source:      "keyword_match",
 			}
 		}
