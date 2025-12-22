@@ -3909,12 +3909,16 @@ func (h *ClassificationHandler) runGoClassification(ctx context.Context, req *Cl
 			Confidence:  code.Confidence,
 		}
 
-		// Infer source from keywords presence
-		if len(code.Keywords) > 0 {
-			industryCode.Source = []string{"keyword"}
+		// FIX: Use Source field from MCCCode instead of inferring from Keywords
+		// Map source values: "keyword_match" -> "keyword", "industry_match" -> "industry", etc.
+		source := convertSourceToArray(code.Source)
+		industryCode.Source = source
+		
+		// Count for statistics
+		if contains(source, "keyword") {
 			keywordMatchCount++
-		} else {
-			industryCode.Source = []string{"industry"}
+		}
+		if contains(source, "industry") {
 			industryMatchCount++
 		}
 
@@ -3937,11 +3941,15 @@ func (h *ClassificationHandler) runGoClassification(ctx context.Context, req *Cl
 			Confidence:  code.Confidence,
 		}
 
-		if len(code.Keywords) > 0 {
-			industryCode.Source = []string{"keyword"}
+		// FIX: Use Source field from SICCode instead of inferring from Keywords
+		source := convertSourceToArray(code.Source)
+		industryCode.Source = source
+		
+		// Count for statistics
+		if contains(source, "keyword") {
 			keywordMatchCount++
-		} else {
-			industryCode.Source = []string{"industry"}
+		}
+		if contains(source, "industry") {
 			industryMatchCount++
 		}
 
@@ -3964,11 +3972,15 @@ func (h *ClassificationHandler) runGoClassification(ctx context.Context, req *Cl
 			Confidence:  code.Confidence,
 		}
 
-		if len(code.Keywords) > 0 {
-			industryCode.Source = []string{"keyword"}
+		// FIX: Use Source field from NAICSCode instead of inferring from Keywords
+		source := convertSourceToArray(code.Source)
+		industryCode.Source = source
+		
+		// Count for statistics
+		if contains(source, "keyword") {
 			keywordMatchCount++
-		} else {
-			industryCode.Source = []string{"industry"}
+		}
+		if contains(source, "industry") {
 			industryMatchCount++
 		}
 
@@ -4591,14 +4603,48 @@ func convertIndustryCodes(codes []IndustryCode) []IndustryCode {
 	return codes // Same type, no conversion needed
 }
 
+// convertSourceToArray converts Source string to []string format for IndustryCode
+// Maps: "keyword_match" -> ["keyword"], "industry_match" -> ["industry"], etc.
+func convertSourceToArray(source string) []string {
+	if source == "" {
+		return []string{"unknown"}
+	}
+	
+	// Map source values to IndustryCode format
+	switch source {
+	case "keyword_match":
+		return []string{"keyword"}
+	case "industry_match":
+		return []string{"industry"}
+	case "trigram_match":
+		return []string{"trigram"}
+	case "crosswalk":
+		return []string{"crosswalk"}
+	case "ml_prediction":
+		return []string{"ml"}
+	case "both":
+		return []string{"industry", "keyword"}
+	default:
+		// For any other value, return as-is but lowercase
+		return []string{strings.ToLower(source)}
+	}
+}
+
+// contains checks if a string slice contains a value
+func contains(slice []string, value string) bool {
+	for _, v := range slice {
+		if v == value {
+			return true
+		}
+	}
+	return false
+}
+
 // convertMCCCodesToIndustryCodes converts classification.MCCCode to handlers.IndustryCode (Phase 2: includes Source)
 func convertMCCCodesToIndustryCodes(codes []classification.MCCCode) []IndustryCode {
 	result := make([]IndustryCode, 0, len(codes))
 	for _, code := range codes {
-		source := []string{code.Source}
-		if code.Source == "" {
-			source = []string{"keyword"} // Default fallback
-		}
+		source := convertSourceToArray(code.Source)
 		result = append(result, IndustryCode{
 			Code:        code.Code,
 			Description: code.Description,
@@ -4613,10 +4659,7 @@ func convertMCCCodesToIndustryCodes(codes []classification.MCCCode) []IndustryCo
 func convertSICCodesToIndustryCodes(codes []classification.SICCode) []IndustryCode {
 	result := make([]IndustryCode, 0, len(codes))
 	for _, code := range codes {
-		source := []string{code.Source}
-		if code.Source == "" {
-			source = []string{"keyword"} // Default fallback
-		}
+		source := convertSourceToArray(code.Source)
 		result = append(result, IndustryCode{
 			Code:        code.Code,
 			Description: code.Description,
@@ -4631,10 +4674,7 @@ func convertSICCodesToIndustryCodes(codes []classification.SICCode) []IndustryCo
 func convertNAICSCodesToIndustryCodes(codes []classification.NAICSCode) []IndustryCode {
 	result := make([]IndustryCode, 0, len(codes))
 	for _, code := range codes {
-		source := []string{code.Source}
-		if code.Source == "" {
-			source = []string{"keyword"} // Default fallback
-		}
+		source := convertSourceToArray(code.Source)
 		result = append(result, IndustryCode{
 			Code:        code.Code,
 			Description: code.Description,
