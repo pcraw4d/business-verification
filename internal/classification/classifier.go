@@ -346,16 +346,23 @@ func (g *ClassificationCodeGenerator) generateCodesFromKeywords(
 	industryConfidence float64,
 ) ([]CodeMatch, error) {
 	// #region agent log
-	logFile, _ := os.OpenFile("/Users/petercrawford/New tool/.cursor/debug.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if logFile != nil {
-		logData, _ := json.Marshal(map[string]interface{}{
-			"sessionId": "debug-session", "runId": "run1", "hypothesisId": "A",
-			"location": "classifier.go:340", "message": "generateCodesFromKeywords called",
-			"data": map[string]interface{}{"keywords_count": len(keywords), "codeType": codeType, "industryConfidence": industryConfidence, "keywords": keywords},
-			"timestamp": time.Now().UnixMilli(),
-		})
+	debugLogPath := os.Getenv("DEBUG_LOG_PATH")
+	if debugLogPath == "" {
+		debugLogPath = "/tmp/debug.log"
+	}
+	logData, _ := json.Marshal(map[string]interface{}{
+		"sessionId": "debug-session", "runId": "run1", "hypothesisId": "A",
+		"location": "classifier.go:340", "message": "generateCodesFromKeywords called",
+		"data": map[string]interface{}{"keywords_count": len(keywords), "codeType": codeType, "industryConfidence": industryConfidence, "keywords": keywords},
+		"timestamp": time.Now().UnixMilli(),
+	})
+	logFile, err := os.OpenFile(debugLogPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err == nil && logFile != nil {
 		logFile.WriteString(string(logData) + "\n")
 		logFile.Close()
+	} else {
+		// Fallback to stdout for Railway logs
+		fmt.Printf("[DEBUG] %s\n", string(logData))
 	}
 	// #endregion agent log
 	if len(keywords) == 0 {
@@ -382,7 +389,11 @@ func (g *ClassificationCodeGenerator) generateCodesFromKeywords(
 	}
 	
 	// #region agent log
-	logFileB, _ := os.OpenFile("/Users/petercrawford/New tool/.cursor/debug.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	debugLogPath := os.Getenv("DEBUG_LOG_PATH")
+	if debugLogPath == "" {
+		debugLogPath = "/tmp/debug.log"
+	}
+	logFileB, _ := os.OpenFile(debugLogPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if logFileB != nil {
 		logDataB, _ := json.Marshal(map[string]interface{}{
 			"sessionId": "debug-session", "runId": "run1", "hypothesisId": "B",
@@ -396,7 +407,11 @@ func (g *ClassificationCodeGenerator) generateCodesFromKeywords(
 	// #endregion agent log
 	keywordCodes, err := g.repo.GetClassificationCodesByKeywords(ctx, keywords, codeType, minRelevance)
 	// #region agent log
-	logFileB2, _ := os.OpenFile("/Users/petercrawford/New tool/.cursor/debug.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	debugLogPath2 := os.Getenv("DEBUG_LOG_PATH")
+	if debugLogPath2 == "" {
+		debugLogPath2 = "/tmp/debug.log"
+	}
+	logFileB2, _ := os.OpenFile(debugLogPath2, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if logFileB2 != nil {
 		errMsg := ""
 		if err != nil {
@@ -720,7 +735,11 @@ func (g *ClassificationCodeGenerator) getMCCCandidates(
 
 	// Strategy 2: Keyword matching (filtered by industry relevance)
 	// #region agent log
-	logFile, _ := os.OpenFile("/Users/petercrawford/New tool/.cursor/debug.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	debugLogPath := os.Getenv("DEBUG_LOG_PATH")
+	if debugLogPath == "" {
+		debugLogPath = "/tmp/debug.log"
+	}
+	logFile, _ := os.OpenFile(debugLogPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if logFile != nil {
 		logData, _ := json.Marshal(map[string]interface{}{
 			"sessionId": "debug-session", "runId": "run1", "hypothesisId": "C",

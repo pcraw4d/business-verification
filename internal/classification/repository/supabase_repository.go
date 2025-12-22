@@ -1743,7 +1743,11 @@ func (r *SupabaseKeywordRepository) GetClassificationCodesByKeywords(
 	minRelevance float64, // Minimum relevance_score threshold (default 0.5)
 ) ([]*ClassificationCodeWithMetadata, error) {
 	// #region agent log
-	logFile, _ := os.OpenFile("/Users/petercrawford/New tool/.cursor/debug.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	debugLogPath := os.Getenv("DEBUG_LOG_PATH")
+	if debugLogPath == "" {
+		debugLogPath = "/tmp/debug.log"
+	}
+	logFile, _ := os.OpenFile(debugLogPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	logData, _ := json.Marshal(map[string]interface{}{
 		"sessionId": "debug-session", "runId": "run1", "hypothesisId": "D",
 		"location": "supabase_repository.go:1739", "message": "GetClassificationCodesByKeywords called",
@@ -1799,7 +1803,11 @@ func (r *SupabaseKeywordRepository) GetClassificationCodesByKeywords(
 	httpClient := &http.Client{Timeout: httpTimeout}
 	resp, err := httpClient.Do(req)
 	// #region agent log
-	logFile2, _ := os.OpenFile("/Users/petercrawford/New tool/.cursor/debug.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	debugLogPath2 := os.Getenv("DEBUG_LOG_PATH")
+	if debugLogPath2 == "" {
+		debugLogPath2 = "/tmp/debug.log"
+	}
+	logFile2, _ := os.OpenFile(debugLogPath2, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	logData2, _ := json.Marshal(map[string]interface{}{
 		"sessionId": "debug-session", "runId": "run1", "hypothesisId": "D",
 		"location": "supabase_repository.go:1789", "message": "Database RPC HTTP response",
@@ -1853,7 +1861,11 @@ func (r *SupabaseKeywordRepository) GetClassificationCodesByKeywords(
 	}
 
 	// #region agent log
-	logFile3, _ := os.OpenFile("/Users/petercrawford/New tool/.cursor/debug.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	debugLogPath3 := os.Getenv("DEBUG_LOG_PATH")
+	if debugLogPath3 == "" {
+		debugLogPath3 = "/tmp/debug.log"
+	}
+	logFile3, _ := os.OpenFile(debugLogPath3, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	resultsData := make([]map[string]interface{}, 0, len(codeResults))
 	for _, cr := range codeResults {
 		resultsData = append(resultsData, map[string]interface{}{
@@ -1899,7 +1911,11 @@ func (r *SupabaseKeywordRepository) GetCodesByKeywords(
 	Weight      float64
 } {
 	// #region agent log
-	logFile, _ := os.OpenFile("/Users/petercrawford/New tool/.cursor/debug.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	debugLogPath := os.Getenv("DEBUG_LOG_PATH")
+	if debugLogPath == "" {
+		debugLogPath = "/tmp/debug.log"
+	}
+	logFile, _ := os.OpenFile(debugLogPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	logData, _ := json.Marshal(map[string]interface{}{
 		"sessionId": "debug-session", "runId": "run1", "hypothesisId": "E",
 		"location": "supabase_repository.go:1890", "message": "GetCodesByKeywords called",
