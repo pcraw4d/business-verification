@@ -2326,7 +2326,8 @@ func (r *SupabaseKeywordRepository) GetCrosswalks(
 
 	// Query code_metadata for crosswalk data
 	// Use Limit(1) instead of Single() to handle cases where no results exist
-	response, _, err := postgrestClient.
+	// Note: Reuse response and err variables (already declared above)
+	response, _, err = postgrestClient.
 		From("code_metadata").
 		Select("crosswalk_data", "", false).
 		Eq("code_type", fromCodeType).
@@ -2378,10 +2379,8 @@ func (r *SupabaseKeywordRepository) GetCrosswalks(
 	metadata := metadataArray[0]
 
 	// Extract codes for the target type
-	var results []struct {
-		ToCode        string
-		ToDescription string
-	}
+	// Note: Reuse results variable (already declared above, clear it first)
+	results = results[:0] // Clear existing results for fallback
 
 	// Look for the target code type in crosswalk_data (e.g., "naics", "sic", "mcc")
 	targetKey := strings.ToLower(toCodeType)
