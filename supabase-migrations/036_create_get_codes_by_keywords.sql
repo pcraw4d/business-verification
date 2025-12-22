@@ -24,7 +24,7 @@ BEGIN
     SELECT DISTINCT
         cc.code::text,  -- Cast VARCHAR(20) to text to match function return type
         cc.description,
-        MAX(ck.relevance_score) as max_weight
+        MAX(ck.relevance_score)::double precision as max_weight  -- Cast DECIMAL(3,2) to double precision
     FROM code_keywords ck
     JOIN classification_codes cc ON cc.id = ck.code_id
     WHERE cc.code_type = p_code_type
