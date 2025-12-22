@@ -47,15 +47,9 @@ func TestRailwayComprehensiveE2EClassification(t *testing.T) {
 
 	// Load diverse test samples covering different industries, complexities, and scraping scenarios
 	allSamples := generateComprehensiveTestSamples()
-	// Limit to 50 samples for validation test
-	maxSamples := 50
-	var testSamples []TestSample
-	if len(allSamples) > maxSamples {
-		testSamples = allSamples[:maxSamples]
-	} else {
-		testSamples = allSamples
-	}
-	t.Logf("🚀 Starting Railway E2E validation test with %d samples (from %d total)", len(testSamples), len(allSamples))
+	// Use all samples for final validation test (385 samples)
+	testSamples := allSamples
+	t.Logf("🚀 Starting Railway E2E FINAL VALIDATION test with %d samples", len(testSamples))
 
 	// Initialize test runner
 	runner := NewRailwayE2ETestRunner(t, apiURL)
