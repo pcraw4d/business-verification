@@ -1,0 +1,5297 @@
+{
+  "classification_metrics": {
+    "average_confidence": 0.5898276874999998,
+    "classification_accuracy": 0.3,
+    "industry_accuracy": {
+      "arts \u0026 entertainment": 0,
+      "banking": 1,
+      "construction": 0,
+      "energy": 0,
+      "financial services": 0.3333333333333333,
+      "food \u0026 beverage": 0,
+      "healthcare": 0.75,
+      "manufacturing": 0.3333333333333333,
+      "professional services": 0,
+      "real estate": 1,
+      "retail": 0.75,
+      "technology": 0.1875,
+      "transportation": 0
+    }
+  },
+  "code_accuracy_metrics": {
+    "code_accuracy_by_industry": {
+      "arts \u0026 entertainment": {
+        "mcc_accuracy_score": 0.6,
+        "naics_accuracy_score": 0,
+        "sic_accuracy_score": 0,
+        "mcc_top1_accuracy": 0,
+        "naics_top1_accuracy": 0,
+        "sic_top1_accuracy": 0,
+        "mcc_top3_accuracy": 0.6666666666666666,
+        "naics_top3_accuracy": 0,
+        "sic_top3_accuracy": 0,
+        "overall_code_accuracy": 0.6
+      },
+      "banking": {
+        "mcc_accuracy_score": 0,
+        "naics_accuracy_score": 0,
+        "sic_accuracy_score": 0,
+        "mcc_top1_accuracy": 0,
+        "naics_top1_accuracy": 0,
+        "sic_top1_accuracy": 0,
+        "mcc_top3_accuracy": 0,
+        "naics_top3_accuracy": 0,
+        "sic_top3_accuracy": 0,
+        "overall_code_accuracy": 0
+      },
+      "financial services": {
+        "mcc_accuracy_score": 0.9,
+        "naics_accuracy_score": 0,
+        "sic_accuracy_score": 0,
+        "mcc_top1_accuracy": 0,
+        "naics_top1_accuracy": 0,
+        "sic_top1_accuracy": 0,
+        "mcc_top3_accuracy": 1,
+        "naics_top3_accuracy": 0,
+        "sic_top3_accuracy": 0,
+        "overall_code_accuracy": 0.9
+      },
+      "food \u0026 beverage": {
+        "mcc_accuracy_score": 0.26666666666666666,
+        "naics_accuracy_score": 0,
+        "sic_accuracy_score": 0,
+        "mcc_top1_accuracy": 0,
+        "naics_top1_accuracy": 0,
+        "sic_top1_accuracy": 0,
+        "mcc_top3_accuracy": 0.3333333333333333,
+        "naics_top3_accuracy": 0,
+        "sic_top3_accuracy": 0,
+        "overall_code_accuracy": 0.26666666666666666
+      },
+      "healthcare": {
+        "mcc_accuracy_score": 0,
+        "naics_accuracy_score": 0,
+        "sic_accuracy_score": 0,
+        "mcc_top1_accuracy": 0,
+        "naics_top1_accuracy": 0,
+        "sic_top1_accuracy": 0,
+        "mcc_top3_accuracy": 0,
+        "naics_top3_accuracy": 0,
+        "sic_top3_accuracy": 0,
+        "overall_code_accuracy": 0
+      },
+      "manufacturing": {
+        "mcc_accuracy_score": 0,
+        "naics_accuracy_score": 0,
+        "sic_accuracy_score": 0,
+        "mcc_top1_accuracy": 0,
+        "naics_top1_accuracy": 0,
+        "sic_top1_accuracy": 0,
+        "mcc_top3_accuracy": 0,
+        "naics_top3_accuracy": 0,
+        "sic_top3_accuracy": 0,
+        "overall_code_accuracy": 0
+      },
+      "professional services": {
+        "mcc_accuracy_score": 0,
+        "naics_accuracy_score": 0,
+        "sic_accuracy_score": 0,
+        "mcc_top1_accuracy": 0,
+        "naics_top1_accuracy": 0,
+        "sic_top1_accuracy": 0,
+        "mcc_top3_accuracy": 0,
+        "naics_top3_accuracy": 0,
+        "sic_top3_accuracy": 0,
+        "overall_code_accuracy": 0
+      },
+      "retail": {
+        "mcc_accuracy_score": 0,
+        "naics_accuracy_score": 0,
+        "sic_accuracy_score": 0,
+        "mcc_top1_accuracy": 0,
+        "naics_top1_accuracy": 0,
+        "sic_top1_accuracy": 0,
+        "mcc_top3_accuracy": 0,
+        "naics_top3_accuracy": 0,
+        "sic_top3_accuracy": 0,
+        "overall_code_accuracy": 0
+      },
+      "technology": {
+        "mcc_accuracy_score": 0,
+        "naics_accuracy_score": 0,
+        "sic_accuracy_score": 0,
+        "mcc_top1_accuracy": 0,
+        "naics_top1_accuracy": 0,
+        "sic_top1_accuracy": 0,
+        "mcc_top3_accuracy": 0,
+        "naics_top3_accuracy": 0,
+        "sic_top3_accuracy": 0,
+        "overall_code_accuracy": 0
+      },
+      "transportation": {
+        "mcc_accuracy_score": 0,
+        "naics_accuracy_score": 0,
+        "sic_accuracy_score": 0,
+        "mcc_top1_accuracy": 0,
+        "naics_top1_accuracy": 0,
+        "sic_top1_accuracy": 0,
+        "mcc_top3_accuracy": 0,
+        "naics_top3_accuracy": 0,
+        "sic_top3_accuracy": 0,
+        "overall_code_accuracy": 0
+      }
+    },
+    "mcc_accuracy_score": 0.1346153846153846,
+    "mcc_top1_accuracy": 0,
+    "mcc_top3_accuracy": 0.15384615384615385,
+    "naics_accuracy_score": 0,
+    "naics_top1_accuracy": 0,
+    "naics_top3_accuracy": 0,
+    "overall_code_accuracy": 0.1346153846153846,
+    "sic_accuracy_score": 0,
+    "sic_top1_accuracy": 0,
+    "sic_top3_accuracy": 0
+  },
+  "code_generation_metrics": {
+    "code_confidence_avg": 0.8832210012210011,
+    "code_generation_rate": 0.52,
+    "top3_code_rate": 0.52
+  },
+  "detailed_results": [
+    {
+      "sample_id": "ecom_002",
+      "business_name": "Shopify",
+      "website_url": "https://www.shopify.com",
+      "actual_industry": "Software Development",
+      "success": true,
+      "processing_time_ms": 17763,
+      "scraping_time_ms": 0,
+      "classification_time_ms": 17586,
+      "scraping_strategy": "early_exit",
+      "early_exit": true,
+      "cache_hit": false,
+      "fallback_used": false,
+      "confidence_score": 0.95,
+      "mcc_codes": [
+        {
+          "code": "7371",
+          "description": "Computer Programming Services",
+          "confidence": 0.9
+        },
+        {
+          "code": "7379",
+          "description": "Computer Related Services",
+          "confidence": 0.9
+        },
+        {
+          "code": "5045",
+          "description": "Computers, Computer Peripheral Equipment, and Software",
+          "confidence": 0.7200000000000001
+        }
+      ],
+      "naics_codes": [
+        {
+          "code": "511210",
+          "description": "Software Publishers",
+          "confidence": 0.9
+        },
+        {
+          "code": "518210",
+          "description": "Data Processing, Hosting, and Related Services",
+          "confidence": 0.9
+        },
+        {
+          "code": "541519",
+          "description": "Other Computer Related Services",
+          "confidence": 0.9
+        }
+      ],
+      "sic_codes": [
+        {
+          "code": "7371",
+          "description": "Computer Programming Services",
+          "confidence": 0.9
+        },
+        {
+          "code": "7372",
+          "description": "Prepackaged Software",
+          "confidence": 0.9
+        },
+        {
+          "code": "7373",
+          "description": "Computer Integrated Systems Design",
+          "confidence": 0.9
+        }
+      ],
+      "explanation": "Primary industry identified as 'Software Development' with 95% confidence. Fast path: obvious keyword 'platform' matched industry 'Software Development' Website URL provided: https://www.shopify.com. Keywords matched: platform.",
+      "explanation_structured": {
+        "confidence_factors": {
+          "keyword": 0.855,
+          "multi_strategy": 0.95,
+          "overall_confidence": 0.95
+        },
+        "key_terms_found": [
+          "platform"
+        ],
+        "method_used": "multi_strategy",
+        "primary_reason": "Classified as 'Software Development' based on strong keyword matches: platform",
+        "processing_path": "fast_path",
+        "supporting_factors": [
+          "High-quality business information with comprehensive details",
+          "Industry-specific terms found: platform",
+          "Very high confidence score (95%)"
+        ]
+      },
+      "frontend_data_valid": false,
+      "accuracy": false,
+      "timestamp": "2025-12-21T19:09:49.460499-05:00",
+      "test_category": "saas",
+      "scraping_difficulty": "low",
+      "pages_crawled": 0,
+      "pages_analyzed": 0,
+      "crawling_success": false,
+      "robots_txt_respected": false,
+      "structured_data_found": false,
+      "top3_codes_generated": true,
+      "code_confidence_avg": 0.8800000000000002,
+      "code_descriptions_valid": true,
+      "explanation_quality": 0.7999999999999999,
+      "explanation_length": 227,
+      "explanation_keywords": [
+        "primary",
+        "industry",
+        "identified",
+        "'software",
+        "development'",
+        "confidence.",
+        "fast",
+        "path:",
+        "obvious",
+        "keyword",
+        "'platform'",
+        "matched",
+        "industry",
+        "'software",
+        "development'",
+        "website",
+        "provided:",
+        "https://www.shopify.com.",
+        "keywords",
+        "matched:",
+        "platform."
+      ],
+      "expected_industry": "technology",
+      "expected_mcc": [
+        "5734",
+        "7372"
+      ],
+      "mcc_accuracy_score": 0,
+      "naics_accuracy_score": 0,
+      "sic_accuracy_score": 0
+    },
+    {
+      "sample_id": "ecom_001",
+      "business_name": "Amazon",
+      "website_url": "https://www.amazon.com",
+      "actual_industry": "Retail",
+      "success": true,
+      "processing_time_ms": 10354,
+      "scraping_time_ms": 0,
+      "classification_time_ms": 10192,
+      "scraping_strategy": "early_exit",
+      "early_exit": true,
+      "cache_hit": false,
+      "fallback_used": false,
+      "confidence_score": 0.95,
+      "mcc_codes": [
+        {
+          "code": "1799",
+          "description": "Contractors, Special Trade Contractors–not elsewhere classified",
+          "confidence": 0.9
+        },
+        {
+          "code": "3601",
+          "description": "Tradewinds Resort",
+          "confidence": 0.9
+        },
+        {
+          "code": "5200",
+          "description": "Home Supply Warehouse Stores",
+          "confidence": 0.9
+        }
+      ],
+      "naics_codes": [
+        {
+          "code": "238990",
+          "description": "All Other Specialty Trade Contractors",
+          "confidence": 0.9
+        },
+        {
+          "code": "424350",
+          "description": "Clothing and Clothing Accessories Merchant Wholesalers",
+          "confidence": 0.9
+        },
+        {
+          "code": "425120",
+          "description": "Wholesale Trade Agents and Brokers",
+          "confidence": 0.9
+        }
+      ],
+      "sic_codes": [
+        {
+          "code": "1799",
+          "description": "Special Trade Contractors, Not Elsewhere Classified",
+          "confidence": 0.9
+        },
+        {
+          "code": "5251",
+          "description": "Hardware Stores",
+          "confidence": 0.9
+        },
+        {
+          "code": "5261",
+          "description": "Retail Nurseries, Lawn and Garden Supply Stores",
+          "confidence": 0.9
+        }
+      ],
+      "explanation": "Primary industry identified as 'Retail' with 95% confidence. Fast path: obvious keyword 'retail' matched industry 'Retail' Website URL provided: https://www.amazon.com. Keywords matched: retail.",
+      "explanation_structured": {
+        "confidence_factors": {
+          "keyword": 0.855,
+          "multi_strategy": 0.95,
+          "overall_confidence": 0.95
+        },
+        "key_terms_found": [
+          "retail"
+        ],
+        "method_used": "multi_strategy",
+        "primary_reason": "Classified as 'Retail' based on strong keyword matches: retail",
+        "processing_path": "fast_path",
+        "supporting_factors": [
+          "High-quality business information with comprehensive details",
+          "Industry-specific terms found: retail",
+          "Very high confidence score (95%)"
+        ]
+      },
+      "frontend_data_valid": false,
+      "accuracy": true,
+      "timestamp": "2025-12-21T19:10:07.725525-05:00",
+      "test_category": "ecommerce",
+      "scraping_difficulty": "medium",
+      "pages_crawled": 0,
+      "pages_analyzed": 0,
+      "crawling_success": false,
+      "robots_txt_respected": false,
+      "structured_data_found": false,
+      "top3_codes_generated": true,
+      "code_confidence_avg": 0.9000000000000001,
+      "code_descriptions_valid": true,
+      "explanation_quality": 0.7999999999999999,
+      "explanation_length": 194,
+      "explanation_keywords": [
+        "primary",
+        "industry",
+        "identified",
+        "'retail'",
+        "confidence.",
+        "fast",
+        "path:",
+        "obvious",
+        "keyword",
+        "'retail'",
+        "matched",
+        "industry",
+        "'retail'",
+        "website",
+        "provided:",
+        "https://www.amazon.com.",
+        "keywords",
+        "matched:",
+        "retail."
+      ],
+      "expected_industry": "retail",
+      "industry_match": true,
+      "expected_mcc": [
+        "5999",
+        "5311",
+        "5331"
+      ],
+      "mcc_accuracy_score": 0,
+      "naics_accuracy_score": 0,
+      "sic_accuracy_score": 0
+    },
+    {
+      "sample_id": "tech_005",
+      "business_name": "Stripe",
+      "website_url": "https://stripe.com",
+      "actual_industry": "",
+      "success": false,
+      "processing_time_ms": 42979,
+      "scraping_time_ms": 0,
+      "classification_time_ms": 0,
+      "scraping_strategy": "",
+      "early_exit": false,
+      "cache_hit": false,
+      "fallback_used": false,
+      "confidence_score": 0,
+      "mcc_codes": null,
+      "naics_codes": null,
+      "sic_codes": null,
+      "explanation": "",
+      "frontend_data_valid": false,
+      "accuracy": false,
+      "timestamp": "2025-12-21T19:09:49.460575-05:00",
+      "test_category": "fintech",
+      "scraping_difficulty": "low",
+      "pages_crawled": 0,
+      "pages_analyzed": 0,
+      "crawling_success": false,
+      "robots_txt_respected": false,
+      "structured_data_found": false,
+      "top3_codes_generated": false,
+      "code_confidence_avg": 0,
+      "code_descriptions_valid": false,
+      "explanation_quality": 0,
+      "explanation_length": 0,
+      "expected_industry": "financial services",
+      "expected_mcc": [
+        "5999",
+        "6012"
+      ],
+      "mcc_accuracy_score": 0,
+      "naics_accuracy_score": 0,
+      "sic_accuracy_score": 0
+    },
+    {
+      "sample_id": "tech_006",
+      "business_name": "Salesforce",
+      "website_url": "https://www.salesforce.com",
+      "actual_industry": "Software Development",
+      "success": true,
+      "processing_time_ms": 3669,
+      "scraping_time_ms": 0,
+      "classification_time_ms": 3470,
+      "scraping_strategy": "early_exit",
+      "early_exit": true,
+      "cache_hit": false,
+      "fallback_used": false,
+      "confidence_score": 0.95,
+      "mcc_codes": [
+        {
+          "code": "7371",
+          "description": "Computer Programming Services",
+          "confidence": 0.9
+        },
+        {
+          "code": "7379",
+          "description": "Computer Related Services",
+          "confidence": 0.9
+        },
+        {
+          "code": "5045",
+          "description": "Computers, Computer Peripheral Equipment, and Software",
+          "confidence": 0.7200000000000001
+        }
+      ],
+      "naics_codes": [
+        {
+          "code": "511210",
+          "description": "Software Publishers",
+          "confidence": 0.9
+        },
+        {
+          "code": "518210",
+          "description": "Data Processing, Hosting, and Related Services",
+          "confidence": 0.9
+        },
+        {
+          "code": "541519",
+          "description": "Other Computer Related Services",
+          "confidence": 0.9
+        }
+      ],
+      "sic_codes": [
+        {
+          "code": "7371",
+          "description": "Computer Programming Services",
+          "confidence": 0.9
+        },
+        {
+          "code": "7372",
+          "description": "Prepackaged Software",
+          "confidence": 0.9
+        },
+        {
+          "code": "7373",
+          "description": "Computer Integrated Systems Design",
+          "confidence": 0.9
+        }
+      ],
+      "explanation": "Primary industry identified as 'Software Development' with 95% confidence. Fast path: obvious keyword 'platform' matched industry 'Software Development' Website URL provided: https://www.salesforce.com. Keywords matched: platform.",
+      "explanation_structured": {
+        "confidence_factors": {
+          "keyword": 0.855,
+          "multi_strategy": 0.95,
+          "overall_confidence": 0.95
+        },
+        "key_terms_found": [
+          "platform"
+        ],
+        "method_used": "multi_strategy",
+        "primary_reason": "Classified as 'Software Development' based on strong keyword matches: platform",
+        "processing_path": "fast_path",
+        "supporting_factors": [
+          "High-quality business information with comprehensive details",
+          "Industry-specific terms found: platform",
+          "Very high confidence score (95%)"
+        ]
+      },
+      "frontend_data_valid": false,
+      "accuracy": false,
+      "timestamp": "2025-12-21T19:10:32.941938-05:00",
+      "test_category": "saas",
+      "scraping_difficulty": "low",
+      "pages_crawled": 0,
+      "pages_analyzed": 0,
+      "crawling_success": false,
+      "robots_txt_respected": false,
+      "structured_data_found": false,
+      "top3_codes_generated": true,
+      "code_confidence_avg": 0.8800000000000002,
+      "code_descriptions_valid": true,
+      "explanation_quality": 0.7999999999999999,
+      "explanation_length": 230,
+      "explanation_keywords": [
+        "primary",
+        "industry",
+        "identified",
+        "'software",
+        "development'",
+        "confidence.",
+        "fast",
+        "path:",
+        "obvious",
+        "keyword",
+        "'platform'",
+        "matched",
+        "industry",
+        "'software",
+        "development'",
+        "website",
+        "provided:",
+        "https://www.salesforce.com.",
+        "keywords",
+        "matched:",
+        "platform."
+      ],
+      "expected_industry": "technology",
+      "expected_mcc": [
+        "7372",
+        "5734"
+      ],
+      "mcc_accuracy_score": 0,
+      "naics_accuracy_score": 0,
+      "sic_accuracy_score": 0
+    },
+    {
+      "sample_id": "mfg_002",
+      "business_name": "Ford Motor Company",
+      "website_url": "https://www.ford.com",
+      "actual_industry": "Professional, Scientific, and Technical Services",
+      "success": true,
+      "processing_time_ms": 22282,
+      "scraping_time_ms": 0,
+      "classification_time_ms": 22256,
+      "scraping_strategy": "early_exit",
+      "early_exit": true,
+      "cache_hit": false,
+      "fallback_used": false,
+      "confidence_score": 0.95,
+      "mcc_codes": [
+        {
+          "code": "7392",
+          "description": "Consulting, Management and Public Relations Services",
+          "confidence": 0.9
+        },
+        {
+          "code": "8111",
+          "description": "Legal Services, Attorneys",
+          "confidence": 0.9
+        },
+        {
+          "code": "8721",
+          "description": "Accounting, Auditing, and Bookkeeping Services",
+          "confidence": 0.9
+        }
+      ],
+      "naics_codes": [
+        {
+          "code": "237990",
+          "description": "Other Heavy and Civil Engineering Construction",
+          "confidence": 0.9
+        },
+        {
+          "code": "541110",
+          "description": "Offices of Lawyers",
+          "confidence": 0.9
+        },
+        {
+          "code": "541120",
+          "description": "Offices of Notaries",
+          "confidence": 0.9
+        }
+      ],
+      "sic_codes": [
+        {
+          "code": "8911",
+          "description": "Engineering Services",
+          "confidence": 0.9
+        },
+        {
+          "code": "8922",
+          "description": "Commercial Photography",
+          "confidence": 0.9
+        },
+        {
+          "code": "8931",
+          "description": "Accounting, Auditing, and Bookkeeping Services",
+          "confidence": 0.9
+        }
+      ],
+      "explanation": "Primary industry identified as 'Professional, Scientific, and Technical Services' with 95% confidence. Combined 4 classification strategies using weighted average. Contributions: keyword(1.00), co_occurrence(0.85). Strategies: entity(1.00), keyword(1.00), co_occurrence(0.85), topic(0.46). Final confidence: 0.61 Website URL provided: https://www.ford.com. Keywords matched: marketing services, design services, payroll services, services, hr services, professional services, technical services, tax services, accounting services, engineering services, services.",
+      "explanation_structured": {
+        "confidence_factors": {
+          "keyword": 0.855,
+          "multi_strategy": 0.95,
+          "overall_confidence": 0.95
+        },
+        "key_terms_found": [
+          "marketing services",
+          "design services",
+          "payroll services",
+          "services",
+          "hr services",
+          "professional services",
+          "technical services",
+          "tax services",
+          "accounting services",
+          "engineering services",
+          "services"
+        ],
+        "method_used": "multi_strategy",
+        "primary_reason": "Classified as 'Professional, Scientific, and Technical Services' based on strong keyword matches: marketing services, design services, payroll services",
+        "processing_path": "full_strategy",
+        "supporting_factors": [
+          "High-quality business information with comprehensive details",
+          "Multiple industry-specific terms found (11 total)",
+          "Very high confidence score (95%)"
+        ]
+      },
+      "frontend_data_valid": false,
+      "accuracy": false,
+      "timestamp": "2025-12-21T19:10:18.581453-05:00",
+      "test_category": "manufacturing",
+      "scraping_difficulty": "low",
+      "pages_crawled": 0,
+      "pages_analyzed": 0,
+      "crawling_success": false,
+      "robots_txt_respected": false,
+      "structured_data_found": false,
+      "top3_codes_generated": true,
+      "code_confidence_avg": 0.9000000000000001,
+      "code_descriptions_valid": true,
+      "explanation_quality": 0.6666666666666666,
+      "explanation_length": 562,
+      "explanation_keywords": [
+        "primary",
+        "industry",
+        "identified",
+        "'professional,",
+        "scientific,",
+        "technical",
+        "services'",
+        "confidence.",
+        "combined",
+        "classification",
+        "strategies",
+        "using",
+        "weighted",
+        "average.",
+        "contributions:",
+        "keyword(1.00),",
+        "co_occurrence(0.85).",
+        "strategies:",
+        "entity(1.00),",
+        "keyword(1.00),",
+        "co_occurrence(0.85),",
+        "topic(0.46).",
+        "final",
+        "confidence:",
+        "0.61",
+        "website",
+        "provided:",
+        "https://www.ford.com.",
+        "keywords",
+        "matched:",
+        "marketing",
+        "services,",
+        "design",
+        "services,",
+        "payroll",
+        "services,",
+        "services,",
+        "services,",
+        "professional",
+        "services,",
+        "technical",
+        "services,",
+        "services,",
+        "accounting",
+        "services,",
+        "engineering",
+        "services,",
+        "services."
+      ],
+      "expected_industry": "manufacturing",
+      "expected_mcc": [
+        "5511",
+        "5533"
+      ],
+      "mcc_accuracy_score": 0,
+      "naics_accuracy_score": 0,
+      "sic_accuracy_score": 0
+    },
+    {
+      "sample_id": "tech_008",
+      "business_name": "IBM",
+      "website_url": "https://www.ibm.com",
+      "actual_industry": "Professional, Scientific, and Technical Services",
+      "success": true,
+      "processing_time_ms": 2408,
+      "scraping_time_ms": 0,
+      "classification_time_ms": 2250,
+      "scraping_strategy": "early_exit",
+      "early_exit": true,
+      "cache_hit": false,
+      "fallback_used": false,
+      "confidence_score": 0.95,
+      "mcc_codes": [
+        {
+          "code": "7392",
+          "description": "Consulting, Management and Public Relations Services",
+          "confidence": 0.9
+        },
+        {
+          "code": "8111",
+          "description": "Legal Services, Attorneys",
+          "confidence": 0.9
+        },
+        {
+          "code": "8721",
+          "description": "Accounting, Auditing, and Bookkeeping Services",
+          "confidence": 0.9
+        }
+      ],
+      "naics_codes": [
+        {
+          "code": "237990",
+          "description": "Other Heavy and Civil Engineering Construction",
+          "confidence": 0.9
+        },
+        {
+          "code": "541110",
+          "description": "Offices of Lawyers",
+          "confidence": 0.9
+        },
+        {
+          "code": "541120",
+          "description": "Offices of Notaries",
+          "confidence": 0.9
+        }
+      ],
+      "sic_codes": [
+        {
+          "code": "8911",
+          "description": "Engineering Services",
+          "confidence": 0.9
+        },
+        {
+          "code": "8922",
+          "description": "Commercial Photography",
+          "confidence": 0.9
+        },
+        {
+          "code": "8931",
+          "description": "Accounting, Auditing, and Bookkeeping Services",
+          "confidence": 0.9
+        }
+      ],
+      "explanation": "Primary industry identified as 'Professional, Scientific, and Technical Services' with 95% confidence. Fast path: obvious keyword 'consulting' matched industry 'Professional, Scientific, and Technical Services' Website URL provided: https://www.ibm.com. Keywords matched: consulting.",
+      "explanation_structured": {
+        "confidence_factors": {
+          "keyword": 0.855,
+          "multi_strategy": 0.95,
+          "overall_confidence": 0.95
+        },
+        "key_terms_found": [
+          "consulting"
+        ],
+        "method_used": "multi_strategy",
+        "primary_reason": "Classified as 'Professional, Scientific, and Technical Services' based on strong keyword matches: consulting",
+        "processing_path": "fast_path",
+        "supporting_factors": [
+          "High-quality business information with comprehensive details",
+          "Industry-specific terms found: consulting",
+          "Very high confidence score (95%)"
+        ]
+      },
+      "frontend_data_valid": false,
+      "accuracy": false,
+      "timestamp": "2025-12-21T19:10:41.36621-05:00",
+      "test_category": "technology",
+      "scraping_difficulty": "low",
+      "pages_crawled": 0,
+      "pages_analyzed": 0,
+      "crawling_success": false,
+      "robots_txt_respected": false,
+      "structured_data_found": false,
+      "top3_codes_generated": true,
+      "code_confidence_avg": 0.9000000000000001,
+      "code_descriptions_valid": true,
+      "explanation_quality": 0.7999999999999999,
+      "explanation_length": 283,
+      "explanation_keywords": [
+        "primary",
+        "industry",
+        "identified",
+        "'professional,",
+        "scientific,",
+        "technical",
+        "services'",
+        "confidence.",
+        "fast",
+        "path:",
+        "obvious",
+        "keyword",
+        "'consulting'",
+        "matched",
+        "industry",
+        "'professional,",
+        "scientific,",
+        "technical",
+        "services'",
+        "website",
+        "provided:",
+        "https://www.ibm.com.",
+        "keywords",
+        "matched:",
+        "consulting."
+      ],
+      "expected_industry": "technology",
+      "expected_mcc": [
+        "7372",
+        "5734"
+      ],
+      "mcc_accuracy_score": 0,
+      "naics_accuracy_score": 0,
+      "sic_accuracy_score": 0
+    },
+    {
+      "sample_id": "food_001",
+      "business_name": "Starbucks",
+      "website_url": "https://www.starbucks.com",
+      "actual_industry": "Cafes \u0026 Coffee Shops",
+      "success": true,
+      "processing_time_ms": 754,
+      "scraping_time_ms": 0,
+      "classification_time_ms": 718,
+      "scraping_strategy": "early_exit",
+      "early_exit": true,
+      "cache_hit": false,
+      "fallback_used": false,
+      "confidence_score": 0.95,
+      "mcc_codes": [],
+      "naics_codes": [],
+      "sic_codes": [],
+      "explanation": "Primary industry identified as 'Cafes \u0026 Coffee Shops' with 95% confidence. Fast path: obvious keyword 'coffee' matched industry 'Cafes \u0026 Coffee Shops' Website URL provided: https://www.starbucks.com. Keywords matched: coffee.",
+      "explanation_structured": {
+        "confidence_factors": {
+          "keyword": 0.855,
+          "multi_strategy": 0.95,
+          "overall_confidence": 0.95
+        },
+        "key_terms_found": [
+          "coffee"
+        ],
+        "method_used": "multi_strategy",
+        "primary_reason": "Classified as 'Cafes \u0026 Coffee Shops' based on strong keyword matches: coffee",
+        "processing_path": "fast_path",
+        "supporting_factors": [
+          "High-quality business information with comprehensive details",
+          "Industry-specific terms found: coffee",
+          "Very high confidence score (95%)"
+        ]
+      },
+      "frontend_data_valid": false,
+      "accuracy": false,
+      "timestamp": "2025-12-21T19:10:44.276373-05:00",
+      "test_category": "restaurant",
+      "scraping_difficulty": "medium",
+      "pages_crawled": 0,
+      "pages_analyzed": 0,
+      "crawling_success": false,
+      "robots_txt_respected": false,
+      "structured_data_found": false,
+      "top3_codes_generated": false,
+      "code_confidence_avg": 0,
+      "code_descriptions_valid": false,
+      "explanation_quality": 0.7999999999999999,
+      "explanation_length": 225,
+      "explanation_keywords": [
+        "primary",
+        "industry",
+        "identified",
+        "'cafes",
+        "coffee",
+        "shops'",
+        "confidence.",
+        "fast",
+        "path:",
+        "obvious",
+        "keyword",
+        "'coffee'",
+        "matched",
+        "industry",
+        "'cafes",
+        "coffee",
+        "shops'",
+        "website",
+        "provided:",
+        "https://www.starbucks.com.",
+        "keywords",
+        "matched:",
+        "coffee."
+      ],
+      "expected_industry": "food \u0026 beverage",
+      "expected_mcc": [
+        "5812",
+        "5814"
+      ],
+      "mcc_accuracy_score": 0,
+      "naics_accuracy_score": 0,
+      "sic_accuracy_score": 0
+    },
+    {
+      "sample_id": "food_002",
+      "business_name": "McDonald's",
+      "website_url": "https://www.mcdonalds.com",
+      "actual_industry": "Restaurants",
+      "success": true,
+      "processing_time_ms": 2810,
+      "scraping_time_ms": 0,
+      "classification_time_ms": 2780,
+      "scraping_strategy": "early_exit",
+      "early_exit": true,
+      "cache_hit": false,
+      "fallback_used": false,
+      "confidence_score": 0.95,
+      "mcc_codes": [
+        {
+          "code": "5819",
+          "description": "Miscellaneous Food Stores - Convenience Stores, Specialty Markets, Vending Machines",
+          "confidence": 0.9
+        },
+        {
+          "code": "5411",
+          "description": "Grocery Stores, Supermarkets",
+          "confidence": 0.6120000000000001
+        },
+        {
+          "code": "5812",
+          "description": "Eating Places, Restaurants",
+          "confidence": 0.6120000000000001
+        }
+      ],
+      "naics_codes": [
+        {
+          "code": "445110",
+          "description": "Supermarkets and Grocery Stores",
+          "confidence": 0.765
+        },
+        {
+          "code": "445120",
+          "description": "Convenience Stores",
+          "confidence": 0.765
+        },
+        {
+          "code": "722511",
+          "description": "Full-Service Restaurants",
+          "confidence": 0.765
+        }
+      ],
+      "sic_codes": [
+        {
+          "code": "5499",
+          "description": "Miscellaneous Food Stores",
+          "confidence": 0.765
+        },
+        {
+          "code": "5812",
+          "description": "Eating Places",
+          "confidence": 0.765
+        },
+        {
+          "code": "5411",
+          "description": "Grocery Stores",
+          "confidence": 0.765
+        }
+      ],
+      "explanation": "Primary industry identified as 'Restaurants' with 95% confidence. Fast path: obvious keyword 'restaurant' matched industry 'Restaurants' Website URL provided: https://www.mcdonalds.com. Keywords matched: restaurant.",
+      "explanation_structured": {
+        "confidence_factors": {
+          "keyword": 0.855,
+          "multi_strategy": 0.95,
+          "overall_confidence": 0.95
+        },
+        "key_terms_found": [
+          "restaurant"
+        ],
+        "method_used": "multi_strategy",
+        "primary_reason": "Classified as 'Restaurants' based on strong keyword matches: restaurant",
+        "processing_path": "fast_path",
+        "supporting_factors": [
+          "High-quality business information with comprehensive details",
+          "Industry-specific terms found: restaurant",
+          "Very high confidence score (95%)"
+        ]
+      },
+      "frontend_data_valid": false,
+      "accuracy": false,
+      "timestamp": "2025-12-21T19:10:45.532341-05:00",
+      "test_category": "restaurant",
+      "scraping_difficulty": "medium",
+      "pages_crawled": 0,
+      "pages_analyzed": 0,
+      "crawling_success": false,
+      "robots_txt_respected": false,
+      "structured_data_found": false,
+      "top3_codes_generated": true,
+      "code_confidence_avg": 0.746,
+      "code_descriptions_valid": true,
+      "explanation_quality": 0.7999999999999999,
+      "explanation_length": 215,
+      "explanation_keywords": [
+        "primary",
+        "industry",
+        "identified",
+        "'restaurants'",
+        "confidence.",
+        "fast",
+        "path:",
+        "obvious",
+        "keyword",
+        "'restaurant'",
+        "matched",
+        "industry",
+        "'restaurants'",
+        "website",
+        "provided:",
+        "https://www.mcdonalds.com.",
+        "keywords",
+        "matched:",
+        "restaurant."
+      ],
+      "expected_industry": "food \u0026 beverage",
+      "expected_mcc": [
+        "5814"
+      ],
+      "mcc_accuracy_score": 0,
+      "naics_accuracy_score": 0,
+      "sic_accuracy_score": 0
+    },
+    {
+      "sample_id": "tech_004",
+      "business_name": "Meta",
+      "website_url": "https://www.meta.com",
+      "actual_industry": "",
+      "success": false,
+      "processing_time_ms": 60001,
+      "scraping_time_ms": 0,
+      "classification_time_ms": 0,
+      "scraping_strategy": "",
+      "early_exit": false,
+      "cache_hit": false,
+      "fallback_used": false,
+      "confidence_score": 0,
+      "mcc_codes": null,
+      "naics_codes": null,
+      "sic_codes": null,
+      "explanation": "",
+      "error": "Request timeout: Post \"https://classification-service-production.up.railway.app/v1/classify\": context deadline exceeded",
+      "frontend_data_valid": false,
+      "accuracy": false,
+      "timestamp": "2025-12-21T19:09:49.460718-05:00",
+      "test_category": "technology",
+      "scraping_difficulty": "low",
+      "pages_crawled": 0,
+      "pages_analyzed": 0,
+      "crawling_success": false,
+      "robots_txt_respected": false,
+      "structured_data_found": false,
+      "top3_codes_generated": false,
+      "code_confidence_avg": 0,
+      "code_descriptions_valid": false,
+      "explanation_quality": 0,
+      "explanation_length": 0,
+      "expected_industry": "technology",
+      "expected_mcc": [
+        "7372",
+        "5734"
+      ],
+      "mcc_accuracy_score": 0,
+      "naics_accuracy_score": 0,
+      "sic_accuracy_score": 0,
+      "error_type": "timeout_error"
+    },
+    {
+      "sample_id": "ecom_005",
+      "business_name": "Target",
+      "website_url": "https://www.target.com",
+      "actual_industry": "Retail",
+      "success": true,
+      "processing_time_ms": 10808,
+      "scraping_time_ms": 0,
+      "classification_time_ms": 10570,
+      "scraping_strategy": "early_exit",
+      "early_exit": true,
+      "cache_hit": false,
+      "fallback_used": false,
+      "confidence_score": 0.95,
+      "mcc_codes": [
+        {
+          "code": "1799",
+          "description": "Contractors, Special Trade Contractors–not elsewhere classified",
+          "confidence": 0.9
+        },
+        {
+          "code": "3601",
+          "description": "Tradewinds Resort",
+          "confidence": 0.9
+        },
+        {
+          "code": "5200",
+          "description": "Home Supply Warehouse Stores",
+          "confidence": 0.9
+        }
+      ],
+      "naics_codes": [
+        {
+          "code": "238990",
+          "description": "All Other Specialty Trade Contractors",
+          "confidence": 0.9
+        },
+        {
+          "code": "424350",
+          "description": "Clothing and Clothing Accessories Merchant Wholesalers",
+          "confidence": 0.9
+        },
+        {
+          "code": "425120",
+          "description": "Wholesale Trade Agents and Brokers",
+          "confidence": 0.9
+        }
+      ],
+      "sic_codes": [
+        {
+          "code": "1799",
+          "description": "Special Trade Contractors, Not Elsewhere Classified",
+          "confidence": 0.9
+        },
+        {
+          "code": "5251",
+          "description": "Hardware Stores",
+          "confidence": 0.9
+        },
+        {
+          "code": "5261",
+          "description": "Retail Nurseries, Lawn and Garden Supply Stores",
+          "confidence": 0.9
+        }
+      ],
+      "explanation": "Primary industry identified as 'Retail' with 95% confidence. Fast path: obvious keyword 'store' matched industry 'Retail' Website URL provided: https://www.target.com. Keywords matched: store.",
+      "explanation_structured": {
+        "confidence_factors": {
+          "keyword": 0.855,
+          "multi_strategy": 0.95,
+          "overall_confidence": 0.95
+        },
+        "key_terms_found": [
+          "store"
+        ],
+        "method_used": "multi_strategy",
+        "primary_reason": "Classified as 'Retail' based on strong keyword matches: store",
+        "processing_path": "fast_path",
+        "supporting_factors": [
+          "High-quality business information with comprehensive details",
+          "Industry-specific terms found: store",
+          "Very high confidence score (95%)"
+        ]
+      },
+      "frontend_data_valid": false,
+      "accuracy": true,
+      "timestamp": "2025-12-21T19:10:48.846403-05:00",
+      "test_category": "retail",
+      "scraping_difficulty": "medium",
+      "pages_crawled": 0,
+      "pages_analyzed": 0,
+      "crawling_success": false,
+      "robots_txt_respected": false,
+      "structured_data_found": false,
+      "top3_codes_generated": true,
+      "code_confidence_avg": 0.9000000000000001,
+      "code_descriptions_valid": true,
+      "explanation_quality": 0.7999999999999999,
+      "explanation_length": 192,
+      "explanation_keywords": [
+        "primary",
+        "industry",
+        "identified",
+        "'retail'",
+        "confidence.",
+        "fast",
+        "path:",
+        "obvious",
+        "keyword",
+        "'store'",
+        "matched",
+        "industry",
+        "'retail'",
+        "website",
+        "provided:",
+        "https://www.target.com.",
+        "keywords",
+        "matched:",
+        "store."
+      ],
+      "expected_industry": "retail",
+      "industry_match": true,
+      "expected_mcc": [
+        "5311",
+        "5331"
+      ],
+      "mcc_accuracy_score": 0,
+      "naics_accuracy_score": 0,
+      "sic_accuracy_score": 0
+    },
+    {
+      "sample_id": "ecom_004",
+      "business_name": "Walmart",
+      "website_url": "https://www.walmart.com",
+      "actual_industry": "Retail",
+      "success": true,
+      "processing_time_ms": 3183,
+      "scraping_time_ms": 0,
+      "classification_time_ms": 3144,
+      "scraping_strategy": "early_exit",
+      "early_exit": true,
+      "cache_hit": false,
+      "fallback_used": false,
+      "confidence_score": 0.95,
+      "mcc_codes": [
+        {
+          "code": "1799",
+          "description": "Contractors, Special Trade Contractors–not elsewhere classified",
+          "confidence": 0.9
+        },
+        {
+          "code": "3601",
+          "description": "Tradewinds Resort",
+          "confidence": 0.9
+        },
+        {
+          "code": "5200",
+          "description": "Home Supply Warehouse Stores",
+          "confidence": 0.9
+        }
+      ],
+      "naics_codes": [
+        {
+          "code": "238990",
+          "description": "All Other Specialty Trade Contractors",
+          "confidence": 0.9
+        },
+        {
+          "code": "424350",
+          "description": "Clothing and Clothing Accessories Merchant Wholesalers",
+          "confidence": 0.9
+        },
+        {
+          "code": "425120",
+          "description": "Wholesale Trade Agents and Brokers",
+          "confidence": 0.9
+        }
+      ],
+      "sic_codes": [
+        {
+          "code": "1799",
+          "description": "Special Trade Contractors, Not Elsewhere Classified",
+          "confidence": 0.9
+        },
+        {
+          "code": "5251",
+          "description": "Hardware Stores",
+          "confidence": 0.9
+        },
+        {
+          "code": "5261",
+          "description": "Retail Nurseries, Lawn and Garden Supply Stores",
+          "confidence": 0.9
+        }
+      ],
+      "explanation": "Primary industry identified as 'Retail' with 95% confidence. Fast path: obvious keyword 'retail' matched industry 'Retail' Website URL provided: https://www.walmart.com. Keywords matched: retail.",
+      "explanation_structured": {
+        "confidence_factors": {
+          "keyword": 0.855,
+          "multi_strategy": 0.95,
+          "overall_confidence": 0.95
+        },
+        "key_terms_found": [
+          "retail"
+        ],
+        "method_used": "multi_strategy",
+        "primary_reason": "Classified as 'Retail' based on strong keyword matches: retail",
+        "processing_path": "fast_path",
+        "supporting_factors": [
+          "High-quality business information with comprehensive details",
+          "Industry-specific terms found: retail",
+          "Very high confidence score (95%)"
+        ]
+      },
+      "frontend_data_valid": false,
+      "accuracy": true,
+      "timestamp": "2025-12-21T19:11:00.155968-05:00",
+      "test_category": "retail",
+      "scraping_difficulty": "medium",
+      "pages_crawled": 0,
+      "pages_analyzed": 0,
+      "crawling_success": false,
+      "robots_txt_respected": false,
+      "structured_data_found": false,
+      "top3_codes_generated": true,
+      "code_confidence_avg": 0.9000000000000001,
+      "code_descriptions_valid": true,
+      "explanation_quality": 0.7999999999999999,
+      "explanation_length": 195,
+      "explanation_keywords": [
+        "primary",
+        "industry",
+        "identified",
+        "'retail'",
+        "confidence.",
+        "fast",
+        "path:",
+        "obvious",
+        "keyword",
+        "'retail'",
+        "matched",
+        "industry",
+        "'retail'",
+        "website",
+        "provided:",
+        "https://www.walmart.com.",
+        "keywords",
+        "matched:",
+        "retail."
+      ],
+      "expected_industry": "retail",
+      "industry_match": true,
+      "expected_mcc": [
+        "5311",
+        "5331"
+      ],
+      "mcc_accuracy_score": 0,
+      "naics_accuracy_score": 0,
+      "sic_accuracy_score": 0
+    },
+    {
+      "sample_id": "tech_003",
+      "business_name": "Google",
+      "website_url": "https://www.google.com",
+      "actual_industry": "Technology",
+      "success": true,
+      "processing_time_ms": 8720,
+      "scraping_time_ms": 0,
+      "classification_time_ms": 8691,
+      "scraping_strategy": "early_exit",
+      "early_exit": true,
+      "cache_hit": false,
+      "fallback_used": false,
+      "confidence_score": 0.95,
+      "mcc_codes": [
+        {
+          "code": "1711",
+          "description": "Air Conditioning, Heating and Plumbing Contractors",
+          "confidence": 0.9
+        },
+        {
+          "code": "2842",
+          "description": "Sanitation, Polishing and Specialty Cleaning Preparations",
+          "confidence": 0.9
+        },
+        {
+          "code": "3000",
+          "description": "United Airlines",
+          "confidence": 0.9
+        }
+      ],
+      "naics_codes": [
+        {
+          "code": "115114",
+          "description": "Postharvest Crop Activities (except Cotton Ginning)",
+          "confidence": 0.9
+        },
+        {
+          "code": "115210",
+          "description": "Support Activities for Animal Production",
+          "confidence": 0.9
+        },
+        {
+          "code": "115310",
+          "description": "Support Activities for Forestry",
+          "confidence": 0.9
+        }
+      ],
+      "sic_codes": [
+        {
+          "code": "1711",
+          "description": "Plumbing, Heating and Air-Conditioning",
+          "confidence": 0.9
+        },
+        {
+          "code": "1721",
+          "description": "Painting and Paper Hanging",
+          "confidence": 0.9
+        },
+        {
+          "code": "1743",
+          "description": "Terrazzo, Tile, Marble, and Mosaic Work",
+          "confidence": 0.9
+        }
+      ],
+      "explanation": "Primary industry identified as 'Technology' with 95% confidence. Fast path: obvious keyword 'cloud' matched industry 'Technology' Website URL provided: https://www.google.com. Keywords matched: cloud.",
+      "explanation_structured": {
+        "confidence_factors": {
+          "keyword": 0.855,
+          "multi_strategy": 0.95,
+          "overall_confidence": 0.95
+        },
+        "key_terms_found": [
+          "cloud"
+        ],
+        "method_used": "multi_strategy",
+        "primary_reason": "Classified as 'Technology' based on strong keyword matches: cloud",
+        "processing_path": "fast_path",
+        "supporting_factors": [
+          "High-quality business information with comprehensive details",
+          "Industry-specific terms found: cloud",
+          "Very high confidence score (95%)"
+        ]
+      },
+      "frontend_data_valid": false,
+      "accuracy": true,
+      "timestamp": "2025-12-21T19:11:03.840974-05:00",
+      "test_category": "technology",
+      "scraping_difficulty": "low",
+      "pages_crawled": 0,
+      "pages_analyzed": 0,
+      "crawling_success": false,
+      "robots_txt_respected": false,
+      "structured_data_found": false,
+      "top3_codes_generated": true,
+      "code_confidence_avg": 0.9000000000000001,
+      "code_descriptions_valid": true,
+      "explanation_quality": 0.7999999999999999,
+      "explanation_length": 200,
+      "explanation_keywords": [
+        "primary",
+        "industry",
+        "identified",
+        "'technology'",
+        "confidence.",
+        "fast",
+        "path:",
+        "obvious",
+        "keyword",
+        "'cloud'",
+        "matched",
+        "industry",
+        "'technology'",
+        "website",
+        "provided:",
+        "https://www.google.com.",
+        "keywords",
+        "matched:",
+        "cloud."
+      ],
+      "expected_industry": "technology",
+      "industry_match": true,
+      "expected_mcc": [
+        "7372",
+        "5734"
+      ],
+      "mcc_accuracy_score": 0,
+      "naics_accuracy_score": 0,
+      "sic_accuracy_score": 0
+    },
+    {
+      "sample_id": "tech_001",
+      "business_name": "Microsoft",
+      "website_url": "https://www.microsoft.com",
+      "actual_industry": "Technology",
+      "success": true,
+      "processing_time_ms": 2463,
+      "scraping_time_ms": 0,
+      "classification_time_ms": 2404,
+      "scraping_strategy": "early_exit",
+      "early_exit": true,
+      "cache_hit": false,
+      "fallback_used": false,
+      "confidence_score": 0.95,
+      "mcc_codes": [
+        {
+          "code": "1711",
+          "description": "Air Conditioning, Heating and Plumbing Contractors",
+          "confidence": 0.9
+        },
+        {
+          "code": "2842",
+          "description": "Sanitation, Polishing and Specialty Cleaning Preparations",
+          "confidence": 0.9
+        },
+        {
+          "code": "3000",
+          "description": "United Airlines",
+          "confidence": 0.9
+        }
+      ],
+      "naics_codes": [
+        {
+          "code": "115114",
+          "description": "Postharvest Crop Activities (except Cotton Ginning)",
+          "confidence": 0.9
+        },
+        {
+          "code": "115210",
+          "description": "Support Activities for Animal Production",
+          "confidence": 0.9
+        },
+        {
+          "code": "115310",
+          "description": "Support Activities for Forestry",
+          "confidence": 0.9
+        }
+      ],
+      "sic_codes": [
+        {
+          "code": "1711",
+          "description": "Plumbing, Heating and Air-Conditioning",
+          "confidence": 0.9
+        },
+        {
+          "code": "1721",
+          "description": "Painting and Paper Hanging",
+          "confidence": 0.9
+        },
+        {
+          "code": "1743",
+          "description": "Terrazzo, Tile, Marble, and Mosaic Work",
+          "confidence": 0.9
+        }
+      ],
+      "explanation": "Primary industry identified as 'Technology' with 95% confidence. Fast path: obvious keyword 'technology' matched industry 'Technology' Website URL provided: https://www.microsoft.com. Keywords matched: technology.",
+      "explanation_structured": {
+        "confidence_factors": {
+          "keyword": 0.855,
+          "multi_strategy": 0.95,
+          "overall_confidence": 0.95
+        },
+        "key_terms_found": [
+          "technology"
+        ],
+        "method_used": "multi_strategy",
+        "primary_reason": "Classified as 'Technology' based on strong keyword matches: technology",
+        "processing_path": "fast_path",
+        "supporting_factors": [
+          "High-quality business information with comprehensive details",
+          "Industry-specific terms found: technology",
+          "Very high confidence score (95%)"
+        ]
+      },
+      "frontend_data_valid": false,
+      "accuracy": true,
+      "timestamp": "2025-12-21T19:11:13.062722-05:00",
+      "test_category": "technology",
+      "scraping_difficulty": "low",
+      "pages_crawled": 0,
+      "pages_analyzed": 0,
+      "crawling_success": false,
+      "robots_txt_respected": false,
+      "structured_data_found": false,
+      "top3_codes_generated": true,
+      "code_confidence_avg": 0.9000000000000001,
+      "code_descriptions_valid": true,
+      "explanation_quality": 0.7999999999999999,
+      "explanation_length": 213,
+      "explanation_keywords": [
+        "primary",
+        "industry",
+        "identified",
+        "'technology'",
+        "confidence.",
+        "fast",
+        "path:",
+        "obvious",
+        "keyword",
+        "'technology'",
+        "matched",
+        "industry",
+        "'technology'",
+        "website",
+        "provided:",
+        "https://www.microsoft.com.",
+        "keywords",
+        "matched:",
+        "technology."
+      ],
+      "expected_industry": "technology",
+      "industry_match": true,
+      "expected_mcc": [
+        "5734",
+        "7372"
+      ],
+      "mcc_accuracy_score": 0,
+      "naics_accuracy_score": 0,
+      "sic_accuracy_score": 0
+    },
+    {
+      "sample_id": "trans_001",
+      "business_name": "Uber",
+      "website_url": "https://www.uber.com",
+      "actual_industry": "Professional, Scientific, and Technical Services",
+      "success": true,
+      "processing_time_ms": 5625,
+      "scraping_time_ms": 0,
+      "classification_time_ms": 5579,
+      "scraping_strategy": "early_exit",
+      "early_exit": true,
+      "cache_hit": false,
+      "fallback_used": false,
+      "confidence_score": 0.95,
+      "mcc_codes": [
+        {
+          "code": "7392",
+          "description": "Consulting, Management and Public Relations Services",
+          "confidence": 0.9
+        },
+        {
+          "code": "8111",
+          "description": "Legal Services, Attorneys",
+          "confidence": 0.9
+        },
+        {
+          "code": "8721",
+          "description": "Accounting, Auditing, and Bookkeeping Services",
+          "confidence": 0.9
+        }
+      ],
+      "naics_codes": [
+        {
+          "code": "237990",
+          "description": "Other Heavy and Civil Engineering Construction",
+          "confidence": 0.9
+        },
+        {
+          "code": "541110",
+          "description": "Offices of Lawyers",
+          "confidence": 0.9
+        },
+        {
+          "code": "541120",
+          "description": "Offices of Notaries",
+          "confidence": 0.9
+        }
+      ],
+      "sic_codes": [
+        {
+          "code": "8911",
+          "description": "Engineering Services",
+          "confidence": 0.9
+        },
+        {
+          "code": "8922",
+          "description": "Commercial Photography",
+          "confidence": 0.9
+        },
+        {
+          "code": "8931",
+          "description": "Accounting, Auditing, and Bookkeeping Services",
+          "confidence": 0.9
+        }
+      ],
+      "explanation": "Primary industry identified as 'Professional, Scientific, and Technical Services' with 95% confidence. Combined 4 classification strategies using weighted average. Contributions: keyword(1.00), co_occurrence(0.85). Strategies: entity(1.00), keyword(1.00), co_occurrence(0.85), topic(0.46). Final confidence: 0.61 Website URL provided: https://www.uber.com. Keywords matched: services, payroll services, services, hr services, professional services, technical services, tax services, accounting services, engineering services, marketing services, design services, technical services, tax services, accounting services, engineering services, marketing services, design services, payroll services, hr services, professional services, services, hr services.",
+      "explanation_structured": {
+        "confidence_factors": {
+          "keyword": 0.855,
+          "multi_strategy": 0.95,
+          "overall_confidence": 0.95
+        },
+        "key_terms_found": [
+          "services",
+          "payroll services",
+          "services",
+          "hr services",
+          "professional services",
+          "technical services",
+          "tax services",
+          "accounting services",
+          "engineering services",
+          "marketing services",
+          "design services",
+          "technical services",
+          "tax services",
+          "accounting services",
+          "engineering services",
+          "marketing services",
+          "design services",
+          "payroll services",
+          "hr services",
+          "professional services",
+          "services",
+          "hr services"
+        ],
+        "method_used": "multi_strategy",
+        "primary_reason": "Classified as 'Professional, Scientific, and Technical Services' based on strong keyword matches: services, payroll services, services",
+        "processing_path": "full_strategy",
+        "supporting_factors": [
+          "High-quality business information with comprehensive details",
+          "Multiple industry-specific terms found (22 total)",
+          "Very high confidence score (95%)"
+        ]
+      },
+      "frontend_data_valid": false,
+      "accuracy": false,
+      "timestamp": "2025-12-21T19:11:16.027425-05:00",
+      "test_category": "transportation",
+      "scraping_difficulty": "low",
+      "pages_crawled": 0,
+      "pages_analyzed": 0,
+      "crawling_success": false,
+      "robots_txt_respected": false,
+      "structured_data_found": false,
+      "top3_codes_generated": true,
+      "code_confidence_avg": 0.9000000000000001,
+      "code_descriptions_valid": true,
+      "explanation_quality": 0.6666666666666666,
+      "explanation_length": 753,
+      "explanation_keywords": [
+        "primary",
+        "industry",
+        "identified",
+        "'professional,",
+        "scientific,",
+        "technical",
+        "services'",
+        "confidence.",
+        "combined",
+        "classification",
+        "strategies",
+        "using",
+        "weighted",
+        "average.",
+        "contributions:",
+        "keyword(1.00),",
+        "co_occurrence(0.85).",
+        "strategies:",
+        "entity(1.00),",
+        "keyword(1.00),",
+        "co_occurrence(0.85),",
+        "topic(0.46).",
+        "final",
+        "confidence:",
+        "0.61",
+        "website",
+        "provided:",
+        "https://www.uber.com.",
+        "keywords",
+        "matched:",
+        "services,",
+        "payroll",
+        "services,",
+        "services,",
+        "services,",
+        "professional",
+        "services,",
+        "technical",
+        "services,",
+        "services,",
+        "accounting",
+        "services,",
+        "engineering",
+        "services,",
+        "marketing",
+        "services,",
+        "design",
+        "services,",
+        "technical",
+        "services,",
+        "services,",
+        "accounting",
+        "services,",
+        "engineering",
+        "services,",
+        "marketing",
+        "services,",
+        "design",
+        "services,",
+        "payroll",
+        "services,",
+        "services,",
+        "professional",
+        "services,",
+        "services,",
+        "services."
+      ],
+      "expected_industry": "transportation",
+      "expected_mcc": [
+        "4121",
+        "4789"
+      ],
+      "mcc_accuracy_score": 0,
+      "naics_accuracy_score": 0,
+      "sic_accuracy_score": 0
+    },
+    {
+      "sample_id": "mfg_003",
+      "business_name": "General Electric",
+      "website_url": "https://www.ge.com",
+      "actual_industry": "Manufacturing",
+      "success": true,
+      "processing_time_ms": 2835,
+      "scraping_time_ms": 0,
+      "classification_time_ms": 2803,
+      "scraping_strategy": "early_exit",
+      "early_exit": true,
+      "cache_hit": false,
+      "fallback_used": false,
+      "confidence_score": 0.95,
+      "mcc_codes": [
+        {
+          "code": "4812",
+          "description": "Telecommunication Equipment Including Telephone Sales",
+          "confidence": 0.9
+        },
+        {
+          "code": "5044",
+          "description": "Office, Photographic, Photocopy and Microfilm Equipment",
+          "confidence": 0.9
+        },
+        {
+          "code": "7829",
+          "description": "Motion Picture and Video Tape Production and Distribution",
+          "confidence": 0.9
+        }
+      ],
+      "naics_codes": [
+        {
+          "code": "236210",
+          "description": "Industrial Building Construction",
+          "confidence": 0.9
+        },
+        {
+          "code": "238290",
+          "description": "Other Building Equipment Contractors",
+          "confidence": 0.9
+        },
+        {
+          "code": "311111",
+          "description": "Dog and Cat Food Manufacturing",
+          "confidence": 0.9
+        }
+      ],
+      "sic_codes": [
+        {
+          "code": "1541",
+          "description": "General Contractors-Industrial Buildings and Warehouses",
+          "confidence": 0.9
+        },
+        {
+          "code": "1542",
+          "description": "General Contractors-Nonresidential Buildings, Other than Industrial Buildings and Warehouses",
+          "confidence": 0.9
+        },
+        {
+          "code": "1796",
+          "description": "Installation or Erection of Building Equipment, Not Elsewhere",
+          "confidence": 0.9
+        }
+      ],
+      "explanation": "Primary industry identified as 'Manufacturing' with 95% confidence. Fast path: obvious keyword 'industrial' matched industry 'Manufacturing' Website URL provided: https://www.ge.com. Keywords matched: industrial.",
+      "explanation_structured": {
+        "confidence_factors": {
+          "keyword": 0.855,
+          "multi_strategy": 0.95,
+          "overall_confidence": 0.95
+        },
+        "key_terms_found": [
+          "industrial"
+        ],
+        "method_used": "multi_strategy",
+        "primary_reason": "Classified as 'Manufacturing' based on strong keyword matches: industrial",
+        "processing_path": "fast_path",
+        "supporting_factors": [
+          "High-quality business information with comprehensive details",
+          "Industry-specific terms found: industrial",
+          "Very high confidence score (95%)"
+        ]
+      },
+      "frontend_data_valid": false,
+      "accuracy": true,
+      "timestamp": "2025-12-21T19:11:22.15404-05:00",
+      "test_category": "manufacturing",
+      "scraping_difficulty": "low",
+      "pages_crawled": 0,
+      "pages_analyzed": 0,
+      "crawling_success": false,
+      "robots_txt_respected": false,
+      "structured_data_found": false,
+      "top3_codes_generated": true,
+      "code_confidence_avg": 0.9000000000000001,
+      "code_descriptions_valid": true,
+      "explanation_quality": 0.7999999999999999,
+      "explanation_length": 212,
+      "explanation_keywords": [
+        "primary",
+        "industry",
+        "identified",
+        "'manufacturing'",
+        "confidence.",
+        "fast",
+        "path:",
+        "obvious",
+        "keyword",
+        "'industrial'",
+        "matched",
+        "industry",
+        "'manufacturing'",
+        "website",
+        "provided:",
+        "https://www.ge.com.",
+        "keywords",
+        "matched:",
+        "industrial."
+      ],
+      "expected_industry": "manufacturing",
+      "industry_match": true,
+      "expected_mcc": [
+        "5084",
+        "5065"
+      ],
+      "mcc_accuracy_score": 0,
+      "naics_accuracy_score": 0,
+      "sic_accuracy_score": 0
+    },
+    {
+      "sample_id": "tech_007",
+      "business_name": "Oracle",
+      "website_url": "https://www.oracle.com",
+      "actual_industry": "",
+      "success": false,
+      "processing_time_ms": 50650,
+      "scraping_time_ms": 0,
+      "classification_time_ms": 0,
+      "scraping_strategy": "",
+      "early_exit": false,
+      "cache_hit": false,
+      "fallback_used": false,
+      "confidence_score": 0,
+      "mcc_codes": null,
+      "naics_codes": null,
+      "sic_codes": null,
+      "explanation": "",
+      "frontend_data_valid": false,
+      "accuracy": false,
+      "timestamp": "2025-12-21T19:10:37.112585-05:00",
+      "test_category": "technology",
+      "scraping_difficulty": "low",
+      "pages_crawled": 0,
+      "pages_analyzed": 0,
+      "crawling_success": false,
+      "robots_txt_respected": false,
+      "structured_data_found": false,
+      "top3_codes_generated": false,
+      "code_confidence_avg": 0,
+      "code_descriptions_valid": false,
+      "explanation_quality": 0,
+      "explanation_length": 0,
+      "expected_industry": "technology",
+      "expected_mcc": [
+        "7372",
+        "5734"
+      ],
+      "mcc_accuracy_score": 0,
+      "naics_accuracy_score": 0,
+      "sic_accuracy_score": 0
+    },
+    {
+      "sample_id": "ent_001",
+      "business_name": "Netflix",
+      "website_url": "https://www.netflix.com",
+      "actual_industry": "Arts, Entertainment, and Recreation",
+      "success": true,
+      "processing_time_ms": 4070,
+      "scraping_time_ms": 0,
+      "classification_time_ms": 4042,
+      "scraping_strategy": "early_exit",
+      "early_exit": true,
+      "cache_hit": false,
+      "fallback_used": false,
+      "confidence_score": 0.95,
+      "mcc_codes": [
+        {
+          "code": "7032",
+          "description": "Sporting and Recreational Camps",
+          "confidence": 0.9
+        },
+        {
+          "code": "7832",
+          "description": "Motion Picture Theaters",
+          "confidence": 0.9
+        },
+        {
+          "code": "7922",
+          "description": "Theatrical Producers and Ticket Agencies",
+          "confidence": 0.7200000000000001
+        }
+      ],
+      "naics_codes": [
+        {
+          "code": "711110",
+          "description": "Theater Companies and Dinner Theaters",
+          "confidence": 0.9
+        },
+        {
+          "code": "711120",
+          "description": "Dance Companies",
+          "confidence": 0.9
+        },
+        {
+          "code": "711130",
+          "description": "Musical Groups and Artists",
+          "confidence": 0.9
+        }
+      ],
+      "sic_codes": [
+        {
+          "code": "7032",
+          "description": "Sporting and Recreational Camps",
+          "confidence": 0.9
+        }
+      ],
+      "explanation": "Primary industry identified as 'Arts, Entertainment, and Recreation' with 95% confidence. Fast path: obvious keyword 'entertainment' matched industry 'Arts, Entertainment, and Recreation' Website URL provided: https://www.netflix.com. Keywords matched: entertainment.",
+      "explanation_structured": {
+        "confidence_factors": {
+          "keyword": 0.855,
+          "multi_strategy": 0.95,
+          "overall_confidence": 0.95
+        },
+        "key_terms_found": [
+          "entertainment"
+        ],
+        "method_used": "multi_strategy",
+        "primary_reason": "Classified as 'Arts, Entertainment, and Recreation' based on strong keyword matches: entertainment",
+        "processing_path": "fast_path",
+        "supporting_factors": [
+          "High-quality business information with comprehensive details",
+          "Industry-specific terms found: entertainment",
+          "Very high confidence score (95%)"
+        ]
+      },
+      "frontend_data_valid": false,
+      "accuracy": false,
+      "timestamp": "2025-12-21T19:11:25.493244-05:00",
+      "test_category": "entertainment",
+      "scraping_difficulty": "medium",
+      "pages_crawled": 0,
+      "pages_analyzed": 0,
+      "crawling_success": false,
+      "robots_txt_respected": false,
+      "structured_data_found": false,
+      "top3_codes_generated": true,
+      "code_confidence_avg": 0.8742857142857144,
+      "code_descriptions_valid": true,
+      "explanation_quality": 0.7999999999999999,
+      "explanation_length": 267,
+      "explanation_keywords": [
+        "primary",
+        "industry",
+        "identified",
+        "'arts,",
+        "entertainment,",
+        "recreation'",
+        "confidence.",
+        "fast",
+        "path:",
+        "obvious",
+        "keyword",
+        "'entertainment'",
+        "matched",
+        "industry",
+        "'arts,",
+        "entertainment,",
+        "recreation'",
+        "website",
+        "provided:",
+        "https://www.netflix.com.",
+        "keywords",
+        "matched:",
+        "entertainment."
+      ],
+      "expected_industry": "arts \u0026 entertainment",
+      "expected_mcc": [
+        "7829",
+        "7832"
+      ],
+      "mcc_match": true,
+      "mcc_top3_match": true,
+      "mcc_accuracy_score": 0.9,
+      "naics_accuracy_score": 0,
+      "sic_accuracy_score": 0,
+      "mcc_matched_rank": 2
+    },
+    {
+      "sample_id": "ecom_003",
+      "business_name": "eBay",
+      "website_url": "https://www.ebay.com",
+      "actual_industry": "",
+      "success": false,
+      "processing_time_ms": 60001,
+      "scraping_time_ms": 0,
+      "classification_time_ms": 0,
+      "scraping_strategy": "",
+      "early_exit": false,
+      "cache_hit": false,
+      "fallback_used": false,
+      "confidence_score": 0,
+      "mcc_codes": null,
+      "naics_codes": null,
+      "sic_codes": null,
+      "explanation": "",
+      "error": "Request timeout: Post \"https://classification-service-production.up.railway.app/v1/classify\": context deadline exceeded",
+      "frontend_data_valid": false,
+      "accuracy": false,
+      "timestamp": "2025-12-21T19:10:49.964776-05:00",
+      "test_category": "ecommerce",
+      "scraping_difficulty": "medium",
+      "pages_crawled": 0,
+      "pages_analyzed": 0,
+      "crawling_success": false,
+      "robots_txt_respected": false,
+      "structured_data_found": false,
+      "top3_codes_generated": false,
+      "code_confidence_avg": 0,
+      "code_descriptions_valid": false,
+      "explanation_quality": 0,
+      "explanation_length": 0,
+      "expected_industry": "retail",
+      "expected_mcc": [
+        "5999",
+        "5311"
+      ],
+      "mcc_accuracy_score": 0,
+      "naics_accuracy_score": 0,
+      "sic_accuracy_score": 0,
+      "error_type": "timeout_error"
+    },
+    {
+      "sample_id": "food_005",
+      "business_name": "Domino's Pizza",
+      "website_url": "https://www.dominos.com",
+      "actual_industry": "Retail",
+      "success": true,
+      "processing_time_ms": 3768,
+      "scraping_time_ms": 0,
+      "classification_time_ms": 3693,
+      "scraping_strategy": "early_exit",
+      "early_exit": true,
+      "cache_hit": false,
+      "fallback_used": false,
+      "confidence_score": 0.95,
+      "mcc_codes": [
+        {
+          "code": "1799",
+          "description": "Contractors, Special Trade Contractors–not elsewhere classified",
+          "confidence": 0.9
+        },
+        {
+          "code": "3601",
+          "description": "Tradewinds Resort",
+          "confidence": 0.9
+        },
+        {
+          "code": "5200",
+          "description": "Home Supply Warehouse Stores",
+          "confidence": 0.9
+        }
+      ],
+      "naics_codes": [
+        {
+          "code": "238990",
+          "description": "All Other Specialty Trade Contractors",
+          "confidence": 0.9
+        },
+        {
+          "code": "424350",
+          "description": "Clothing and Clothing Accessories Merchant Wholesalers",
+          "confidence": 0.9
+        },
+        {
+          "code": "425120",
+          "description": "Wholesale Trade Agents and Brokers",
+          "confidence": 0.9
+        }
+      ],
+      "sic_codes": [
+        {
+          "code": "1799",
+          "description": "Special Trade Contractors, Not Elsewhere Classified",
+          "confidence": 0.9
+        },
+        {
+          "code": "5251",
+          "description": "Hardware Stores",
+          "confidence": 0.9
+        },
+        {
+          "code": "5261",
+          "description": "Retail Nurseries, Lawn and Garden Supply Stores",
+          "confidence": 0.9
+        }
+      ],
+      "explanation": "Primary industry identified as 'Retail' with 95% confidence. Combined 3 classification strategies using weighted average. Contributions: keyword(1.00), co_occurrence(0.85). Strategies: keyword(1.00), co_occurrence(0.85), topic(0.46). Final confidence: 0.78 Website URL provided: https://www.dominos.com. Keywords matched: pizza, store, checkout, storefront, drugstore, pet store, department store, dollar store, variety store, hardware store, online store, convenience store.",
+      "explanation_structured": {
+        "confidence_factors": {
+          "keyword": 0.855,
+          "multi_strategy": 0.95,
+          "overall_confidence": 0.95
+        },
+        "key_terms_found": [
+          "pizza",
+          "store",
+          "checkout",
+          "storefront",
+          "drugstore",
+          "pet store",
+          "department store",
+          "dollar store",
+          "variety store",
+          "hardware store",
+          "online store",
+          "convenience store"
+        ],
+        "method_used": "multi_strategy",
+        "primary_reason": "Classified as 'Retail' based on strong keyword matches: pizza, store, checkout",
+        "processing_path": "full_strategy",
+        "supporting_factors": [
+          "High-quality business information with comprehensive details",
+          "Multiple industry-specific terms found (12 total)",
+          "Very high confidence score (95%)"
+        ]
+      },
+      "frontend_data_valid": false,
+      "accuracy": false,
+      "timestamp": "2025-12-21T19:11:50.468575-05:00",
+      "test_category": "restaurant",
+      "scraping_difficulty": "medium",
+      "pages_crawled": 0,
+      "pages_analyzed": 0,
+      "crawling_success": false,
+      "robots_txt_respected": false,
+      "structured_data_found": false,
+      "top3_codes_generated": true,
+      "code_confidence_avg": 0.9000000000000001,
+      "code_descriptions_valid": true,
+      "explanation_quality": 0.8666666666666666,
+      "explanation_length": 475,
+      "explanation_keywords": [
+        "primary",
+        "industry",
+        "identified",
+        "'retail'",
+        "confidence.",
+        "combined",
+        "classification",
+        "strategies",
+        "using",
+        "weighted",
+        "average.",
+        "contributions:",
+        "keyword(1.00),",
+        "co_occurrence(0.85).",
+        "strategies:",
+        "keyword(1.00),",
+        "co_occurrence(0.85),",
+        "topic(0.46).",
+        "final",
+        "confidence:",
+        "0.78",
+        "website",
+        "provided:",
+        "https://www.dominos.com.",
+        "keywords",
+        "matched:",
+        "pizza,",
+        "store,",
+        "checkout,",
+        "storefront,",
+        "drugstore,",
+        "store,",
+        "department",
+        "store,",
+        "dollar",
+        "store,",
+        "variety",
+        "store,",
+        "hardware",
+        "store,",
+        "online",
+        "store,",
+        "convenience",
+        "store."
+      ],
+      "expected_industry": "food \u0026 beverage",
+      "expected_mcc": [
+        "5812",
+        "5814"
+      ],
+      "mcc_accuracy_score": 0,
+      "naics_accuracy_score": 0,
+      "sic_accuracy_score": 0
+    },
+    {
+      "sample_id": "food_006",
+      "business_name": "Subway",
+      "website_url": "https://www.subway.com",
+      "actual_industry": "Restaurants",
+      "success": true,
+      "processing_time_ms": 17901,
+      "scraping_time_ms": 0,
+      "classification_time_ms": 17836,
+      "scraping_strategy": "early_exit",
+      "early_exit": true,
+      "cache_hit": false,
+      "fallback_used": false,
+      "confidence_score": 0.95,
+      "mcc_codes": [
+        {
+          "code": "5819",
+          "description": "Miscellaneous Food Stores - Convenience Stores, Specialty Markets, Vending Machines",
+          "confidence": 0.9
+        },
+        {
+          "code": "5411",
+          "description": "Grocery Stores, Supermarkets",
+          "confidence": 0.6120000000000001
+        },
+        {
+          "code": "5812",
+          "description": "Eating Places, Restaurants",
+          "confidence": 0.6120000000000001
+        }
+      ],
+      "naics_codes": [
+        {
+          "code": "445110",
+          "description": "Supermarkets and Grocery Stores",
+          "confidence": 0.765
+        },
+        {
+          "code": "445120",
+          "description": "Convenience Stores",
+          "confidence": 0.765
+        },
+        {
+          "code": "722511",
+          "description": "Full-Service Restaurants",
+          "confidence": 0.765
+        }
+      ],
+      "sic_codes": [
+        {
+          "code": "5499",
+          "description": "Miscellaneous Food Stores",
+          "confidence": 0.765
+        },
+        {
+          "code": "5812",
+          "description": "Eating Places",
+          "confidence": 0.765
+        },
+        {
+          "code": "5411",
+          "description": "Grocery Stores",
+          "confidence": 0.765
+        }
+      ],
+      "explanation": "Primary industry identified as 'Restaurants' with 95% confidence. Fast path: obvious keyword 'restaurant' matched industry 'Restaurants' Website URL provided: https://www.subway.com. Keywords matched: restaurant.",
+      "explanation_structured": {
+        "confidence_factors": {
+          "keyword": 0.855,
+          "multi_strategy": 0.95,
+          "overall_confidence": 0.95
+        },
+        "key_terms_found": [
+          "restaurant"
+        ],
+        "method_used": "multi_strategy",
+        "primary_reason": "Classified as 'Restaurants' based on strong keyword matches: restaurant",
+        "processing_path": "fast_path",
+        "supporting_factors": [
+          "High-quality business information with comprehensive details",
+          "Industry-specific terms found: restaurant",
+          "Very high confidence score (95%)"
+        ]
+      },
+      "frontend_data_valid": false,
+      "accuracy": false,
+      "timestamp": "2025-12-21T19:11:54.73848-05:00",
+      "test_category": "restaurant",
+      "scraping_difficulty": "medium",
+      "pages_crawled": 0,
+      "pages_analyzed": 0,
+      "crawling_success": false,
+      "robots_txt_respected": false,
+      "structured_data_found": false,
+      "top3_codes_generated": true,
+      "code_confidence_avg": 0.746,
+      "code_descriptions_valid": true,
+      "explanation_quality": 0.7999999999999999,
+      "explanation_length": 212,
+      "explanation_keywords": [
+        "primary",
+        "industry",
+        "identified",
+        "'restaurants'",
+        "confidence.",
+        "fast",
+        "path:",
+        "obvious",
+        "keyword",
+        "'restaurant'",
+        "matched",
+        "industry",
+        "'restaurants'",
+        "website",
+        "provided:",
+        "https://www.subway.com.",
+        "keywords",
+        "matched:",
+        "restaurant."
+      ],
+      "expected_industry": "food \u0026 beverage",
+      "expected_mcc": [
+        "5812",
+        "5814"
+      ],
+      "mcc_match": true,
+      "mcc_top3_match": true,
+      "mcc_accuracy_score": 0.8,
+      "naics_accuracy_score": 0,
+      "sic_accuracy_score": 0,
+      "mcc_matched_rank": 3
+    },
+    {
+      "sample_id": "health_001",
+      "business_name": "UnitedHealth Group",
+      "website_url": "https://www.unitedhealthgroup.com",
+      "actual_industry": "Healthcare",
+      "success": true,
+      "processing_time_ms": 2491,
+      "scraping_time_ms": 0,
+      "classification_time_ms": 2305,
+      "scraping_strategy": "early_exit",
+      "early_exit": true,
+      "cache_hit": false,
+      "fallback_used": false,
+      "confidence_score": 0.95,
+      "mcc_codes": [
+        {
+          "code": "742",
+          "description": "Veterinary Services",
+          "confidence": 0.9
+        },
+        {
+          "code": "8734",
+          "description": "Testing Laboratories (Non-Medical)",
+          "confidence": 0.9
+        },
+        {
+          "code": "8743",
+          "description": "Testing Laboratories (Non-Medical)",
+          "confidence": 0.9
+        }
+      ],
+      "naics_codes": [
+        {
+          "code": "524114",
+          "description": "Direct Health and Medical Insurance Carriers",
+          "confidence": 0.9
+        },
+        {
+          "code": "524128",
+          "description": "Other Direct Insurance (except Life, Health, and Medical) Carriers",
+          "confidence": 0.9
+        },
+        {
+          "code": "525120",
+          "description": "Health and Welfare Funds",
+          "confidence": 0.9
+        }
+      ],
+      "sic_codes": [
+        {
+          "code": "6324",
+          "description": "Hospital and Medical Service Plans",
+          "confidence": 0.9
+        },
+        {
+          "code": "6371",
+          "description": "Pension, Health, and Welfare Funds",
+          "confidence": 0.9
+        }
+      ],
+      "explanation": "Primary industry identified as 'Healthcare' with 95% confidence. Fast path: obvious keyword 'healthcare' matched industry 'Healthcare' Website URL provided: https://www.unitedhealthgroup.com. Keywords matched: healthcare.",
+      "explanation_structured": {
+        "confidence_factors": {
+          "keyword": 0.855,
+          "multi_strategy": 0.95,
+          "overall_confidence": 0.95
+        },
+        "key_terms_found": [
+          "healthcare"
+        ],
+        "method_used": "multi_strategy",
+        "primary_reason": "Classified as 'Healthcare' based on strong keyword matches: healthcare",
+        "processing_path": "fast_path",
+        "supporting_factors": [
+          "High-quality business information with comprehensive details",
+          "Industry-specific terms found: healthcare",
+          "Very high confidence score (95%)"
+        ]
+      },
+      "frontend_data_valid": false,
+      "accuracy": true,
+      "timestamp": "2025-12-21T19:12:13.14255-05:00",
+      "test_category": "healthcare",
+      "scraping_difficulty": "low",
+      "pages_crawled": 0,
+      "pages_analyzed": 0,
+      "crawling_success": false,
+      "robots_txt_respected": false,
+      "structured_data_found": false,
+      "top3_codes_generated": true,
+      "code_confidence_avg": 0.9000000000000001,
+      "code_descriptions_valid": true,
+      "explanation_quality": 0.7999999999999999,
+      "explanation_length": 221,
+      "explanation_keywords": [
+        "primary",
+        "industry",
+        "identified",
+        "'healthcare'",
+        "confidence.",
+        "fast",
+        "path:",
+        "obvious",
+        "keyword",
+        "'healthcare'",
+        "matched",
+        "industry",
+        "'healthcare'",
+        "website",
+        "provided:",
+        "https://www.unitedhealthgroup.com.",
+        "keywords",
+        "matched:",
+        "healthcare."
+      ],
+      "expected_industry": "healthcare",
+      "industry_match": true,
+      "expected_mcc": [
+        "6300",
+        "8011"
+      ],
+      "mcc_accuracy_score": 0,
+      "naics_accuracy_score": 0,
+      "sic_accuracy_score": 0
+    },
+    {
+      "sample_id": "health_002",
+      "business_name": "CVS Health",
+      "website_url": "https://www.cvshealth.com",
+      "actual_industry": "Healthcare",
+      "success": true,
+      "processing_time_ms": 2113,
+      "scraping_time_ms": 0,
+      "classification_time_ms": 2034,
+      "scraping_strategy": "early_exit",
+      "early_exit": true,
+      "cache_hit": false,
+      "fallback_used": false,
+      "confidence_score": 0.95,
+      "mcc_codes": [
+        {
+          "code": "742",
+          "description": "Veterinary Services",
+          "confidence": 0.9
+        },
+        {
+          "code": "8734",
+          "description": "Testing Laboratories (Non-Medical)",
+          "confidence": 0.9
+        },
+        {
+          "code": "8743",
+          "description": "Testing Laboratories (Non-Medical)",
+          "confidence": 0.9
+        }
+      ],
+      "naics_codes": [
+        {
+          "code": "524114",
+          "description": "Direct Health and Medical Insurance Carriers",
+          "confidence": 0.9
+        },
+        {
+          "code": "524128",
+          "description": "Other Direct Insurance (except Life, Health, and Medical) Carriers",
+          "confidence": 0.9
+        },
+        {
+          "code": "525120",
+          "description": "Health and Welfare Funds",
+          "confidence": 0.9
+        }
+      ],
+      "sic_codes": [
+        {
+          "code": "6324",
+          "description": "Hospital and Medical Service Plans",
+          "confidence": 0.9
+        },
+        {
+          "code": "6371",
+          "description": "Pension, Health, and Welfare Funds",
+          "confidence": 0.9
+        }
+      ],
+      "explanation": "Primary industry identified as 'Healthcare' with 95% confidence. Fast path: obvious keyword 'healthcare' matched industry 'Healthcare' Website URL provided: https://www.cvshealth.com. Keywords matched: healthcare.",
+      "explanation_structured": {
+        "confidence_factors": {
+          "keyword": 0.855,
+          "multi_strategy": 0.95,
+          "overall_confidence": 0.95
+        },
+        "key_terms_found": [
+          "healthcare"
+        ],
+        "method_used": "multi_strategy",
+        "primary_reason": "Classified as 'Healthcare' based on strong keyword matches: healthcare",
+        "processing_path": "fast_path",
+        "supporting_factors": [
+          "High-quality business information with comprehensive details",
+          "Industry-specific terms found: healthcare",
+          "Very high confidence score (95%)"
+        ]
+      },
+      "frontend_data_valid": false,
+      "accuracy": true,
+      "timestamp": "2025-12-21T19:12:16.13671-05:00",
+      "test_category": "healthcare",
+      "scraping_difficulty": "low",
+      "pages_crawled": 0,
+      "pages_analyzed": 0,
+      "crawling_success": false,
+      "robots_txt_respected": false,
+      "structured_data_found": false,
+      "top3_codes_generated": true,
+      "code_confidence_avg": 0.9000000000000001,
+      "code_descriptions_valid": true,
+      "explanation_quality": 0.7999999999999999,
+      "explanation_length": 213,
+      "explanation_keywords": [
+        "primary",
+        "industry",
+        "identified",
+        "'healthcare'",
+        "confidence.",
+        "fast",
+        "path:",
+        "obvious",
+        "keyword",
+        "'healthcare'",
+        "matched",
+        "industry",
+        "'healthcare'",
+        "website",
+        "provided:",
+        "https://www.cvshealth.com.",
+        "keywords",
+        "matched:",
+        "healthcare."
+      ],
+      "expected_industry": "healthcare",
+      "industry_match": true,
+      "expected_mcc": [
+        "5912",
+        "8011"
+      ],
+      "mcc_accuracy_score": 0,
+      "naics_accuracy_score": 0,
+      "sic_accuracy_score": 0
+    },
+    {
+      "sample_id": "food_003",
+      "business_name": "Coca-Cola",
+      "website_url": "https://www.coca-cola.com",
+      "actual_industry": "",
+      "success": false,
+      "processing_time_ms": 60000,
+      "scraping_time_ms": 0,
+      "classification_time_ms": 0,
+      "scraping_strategy": "",
+      "early_exit": false,
+      "cache_hit": false,
+      "fallback_used": false,
+      "confidence_score": 0,
+      "mcc_codes": null,
+      "naics_codes": null,
+      "sic_codes": null,
+      "explanation": "",
+      "error": "Request timeout: Post \"https://classification-service-production.up.railway.app/v1/classify\": context deadline exceeded",
+      "frontend_data_valid": false,
+      "accuracy": false,
+      "timestamp": "2025-12-21T19:11:28.266369-05:00",
+      "test_category": "manufacturing",
+      "scraping_difficulty": "high",
+      "pages_crawled": 0,
+      "pages_analyzed": 0,
+      "crawling_success": false,
+      "robots_txt_respected": false,
+      "structured_data_found": false,
+      "top3_codes_generated": false,
+      "code_confidence_avg": 0,
+      "code_descriptions_valid": false,
+      "explanation_quality": 0,
+      "explanation_length": 0,
+      "expected_industry": "food \u0026 beverage",
+      "expected_mcc": [
+        "5499",
+        "5441"
+      ],
+      "mcc_accuracy_score": 0,
+      "naics_accuracy_score": 0,
+      "sic_accuracy_score": 0,
+      "error_type": "timeout_error"
+    },
+    {
+      "sample_id": "ent_002",
+      "business_name": "Disney",
+      "website_url": "https://www.disney.com",
+      "actual_industry": "Arts, Entertainment, and Recreation",
+      "success": true,
+      "processing_time_ms": 10759,
+      "scraping_time_ms": 0,
+      "classification_time_ms": 10718,
+      "scraping_strategy": "early_exit",
+      "early_exit": true,
+      "cache_hit": false,
+      "fallback_used": false,
+      "confidence_score": 0.95,
+      "mcc_codes": [
+        {
+          "code": "7032",
+          "description": "Sporting and Recreational Camps",
+          "confidence": 0.9
+        },
+        {
+          "code": "7832",
+          "description": "Motion Picture Theaters",
+          "confidence": 0.9
+        },
+        {
+          "code": "7922",
+          "description": "Theatrical Producers and Ticket Agencies",
+          "confidence": 0.7200000000000001
+        }
+      ],
+      "naics_codes": [
+        {
+          "code": "711110",
+          "description": "Theater Companies and Dinner Theaters",
+          "confidence": 0.9
+        },
+        {
+          "code": "711120",
+          "description": "Dance Companies",
+          "confidence": 0.9
+        },
+        {
+          "code": "711130",
+          "description": "Musical Groups and Artists",
+          "confidence": 0.9
+        }
+      ],
+      "sic_codes": [
+        {
+          "code": "7032",
+          "description": "Sporting and Recreational Camps",
+          "confidence": 0.9
+        }
+      ],
+      "explanation": "Primary industry identified as 'Arts, Entertainment, and Recreation' with 95% confidence. Fast path: obvious keyword 'entertainment' matched industry 'Arts, Entertainment, and Recreation' Website URL provided: https://www.disney.com. Keywords matched: entertainment.",
+      "explanation_structured": {
+        "confidence_factors": {
+          "keyword": 0.855,
+          "multi_strategy": 0.95,
+          "overall_confidence": 0.95
+        },
+        "key_terms_found": [
+          "entertainment"
+        ],
+        "method_used": "multi_strategy",
+        "primary_reason": "Classified as 'Arts, Entertainment, and Recreation' based on strong keyword matches: entertainment",
+        "processing_path": "fast_path",
+        "supporting_factors": [
+          "High-quality business information with comprehensive details",
+          "Industry-specific terms found: entertainment",
+          "Very high confidence score (95%)"
+        ]
+      },
+      "frontend_data_valid": false,
+      "accuracy": false,
+      "timestamp": "2025-12-21T19:12:18.75214-05:00",
+      "test_category": "entertainment",
+      "scraping_difficulty": "medium",
+      "pages_crawled": 0,
+      "pages_analyzed": 0,
+      "crawling_success": false,
+      "robots_txt_respected": false,
+      "structured_data_found": false,
+      "top3_codes_generated": true,
+      "code_confidence_avg": 0.8742857142857144,
+      "code_descriptions_valid": true,
+      "explanation_quality": 0.7999999999999999,
+      "explanation_length": 266,
+      "explanation_keywords": [
+        "primary",
+        "industry",
+        "identified",
+        "'arts,",
+        "entertainment,",
+        "recreation'",
+        "confidence.",
+        "fast",
+        "path:",
+        "obvious",
+        "keyword",
+        "'entertainment'",
+        "matched",
+        "industry",
+        "'arts,",
+        "entertainment,",
+        "recreation'",
+        "website",
+        "provided:",
+        "https://www.disney.com.",
+        "keywords",
+        "matched:",
+        "entertainment."
+      ],
+      "expected_industry": "arts \u0026 entertainment",
+      "expected_mcc": [
+        "7829",
+        "7832"
+      ],
+      "mcc_match": true,
+      "mcc_top3_match": true,
+      "mcc_accuracy_score": 0.9,
+      "naics_accuracy_score": 0,
+      "sic_accuracy_score": 0,
+      "mcc_matched_rank": 2
+    },
+    {
+      "sample_id": "food_004",
+      "business_name": "PepsiCo",
+      "website_url": "https://www.pepsico.com",
+      "actual_industry": "",
+      "success": false,
+      "processing_time_ms": 60001,
+      "scraping_time_ms": 0,
+      "classification_time_ms": 0,
+      "scraping_strategy": "",
+      "early_exit": false,
+      "cache_hit": false,
+      "fallback_used": false,
+      "confidence_score": 0,
+      "mcc_codes": null,
+      "naics_codes": null,
+      "sic_codes": null,
+      "explanation": "",
+      "error": "Request timeout: Post \"https://classification-service-production.up.railway.app/v1/classify\": context deadline exceeded",
+      "frontend_data_valid": false,
+      "accuracy": false,
+      "timestamp": "2025-12-21T19:11:30.066791-05:00",
+      "test_category": "manufacturing",
+      "scraping_difficulty": "medium",
+      "pages_crawled": 0,
+      "pages_analyzed": 0,
+      "crawling_success": false,
+      "robots_txt_respected": false,
+      "structured_data_found": false,
+      "top3_codes_generated": false,
+      "code_confidence_avg": 0,
+      "code_descriptions_valid": false,
+      "explanation_quality": 0,
+      "explanation_length": 0,
+      "expected_industry": "food \u0026 beverage",
+      "expected_mcc": [
+        "5499",
+        "5441"
+      ],
+      "mcc_accuracy_score": 0,
+      "naics_accuracy_score": 0,
+      "sic_accuracy_score": 0,
+      "error_type": "timeout_error"
+    },
+    {
+      "sample_id": "finance_001",
+      "business_name": "JPMorgan Chase",
+      "website_url": "https://www.jpmorganchase.com",
+      "actual_industry": "Banking",
+      "success": true,
+      "processing_time_ms": 974,
+      "scraping_time_ms": 0,
+      "classification_time_ms": 914,
+      "scraping_strategy": "early_exit",
+      "early_exit": true,
+      "cache_hit": false,
+      "fallback_used": false,
+      "confidence_score": 0.95,
+      "mcc_codes": [],
+      "naics_codes": [],
+      "sic_codes": [],
+      "explanation": "Primary industry identified as 'Banking' with 95% confidence. Fast path: obvious keyword 'banking' matched industry 'Banking' Website URL provided: https://www.jpmorganchase.com. Keywords matched: banking.",
+      "explanation_structured": {
+        "confidence_factors": {
+          "keyword": 0.855,
+          "multi_strategy": 0.95,
+          "overall_confidence": 0.95
+        },
+        "key_terms_found": [
+          "banking"
+        ],
+        "method_used": "multi_strategy",
+        "primary_reason": "Classified as 'Banking' based on strong keyword matches: banking",
+        "processing_path": "fast_path",
+        "supporting_factors": [
+          "High-quality business information with comprehensive details",
+          "Industry-specific terms found: banking",
+          "Very high confidence score (95%)"
+        ]
+      },
+      "frontend_data_valid": false,
+      "accuracy": true,
+      "timestamp": "2025-12-21T19:12:30.570044-05:00",
+      "test_category": "banking",
+      "scraping_difficulty": "low",
+      "pages_crawled": 0,
+      "pages_analyzed": 0,
+      "crawling_success": false,
+      "robots_txt_respected": false,
+      "structured_data_found": false,
+      "top3_codes_generated": false,
+      "code_confidence_avg": 0,
+      "code_descriptions_valid": false,
+      "explanation_quality": 0.7999999999999999,
+      "explanation_length": 205,
+      "explanation_keywords": [
+        "primary",
+        "industry",
+        "identified",
+        "'banking'",
+        "confidence.",
+        "fast",
+        "path:",
+        "obvious",
+        "keyword",
+        "'banking'",
+        "matched",
+        "industry",
+        "'banking'",
+        "website",
+        "provided:",
+        "https://www.jpmorganchase.com.",
+        "keywords",
+        "matched:",
+        "banking."
+      ],
+      "expected_industry": "banking",
+      "industry_match": true,
+      "expected_mcc": [
+        "6011",
+        "6012"
+      ],
+      "mcc_accuracy_score": 0,
+      "naics_accuracy_score": 0,
+      "sic_accuracy_score": 0
+    },
+    {
+      "sample_id": "health_003",
+      "business_name": "Walgreens",
+      "website_url": "https://www.walgreens.com",
+      "actual_industry": "Retail",
+      "success": true,
+      "processing_time_ms": 2820,
+      "scraping_time_ms": 0,
+      "classification_time_ms": 2789,
+      "scraping_strategy": "early_exit",
+      "early_exit": true,
+      "cache_hit": false,
+      "fallback_used": false,
+      "confidence_score": 0.95,
+      "mcc_codes": [
+        {
+          "code": "1799",
+          "description": "Contractors, Special Trade Contractors–not elsewhere classified",
+          "confidence": 0.9
+        },
+        {
+          "code": "3601",
+          "description": "Tradewinds Resort",
+          "confidence": 0.9
+        },
+        {
+          "code": "5200",
+          "description": "Home Supply Warehouse Stores",
+          "confidence": 0.9
+        }
+      ],
+      "naics_codes": [
+        {
+          "code": "238990",
+          "description": "All Other Specialty Trade Contractors",
+          "confidence": 0.9
+        },
+        {
+          "code": "424350",
+          "description": "Clothing and Clothing Accessories Merchant Wholesalers",
+          "confidence": 0.9
+        },
+        {
+          "code": "425120",
+          "description": "Wholesale Trade Agents and Brokers",
+          "confidence": 0.9
+        }
+      ],
+      "sic_codes": [
+        {
+          "code": "1799",
+          "description": "Special Trade Contractors, Not Elsewhere Classified",
+          "confidence": 0.9
+        },
+        {
+          "code": "5251",
+          "description": "Hardware Stores",
+          "confidence": 0.9
+        },
+        {
+          "code": "5261",
+          "description": "Retail Nurseries, Lawn and Garden Supply Stores",
+          "confidence": 0.9
+        }
+      ],
+      "explanation": "Primary industry identified as 'Retail' with 95% confidence. Fast path: obvious keyword 'retail' matched industry 'Retail' Website URL provided: https://www.walgreens.com. Keywords matched: retail.",
+      "explanation_structured": {
+        "confidence_factors": {
+          "keyword": 0.855,
+          "multi_strategy": 0.95,
+          "overall_confidence": 0.95
+        },
+        "key_terms_found": [
+          "retail"
+        ],
+        "method_used": "multi_strategy",
+        "primary_reason": "Classified as 'Retail' based on strong keyword matches: retail",
+        "processing_path": "fast_path",
+        "supporting_factors": [
+          "High-quality business information with comprehensive details",
+          "Industry-specific terms found: retail",
+          "Very high confidence score (95%)"
+        ]
+      },
+      "frontend_data_valid": false,
+      "accuracy": false,
+      "timestamp": "2025-12-21T19:12:28.769129-05:00",
+      "test_category": "healthcare",
+      "scraping_difficulty": "medium",
+      "pages_crawled": 0,
+      "pages_analyzed": 0,
+      "crawling_success": false,
+      "robots_txt_respected": false,
+      "structured_data_found": false,
+      "top3_codes_generated": true,
+      "code_confidence_avg": 0.9000000000000001,
+      "code_descriptions_valid": true,
+      "explanation_quality": 0.7999999999999999,
+      "explanation_length": 197,
+      "explanation_keywords": [
+        "primary",
+        "industry",
+        "identified",
+        "'retail'",
+        "confidence.",
+        "fast",
+        "path:",
+        "obvious",
+        "keyword",
+        "'retail'",
+        "matched",
+        "industry",
+        "'retail'",
+        "website",
+        "provided:",
+        "https://www.walgreens.com.",
+        "keywords",
+        "matched:",
+        "retail."
+      ],
+      "expected_industry": "healthcare",
+      "expected_mcc": [
+        "5912",
+        "8011"
+      ],
+      "mcc_accuracy_score": 0,
+      "naics_accuracy_score": 0,
+      "sic_accuracy_score": 0
+    },
+    {
+      "sample_id": "finance_003",
+      "business_name": "Wells Fargo",
+      "website_url": "https://www.wellsfargo.com",
+      "actual_industry": "Banking",
+      "success": true,
+      "processing_time_ms": 1671,
+      "scraping_time_ms": 0,
+      "classification_time_ms": 1609,
+      "scraping_strategy": "early_exit",
+      "early_exit": true,
+      "cache_hit": false,
+      "fallback_used": false,
+      "confidence_score": 0.95,
+      "mcc_codes": [],
+      "naics_codes": [],
+      "sic_codes": [],
+      "explanation": "Primary industry identified as 'Banking' with 95% confidence. Fast path: obvious keyword 'banking' matched industry 'Banking' Website URL provided: https://www.wellsfargo.com. Keywords matched: banking.",
+      "explanation_structured": {
+        "confidence_factors": {
+          "keyword": 0.855,
+          "multi_strategy": 0.95,
+          "overall_confidence": 0.95
+        },
+        "key_terms_found": [
+          "banking"
+        ],
+        "method_used": "multi_strategy",
+        "primary_reason": "Classified as 'Banking' based on strong keyword matches: banking",
+        "processing_path": "fast_path",
+        "supporting_factors": [
+          "High-quality business information with comprehensive details",
+          "Industry-specific terms found: banking",
+          "Very high confidence score (95%)"
+        ]
+      },
+      "frontend_data_valid": false,
+      "accuracy": true,
+      "timestamp": "2025-12-21T19:12:32.090554-05:00",
+      "test_category": "banking",
+      "scraping_difficulty": "low",
+      "pages_crawled": 0,
+      "pages_analyzed": 0,
+      "crawling_success": false,
+      "robots_txt_respected": false,
+      "structured_data_found": false,
+      "top3_codes_generated": false,
+      "code_confidence_avg": 0,
+      "code_descriptions_valid": false,
+      "explanation_quality": 0.7999999999999999,
+      "explanation_length": 202,
+      "explanation_keywords": [
+        "primary",
+        "industry",
+        "identified",
+        "'banking'",
+        "confidence.",
+        "fast",
+        "path:",
+        "obvious",
+        "keyword",
+        "'banking'",
+        "matched",
+        "industry",
+        "'banking'",
+        "website",
+        "provided:",
+        "https://www.wellsfargo.com.",
+        "keywords",
+        "matched:",
+        "banking."
+      ],
+      "expected_industry": "banking",
+      "industry_match": true,
+      "expected_mcc": [
+        "6011",
+        "6012"
+      ],
+      "mcc_accuracy_score": 0,
+      "naics_accuracy_score": 0,
+      "sic_accuracy_score": 0
+    },
+    {
+      "sample_id": "finance_002",
+      "business_name": "Bank of America",
+      "website_url": "https://www.bankofamerica.com",
+      "actual_industry": "Financial Services",
+      "success": true,
+      "processing_time_ms": 7057,
+      "scraping_time_ms": 0,
+      "classification_time_ms": 7012,
+      "scraping_strategy": "early_exit",
+      "early_exit": true,
+      "cache_hit": false,
+      "fallback_used": false,
+      "confidence_score": 0.95,
+      "mcc_codes": [
+        {
+          "code": "3429",
+          "description": "Insurance Rent-A-Car",
+          "confidence": 0.9
+        },
+        {
+          "code": "4829",
+          "description": "Wire Transfer Money Orders (V, D, G, X)\nMoney Transfer (M)",
+          "confidence": 0.9
+        },
+        {
+          "code": "6381",
+          "description": "Insurance–Premiums",
+          "confidence": 0.9
+        }
+      ],
+      "naics_codes": [
+        {
+          "code": "331512",
+          "description": "Steel Investment Foundries",
+          "confidence": 0.9
+        },
+        {
+          "code": "331513",
+          "description": "Steel Foundries (except Investment)",
+          "confidence": 0.9
+        },
+        {
+          "code": "523150",
+          "description": "Investment Banking and Securities Intermediation",
+          "confidence": 0.9
+        }
+      ],
+      "sic_codes": [
+        {
+          "code": "6011",
+          "description": "Federal Reserve Banks",
+          "confidence": 0.9
+        },
+        {
+          "code": "6311",
+          "description": "Life Insurance",
+          "confidence": 0.9
+        },
+        {
+          "code": "6321",
+          "description": "Accident and Health Insurance",
+          "confidence": 0.9
+        }
+      ],
+      "explanation": "Primary industry identified as 'Financial Services' with 95% confidence. Fast path: obvious keyword 'bank' matched industry 'Financial Services' Website URL provided: https://www.bankofamerica.com. Keywords matched: bank.",
+      "explanation_structured": {
+        "confidence_factors": {
+          "keyword": 0.855,
+          "multi_strategy": 0.95,
+          "overall_confidence": 0.95
+        },
+        "key_terms_found": [
+          "bank"
+        ],
+        "method_used": "multi_strategy",
+        "primary_reason": "Classified as 'Financial Services' based on strong keyword matches: bank",
+        "processing_path": "fast_path",
+        "supporting_factors": [
+          "High-quality business information with comprehensive details",
+          "Industry-specific terms found: bank",
+          "Very high confidence score (95%)"
+        ]
+      },
+      "frontend_data_valid": false,
+      "accuracy": true,
+      "timestamp": "2025-12-21T19:12:32.044636-05:00",
+      "test_category": "banking",
+      "scraping_difficulty": "low",
+      "pages_crawled": 0,
+      "pages_analyzed": 0,
+      "crawling_success": false,
+      "robots_txt_respected": false,
+      "structured_data_found": false,
+      "top3_codes_generated": true,
+      "code_confidence_avg": 0.9000000000000001,
+      "code_descriptions_valid": true,
+      "explanation_quality": 0.7999999999999999,
+      "explanation_length": 221,
+      "explanation_keywords": [
+        "primary",
+        "industry",
+        "identified",
+        "'financial",
+        "services'",
+        "confidence.",
+        "fast",
+        "path:",
+        "obvious",
+        "keyword",
+        "'bank'",
+        "matched",
+        "industry",
+        "'financial",
+        "services'",
+        "website",
+        "provided:",
+        "https://www.bankofamerica.com.",
+        "keywords",
+        "matched:",
+        "bank."
+      ],
+      "expected_industry": "banking",
+      "industry_match": true,
+      "expected_mcc": [
+        "6011",
+        "6012"
+      ],
+      "mcc_accuracy_score": 0,
+      "naics_accuracy_score": 0,
+      "sic_accuracy_score": 0
+    },
+    {
+      "sample_id": "finance_004",
+      "business_name": "Goldman Sachs",
+      "website_url": "https://www.goldmansachs.com",
+      "actual_industry": "Finance",
+      "success": true,
+      "processing_time_ms": 7571,
+      "scraping_time_ms": 0,
+      "classification_time_ms": 7532,
+      "scraping_strategy": "early_exit",
+      "early_exit": true,
+      "cache_hit": false,
+      "fallback_used": false,
+      "confidence_score": 0.95,
+      "mcc_codes": [
+        {
+          "code": "6010",
+          "description": "Financial Institutions - Manual Cash Disbursements",
+          "confidence": 0.9
+        },
+        {
+          "code": "6211",
+          "description": "Security Brokers and Dealers",
+          "confidence": 0.9
+        },
+        {
+          "code": "6011",
+          "description": "Automated Cash Disbursements",
+          "confidence": 0.7200000000000001
+        }
+      ],
+      "naics_codes": [
+        {
+          "code": "522110",
+          "description": "Commercial Banking",
+          "confidence": 0.98
+        },
+        {
+          "code": "522130",
+          "description": "Credit Unions",
+          "confidence": 0.9
+        },
+        {
+          "code": "522291",
+          "description": "Consumer Lending",
+          "confidence": 0.9
+        }
+      ],
+      "sic_codes": [
+        {
+          "code": "6029",
+          "description": "Commercial Banks, Not Elsewhere Classified",
+          "confidence": 0.9
+        },
+        {
+          "code": "6061",
+          "description": "Credit Unions, Federally Chartered",
+          "confidence": 0.9
+        },
+        {
+          "code": "6081",
+          "description": "Branches and Agencies of Foreign Banks",
+          "confidence": 0.9
+        }
+      ],
+      "explanation": "Primary industry identified as 'Finance' with 95% confidence. Fast path: obvious keyword 'investment' matched industry 'Finance' Website URL provided: https://www.goldmansachs.com. Keywords matched: investment.",
+      "explanation_structured": {
+        "confidence_factors": {
+          "keyword": 0.855,
+          "multi_strategy": 0.95,
+          "overall_confidence": 0.95
+        },
+        "key_terms_found": [
+          "investment"
+        ],
+        "method_used": "multi_strategy",
+        "primary_reason": "Classified as 'Finance' based on strong keyword matches: investment",
+        "processing_path": "fast_path",
+        "supporting_factors": [
+          "High-quality business information with comprehensive details",
+          "Industry-specific terms found: investment",
+          "Very high confidence score (95%)"
+        ]
+      },
+      "frontend_data_valid": false,
+      "accuracy": true,
+      "timestamp": "2025-12-21T19:12:34.263678-05:00",
+      "test_category": "banking",
+      "scraping_difficulty": "low",
+      "pages_crawled": 0,
+      "pages_analyzed": 0,
+      "crawling_success": false,
+      "robots_txt_respected": false,
+      "structured_data_found": false,
+      "top3_codes_generated": true,
+      "code_confidence_avg": 0.8888888888888891,
+      "code_descriptions_valid": true,
+      "explanation_quality": 0.7999999999999999,
+      "explanation_length": 210,
+      "explanation_keywords": [
+        "primary",
+        "industry",
+        "identified",
+        "'finance'",
+        "confidence.",
+        "fast",
+        "path:",
+        "obvious",
+        "keyword",
+        "'investment'",
+        "matched",
+        "industry",
+        "'finance'",
+        "website",
+        "provided:",
+        "https://www.goldmansachs.com.",
+        "keywords",
+        "matched:",
+        "investment."
+      ],
+      "expected_industry": "financial services",
+      "industry_match": true,
+      "expected_mcc": [
+        "6012",
+        "6211"
+      ],
+      "mcc_match": true,
+      "mcc_top3_match": true,
+      "mcc_accuracy_score": 0.9,
+      "naics_accuracy_score": 0,
+      "sic_accuracy_score": 0,
+      "mcc_matched_rank": 2
+    },
+    {
+      "sample_id": "health_004",
+      "business_name": "Mayo Clinic",
+      "website_url": "https://www.mayoclinic.org",
+      "actual_industry": "Healthcare",
+      "success": true,
+      "processing_time_ms": 14275,
+      "scraping_time_ms": 0,
+      "classification_time_ms": 14230,
+      "scraping_strategy": "early_exit",
+      "early_exit": true,
+      "cache_hit": false,
+      "fallback_used": false,
+      "confidence_score": 0.95,
+      "mcc_codes": [
+        {
+          "code": "742",
+          "description": "Veterinary Services",
+          "confidence": 0.9
+        },
+        {
+          "code": "8734",
+          "description": "Testing Laboratories (Non-Medical)",
+          "confidence": 0.9
+        },
+        {
+          "code": "8743",
+          "description": "Testing Laboratories (Non-Medical)",
+          "confidence": 0.9
+        }
+      ],
+      "naics_codes": [
+        {
+          "code": "524114",
+          "description": "Direct Health and Medical Insurance Carriers",
+          "confidence": 0.9
+        },
+        {
+          "code": "524128",
+          "description": "Other Direct Insurance (except Life, Health, and Medical) Carriers",
+          "confidence": 0.9
+        },
+        {
+          "code": "525120",
+          "description": "Health and Welfare Funds",
+          "confidence": 0.9
+        }
+      ],
+      "sic_codes": [
+        {
+          "code": "6324",
+          "description": "Hospital and Medical Service Plans",
+          "confidence": 0.9
+        },
+        {
+          "code": "6371",
+          "description": "Pension, Health, and Welfare Funds",
+          "confidence": 0.9
+        }
+      ],
+      "explanation": "Primary industry identified as 'Healthcare' with 95% confidence. Fast path: obvious keyword 'clinic' matched industry 'Healthcare' Website URL provided: https://www.mayoclinic.org. Keywords matched: clinic.",
+      "explanation_structured": {
+        "confidence_factors": {
+          "keyword": 0.855,
+          "multi_strategy": 0.95,
+          "overall_confidence": 0.95
+        },
+        "key_terms_found": [
+          "clinic"
+        ],
+        "method_used": "multi_strategy",
+        "primary_reason": "Classified as 'Healthcare' based on strong keyword matches: clinic",
+        "processing_path": "fast_path",
+        "supporting_factors": [
+          "High-quality business information with comprehensive details",
+          "Industry-specific terms found: clinic",
+          "Very high confidence score (95%)"
+        ]
+      },
+      "frontend_data_valid": false,
+      "accuracy": true,
+      "timestamp": "2025-12-21T19:12:30.013053-05:00",
+      "test_category": "healthcare",
+      "scraping_difficulty": "low",
+      "pages_crawled": 0,
+      "pages_analyzed": 0,
+      "crawling_success": false,
+      "robots_txt_respected": false,
+      "structured_data_found": false,
+      "top3_codes_generated": true,
+      "code_confidence_avg": 0.9000000000000001,
+      "code_descriptions_valid": true,
+      "explanation_quality": 0.7999999999999999,
+      "explanation_length": 206,
+      "explanation_keywords": [
+        "primary",
+        "industry",
+        "identified",
+        "'healthcare'",
+        "confidence.",
+        "fast",
+        "path:",
+        "obvious",
+        "keyword",
+        "'clinic'",
+        "matched",
+        "industry",
+        "'healthcare'",
+        "website",
+        "provided:",
+        "https://www.mayoclinic.org.",
+        "keywords",
+        "matched:",
+        "clinic."
+      ],
+      "expected_industry": "healthcare",
+      "industry_match": true,
+      "expected_mcc": [
+        "8011",
+        "8062"
+      ],
+      "mcc_accuracy_score": 0,
+      "naics_accuracy_score": 0,
+      "sic_accuracy_score": 0
+    },
+    {
+      "sample_id": "prof_001",
+      "business_name": "Deloitte",
+      "website_url": "https://www2.deloitte.com",
+      "actual_industry": "Professional, Scientific, and Technical Services",
+      "success": true,
+      "processing_time_ms": 11496,
+      "scraping_time_ms": 0,
+      "classification_time_ms": 11345,
+      "scraping_strategy": "",
+      "early_exit": false,
+      "cache_hit": false,
+      "fallback_used": false,
+      "confidence_score": 0.6503437500000001,
+      "mcc_codes": [
+        {
+          "code": "7392",
+          "description": "Consulting, Management and Public Relations Services",
+          "confidence": 0.9
+        },
+        {
+          "code": "8111",
+          "description": "Legal Services, Attorneys",
+          "confidence": 0.9
+        },
+        {
+          "code": "8721",
+          "description": "Accounting, Auditing, and Bookkeeping Services",
+          "confidence": 0.9
+        }
+      ],
+      "naics_codes": [
+        {
+          "code": "237990",
+          "description": "Other Heavy and Civil Engineering Construction",
+          "confidence": 0.9
+        },
+        {
+          "code": "541110",
+          "description": "Offices of Lawyers",
+          "confidence": 0.9
+        },
+        {
+          "code": "541120",
+          "description": "Offices of Notaries",
+          "confidence": 0.9
+        }
+      ],
+      "sic_codes": [
+        {
+          "code": "8911",
+          "description": "Engineering Services",
+          "confidence": 0.9
+        },
+        {
+          "code": "8922",
+          "description": "Commercial Photography",
+          "confidence": 0.9
+        },
+        {
+          "code": "8931",
+          "description": "Accounting, Auditing, and Bookkeeping Services",
+          "confidence": 0.9
+        }
+      ],
+      "explanation": "Primary industry identified as 'Professional, Scientific, and Technical Services' with 65% confidence. Combined 4 classification strategies using weighted average. Contributions: entity(0.00), keyword(1.00), co_occurrence(0.85). Strategies: entity(0.00), keyword(1.00), co_occurrence(0.85), topic(0.46). Final confidence: 0.61 Website URL provided: https://www2.deloitte.com. Keywords matched: legal, services, consulting, strategy consulting, business consulting, tax services, accounting services, engineering services, marketing services, design services, payroll services, management consulting, hr services, professional services, environmental consulting, technical services, accounting services, engineering services, marketing services, design services, payroll services, hr services, professional services, technical services, tax services, business consulting, consulting, services, management consulting, environmental consulting, strategy consulting, business consulting, hr services, professional services, technical services, tax services, accounting services, engineering services, marketing services, design services, payroll services, services, hr services, accounting services, consultant, services.",
+      "explanation_structured": {
+        "confidence_factors": {
+          "keyword": 0.5853093750000001,
+          "multi_strategy": 0.6503437500000001,
+          "overall_confidence": 0.6503437500000001
+        },
+        "key_terms_found": [
+          "legal",
+          "services",
+          "consulting",
+          "strategy consulting",
+          "business consulting",
+          "tax services",
+          "accounting services",
+          "engineering services",
+          "marketing services",
+          "design services",
+          "payroll services",
+          "management consulting",
+          "hr services",
+          "professional services",
+          "environmental consulting",
+          "technical services",
+          "accounting services",
+          "engineering services",
+          "marketing services",
+          "design services",
+          "payroll services",
+          "hr services",
+          "professional services",
+          "technical services",
+          "tax services",
+          "business consulting",
+          "consulting",
+          "services",
+          "management consulting",
+          "environmental consulting",
+          "strategy consulting",
+          "business consulting",
+          "hr services",
+          "professional services",
+          "technical services",
+          "tax services",
+          "accounting services",
+          "engineering services",
+          "marketing services",
+          "design services",
+          "payroll services",
+          "services",
+          "hr services",
+          "accounting services",
+          "consultant",
+          "services"
+        ],
+        "method_used": "multi_strategy",
+        "primary_reason": "Classification as 'Professional, Scientific, and Technical Services' based on keyword analysis and business information",
+        "processing_path": "full_strategy",
+        "supporting_factors": [
+          "Business information provides good context",
+          "Multiple industry-specific terms found (46 total)"
+        ]
+      },
+      "frontend_data_valid": false,
+      "accuracy": false,
+      "timestamp": "2025-12-21T19:12:42.335611-05:00",
+      "test_category": "consulting",
+      "scraping_difficulty": "low",
+      "pages_crawled": 0,
+      "pages_analyzed": 0,
+      "crawling_success": false,
+      "robots_txt_respected": false,
+      "structured_data_found": false,
+      "top3_codes_generated": true,
+      "code_confidence_avg": 0.9000000000000001,
+      "code_descriptions_valid": true,
+      "explanation_quality": 0.7333333333333333,
+      "explanation_length": 1217,
+      "explanation_keywords": [
+        "primary",
+        "industry",
+        "identified",
+        "'professional,",
+        "scientific,",
+        "technical",
+        "services'",
+        "confidence.",
+        "combined",
+        "classification",
+        "strategies",
+        "using",
+        "weighted",
+        "average.",
+        "contributions:",
+        "entity(0.00),",
+        "keyword(1.00),",
+        "co_occurrence(0.85).",
+        "strategies:",
+        "entity(0.00),",
+        "keyword(1.00),",
+        "co_occurrence(0.85),",
+        "topic(0.46).",
+        "final",
+        "confidence:",
+        "0.61",
+        "website",
+        "provided:",
+        "https://www2.deloitte.com.",
+        "keywords",
+        "matched:",
+        "legal,",
+        "services,",
+        "consulting,",
+        "strategy",
+        "consulting,",
+        "business",
+        "consulting,",
+        "services,",
+        "accounting",
+        "services,",
+        "engineering",
+        "services,",
+        "marketing",
+        "services,",
+        "design",
+        "services,",
+        "payroll",
+        "services,",
+        "management",
+        "consulting,",
+        "services,",
+        "professional",
+        "services,",
+        "environmental",
+        "consulting,",
+        "technical",
+        "services,",
+        "accounting",
+        "services,",
+        "engineering",
+        "services,",
+        "marketing",
+        "services,",
+        "design",
+        "services,",
+        "payroll",
+        "services,",
+        "services,",
+        "professional",
+        "services,",
+        "technical",
+        "services,",
+        "services,",
+        "business",
+        "consulting,",
+        "consulting,",
+        "services,",
+        "management",
+        "consulting,",
+        "environmental",
+        "consulting,",
+        "strategy",
+        "consulting,",
+        "business",
+        "consulting,",
+        "services,",
+        "professional",
+        "services,",
+        "technical",
+        "services,",
+        "services,",
+        "accounting",
+        "services,",
+        "engineering",
+        "services,",
+        "marketing",
+        "services,",
+        "design",
+        "services,",
+        "payroll",
+        "services,",
+        "services,",
+        "services,",
+        "accounting",
+        "services,",
+        "consultant,",
+        "services."
+      ],
+      "expected_industry": "professional services",
+      "expected_mcc": [
+        "8931",
+        "8999"
+      ],
+      "mcc_accuracy_score": 0,
+      "naics_accuracy_score": 0,
+      "sic_accuracy_score": 0
+    },
+    {
+      "sample_id": "finance_005",
+      "business_name": "PayPal",
+      "website_url": "https://www.paypal.com",
+      "actual_industry": "Legal Consulting",
+      "success": true,
+      "processing_time_ms": 12955,
+      "scraping_time_ms": 0,
+      "classification_time_ms": 12923,
+      "scraping_strategy": "",
+      "early_exit": false,
+      "cache_hit": false,
+      "fallback_used": false,
+      "confidence_score": 0.6406968750000002,
+      "mcc_codes": [],
+      "naics_codes": [],
+      "sic_codes": [],
+      "explanation": "Primary industry identified as 'Legal Consulting' with 64% confidence. Combined 4 classification strategies using weighted average. Contributions: keyword(1.00), co_occurrence(0.85), topic(0.41). Strategies: entity(0.00), keyword(1.00), co_occurrence(0.85), topic(0.41). Final confidence: 0.64 Website URL provided: https://www.paypal.com. Keywords matched: legal consulting services, legal consultant, legal expertise, legal advice, legal guidance, legal advisory, legal counsel, legal consultation, legal support, legal assistance, legal consulting.",
+      "explanation_structured": {
+        "confidence_factors": {
+          "keyword": 0.5766271875000002,
+          "multi_strategy": 0.6406968750000002,
+          "overall_confidence": 0.6406968750000002
+        },
+        "key_terms_found": [
+          "legal consulting services",
+          "legal consultant",
+          "legal expertise",
+          "legal advice",
+          "legal guidance",
+          "legal advisory",
+          "legal counsel",
+          "legal consultation",
+          "legal support",
+          "legal assistance",
+          "legal consulting"
+        ],
+        "method_used": "multi_strategy",
+        "primary_reason": "Classification as 'Legal Consulting' based on keyword analysis and business information",
+        "processing_path": "full_strategy",
+        "supporting_factors": [
+          "Business information provides good context",
+          "Multiple industry-specific terms found (11 total)"
+        ]
+      },
+      "frontend_data_valid": false,
+      "accuracy": false,
+      "timestamp": "2025-12-21T19:12:54.334281-05:00",
+      "test_category": "fintech",
+      "scraping_difficulty": "low",
+      "pages_crawled": 0,
+      "pages_analyzed": 0,
+      "crawling_success": false,
+      "robots_txt_respected": false,
+      "structured_data_found": false,
+      "top3_codes_generated": false,
+      "code_confidence_avg": 0,
+      "code_descriptions_valid": false,
+      "explanation_quality": 0.6666666666666666,
+      "explanation_length": 551,
+      "explanation_keywords": [
+        "primary",
+        "industry",
+        "identified",
+        "'legal",
+        "consulting'",
+        "confidence.",
+        "combined",
+        "classification",
+        "strategies",
+        "using",
+        "weighted",
+        "average.",
+        "contributions:",
+        "keyword(1.00),",
+        "co_occurrence(0.85),",
+        "topic(0.41).",
+        "strategies:",
+        "entity(0.00),",
+        "keyword(1.00),",
+        "co_occurrence(0.85),",
+        "topic(0.41).",
+        "final",
+        "confidence:",
+        "0.64",
+        "website",
+        "provided:",
+        "https://www.paypal.com.",
+        "keywords",
+        "matched:",
+        "legal",
+        "consulting",
+        "services,",
+        "legal",
+        "consultant,",
+        "legal",
+        "expertise,",
+        "legal",
+        "advice,",
+        "legal",
+        "guidance,",
+        "legal",
+        "advisory,",
+        "legal",
+        "counsel,",
+        "legal",
+        "consultation,",
+        "legal",
+        "support,",
+        "legal",
+        "assistance,",
+        "legal",
+        "consulting."
+      ],
+      "expected_industry": "financial services",
+      "expected_mcc": [
+        "6012",
+        "5999"
+      ],
+      "mcc_accuracy_score": 0,
+      "naics_accuracy_score": 0,
+      "sic_accuracy_score": 0
+    },
+    {
+      "sample_id": "ent_003",
+      "business_name": "Spotify",
+      "website_url": "https://www.spotify.com",
+      "actual_industry": "Arts, Entertainment, and Recreation",
+      "success": true,
+      "processing_time_ms": 28551,
+      "scraping_time_ms": 0,
+      "classification_time_ms": 28323,
+      "scraping_strategy": "early_exit",
+      "early_exit": true,
+      "cache_hit": false,
+      "fallback_used": false,
+      "confidence_score": 0.95,
+      "mcc_codes": [
+        {
+          "code": "7032",
+          "description": "Sporting and Recreational Camps",
+          "confidence": 0.9
+        },
+        {
+          "code": "7832",
+          "description": "Motion Picture Theaters",
+          "confidence": 0.9
+        },
+        {
+          "code": "7922",
+          "description": "Theatrical Producers and Ticket Agencies",
+          "confidence": 0.7200000000000001
+        }
+      ],
+      "naics_codes": [
+        {
+          "code": "711110",
+          "description": "Theater Companies and Dinner Theaters",
+          "confidence": 0.9
+        },
+        {
+          "code": "711120",
+          "description": "Dance Companies",
+          "confidence": 0.9
+        },
+        {
+          "code": "711130",
+          "description": "Musical Groups and Artists",
+          "confidence": 0.9
+        }
+      ],
+      "sic_codes": [
+        {
+          "code": "7032",
+          "description": "Sporting and Recreational Camps",
+          "confidence": 0.9
+        }
+      ],
+      "explanation": "Primary industry identified as 'Arts, Entertainment, and Recreation' with 95% confidence. Fast path: obvious keyword 'music' matched industry 'Arts, Entertainment, and Recreation' Website URL provided: https://www.spotify.com. Keywords matched: music.",
+      "explanation_structured": {
+        "confidence_factors": {
+          "keyword": 0.855,
+          "multi_strategy": 0.95,
+          "overall_confidence": 0.95
+        },
+        "key_terms_found": [
+          "music"
+        ],
+        "method_used": "multi_strategy",
+        "primary_reason": "Classified as 'Arts, Entertainment, and Recreation' based on strong keyword matches: music",
+        "processing_path": "fast_path",
+        "supporting_factors": [
+          "High-quality business information with comprehensive details",
+          "Industry-specific terms found: music",
+          "Very high confidence score (95%)"
+        ]
+      },
+      "frontend_data_valid": false,
+      "accuracy": false,
+      "timestamp": "2025-12-21T19:12:39.604268-05:00",
+      "test_category": "entertainment",
+      "scraping_difficulty": "low",
+      "pages_crawled": 0,
+      "pages_analyzed": 0,
+      "crawling_success": false,
+      "robots_txt_respected": false,
+      "structured_data_found": false,
+      "top3_codes_generated": true,
+      "code_confidence_avg": 0.8742857142857144,
+      "code_descriptions_valid": true,
+      "explanation_quality": 0.7999999999999999,
+      "explanation_length": 251,
+      "explanation_keywords": [
+        "primary",
+        "industry",
+        "identified",
+        "'arts,",
+        "entertainment,",
+        "recreation'",
+        "confidence.",
+        "fast",
+        "path:",
+        "obvious",
+        "keyword",
+        "'music'",
+        "matched",
+        "industry",
+        "'arts,",
+        "entertainment,",
+        "recreation'",
+        "website",
+        "provided:",
+        "https://www.spotify.com.",
+        "keywords",
+        "matched:",
+        "music."
+      ],
+      "expected_industry": "arts \u0026 entertainment",
+      "expected_mcc": [
+        "5735",
+        "7829"
+      ],
+      "mcc_accuracy_score": 0,
+      "naics_accuracy_score": 0,
+      "sic_accuracy_score": 0
+    },
+    {
+      "sample_id": "prof_002",
+      "business_name": "PricewaterhouseCoopers",
+      "website_url": "https://www.pwc.com",
+      "actual_industry": "",
+      "success": false,
+      "processing_time_ms": 40956,
+      "scraping_time_ms": 0,
+      "classification_time_ms": 0,
+      "scraping_strategy": "",
+      "early_exit": false,
+      "cache_hit": false,
+      "fallback_used": false,
+      "confidence_score": 0,
+      "mcc_codes": null,
+      "naics_codes": null,
+      "sic_codes": null,
+      "explanation": "",
+      "frontend_data_valid": false,
+      "accuracy": false,
+      "timestamp": "2025-12-21T19:12:44.789808-05:00",
+      "test_category": "consulting",
+      "scraping_difficulty": "low",
+      "pages_crawled": 0,
+      "pages_analyzed": 0,
+      "crawling_success": false,
+      "robots_txt_respected": false,
+      "structured_data_found": false,
+      "top3_codes_generated": false,
+      "code_confidence_avg": 0,
+      "code_descriptions_valid": false,
+      "explanation_quality": 0,
+      "explanation_length": 0,
+      "expected_industry": "professional services",
+      "expected_mcc": [
+        "8931",
+        "8999"
+      ],
+      "mcc_accuracy_score": 0,
+      "naics_accuracy_score": 0,
+      "sic_accuracy_score": 0
+    },
+    {
+      "sample_id": "energy_001",
+      "business_name": "ExxonMobil",
+      "website_url": "https://www.exxonmobil.com",
+      "actual_industry": "Energy Services",
+      "success": true,
+      "processing_time_ms": 2523,
+      "scraping_time_ms": 0,
+      "classification_time_ms": 2497,
+      "scraping_strategy": "early_exit",
+      "early_exit": true,
+      "cache_hit": false,
+      "fallback_used": false,
+      "confidence_score": 0.95,
+      "mcc_codes": [],
+      "naics_codes": [],
+      "sic_codes": [],
+      "explanation": "Primary industry identified as 'Energy Services' with 95% confidence. Combined 4 classification strategies using weighted average. Contributions: keyword(1.00), co_occurrence(0.85), topic(0.46). Strategies: entity(1.00), keyword(1.00), co_occurrence(0.85), topic(0.46). Final confidence: 0.65 Website URL provided: https://www.exxonmobil.com. Keywords matched: energy, energy efficiency, energy solutions, energy services company, energy optimization, energy management, energy services, energy audit, energy consulting, energy conservation, energy solutions.",
+      "explanation_structured": {
+        "confidence_factors": {
+          "keyword": 0.855,
+          "multi_strategy": 0.95,
+          "overall_confidence": 0.95
+        },
+        "key_terms_found": [
+          "energy",
+          "energy efficiency",
+          "energy solutions",
+          "energy services company",
+          "energy optimization",
+          "energy management",
+          "energy services",
+          "energy audit",
+          "energy consulting",
+          "energy conservation",
+          "energy solutions"
+        ],
+        "method_used": "multi_strategy",
+        "primary_reason": "Classified as 'Energy Services' based on strong keyword matches: energy, energy efficiency, energy solutions",
+        "processing_path": "full_strategy",
+        "supporting_factors": [
+          "High-quality business information with comprehensive details",
+          "Multiple industry-specific terms found (11 total)",
+          "Very high confidence score (95%)"
+        ]
+      },
+      "frontend_data_valid": false,
+      "accuracy": false,
+      "timestamp": "2025-12-21T19:13:26.249239-05:00",
+      "test_category": "energy",
+      "scraping_difficulty": "low",
+      "pages_crawled": 0,
+      "pages_analyzed": 0,
+      "crawling_success": false,
+      "robots_txt_respected": false,
+      "structured_data_found": false,
+      "top3_codes_generated": false,
+      "code_confidence_avg": 0,
+      "code_descriptions_valid": false,
+      "explanation_quality": 0.6666666666666666,
+      "explanation_length": 559,
+      "explanation_keywords": [
+        "primary",
+        "industry",
+        "identified",
+        "'energy",
+        "services'",
+        "confidence.",
+        "combined",
+        "classification",
+        "strategies",
+        "using",
+        "weighted",
+        "average.",
+        "contributions:",
+        "keyword(1.00),",
+        "co_occurrence(0.85),",
+        "topic(0.46).",
+        "strategies:",
+        "entity(1.00),",
+        "keyword(1.00),",
+        "co_occurrence(0.85),",
+        "topic(0.46).",
+        "final",
+        "confidence:",
+        "0.65",
+        "website",
+        "provided:",
+        "https://www.exxonmobil.com.",
+        "keywords",
+        "matched:",
+        "energy,",
+        "energy",
+        "efficiency,",
+        "energy",
+        "solutions,",
+        "energy",
+        "services",
+        "company,",
+        "energy",
+        "optimization,",
+        "energy",
+        "management,",
+        "energy",
+        "services,",
+        "energy",
+        "audit,",
+        "energy",
+        "consulting,",
+        "energy",
+        "conservation,",
+        "energy",
+        "solutions."
+      ],
+      "expected_industry": "energy",
+      "expected_mcc": [
+        "5542",
+        "5541"
+      ],
+      "mcc_accuracy_score": 0,
+      "naics_accuracy_score": 0,
+      "sic_accuracy_score": 0
+    },
+    {
+      "sample_id": "prof_003",
+      "business_name": "Ernst \u0026 Young",
+      "website_url": "https://www.ey.com",
+      "actual_industry": "Professional, Scientific, and Technical Services",
+      "success": true,
+      "processing_time_ms": 6447,
+      "scraping_time_ms": 0,
+      "classification_time_ms": 6404,
+      "scraping_strategy": "",
+      "early_exit": false,
+      "cache_hit": false,
+      "fallback_used": false,
+      "confidence_score": 0.65034375,
+      "mcc_codes": [
+        {
+          "code": "7392",
+          "description": "Consulting, Management and Public Relations Services",
+          "confidence": 0.9
+        },
+        {
+          "code": "8111",
+          "description": "Legal Services, Attorneys",
+          "confidence": 0.9
+        },
+        {
+          "code": "8721",
+          "description": "Accounting, Auditing, and Bookkeeping Services",
+          "confidence": 0.9
+        }
+      ],
+      "naics_codes": [
+        {
+          "code": "237990",
+          "description": "Other Heavy and Civil Engineering Construction",
+          "confidence": 0.9
+        },
+        {
+          "code": "541110",
+          "description": "Offices of Lawyers",
+          "confidence": 0.9
+        },
+        {
+          "code": "541120",
+          "description": "Offices of Notaries",
+          "confidence": 0.9
+        }
+      ],
+      "sic_codes": [
+        {
+          "code": "8911",
+          "description": "Engineering Services",
+          "confidence": 0.9
+        },
+        {
+          "code": "8922",
+          "description": "Commercial Photography",
+          "confidence": 0.9
+        },
+        {
+          "code": "8931",
+          "description": "Accounting, Auditing, and Bookkeeping Services",
+          "confidence": 0.9
+        }
+      ],
+      "explanation": "Primary industry identified as 'Professional, Scientific, and Technical Services' with 65% confidence. Combined 4 classification strategies using weighted average. Contributions: entity(0.00), keyword(1.00), co_occurrence(0.85). Strategies: entity(0.00), keyword(1.00), co_occurrence(0.85), topic(0.46). Final confidence: 0.61 Website URL provided: https://www.ey.com. Keywords matched: advisory, services, consulting, strategy consulting, advisor, financial advisory, tax services, accounting services, engineering services, marketing services, design services, payroll services, hr services, professional services, technical services, tax services, accounting services, engineering services, marketing services, design services, payroll services, services, hr services, professional services, technical services, strategy consulting, business consulting, management consulting, environmental consulting, advisor, hr services, services, consultant.",
+      "explanation_structured": {
+        "confidence_factors": {
+          "keyword": 0.585309375,
+          "multi_strategy": 0.65034375,
+          "overall_confidence": 0.65034375
+        },
+        "key_terms_found": [
+          "advisory",
+          "services",
+          "consulting",
+          "strategy consulting",
+          "advisor",
+          "financial advisory",
+          "tax services",
+          "accounting services",
+          "engineering services",
+          "marketing services",
+          "design services",
+          "payroll services",
+          "hr services",
+          "professional services",
+          "technical services",
+          "tax services",
+          "accounting services",
+          "engineering services",
+          "marketing services",
+          "design services",
+          "payroll services",
+          "services",
+          "hr services",
+          "professional services",
+          "technical services",
+          "strategy consulting",
+          "business consulting",
+          "management consulting",
+          "environmental consulting",
+          "advisor",
+          "hr services",
+          "services",
+          "consultant"
+        ],
+        "method_used": "multi_strategy",
+        "primary_reason": "Classification as 'Professional, Scientific, and Technical Services' based on keyword analysis and business information",
+        "processing_path": "full_strategy",
+        "supporting_factors": [
+          "Business information provides good context",
+          "Multiple industry-specific terms found (33 total)"
+        ]
+      },
+      "frontend_data_valid": false,
+      "accuracy": false,
+      "timestamp": "2025-12-21T19:13:29.275916-05:00",
+      "test_category": "consulting",
+      "scraping_difficulty": "low",
+      "pages_crawled": 0,
+      "pages_analyzed": 0,
+      "crawling_success": false,
+      "robots_txt_respected": false,
+      "structured_data_found": false,
+      "top3_codes_generated": true,
+      "code_confidence_avg": 0.9000000000000001,
+      "code_descriptions_valid": true,
+      "explanation_quality": 0.7333333333333333,
+      "explanation_length": 949,
+      "explanation_keywords": [
+        "primary",
+        "industry",
+        "identified",
+        "'professional,",
+        "scientific,",
+        "technical",
+        "services'",
+        "confidence.",
+        "combined",
+        "classification",
+        "strategies",
+        "using",
+        "weighted",
+        "average.",
+        "contributions:",
+        "entity(0.00),",
+        "keyword(1.00),",
+        "co_occurrence(0.85).",
+        "strategies:",
+        "entity(0.00),",
+        "keyword(1.00),",
+        "co_occurrence(0.85),",
+        "topic(0.46).",
+        "final",
+        "confidence:",
+        "0.61",
+        "website",
+        "provided:",
+        "https://www.ey.com.",
+        "keywords",
+        "matched:",
+        "advisory,",
+        "services,",
+        "consulting,",
+        "strategy",
+        "consulting,",
+        "advisor,",
+        "financial",
+        "advisory,",
+        "services,",
+        "accounting",
+        "services,",
+        "engineering",
+        "services,",
+        "marketing",
+        "services,",
+        "design",
+        "services,",
+        "payroll",
+        "services,",
+        "services,",
+        "professional",
+        "services,",
+        "technical",
+        "services,",
+        "services,",
+        "accounting",
+        "services,",
+        "engineering",
+        "services,",
+        "marketing",
+        "services,",
+        "design",
+        "services,",
+        "payroll",
+        "services,",
+        "services,",
+        "services,",
+        "professional",
+        "services,",
+        "technical",
+        "services,",
+        "strategy",
+        "consulting,",
+        "business",
+        "consulting,",
+        "management",
+        "consulting,",
+        "environmental",
+        "consulting,",
+        "advisor,",
+        "services,",
+        "services,",
+        "consultant."
+      ],
+      "expected_industry": "professional services",
+      "expected_mcc": [
+        "8931",
+        "8999"
+      ],
+      "mcc_accuracy_score": 0,
+      "naics_accuracy_score": 0,
+      "sic_accuracy_score": 0
+    },
+    {
+      "sample_id": "real_001",
+      "business_name": "Zillow",
+      "website_url": "https://www.zillow.com",
+      "actual_industry": "Real Estate",
+      "success": true,
+      "processing_time_ms": 6573,
+      "scraping_time_ms": 0,
+      "classification_time_ms": 6523,
+      "scraping_strategy": "early_exit",
+      "early_exit": true,
+      "cache_hit": false,
+      "fallback_used": false,
+      "confidence_score": 0.95,
+      "mcc_codes": [],
+      "naics_codes": [],
+      "sic_codes": [],
+      "explanation": "Primary industry identified as 'Real Estate' with 95% confidence. Fast path: obvious keyword 'real estate' matched industry 'Real Estate' Website URL provided: https://www.zillow.com. Keywords matched: real estate.",
+      "explanation_structured": {
+        "confidence_factors": {
+          "keyword": 0.855,
+          "multi_strategy": 0.95,
+          "overall_confidence": 0.95
+        },
+        "key_terms_found": [
+          "real estate"
+        ],
+        "method_used": "multi_strategy",
+        "primary_reason": "Classified as 'Real Estate' based on strong keyword matches: real estate",
+        "processing_path": "fast_path",
+        "supporting_factors": [
+          "High-quality business information with comprehensive details",
+          "Industry-specific terms found: real estate",
+          "Very high confidence score (95%)"
+        ]
+      },
+      "frontend_data_valid": false,
+      "accuracy": true,
+      "timestamp": "2025-12-21T19:13:36.225455-05:00",
+      "test_category": "real estate",
+      "scraping_difficulty": "medium",
+      "pages_crawled": 0,
+      "pages_analyzed": 0,
+      "crawling_success": false,
+      "robots_txt_respected": false,
+      "structured_data_found": false,
+      "top3_codes_generated": false,
+      "code_confidence_avg": 0,
+      "code_descriptions_valid": false,
+      "explanation_quality": 0.7999999999999999,
+      "explanation_length": 214,
+      "explanation_keywords": [
+        "primary",
+        "industry",
+        "identified",
+        "'real",
+        "estate'",
+        "confidence.",
+        "fast",
+        "path:",
+        "obvious",
+        "keyword",
+        "'real",
+        "estate'",
+        "matched",
+        "industry",
+        "'real",
+        "estate'",
+        "website",
+        "provided:",
+        "https://www.zillow.com.",
+        "keywords",
+        "matched:",
+        "real",
+        "estate."
+      ],
+      "expected_industry": "real estate",
+      "industry_match": true,
+      "expected_mcc": [
+        "6513",
+        "6531"
+      ],
+      "mcc_accuracy_score": 0,
+      "naics_accuracy_score": 0,
+      "sic_accuracy_score": 0
+    },
+    {
+      "sample_id": "mfg_001",
+      "business_name": "Tesla",
+      "website_url": "https://www.tesla.com",
+      "actual_industry": "",
+      "success": false,
+      "processing_time_ms": 60000,
+      "scraping_time_ms": 0,
+      "classification_time_ms": 0,
+      "scraping_strategy": "",
+      "early_exit": false,
+      "cache_hit": false,
+      "fallback_used": false,
+      "confidence_score": 0,
+      "mcc_codes": null,
+      "naics_codes": null,
+      "sic_codes": null,
+      "explanation": "",
+      "error": "Request timeout: Post \"https://classification-service-production.up.railway.app/v1/classify\": context deadline exceeded",
+      "frontend_data_valid": false,
+      "accuracy": false,
+      "timestamp": "2025-12-21T19:13:07.791301-05:00",
+      "test_category": "manufacturing",
+      "scraping_difficulty": "low",
+      "pages_crawled": 0,
+      "pages_analyzed": 0,
+      "crawling_success": false,
+      "robots_txt_respected": false,
+      "structured_data_found": false,
+      "top3_codes_generated": false,
+      "code_confidence_avg": 0,
+      "code_descriptions_valid": false,
+      "explanation_quality": 0,
+      "explanation_length": 0,
+      "expected_industry": "manufacturing",
+      "expected_mcc": [
+        "5511",
+        "5533"
+      ],
+      "mcc_accuracy_score": 0,
+      "naics_accuracy_score": 0,
+      "sic_accuracy_score": 0,
+      "error_type": "timeout_error"
+    },
+    {
+      "sample_id": "trans_002",
+      "business_name": "FedEx",
+      "website_url": "https://www.fedex.com",
+      "actual_industry": "",
+      "success": false,
+      "processing_time_ms": 60000,
+      "scraping_time_ms": 0,
+      "classification_time_ms": 0,
+      "scraping_strategy": "",
+      "early_exit": false,
+      "cache_hit": false,
+      "fallback_used": false,
+      "confidence_score": 0,
+      "mcc_codes": null,
+      "naics_codes": null,
+      "sic_codes": null,
+      "explanation": "",
+      "error": "Request timeout: Post \"https://classification-service-production.up.railway.app/v1/classify\": context deadline exceeded",
+      "frontend_data_valid": false,
+      "accuracy": false,
+      "timestamp": "2025-12-21T19:13:08.65821-05:00",
+      "test_category": "transportation",
+      "scraping_difficulty": "medium",
+      "pages_crawled": 0,
+      "pages_analyzed": 0,
+      "crawling_success": false,
+      "robots_txt_respected": false,
+      "structured_data_found": false,
+      "top3_codes_generated": false,
+      "code_confidence_avg": 0,
+      "code_descriptions_valid": false,
+      "explanation_quality": 0,
+      "explanation_length": 0,
+      "expected_industry": "transportation",
+      "expected_mcc": [
+        "4214",
+        "4215"
+      ],
+      "mcc_accuracy_score": 0,
+      "naics_accuracy_score": 0,
+      "sic_accuracy_score": 0,
+      "error_type": "timeout_error"
+    },
+    {
+      "sample_id": "tech_002",
+      "business_name": "Apple",
+      "website_url": "https://www.apple.com",
+      "actual_industry": "Technology",
+      "success": true,
+      "processing_time_ms": 7412,
+      "scraping_time_ms": 0,
+      "classification_time_ms": 7318,
+      "scraping_strategy": "early_exit",
+      "early_exit": true,
+      "cache_hit": false,
+      "fallback_used": false,
+      "confidence_score": 0.95,
+      "mcc_codes": [
+        {
+          "code": "1711",
+          "description": "Air Conditioning, Heating and Plumbing Contractors",
+          "confidence": 0.9
+        },
+        {
+          "code": "2842",
+          "description": "Sanitation, Polishing and Specialty Cleaning Preparations",
+          "confidence": 0.9
+        },
+        {
+          "code": "3000",
+          "description": "United Airlines",
+          "confidence": 0.9
+        }
+      ],
+      "naics_codes": [
+        {
+          "code": "115114",
+          "description": "Postharvest Crop Activities (except Cotton Ginning)",
+          "confidence": 0.9
+        },
+        {
+          "code": "115210",
+          "description": "Support Activities for Animal Production",
+          "confidence": 0.9
+        },
+        {
+          "code": "115310",
+          "description": "Support Activities for Forestry",
+          "confidence": 0.9
+        }
+      ],
+      "sic_codes": [
+        {
+          "code": "1711",
+          "description": "Plumbing, Heating and Air-Conditioning",
+          "confidence": 0.9
+        },
+        {
+          "code": "1721",
+          "description": "Painting and Paper Hanging",
+          "confidence": 0.9
+        },
+        {
+          "code": "1743",
+          "description": "Terrazzo, Tile, Marble, and Mosaic Work",
+          "confidence": 0.9
+        }
+      ],
+      "explanation": "Primary industry identified as 'Technology' with 95% confidence. Fast path: obvious keyword 'software' matched industry 'Technology' Website URL provided: https://www.apple.com. Keywords matched: software.",
+      "explanation_structured": {
+        "confidence_factors": {
+          "keyword": 0.855,
+          "multi_strategy": 0.95,
+          "overall_confidence": 0.95
+        },
+        "key_terms_found": [
+          "software"
+        ],
+        "method_used": "multi_strategy",
+        "primary_reason": "Classified as 'Technology' based on strong keyword matches: software",
+        "processing_path": "fast_path",
+        "supporting_factors": [
+          "High-quality business information with comprehensive details",
+          "Industry-specific terms found: software",
+          "Very high confidence score (95%)"
+        ]
+      },
+      "frontend_data_valid": false,
+      "accuracy": true,
+      "timestamp": "2025-12-21T19:14:09.161357-05:00",
+      "test_category": "technology",
+      "scraping_difficulty": "low",
+      "pages_crawled": 0,
+      "pages_analyzed": 0,
+      "crawling_success": false,
+      "robots_txt_respected": false,
+      "structured_data_found": false,
+      "top3_codes_generated": true,
+      "code_confidence_avg": 0.9000000000000001,
+      "code_descriptions_valid": true,
+      "explanation_quality": 0.7999999999999999,
+      "explanation_length": 205,
+      "explanation_keywords": [
+        "primary",
+        "industry",
+        "identified",
+        "'technology'",
+        "confidence.",
+        "fast",
+        "path:",
+        "obvious",
+        "keyword",
+        "'software'",
+        "matched",
+        "industry",
+        "'technology'",
+        "website",
+        "provided:",
+        "https://www.apple.com.",
+        "keywords",
+        "matched:",
+        "software."
+      ],
+      "expected_industry": "technology",
+      "industry_match": true,
+      "expected_mcc": [
+        "5734",
+        "7372"
+      ],
+      "mcc_accuracy_score": 0,
+      "naics_accuracy_score": 0,
+      "sic_accuracy_score": 0
+    },
+    {
+      "sample_id": "gen_047",
+      "business_name": "Coastal technology Company",
+      "website_url": "https://www.coastaltechnologycompany.com",
+      "actual_industry": "",
+      "success": false,
+      "processing_time_ms": 60000,
+      "scraping_time_ms": 0,
+      "classification_time_ms": 0,
+      "scraping_strategy": "",
+      "early_exit": false,
+      "cache_hit": false,
+      "fallback_used": false,
+      "confidence_score": 0,
+      "mcc_codes": null,
+      "naics_codes": null,
+      "sic_codes": null,
+      "explanation": "",
+      "error": "Request timeout: Post \"https://classification-service-production.up.railway.app/v1/classify\": context deadline exceeded",
+      "frontend_data_valid": false,
+      "accuracy": false,
+      "timestamp": "2025-12-21T19:13:43.301596-05:00",
+      "test_category": "saas",
+      "scraping_difficulty": "medium",
+      "pages_crawled": 0,
+      "pages_analyzed": 0,
+      "crawling_success": false,
+      "robots_txt_respected": false,
+      "structured_data_found": false,
+      "top3_codes_generated": false,
+      "code_confidence_avg": 0,
+      "code_descriptions_valid": false,
+      "explanation_quality": 0,
+      "explanation_length": 0,
+      "expected_industry": "technology",
+      "expected_mcc": [
+        "5734",
+        "7372"
+      ],
+      "mcc_accuracy_score": 0,
+      "naics_accuracy_score": 0,
+      "sic_accuracy_score": 0,
+      "error_type": "timeout_error"
+    },
+    {
+      "sample_id": "gen_044",
+      "business_name": "National technology Systems",
+      "website_url": "https://www.nationaltechnologysystems.com",
+      "actual_industry": "",
+      "success": false,
+      "processing_time_ms": 60001,
+      "scraping_time_ms": 0,
+      "classification_time_ms": 0,
+      "scraping_strategy": "",
+      "early_exit": false,
+      "cache_hit": false,
+      "fallback_used": false,
+      "confidence_score": 0,
+      "mcc_codes": null,
+      "naics_codes": null,
+      "sic_codes": null,
+      "explanation": "",
+      "error": "Request timeout: Post \"https://classification-service-production.up.railway.app/v1/classify\": context deadline exceeded",
+      "frontend_data_valid": false,
+      "accuracy": false,
+      "timestamp": "2025-12-21T19:14:08.294332-05:00",
+      "test_category": "saas",
+      "scraping_difficulty": "medium",
+      "pages_crawled": 0,
+      "pages_analyzed": 0,
+      "crawling_success": false,
+      "robots_txt_respected": false,
+      "structured_data_found": false,
+      "top3_codes_generated": false,
+      "code_confidence_avg": 0,
+      "code_descriptions_valid": false,
+      "explanation_quality": 0,
+      "explanation_length": 0,
+      "expected_industry": "technology",
+      "expected_mcc": [
+        "5734",
+        "7372"
+      ],
+      "mcc_accuracy_score": 0,
+      "naics_accuracy_score": 0,
+      "sic_accuracy_score": 0,
+      "error_type": "timeout_error"
+    },
+    {
+      "sample_id": "const_001",
+      "business_name": "Caterpillar",
+      "website_url": "https://www.caterpillar.com",
+      "actual_industry": "",
+      "success": false,
+      "processing_time_ms": 60000,
+      "scraping_time_ms": 0,
+      "classification_time_ms": 0,
+      "scraping_strategy": "",
+      "early_exit": false,
+      "cache_hit": false,
+      "fallback_used": false,
+      "confidence_score": 0,
+      "mcc_codes": null,
+      "naics_codes": null,
+      "sic_codes": null,
+      "explanation": "",
+      "error": "Request timeout: Post \"https://classification-service-production.up.railway.app/v1/classify\": context deadline exceeded",
+      "frontend_data_valid": false,
+      "accuracy": false,
+      "timestamp": "2025-12-21T19:14:17.075005-05:00",
+      "test_category": "manufacturing",
+      "scraping_difficulty": "low",
+      "pages_crawled": 0,
+      "pages_analyzed": 0,
+      "crawling_success": false,
+      "robots_txt_respected": false,
+      "structured_data_found": false,
+      "top3_codes_generated": false,
+      "code_confidence_avg": 0,
+      "code_descriptions_valid": false,
+      "explanation_quality": 0,
+      "explanation_length": 0,
+      "expected_industry": "construction",
+      "expected_mcc": [
+        "5082",
+        "5083"
+      ],
+      "mcc_accuracy_score": 0,
+      "naics_accuracy_score": 0,
+      "sic_accuracy_score": 0,
+      "error_type": "timeout_error"
+    },
+    {
+      "sample_id": "gen_043",
+      "business_name": "Ultimate technology Solutions",
+      "website_url": "https://www.ultimatetechnologysolutions.com",
+      "actual_industry": "",
+      "success": false,
+      "processing_time_ms": 60000,
+      "scraping_time_ms": 0,
+      "classification_time_ms": 0,
+      "scraping_strategy": "",
+      "early_exit": false,
+      "cache_hit": false,
+      "fallback_used": false,
+      "confidence_score": 0,
+      "mcc_codes": null,
+      "naics_codes": null,
+      "sic_codes": null,
+      "explanation": "",
+      "error": "Request timeout: Post \"https://classification-service-production.up.railway.app/v1/classify\": context deadline exceeded",
+      "frontend_data_valid": false,
+      "accuracy": false,
+      "timestamp": "2025-12-21T19:14:43.804032-05:00",
+      "test_category": "software",
+      "scraping_difficulty": "medium",
+      "pages_crawled": 0,
+      "pages_analyzed": 0,
+      "crawling_success": false,
+      "robots_txt_respected": false,
+      "structured_data_found": false,
+      "top3_codes_generated": false,
+      "code_confidence_avg": 0,
+      "code_descriptions_valid": false,
+      "explanation_quality": 0,
+      "explanation_length": 0,
+      "expected_industry": "technology",
+      "expected_mcc": [
+        "5734",
+        "7372"
+      ],
+      "mcc_accuracy_score": 0,
+      "naics_accuracy_score": 0,
+      "sic_accuracy_score": 0,
+      "error_type": "timeout_error"
+    },
+    {
+      "sample_id": "gen_049",
+      "business_name": "Services technology Holdings",
+      "website_url": "https://www.servicestechnologyholdings.com",
+      "actual_industry": "",
+      "success": false,
+      "processing_time_ms": 60000,
+      "scraping_time_ms": 0,
+      "classification_time_ms": 0,
+      "scraping_strategy": "",
+      "early_exit": false,
+      "cache_hit": false,
+      "fallback_used": false,
+      "confidence_score": 0,
+      "mcc_codes": null,
+      "naics_codes": null,
+      "sic_codes": null,
+      "explanation": "",
+      "error": "Request timeout: Post \"https://classification-service-production.up.railway.app/v1/classify\": context deadline exceeded",
+      "frontend_data_valid": false,
+      "accuracy": false,
+      "timestamp": "2025-12-21T19:15:08.798051-05:00",
+      "test_category": "software",
+      "scraping_difficulty": "medium",
+      "pages_crawled": 0,
+      "pages_analyzed": 0,
+      "crawling_success": false,
+      "robots_txt_respected": false,
+      "structured_data_found": false,
+      "top3_codes_generated": false,
+      "code_confidence_avg": 0,
+      "code_descriptions_valid": false,
+      "explanation_quality": 0,
+      "explanation_length": 0,
+      "expected_industry": "technology",
+      "expected_mcc": [
+        "5734",
+        "7372"
+      ],
+      "mcc_accuracy_score": 0,
+      "naics_accuracy_score": 0,
+      "sic_accuracy_score": 0,
+      "error_type": "timeout_error"
+    },
+    {
+      "sample_id": "gen_048",
+      "business_name": "Valley technology Associates",
+      "website_url": "https://www.valleytechnologyassociates.com",
+      "actual_industry": "",
+      "success": false,
+      "processing_time_ms": 60002,
+      "scraping_time_ms": 0,
+      "classification_time_ms": 0,
+      "scraping_strategy": "",
+      "early_exit": false,
+      "cache_hit": false,
+      "fallback_used": false,
+      "confidence_score": 0,
+      "mcc_codes": null,
+      "naics_codes": null,
+      "sic_codes": null,
+      "explanation": "",
+      "error": "Request timeout: Post \"https://classification-service-production.up.railway.app/v1/classify\": context deadline exceeded",
+      "frontend_data_valid": false,
+      "accuracy": false,
+      "timestamp": "2025-12-21T19:15:17.57851-05:00",
+      "test_category": "tech",
+      "scraping_difficulty": "medium",
+      "pages_crawled": 0,
+      "pages_analyzed": 0,
+      "crawling_success": false,
+      "robots_txt_respected": false,
+      "structured_data_found": false,
+      "top3_codes_generated": false,
+      "code_confidence_avg": 0,
+      "code_descriptions_valid": false,
+      "explanation_quality": 0,
+      "explanation_length": 0,
+      "expected_industry": "technology",
+      "expected_mcc": [
+        "5734",
+        "7372"
+      ],
+      "mcc_accuracy_score": 0,
+      "naics_accuracy_score": 0,
+      "sic_accuracy_score": 0,
+      "error_type": "timeout_error"
+    },
+    {
+      "sample_id": "gen_050",
+      "business_name": "Corp technology Solutions",
+      "website_url": "https://www.corptechnologysolutions.com",
+      "actual_industry": "",
+      "success": false,
+      "processing_time_ms": 60000,
+      "scraping_time_ms": 0,
+      "classification_time_ms": 0,
+      "scraping_strategy": "",
+      "early_exit": false,
+      "cache_hit": false,
+      "fallback_used": false,
+      "confidence_score": 0,
+      "mcc_codes": null,
+      "naics_codes": null,
+      "sic_codes": null,
+      "explanation": "",
+      "error": "Request timeout: Post \"https://classification-service-production.up.railway.app/v1/classify\": context deadline exceeded",
+      "frontend_data_valid": false,
+      "accuracy": false,
+      "timestamp": "2025-12-21T19:15:44.30672-05:00",
+      "test_category": "saas",
+      "scraping_difficulty": "medium",
+      "pages_crawled": 0,
+      "pages_analyzed": 0,
+      "crawling_success": false,
+      "robots_txt_respected": false,
+      "structured_data_found": false,
+      "top3_codes_generated": false,
+      "code_confidence_avg": 0,
+      "code_descriptions_valid": false,
+      "explanation_quality": 0,
+      "explanation_length": 0,
+      "expected_industry": "technology",
+      "expected_mcc": [
+        "5734",
+        "7372"
+      ],
+      "mcc_accuracy_score": 0,
+      "naics_accuracy_score": 0,
+      "sic_accuracy_score": 0,
+      "error_type": "timeout_error"
+    },
+    {
+      "sample_id": "gen_045",
+      "business_name": "Local technology Industries",
+      "website_url": "https://www.localtechnologyindustries.com",
+      "actual_industry": "",
+      "success": false,
+      "processing_time_ms": 60000,
+      "scraping_time_ms": 0,
+      "classification_time_ms": 0,
+      "scraping_strategy": "",
+      "early_exit": false,
+      "cache_hit": false,
+      "fallback_used": false,
+      "confidence_score": 0,
+      "mcc_codes": null,
+      "naics_codes": null,
+      "sic_codes": null,
+      "explanation": "",
+      "error": "Request timeout: Post \"https://classification-service-production.up.railway.app/v1/classify\": context deadline exceeded",
+      "frontend_data_valid": false,
+      "accuracy": false,
+      "timestamp": "2025-12-21T19:16:09.301694-05:00",
+      "test_category": "tech",
+      "scraping_difficulty": "medium",
+      "pages_crawled": 0,
+      "pages_analyzed": 0,
+      "crawling_success": false,
+      "robots_txt_respected": false,
+      "structured_data_found": false,
+      "top3_codes_generated": false,
+      "code_confidence_avg": 0,
+      "code_descriptions_valid": false,
+      "explanation_quality": 0,
+      "explanation_length": 0,
+      "expected_industry": "technology",
+      "expected_mcc": [
+        "5734",
+        "7372"
+      ],
+      "mcc_accuracy_score": 0,
+      "naics_accuracy_score": 0,
+      "sic_accuracy_score": 0,
+      "error_type": "timeout_error"
+    },
+    {
+      "sample_id": "gen_046",
+      "business_name": "City technology Group",
+      "website_url": "https://www.citytechnologygroup.com",
+      "actual_industry": "",
+      "success": false,
+      "processing_time_ms": 60000,
+      "scraping_time_ms": 0,
+      "classification_time_ms": 0,
+      "scraping_strategy": "",
+      "early_exit": false,
+      "cache_hit": false,
+      "fallback_used": false,
+      "confidence_score": 0,
+      "mcc_codes": null,
+      "naics_codes": null,
+      "sic_codes": null,
+      "explanation": "",
+      "error": "Request timeout: Post \"https://classification-service-production.up.railway.app/v1/classify\": context deadline exceeded",
+      "frontend_data_valid": false,
+      "accuracy": false,
+      "timestamp": "2025-12-21T19:16:18.084358-05:00",
+      "test_category": "software",
+      "scraping_difficulty": "medium",
+      "pages_crawled": 0,
+      "pages_analyzed": 0,
+      "crawling_success": false,
+      "robots_txt_respected": false,
+      "structured_data_found": false,
+      "top3_codes_generated": false,
+      "code_confidence_avg": 0,
+      "code_descriptions_valid": false,
+      "explanation_quality": 0,
+      "explanation_length": 0,
+      "expected_industry": "technology",
+      "expected_mcc": [
+        "5734",
+        "7372"
+      ],
+      "mcc_accuracy_score": 0,
+      "naics_accuracy_score": 0,
+      "sic_accuracy_score": 0,
+      "error_type": "timeout_error"
+    }
+  ],
+  "error_analysis": {
+    "error_distribution": {
+      "timeout_error": 15
+    },
+    "error_rate": 0.3
+  },
+  "explanation_metrics": {
+    "average_explanation_length": 329,
+    "average_explanation_quality": 0.7812500000000004,
+    "explanation_generation_rate": 0.64
+  },
+  "performance_metrics": {
+    "average_latency_ms": 25593,
+    "cache_hit_rate": 0,
+    "early_exit_rate": 0.58,
+    "fallback_rate": 0,
+    "p50_latency_ms": 11496,
+    "p95_latency_ms": 60001,
+    "p99_latency_ms": 60002
+  },
+  "scraping_metrics": {
+    "average_pages_crawled": 0,
+    "scraping_success_rate": 0,
+    "strategy_distribution": {
+      "early_exit": 29
+    },
+    "strategy_success_rate": {
+      "early_exit": 0
+    },
+    "structured_data_rate": 0
+  },
+  "test_summary": {
+    "api_url": "https://classification-service-production.up.railway.app",
+    "failed_tests": 18,
+    "successful_tests": 32,
+    "test_duration": "7m29.114070539s",
+    "timestamp": "2025-12-21T19:17:18-05:00",
+    "total_samples": 50
+  }
+}

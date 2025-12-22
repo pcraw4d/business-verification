@@ -1742,6 +1742,17 @@ func (r *SupabaseKeywordRepository) GetClassificationCodesByKeywords(
 	codeType string, // "MCC", "SIC", or "NAICS"
 	minRelevance float64, // Minimum relevance_score threshold (default 0.5)
 ) ([]*ClassificationCodeWithMetadata, error) {
+	// #region agent log
+	logFile, _ := os.OpenFile("/Users/petercrawford/New tool/.cursor/debug.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	logData, _ := json.Marshal(map[string]interface{}{
+		"sessionId": "debug-session", "runId": "run1", "hypothesisId": "D",
+		"location": "supabase_repository.go:1739", "message": "GetClassificationCodesByKeywords called",
+		"data": map[string]interface{}{"keywords": keywords, "keywords_count": len(keywords), "codeType": codeType, "minRelevance": minRelevance},
+		"timestamp": time.Now().UnixMilli(),
+	})
+	logFile.WriteString(string(logData) + "\n")
+	logFile.Close()
+	// #endregion agent log
 	if len(keywords) == 0 {
 		return []*ClassificationCodeWithMetadata{}, nil
 	}
@@ -1787,6 +1798,17 @@ func (r *SupabaseKeywordRepository) GetClassificationCodesByKeywords(
 
 	httpClient := &http.Client{Timeout: httpTimeout}
 	resp, err := httpClient.Do(req)
+	// #region agent log
+	logFile2, _ := os.OpenFile("/Users/petercrawford/New tool/.cursor/debug.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	logData2, _ := json.Marshal(map[string]interface{}{
+		"sessionId": "debug-session", "runId": "run1", "hypothesisId": "D",
+		"location": "supabase_repository.go:1789", "message": "Database RPC HTTP response",
+		"data": map[string]interface{}{"status_code": func() int { if resp != nil { return resp.StatusCode } else { return 0 } }(), "error": func() string { if err != nil { return err.Error() } else { return "" } }()},
+		"timestamp": time.Now().UnixMilli(),
+	})
+	logFile2.WriteString(string(logData2) + "\n")
+	logFile2.Close()
+	// #endregion agent log
 	if err != nil {
 		r.logger.Printf("⚠️ Trigram code search failed, falling back to in-memory matching: %v", err)
 		return r.getClassificationCodesByKeywordsFallback(ctx, keywords, codeType, minRelevance)
@@ -1830,6 +1852,23 @@ func (r *SupabaseKeywordRepository) GetClassificationCodesByKeywords(
 		})
 	}
 
+	// #region agent log
+	logFile3, _ := os.OpenFile("/Users/petercrawford/New tool/.cursor/debug.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	resultsData := make([]map[string]interface{}, 0, len(codeResults))
+	for _, cr := range codeResults {
+		resultsData = append(resultsData, map[string]interface{}{
+			"code": cr.ClassificationCode.Code, "relevance_score": cr.RelevanceScore, "match_type": cr.MatchType,
+		})
+	}
+	logData3, _ := json.Marshal(map[string]interface{}{
+		"sessionId": "debug-session", "runId": "run1", "hypothesisId": "D",
+		"location": "supabase_repository.go:1833", "message": "GetClassificationCodesByKeywords returning results",
+		"data": map[string]interface{}{"results_count": len(codeResults), "results": resultsData},
+		"timestamp": time.Now().UnixMilli(),
+	})
+	logFile3.WriteString(string(logData3) + "\n")
+	logFile3.Close()
+	// #endregion agent log
 	r.logger.Printf("✅ Retrieved %d classification codes by keywords (type: %s) using trigram", len(codeResults), codeType)
 	return codeResults, nil
 }
@@ -1859,6 +1898,17 @@ func (r *SupabaseKeywordRepository) GetCodesByKeywords(
 	Description string
 	Weight      float64
 } {
+	// #region agent log
+	logFile, _ := os.OpenFile("/Users/petercrawford/New tool/.cursor/debug.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	logData, _ := json.Marshal(map[string]interface{}{
+		"sessionId": "debug-session", "runId": "run1", "hypothesisId": "E",
+		"location": "supabase_repository.go:1890", "message": "GetCodesByKeywords called",
+		"data": map[string]interface{}{"keywords": keywords, "keywords_count": len(keywords), "codeType": codeType},
+		"timestamp": time.Now().UnixMilli(),
+	})
+	logFile.WriteString(string(logData) + "\n")
+	logFile.Close()
+	// #endregion agent log
 	if len(keywords) == 0 {
 		return []struct {
 			Code        string

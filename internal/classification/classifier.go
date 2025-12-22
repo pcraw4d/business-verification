@@ -2,9 +2,11 @@ package classification
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"math"
+	"os"
 	"sort"
 	"strings"
 	"sync"
@@ -343,6 +345,19 @@ func (g *ClassificationCodeGenerator) generateCodesFromKeywords(
 	codeType string,
 	industryConfidence float64,
 ) ([]CodeMatch, error) {
+	// #region agent log
+	logFile, _ := os.OpenFile("/Users/petercrawford/New tool/.cursor/debug.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if logFile != nil {
+		logData, _ := json.Marshal(map[string]interface{}{
+			"sessionId": "debug-session", "runId": "run1", "hypothesisId": "A",
+			"location": "classifier.go:340", "message": "generateCodesFromKeywords called",
+			"data": map[string]interface{}{"keywords_count": len(keywords), "codeType": codeType, "industryConfidence": industryConfidence, "keywords": keywords},
+			"timestamp": time.Now().UnixMilli(),
+		})
+		logFile.WriteString(string(logData) + "\n")
+		logFile.Close()
+	}
+	// #endregion agent log
 	if len(keywords) == 0 {
 		return []CodeMatch{}, nil
 	}
@@ -366,7 +381,37 @@ func (g *ClassificationCodeGenerator) generateCodesFromKeywords(
 		g.logger.Printf("📊 [FIX VERIFICATION] Using minRelevance %.2f (industry confidence: %.2f)", minRelevance, industryConfidence)
 	}
 	
+	// #region agent log
+	logFileB, _ := os.OpenFile("/Users/petercrawford/New tool/.cursor/debug.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if logFileB != nil {
+		logDataB, _ := json.Marshal(map[string]interface{}{
+			"sessionId": "debug-session", "runId": "run1", "hypothesisId": "B",
+			"location": "classifier.go:369", "message": "Calling GetClassificationCodesByKeywords",
+			"data": map[string]interface{}{"keywords": keywords, "codeType": codeType, "minRelevance": minRelevance},
+			"timestamp": time.Now().UnixMilli(),
+		})
+		logFileB.WriteString(string(logDataB) + "\n")
+		logFileB.Close()
+	}
+	// #endregion agent log
 	keywordCodes, err := g.repo.GetClassificationCodesByKeywords(ctx, keywords, codeType, minRelevance)
+	// #region agent log
+	logFileB2, _ := os.OpenFile("/Users/petercrawford/New tool/.cursor/debug.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if logFileB2 != nil {
+		errMsg := ""
+		if err != nil {
+			errMsg = err.Error()
+		}
+		logDataB2, _ := json.Marshal(map[string]interface{}{
+			"sessionId": "debug-session", "runId": "run1", "hypothesisId": "B",
+			"location": "classifier.go:372", "message": "GetClassificationCodesByKeywords returned",
+			"data": map[string]interface{}{"codes_count": len(keywordCodes), "error": errMsg},
+			"timestamp": time.Now().UnixMilli(),
+		})
+		logFileB2.WriteString(string(logDataB2) + "\n")
+		logFileB2.Close()
+	}
+	// #endregion agent log
 	if err != nil {
 		g.logger.Printf("⚠️ [FIX VERIFICATION] Failed to get codes from keywords: %v", err)
 		return []CodeMatch{}, nil // Return empty instead of error to allow fallback
@@ -674,7 +719,33 @@ func (g *ClassificationCodeGenerator) getMCCCandidates(
 	}
 
 	// Strategy 2: Keyword matching (filtered by industry relevance)
+	// #region agent log
+	logFile, _ := os.OpenFile("/Users/petercrawford/New tool/.cursor/debug.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if logFile != nil {
+		logData, _ := json.Marshal(map[string]interface{}{
+			"sessionId": "debug-session", "runId": "run1", "hypothesisId": "C",
+			"location": "classifier.go:677", "message": "getMCCCandidates calling GetCodesByKeywords",
+			"data": map[string]interface{}{"keywords": keywords, "keywords_count": len(keywords)},
+			"timestamp": time.Now().UnixMilli(),
+		})
+		logFile.WriteString(string(logData) + "\n")
+		logFile.Close()
+	}
+	// #endregion agent log
 	keywordCodes := g.repo.GetCodesByKeywords(ctx, "MCC", keywords)
+	// #region agent log
+	logFile2, _ := os.OpenFile("/Users/petercrawford/New tool/.cursor/debug.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if logFile2 != nil {
+		logData2, _ := json.Marshal(map[string]interface{}{
+			"sessionId": "debug-session", "runId": "run1", "hypothesisId": "C",
+			"location": "classifier.go:678", "message": "GetCodesByKeywords returned",
+			"data": map[string]interface{}{"codes_count": len(keywordCodes)},
+			"timestamp": time.Now().UnixMilli(),
+		})
+		logFile2.WriteString(string(logData2) + "\n")
+		logFile2.Close()
+	}
+	// #endregion agent log
 	for _, kc := range keywordCodes {
 		// Filter by industry relevance if industry name is available
 		if industryName != "" && g.codeMetadataRepo != nil {
