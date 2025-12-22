@@ -389,7 +389,7 @@ func (g *ClassificationCodeGenerator) generateCodesFromKeywords(
 	}
 	
 	// #region agent log
-	debugLogPath := os.Getenv("DEBUG_LOG_PATH")
+	debugLogPath = os.Getenv("DEBUG_LOG_PATH")
 	if debugLogPath == "" {
 		debugLogPath = "/tmp/debug.log"
 	}
