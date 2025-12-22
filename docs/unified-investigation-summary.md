@@ -30,17 +30,14 @@ This document consolidates all investigation findings from the classification se
 6. **Track 6.2**: Playwright Scraper Service Verification
 7. **Track 6.3**: Supabase Database Connectivity Verification
 8. **Track 7.1**: Feature Flag Configuration Audit
+9. **Track 7.2**: Configuration Mismatch Investigation
+10. **Track 8.1**: Cache Hit Rate Investigation
+11. **Track 8.2**: Resource Constraints Investigation
+12. **Track 9.1**: Test Data Quality Validation
 
-### 🔄 In Progress
+### ✅ All Investigations Completed
 
-- **Unified Investigation Summary** (this document)
-
-### ⏳ Pending Investigations
-
-8. **Track 7.2**: Configuration Mismatch Investigation
-9. **Track 8.1**: Cache Hit Rate Investigation
-10. **Track 8.2**: Resource Constraints Investigation
-11. **Track 9.1**: Test Data Quality Validation
+All investigation tracks have been completed. The unified summary consolidates all findings and required fixes.
 
 ---
 
@@ -633,69 +630,164 @@ This document consolidates all investigation findings from the classification se
 
 ## Track 8.1: Cache Hit Rate Investigation
 
-### Status: ⏳ Pending
+### Status: ✅ Completed
 
-### Investigation Steps
+### Key Findings
 
-1. **Check Cache Configuration**
-   - Review cache settings
-   - Verify cache TTL
-   - Check cache size limits
+**Document**: `docs/cache-hit-rate-investigation.md`
 
-2. **Analyze Cache Patterns**
-   - Review cache hit/miss rates
-   - Identify cache patterns
-   - Check cache key generation
+**Root Causes Identified**:
 
-3. **Review Cache Key Generation**
-   - Verify key uniqueness
-   - Check key format
-   - Review key collisions
+1. **Redis Not Enabled** ⚠️ **MEDIUM**
+   - `REDIS_ENABLED` default is `false`
+   - `REDIS_URL` may not be set
+   - **Impact**: Only in-memory cache (not shared across instances)
+   - **Evidence**: Default is `false`
 
-### Expected Findings
+2. **Cache Key Too Specific** ⚠️ **MEDIUM**
+   - Keys include all inputs (name, description, URL)
+   - Small variations create different keys
+   - **Impact**: Lower cache hit rate
+   - **Evidence**: Key generation includes all fields
 
-- Low cache hit rates
-- Cache key issues
-- Cache configuration problems
-- Cache performance issues
+3. **URL Normalization Missing** ⚠️ **MEDIUM**
+   - URLs not normalized (www, trailing slashes, query params)
+   - **Impact**: Same website = different cache keys
+   - **Evidence**: URL used as-is in key generation
+
+4. **Cache TTL** ⚠️ **LOW**
+   - 10 minutes (increased from 5 minutes)
+   - May still be too short for some use cases
+   - **Impact**: Lower hit rate
+   - **Evidence**: TTL is 10 minutes
+
+**Cache Configuration**:
+- `CacheEnabled`: Default `true` ✅
+- `CacheTTL`: Default `10*time.Minute` ✅
+- `RedisEnabled`: Default `false` ⚠️
+- `RedisURL`: Empty by default ⚠️
+
+**Cache Implementation**:
+- Dual-layer: Redis (if enabled) + in-memory fallback ✅
+- Cache key: SHA256 hash of normalized inputs ✅
+- Key format: `classification:{hash}` ✅
+- Normalization: Lowercase, trimmed whitespace ✅
+
+**Target Hit Rate**: >60% (from config comment: "improve cache hit rate from 49.6% to 60-70%")
 
 ### Required Fixes
 
-- To be determined after investigation
+1. **Verify Cache Configuration** - **IMMEDIATE**
+   - Check `CACHE_ENABLED` is `true` in Railway
+   - Check `CACHE_TTL` is set appropriately
+   - Verify Redis is enabled if available
+
+2. **Analyze Cache Hit Rate** - **IMMEDIATE**
+   - Parse Railway logs for cache hit/miss patterns
+   - Calculate actual hit rate
+   - Identify patterns in cache misses
+
+3. **Improve URL Normalization** - **HIGH**
+   - Normalize URLs in cache key generation
+   - Remove `www.`, trailing slashes, query parameters
+   - **Expected Impact**: Higher cache hit rate for same websites
+
+4. **Enable Redis Cache** - **MEDIUM**
+   - Set `REDIS_ENABLED=true` if Redis is available
+   - Set `REDIS_URL` correctly
+   - **Expected Impact**: Shared cache across instances, higher hit rate
+
+5. **Optimize Cache Key Generation** - **MEDIUM**
+   - Consider fuzzy matching for descriptions
+   - Normalize business names (remove common suffixes)
+   - **Expected Impact**: Higher cache hit rate for similar requests
+
+**Expected Impact After Fix**:
+- Cache hit rate: Current → >60% (target)
+- Response time: Improved for cached requests
+- Database load: Reduced with higher cache hit rate
+- Service performance: Improved with distributed Redis cache
 
 ---
 
 ## Track 8.2: Resource Constraints Investigation
 
-### Status: ⏳ Pending
+### Status: ✅ Completed
 
-### Investigation Steps
+### Key Findings
 
-1. **Review Railway Resource Limits**
-   - Check memory limits
-   - Review CPU limits
-   - Verify resource allocation
+**Document**: `docs/resource-constraints-investigation.md`
 
-2. **Analyze Memory Usage**
-   - Check memory consumption
-   - Identify memory leaks
-   - Review OOM kills
+**Root Causes Identified**:
 
-3. **Check Concurrent Request Limits**
-   - Review request limits
-   - Check queue depth
-   - Analyze request queuing
+1. **Memory Limit Not Set** ⚠️ **MEDIUM**
+   - `GOMEMLIMIT` may not be set in Railway
+   - **Impact**: Go runtime may use too much memory
+   - **Evidence**: Memory limit is optional
 
-### Expected Findings
+2. **Concurrent Request Limit** ⚠️ **LOW**
+   - Limit of 20 (reduced from 40 to prevent OOM)
+   - May be too restrictive or appropriate
+   - **Impact**: Requests queued or rejected if too low
+   - **Evidence**: Reduced from 40 to prevent OOM kills
 
-- Resource constraints
-- Memory issues
-- CPU bottlenecks
-- Request limit issues
+3. **Memory Leaks** ⚠️ **MEDIUM**
+   - Goroutine leaks possible
+   - Unclosed connections possible
+   - **Impact**: Memory growth over time
+   - **Evidence**: Need to verify
+
+4. **High Memory Usage Per Request** ⚠️ **MEDIUM**
+   - Each request may use significant memory
+   - **Impact**: OOM kills with many concurrent requests
+   - **Evidence**: Reduced concurrent limit to prevent OOM
+
+**Resource Configuration**:
+- **Concurrent Requests**: 20 (reduced from 40) ✅
+- **Request Queue**: Max size 20 ✅
+- **Worker Pool**: 30% of max concurrent (6 workers) ✅
+- **Memory Limit**: Optional via `GOMEMLIMIT` ⚠️
+- **Memory Check**: Rejects requests if >80% memory usage ✅
+
+**OOM Prevention Measures**:
+1. Concurrent request limit: 20 ✅
+2. Memory limit: Can be set via `GOMEMLIMIT` ✅
+3. Request queue: Prevents overload ✅
+4. Cache cleanup: Periodic cleanup ✅
+5. Memory usage check: Rejects if >80% ✅
 
 ### Required Fixes
 
-- To be determined after investigation
+1. **Set Memory Limit** - **HIGH**
+   - Set `GOMEMLIMIT` in Railway
+   - Use appropriate value (e.g., 512MB, 1GB)
+   - **Expected Impact**: Prevents OOM kills
+
+2. **Monitor Memory Usage** - **HIGH**
+   - Add memory usage metrics
+   - Track memory over time
+   - Alert on high memory usage
+
+3. **Check Railway Logs for OOM** - **HIGH**
+   - Review logs for OOM kills
+   - Identify patterns
+   - Document findings
+
+4. **Review Concurrent Request Limit** - **MEDIUM**
+   - Test with different limits
+   - Monitor queue depth
+   - Adjust if needed
+
+5. **Fix Memory Leaks** - **MEDIUM**
+   - Review goroutine usage
+   - Ensure connections are closed
+   - Fix any leaks found
+
+**Expected Impact After Fix**:
+- OOM kills: Reduced with memory limit
+- Memory usage: Optimized with limits and monitoring
+- Request throughput: Improved with appropriate limits
+- Service stability: Improved with resource management
 
 ---
 
