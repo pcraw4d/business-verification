@@ -414,7 +414,7 @@ func (g *ClassificationCodeGenerator) generateCodesFromKeywords(
 	logFileB2, _ := os.OpenFile(debugLogPath2, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if logFileB2 != nil {
 		errMsg := ""
-		if err != nil {
+	if err != nil {
 			errMsg = err.Error()
 		}
 		logDataB2, _ := json.Marshal(map[string]interface{}{
@@ -1147,7 +1147,7 @@ func (g *ClassificationCodeGenerator) selectTopCodes(candidates []CodeResult, li
 	sort.Slice(candidates, func(i, j int) bool {
 		// Primary sort: confidence
 		if candidates[i].Confidence != candidates[j].Confidence {
-			return candidates[i].Confidence > candidates[j].Confidence
+		return candidates[i].Confidence > candidates[j].Confidence
 		}
 		// Secondary sort: prioritize industry_match over keyword_match
 		// Industry_match is more reliable for accuracy
