@@ -1,297 +1,175 @@
-# Error Pattern Analysis
+# Error Pattern Analysis Report - Classification Service
 
-**Date**: December 21, 2025  
-**Investigation Track**: Track 2.1 - Error Pattern Analysis  
-**Status**: In Progress
+Generated: 2025-12-22 14:51:56
 
 ## Executive Summary
 
-This document analyzes error patterns from Railway logs to categorize and understand the 67.1% error rate. Errors are categorized by type (DNS, network, HTTP, context, parse) to identify root causes and prioritize fixes.
+Analysis of classification service logs reveals **203 errors** with the following distribution:
 
----
+| Category | Count | Percentage | Priority |
+|----------|-------|------------|----------|
+| **DNS Failures** | 129 | **63.5%** | **CRITICAL** |
+| Other Errors | 51 | 25.1% | Medium |
+| Timeouts | 20 | 9.9% | High |
+| HTTP 5xx | 3 | 1.5% | Low |
 
-## Error Rate Summary
+**Key Finding**: DNS failures account for **63.5% of all errors**, making it the primary contributor to the 67.1% error rate.
 
-| Metric | Value | Target | Status |
-|--------|-------|--------|--------|
-| **Overall Error Rate** | 67.1% | <5% | ❌ **13.4x over target** |
-| **Success Rate** | 32.9% | >95% | ❌ **Severely below target** |
-| **Test Failure Rate** | 72.8% | <5% | ❌ **14.6x over target** |
+## Error Distribution
 
----
+## Category Details
 
-## Error Categories
+### dns_failure (129 errors)
 
-### 1. DNS Failures
+**Examples:**
 
-**Pattern**: `DNS lookup failed`, `no such host`, `DNS resolution failed`
+- ❌ [KeywordExtraction] [HomepageRetry] DNS ERROR: Lookup failed for www.nexttransportationconsulting.com using 8.8.8.8:53: lookup www.nexttransportationconsulting.com on [fd12::10]:53: no such host (type: *net.DNSError)
+- ❌ [KeywordExtraction] [HomepageRetry] HTTP ERROR (connection): Request failed (attempt 1, DNS 8.8.8.8:53): Get "https://www.nexttransportationconsulting.com": DNS lookup failed: lookup www.nexttransportationconsulting.com on [fd12::10]:53: no such host (type: *url.Error)
+- ❌ [DNS] DNS lookup failed for www.valleyartsentertainmentholding.com (attempt 2/3): lookup www.valleyartsentertainmentholding.com on [fd12::10]:53: no such host (server: [fd12::10]:53)
+- ❌ [DNS] DNS lookup failed for www.nexttransportationconsulting.com after 3 attempts: lookup www.nexttransportationconsulting.com on [fd12::10]:53: no such host
+- ❌ [DNS] DNS lookup failed for www.nexttransportationconsulting.com (attempt 3/3): lookup www.nexttransportationconsulting.com on [fd12::10]:53: no such host (server: [fd12::10]:53)
 
-**Examples from Logs**:
-- `DNS lookup failed for www.modernarts&entertainmentindust.com after 3 attempts: lookup www.modernarts&entertainmentindust.com: no such host`
+### other (51 errors)
 
-**Root Causes**:
-1. **Malformed URLs**: URLs with invalid characters (e.g., `&` in hostname)
-2. **Invalid Domains**: Domains that don't exist
-3. **DNS Server Issues**: All fallback DNS servers failing (rare)
+**Examples:**
 
-**Frequency**: High (observed in logs)
+- ⚠️ [KeywordExtraction] [MultiPage] Page 8/8 HTTP ERROR: Status=0 (expected 200), URL=https://www.nexttransportationconsulting.com/mission
+- ⚠️ [KeywordExtraction] [MultiPage] Page 8/8 RELEVANCE ERROR: Relevance=0.00 (expected >0), URL=https://www.nexttransportationconsulting.com/mission
+- ⚠️ [KeywordExtraction] [MultiPage] Page 1/8 HTTP ERROR: Status=0 (expected 200), URL=https://www.corpartsentertainmentsystems.com
+- ⚠️ [KeywordExtraction] [MultiPage] Page 1/8 RELEVANCE ERROR: Relevance=0.00 (expected >0), URL=https://www.corpartsentertainmentsystems.com
+- ⚠️ [KeywordExtraction] [MultiPage] Page 2/8 HTTP ERROR: Status=0 (expected 200), URL=https://www.corpartsentertainmentsystems.com/vision
 
-**Impact**: High - Causes scraping failures, which cascade to classification failures
+### timeout (20 errors)
 
-**Fix Status**: 
-- ✅ URL validation added (Track 2.2)
-- ✅ DNS fallback servers already implemented
-- ⚠️ Need to verify DNS retry logic is working
+**Examples:**
 
----
+- ⏰ [TIMEOUT-ALERT] Request approaching timeout
+- ⚠️ [PageAnalysis] Timeout error for https://www.valleyartsentertainmentholding.com/help (attempt 3/3): Get "https://www.valleyartsentertainmentholding.com/help": context deadline exceeded
+- ❌ [PageAnalysis] Failed to fetch https://www.valleyartsentertainmentholding.com/help after 3 attempts: Get "https://www.valleyartsentertainmentholding.com/help": context deadline exceeded
+- ⚠️ [PageAnalysis] Timeout error for https://www.valleyartsentertainmentholding.com/news (attempt 3/3): Get "https://www.valleyartsentertainmentholding.com/news": context deadline exceeded
+- ❌ [PageAnalysis] Failed to fetch https://www.valleyartsentertainmentholding.com/news after 3 attempts: Get "https://www.valleyartsentertainmentholding.com/news": context deadline exceeded
 
-### 2. Network Timeouts
+### http_5xx (3 errors)
 
-**Pattern**: `timeout`, `Timeout`, `context deadline exceeded`, `request timeout`
+**Examples:**
 
-**Examples**:
-- Requests timing out at 60s (OverallTimeout)
-- Network timeouts during scraping
-- HTTP client timeouts
-
-**Root Causes**:
-1. **Timeout Budget Exceedance**: Budget (86s) exceeded OverallTimeout (60s) - **FIXED**
-2. **Slow External Services**: Python ML service, Playwright service taking too long
-3. **Network Latency**: High latency to external services
-4. **Slow Database Queries**: Supabase queries taking >1s
-
-**Frequency**: Very High (67.1% error rate suggests many timeouts)
-
-**Impact**: Critical - Causes request failures
-
-**Fix Status**:
-- ✅ Timeout budget fixed (Track 1.1)
-- ⚠️ Need to investigate slow external services (Track 6)
-- ⚠️ Need to investigate slow database queries (Track 6.3)
-
----
-
-### 3. HTTP Errors (4xx/5xx)
-
-**Pattern**: `HTTP 4xx`, `HTTP 5xx`, `status code`, `403`, `429`, `500`, `502`, `503`
-
-**Examples**:
-- HTTP 403 (Forbidden) - Rate limiting
-- HTTP 429 (Too Many Requests) - Rate limiting
-- HTTP 500 (Internal Server Error) - Service errors
-- HTTP 502 (Bad Gateway) - Gateway/proxy errors
-- HTTP 503 (Service Unavailable) - Service unavailable
-
-**Root Causes**:
-1. **Rate Limiting**: Too many requests to external services
-2. **Service Errors**: External services returning 5xx errors
-3. **Gateway Timeouts**: API Gateway timing out (READ_TIMEOUT too short)
-
-**Frequency**: Medium (observed in error patterns)
-
-**Impact**: Medium - Causes request failures
-
-**Fix Status**:
-- ✅ READ_TIMEOUT increased (Track 1.1)
-- ⚠️ Need to implement retry logic for 5xx errors
-- ⚠️ Need to handle rate limiting (403, 429) appropriately
-
----
-
-### 4. Context Cancellations
-
-**Pattern**: `context canceled`, `context deadline exceeded`, `context cancelled`
-
-**Examples**:
-- Context cancellation during long operations
-- Context deadline exceeded before operation completes
-
-**Root Causes**:
-1. **Timeout Budget Exceedance**: Operations taking longer than timeout - **FIXED**
-2. **Slow Operations**: Website scraping, code generation taking too long
-3. **Context Propagation Issues**: Context not properly propagated
-
-**Frequency**: Medium (39 tests cancelled due to context timeout)
-
-**Impact**: Medium - Causes request failures
-
-**Fix Status**:
-- ✅ Context propagation verified (Track 1.1)
-- ✅ Timeout budget fixed (Track 1.1)
-- ⚠️ Need to optimize slow operations (Track 1.2)
-
----
-
-### 5. Parse Errors
-
-**Pattern**: `parse error`, `invalid JSON`, `decode error`, `unmarshal error`
-
-**Examples**:
-- JSON parsing errors in responses
-- Response format mismatches
-- Invalid data structures
-
-**Root Causes**:
-1. **Invalid Response Format**: External services returning invalid JSON
-2. **Response Structure Changes**: API changes not reflected in code
-3. **Encoding Issues**: Character encoding problems
-
-**Frequency**: Low (less common)
-
-**Impact**: Low - Causes individual request failures
-
-**Fix Status**:
-- ⚠️ Need to add better error handling for parse errors
-- ⚠️ Need to validate response formats
-
----
-
-## Error Distribution (Estimated)
-
-Based on test results and log analysis:
-
-| Error Type | Estimated % | Priority | Status |
-|------------|-------------|----------|--------|
-| **Network Timeouts** | ~40% | Critical | ⚠️ Investigating |
-| **DNS Failures** | ~20% | High | ✅ Fixed (URL validation) |
-| **HTTP 5xx Errors** | ~15% | Medium | ⚠️ Investigating |
-| **Context Cancellations** | ~10% | Medium | ✅ Fixed (timeout budget) |
-| **HTTP 4xx Errors** | ~5% | Low | ⚠️ Need retry logic |
-| **Parse Errors** | ~5% | Low | ⚠️ Need better handling |
-| **Other** | ~5% | Low | ⚠️ Investigating |
-
----
+- ❌ [KeywordExtraction] [HomepageRetry] FAILED: Unable to extract keywords after 3 attempts in 29.568640199s
+- ❌ [KeywordExtraction] [HomepageRetry] FAILED: Unable to extract keywords after 3 attempts in 33.250332639s
+- ❌ [KeywordExtraction] [HomepageRetry] FAILED: Unable to extract keywords after 3 attempts in 29.674458875s
 
 ## Root Cause Analysis
 
-### Primary Root Causes
+### DNS Failures (63.5% - CRITICAL)
 
-1. **Timeout Budget Exceedance** (Track 1.1) - **FIXED**
-   - Budget: 86s vs OverallTimeout: 60s
-   - **Impact**: High - Caused premature timeouts
-   - **Confidence**: 95%
+**Pattern Observed:**
+- DNS lookups failing with "no such host" errors
+- Fallback DNS servers (8.8.8.8) are being used but still failing
+- Errors show IPv6 DNS resolution attempts: `[fd12::10]:53`
+- Multiple retry attempts (2/3, 3/3) are being made but all failing
 
-2. **Code Generation Threshold Too High** (Track 4.1) - **FIXED**
-   - Threshold: 0.5 vs Avg Confidence: 21.7%
-   - **Impact**: High - Blocked 77% of code generation
-   - **Confidence**: 90%
+**Root Causes:**
+1. **IPv6 DNS Resolution Issue**: DNS resolver is attempting IPv6 resolution (`[fd12::10]:53`) which may not be properly configured
+2. **Fallback DNS Not Working**: Even with fallback DNS servers (8.8.8.8), lookups are failing
+3. **Invalid/Malformed URLs**: Some domains may not exist or URLs may be malformed
+4. **DNS Timeout Too Short**: DNS resolution may be timing out before fallback servers can be tried
 
-3. **DNS Failures** (Track 2.2) - **FIXED**
-   - Malformed URLs causing DNS failures
-   - **Impact**: High - Caused scraping failures
-   - **Confidence**: 85%
+**Recommendations:**
+1. **Force IPv4 DNS Resolution**: Update DNS resolver to use IPv4 only (Track 2.2 - Completed)
+2. **Improve Fallback DNS Logic**: Ensure fallback DNS servers are tried sequentially with proper error handling (Track 2.2 - Completed)
+3. **Add URL Validation**: Validate URLs before DNS lookup to catch malformed URLs early (Track 2.2 - Completed)
+4. **Increase DNS Timeout**: Allow more time for DNS resolution with fallback servers
 
-4. **External Service Issues** (Track 6) - **INVESTIGATING**
-   - Python ML service may be slow/unavailable
-   - Playwright service may be slow/unavailable
-   - **Impact**: Medium - Affects classification accuracy
-   - **Confidence**: 70%
+### Timeouts (9.9% - HIGH)
 
-5. **Slow Database Queries** (Track 6.3) - **INVESTIGATING**
-   - Code metadata queries may be slow
-   - **Impact**: Medium - Causes timeouts
-   - **Confidence**: 50%
+**Pattern Observed:**
+- Context deadline exceeded errors
+- Page analysis timeouts after 3 attempts
+- Request approaching timeout alerts
 
----
+**Root Causes:**
+1. **Timeout Budget Exceeded**: Operations taking longer than available context time
+2. **Slow External Services**: External services (ML, Playwright) taking too long
+3. **Network Latency**: Slow network connections causing timeouts
 
-## Error Handling Review
+**Recommendations:**
+1. **Optimize Timeout Budget**: Review and optimize timeout allocations (Track 1.1 - Completed)
+2. **Add Circuit Breakers**: Implement circuit breakers for slow external services
+3. **Increase Timeouts for Critical Operations**: Adjust timeouts based on actual operation durations
 
-### Current Error Handling
+### Other Errors (25.1% - MEDIUM)
 
-#### 1. Website Scraping Retries
+**Pattern Observed:**
+- HTTP Status 0 errors (connection failures)
+- Relevance errors (pages with 0 relevance score)
+- Multi-page analysis failures
 
-**Location**: `internal/external/website_scraper.go:277-341`
+**Root Causes:**
+1. **Connection Failures**: Network issues causing HTTP Status 0
+2. **Low Quality Content**: Pages with insufficient relevant content
+3. **Scraping Strategy Issues**: Wrong scraping strategy selected
 
-**Status**: ✅ Retry logic implemented
-- Max retries: 3
-- Exponential backoff: 1s, 2s, 4s
-- Context cancellation handling
+**Recommendations:**
+1. **Improve Connection Error Handling**: Better retry logic for connection failures
+2. **Adjust Relevance Thresholds**: Review relevance scoring to avoid false negatives
+3. **Optimize Scraping Strategy Selection**: Improve strategy selection logic
 
-**Issues**:
-- May not retry on all error types
-- Need to verify retry conditions
+## Error Handling Code Review
 
-#### 2. DNS Resolution Retries
+### Current Implementation
 
-**Location**: `internal/classification/smart_website_crawler.go:239-281`
+1. **Website Scraper Retry Logic** (`internal/external/website_scraper.go:459-489`):
+   - ✅ Correctly skips retry for 4xx errors
+   - ✅ Correctly skips retry for context cancellations
+   - ✅ Correctly skips retry for invalid URLs
+   - ⚠️ **Issue**: DNS errors are retried but may not use fallback DNS servers properly
 
-**Status**: ✅ Retry logic implemented
-- Max retries: 3
-- Fallback DNS servers: 8.8.8.8, 1.1.1.1, 8.8.4.4
-- Exponential backoff: 1s, 2s, 4s
+2. **Adaptive Retry Strategy** (`internal/classification/retry/adaptive_retry.go:47-107`):
+   - ✅ DNS errors retry with `defaultMaxRetries + 1` attempts
+   - ✅ Network timeouts retry with `defaultMaxRetries` attempts
+   - ✅ HTTP 5xx retries appropriately
+   - ⚠️ **Issue**: DNS retry doesn't specify fallback DNS server usage
 
-**Issues**:
-- ✅ Fixed: URL validation added
+3. **DNS Resolution** (`internal/classification/smart_website_crawler.go:197-232`):
+   - ✅ Has fallback DNS servers (8.8.8.8, 1.1.1.1, 8.8.4.4)
+   - ✅ Has retry logic (max 3 attempts)
+   - ⚠️ **Issue**: IPv6 resolution may be causing issues (Track 2.2 - Fixed)
+   - ⚠️ **Issue**: Fallback DNS servers may not be tried properly (Track 2.2 - Fixed)
 
-#### 3. Python ML Service Retries
+## Recommendations Summary
 
-**Location**: `internal/machine_learning/infrastructure/python_ml_service.go:512-556`
+### Immediate Actions (High Priority)
 
-**Status**: ⚠️ Circuit breaker implemented, but may be blocking requests
-- Circuit breaker may be OPEN
-- No explicit retry logic for HTTP errors
+1. **Fix DNS Resolution** (Track 2.2 - Already Completed):
+   - ✅ Force IPv4 DNS resolution
+   - ✅ Improve fallback DNS server logic
+   - ✅ Add URL validation
 
-**Issues**:
-- Need to check circuit breaker status
-- Need to add retry logic for 5xx errors
+2. **Improve Error Categorization**:
+   - Add error categorization before logging
+   - Include error type in error metadata
+   - Track error patterns over time
 
-#### 4. Code Generation Error Handling
+3. **Enhance Retry Logic**:
+   - Ensure DNS errors use fallback DNS servers (Track 2.2 - Fixed)
+   - Add exponential backoff for DNS retries
+   - Improve timeout handling for context cancellations
 
-**Location**: `services/classification-service/internal/handlers/classification.go:1730-1738`
+### Medium Priority Actions
 
-**Status**: ✅ Errors handled gracefully
-- Request continues without codes
-- Errors logged
+4. **Optimize Timeout Handling**:
+   - Review timeout budgets (Track 1.1 - Completed)
+   - Add graceful degradation for timeouts
+   - Return partial results when context expires
 
-**Issues**:
-- Errors may be silently ignored
-- Need more detailed error logging
-
----
-
-## Recommendations
-
-### Immediate Actions (Priority 1)
-
-1. ✅ **Fix Timeout Budget** - Completed (Track 1.1)
-2. ✅ **Fix Code Generation Threshold** - Completed (Track 4.1)
-3. ✅ **Fix DNS Resolution** - Completed (Track 2.2)
-4. **Investigate External Services** (Track 6)
-   - Check Python ML service availability
-   - Check Playwright service availability
-   - Check circuit breaker status
-
-### Short-Term Actions (Priority 2)
-
-5. **Improve Retry Logic**
-   - Add retry logic for HTTP 5xx errors
-   - Handle rate limiting (403, 429) appropriately
-   - Improve error categorization
-
-6. **Optimize Slow Operations**
-   - Profile slow requests (Track 1.2)
-   - Optimize database queries (Track 6.3)
-   - Optimize external service calls (Track 6)
-
-### Long-Term Actions (Priority 3)
-
-7. **Enhanced Error Handling**
-   - Better error messages
-   - Error categorization and tracking
-   - Automatic error recovery
-
----
+5. **Improve Connection Error Handling**:
+   - Better retry logic for connection failures
+   - Add connection pooling
+   - Implement circuit breakers
 
 ## Next Steps
 
-1. [ ] Parse Railway logs to extract all error messages
-2. [ ] Categorize errors by type
-3. [ ] Create error distribution report
-4. [ ] Identify common error patterns
-5. [ ] Prioritize fixes based on error frequency and impact
-
----
-
-**Document Status**: Initial Analysis Complete  
-**Next Review**: After log parsing and error categorization
+1. ✅ **DNS Resolution Fixes** (Track 2.2) - Completed
+2. **Verify DNS Fix Impact**: Run 50-sample E2E test to measure improvement
+3. **Monitor Error Patterns**: Use enhanced tracing to track error patterns
+4. **Implement Additional Fixes**: Based on validation results
 
