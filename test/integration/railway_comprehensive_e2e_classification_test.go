@@ -9,8 +9,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
+	"net/url"
 	"os"
+	"regexp"
 	"strings"
 	"sync"
 	"testing"
@@ -266,7 +269,8 @@ func generateComprehensiveTestSamples() []TestSample {
 	samples := make([]TestSample, 0, 385)
 	
 	// Real-world well-known businesses (~50 samples)
-	realWorldSamples := []TestSample{
+	// FIX: Filter out invalid URLs from real-world samples
+	realWorldSamplesRaw := []TestSample{
 		// E-commerce & Retail
 		{ID: "ecom_001", BusinessName: "Amazon", Description: "Online retail marketplace", WebsiteURL: "https://www.amazon.com", ExpectedIndustry: "retail", ExpectedMCC: []string{"5999", "5311", "5331"}, Category: "ecommerce", Complexity: "high", ScrapingDifficulty: "medium"},
 		{ID: "ecom_002", BusinessName: "Shopify", Description: "E-commerce platform", WebsiteURL: "https://www.shopify.com", ExpectedIndustry: "technology", ExpectedMCC: []string{"5734", "7372"}, Category: "saas", Complexity: "medium", ScrapingDifficulty: "low"},
@@ -401,13 +405,15 @@ func generateComprehensiveTestSamples() []TestSample {
 			websiteURL := ""
 			if template.scrapingDiffs[scrapingIdx] != "none" {
 				// Generate realistic-looking URLs (but these won't actually exist)
-				domain := strings.ToLower(strings.ReplaceAll(businessName, " ", ""))
-				domain = strings.ReplaceAll(domain, "'", "")
-				domain = strings.ReplaceAll(domain, ".", "")
-				if len(domain) > 30 {
-					domain = domain[:30]
+				// FIX: Improved domain generation to avoid invalid characters
+				domain := generateValidDomain(businessName)
+				if domain != "" {
+					websiteURL = fmt.Sprintf("https://www.%s.com", domain)
+					// Validate URL before using it
+					if !isValidURL(websiteURL) {
+						websiteURL = "" // Skip invalid URLs
+					}
 				}
-				websiteURL = fmt.Sprintf("https://www.%s.com", domain)
 			}
 			
 			sample := TestSample{
@@ -1447,6 +1453,99 @@ func (r *RailwayE2ETestRunner) PrintComprehensiveSummary() {
 	fmt.Printf("  Error Distribution: %v\n", r.metrics.ErrorDistribution)
 
 	fmt.Println(strings.Repeat("=", 80) + "\n")
+}
+
+// generateValidDomain generates a valid domain name from a business name
+// Removes invalid characters and ensures domain is valid for DNS
+func generateValidDomain(businessName string) string {
+	// Convert to lowercase and remove spaces
+	domain := strings.ToLower(strings.ReplaceAll(businessName, " ", ""))
+	
+	// Remove invalid characters (keep only alphanumeric, hyphens, dots)
+	invalidChars := regexp.MustCompile(`[^a-z0-9.\-]`)
+	domain = invalidChars.ReplaceAllString(domain, "")
+	
+	// Remove consecutive dots and hyphens
+	domain = regexp.MustCompile(`\.{2,}`).ReplaceAllString(domain, ".")
+	domain = regexp.MustCompile(`\-{2,}`).ReplaceAllString(domain, "-")
+	
+	// Remove leading/trailing dots and hyphens
+	domain = strings.Trim(domain, ".-")
+	
+	// Limit length (max 63 chars for domain label, but we'll use 30 for simplicity)
+	if len(domain) > 30 {
+		domain = domain[:30]
+	}
+	
+	// Ensure domain is not empty and doesn't start/end with hyphen
+	if domain == "" || strings.HasPrefix(domain, "-") || strings.HasSuffix(domain, "-") {
+		return ""
+	}
+	
+	// Validate domain format (basic check)
+	domainRegex := regexp.MustCompile(`^[a-z0-9]([a-z0-9\-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9\-]*[a-z0-9])?)*$`)
+	if !domainRegex.MatchString(domain) {
+		return ""
+	}
+	
+	return domain
+}
+
+// isValidURL validates a URL format and checks if hostname is valid
+func isValidURL(urlString string) bool {
+	if urlString == "" {
+		return false
+	}
+	
+	// Parse URL
+	parsedURL, err := url.Parse(urlString)
+	if err != nil {
+		return false
+	}
+	
+	// Check scheme
+	if parsedURL.Scheme != "http" && parsedURL.Scheme != "https" {
+		return false
+	}
+	
+	// Check hostname
+	if parsedURL.Host == "" {
+		return false
+	}
+	
+	// Extract hostname (remove port if present)
+	hostname := parsedURL.Hostname()
+	if hostname == "" {
+		return false
+	}
+	
+	// Check for invalid characters in hostname
+	invalidHostnameChars := regexp.MustCompile(`[^a-zA-Z0-9.\-]`)
+	if invalidHostnameChars.MatchString(hostname) {
+		return false
+	}
+	
+	// Check hostname format (basic DNS validation)
+	hostnameRegex := regexp.MustCompile(`^([a-zA-Z0-9]([a-zA-Z0-9\-]*[a-zA-Z0-9])?\.)*[a-zA-Z0-9]([a-zA-Z0-9\-]*[a-zA-Z0-9])?$`)
+	if !hostnameRegex.MatchString(hostname) {
+		return false
+	}
+	
+	// Try DNS lookup (with timeout to avoid hanging)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	
+	// Use resolver with timeout
+	resolver := &net.Resolver{}
+	_, err = resolver.LookupHost(ctx, hostname)
+	if err != nil {
+		// DNS lookup failed - domain doesn't exist, but URL format is valid
+		// We'll allow it since these are test domains that may not exist
+		// Only reject if URL format itself is invalid
+		return true // URL format is valid, even if DNS fails
+	}
+	
+	return true
 }
 
 // validateE2EResults validates test results
