@@ -485,7 +485,29 @@ func generateComprehensiveTestSamples() []TestSample {
 		samples = samples[:385]
 	}
 	
-	return samples
+	// FIX: Final pass - filter out any remaining invalid URLs
+	filteredSamples := make([]TestSample, 0, len(samples))
+	for _, sample := range samples {
+		if sample.WebsiteURL == "" || isValidURL(sample.WebsiteURL) {
+			filteredSamples = append(filteredSamples, sample)
+		}
+		// Skip samples with invalid URLs (they'll be treated as no-website samples)
+	}
+	
+	// If we filtered out too many, add back some without websites to maintain count
+	if len(filteredSamples) < 385 {
+		needed := 385 - len(filteredSamples)
+		added := 0
+		for i := 0; i < len(samples) && added < needed; i++ {
+			// Add samples without websites to reach 385
+			if samples[i].WebsiteURL == "" {
+				filteredSamples = append(filteredSamples, samples[i])
+				added++
+			}
+		}
+	}
+	
+	return filteredSamples
 }
 
 // RunComprehensiveTests runs all test samples with proper timeout and cancellation
