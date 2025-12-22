@@ -22,7 +22,7 @@ AS $$
 BEGIN
     RETURN QUERY
     SELECT DISTINCT
-        cc.code,
+        cc.code::text,  -- Cast VARCHAR(20) to text to match function return type
         cc.description,
         MAX(ck.relevance_score) as max_weight
     FROM code_keywords ck
