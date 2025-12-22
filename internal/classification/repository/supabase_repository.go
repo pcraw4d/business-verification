@@ -2014,6 +2014,23 @@ func (r *SupabaseKeywordRepository) GetCodesByKeywords(
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
 		r.logger.Printf("⚠️ GetCodesByKeywords returned status %d: %s", resp.StatusCode, string(body))
+		// #region agent log
+		debugLogPathErr := os.Getenv("DEBUG_LOG_PATH")
+		if debugLogPathErr == "" {
+			debugLogPathErr = "/tmp/debug.log"
+		}
+		logFileErr, _ := os.OpenFile(debugLogPathErr, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		if logFileErr != nil {
+			logDataErr, _ := json.Marshal(map[string]interface{}{
+				"sessionId": "debug-session", "runId": "run1", "hypothesisId": "G",
+				"location": "supabase_repository.go:2014", "message": "GetCodesByKeywords RPC failed",
+				"data": map[string]interface{}{"status_code": resp.StatusCode, "body": string(body), "url": url},
+				"timestamp": time.Now().UnixMilli(),
+			})
+			logFileErr.WriteString(string(logDataErr) + "\n")
+			logFileErr.Close()
+		}
+		// #endregion agent log
 		return []struct {
 			Code        string
 			Description string
