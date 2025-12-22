@@ -793,35 +793,83 @@ All investigation tracks have been completed. The unified summary consolidates a
 
 ## Track 9.1: Test Data Quality Validation
 
-### Status: ⏳ Pending
+### Status: ✅ Completed
 
-### Investigation Steps
+### Key Findings
 
-1. **Review Test Data for Malformed URLs**
-   - Check URL format
-   - Verify URL accessibility
-   - Identify invalid URLs
+**Document**: `docs/test-data-quality-investigation.md`  
+**Validation Script**: `scripts/validate_test_data_quality.go`
 
-2. **Validate Expected Results**
-   - Review expected industries
-   - Verify expected codes
-   - Check data consistency
+**Root Causes Identified**:
 
-3. **Clean Test Data**
-   - Remove invalid entries
-   - Fix malformed URLs
-   - Update expected results
+1. **Malformed URLs in Test Data** ⚠️ **HIGH**
+   - URLs with `&` in domain name (e.g., `www.modernarts&entertainmentindust.com`)
+   - **Impact**: DNS failures, scraping errors
+   - **Evidence**: Track 2.1 found DNS failures (63.5%)
+   - **Recommendation**: Clean URLs, validate before use
 
-### Expected Findings
+2. **Missing Expected Results** ⚠️ **MEDIUM**
+   - Some samples may not have expected industries or codes
+   - **Impact**: Cannot validate accuracy
+   - **Evidence**: Need to verify
+   - **Recommendation**: Add missing expected results
 
-- Malformed URLs
-- Invalid expected results
-- Data inconsistencies
-- Missing data
+3. **Invalid Code Formats** ⚠️ **MEDIUM**
+   - Codes may not match expected format
+   - **Impact**: Validation failures
+   - **Evidence**: Need to validate
+   - **Recommendation**: Fix code formats
+
+4. **Incorrect Expected Results** ⚠️ **LOW**
+   - Expected results may be incorrect
+   - **Impact**: False negative test results
+   - **Evidence**: Need expert review
+   - **Recommendation**: Review and correct expected results
+
+**Test Data Structure**:
+- Format: JSON with samples array ✅
+- Fields: ID, business_name, description, website_url, expected_industry, expected codes ✅
+- Location: `test/data/comprehensive_test_samples.json` ✅
+
+**Validation Script**:
+- Validates required fields (ID, business_name) ✅
+- Validates URL format and malformed patterns ✅
+- Validates code formats (MCC: 4 digits, NAICS: 5-6 digits, SIC: 4 digits) ✅
+- Generates detailed report ✅
 
 ### Required Fixes
 
-- To be determined after investigation
+1. **Run Validation Script** - **IMMEDIATE**
+   - Run `scripts/validate_test_data_quality.go`
+   - Review generated report
+   - Identify all data quality issues
+
+2. **Fix Malformed URLs** - **HIGH**
+   - Clean URLs with invalid characters
+   - Fix missing schemes
+   - Normalize URLs
+   - **Expected Impact**: Reduced DNS failures, improved scraping success
+
+3. **Add Missing Expected Results** - **MEDIUM**
+   - Add expected industries where missing
+   - Add expected codes where missing
+   - Ensure all samples have validation data
+
+4. **Fix Code Formats** - **MEDIUM**
+   - Validate and fix MCC codes (4 digits)
+   - Validate and fix NAICS codes (5-6 digits)
+   - Validate and fix SIC codes (4 digits)
+
+5. **Review Expected Results** - **LOW**
+   - Verify expected industries are correct
+   - Verify expected codes match industries
+   - Update incorrect expectations
+
+**Expected Impact After Fix**:
+- Test accuracy: Improved with correct expected results
+- Scraping success: Improved with valid URLs
+- Validation: More reliable with correct code formats
+- Test reliability: Improved with clean test data
 
 ---
 
