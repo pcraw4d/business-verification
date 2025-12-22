@@ -27,6 +27,9 @@ This document consolidates all investigation findings from the classification se
 3. **Track 3.1**: Classification Algorithm Investigation
 4. **Track 3.2**: Confidence Score Calibration Investigation
 5. **Track 6.1**: Python ML Service Connectivity Investigation
+6. **Track 6.2**: Playwright Scraper Service Verification
+7. **Track 6.3**: Supabase Database Connectivity Verification
+8. **Track 7.1**: Feature Flag Configuration Audit
 
 ### 🔄 In Progress
 
@@ -34,13 +37,10 @@ This document consolidates all investigation findings from the classification se
 
 ### ⏳ Pending Investigations
 
-6. **Track 6.2**: Playwright Scraper Service Verification
-7. **Track 6.3**: Supabase Database Connectivity Verification
-8. **Track 7.1**: Feature Flag Configuration Audit
-9. **Track 7.2**: Configuration Mismatch Investigation
-10. **Track 8.1**: Cache Hit Rate Investigation
-11. **Track 8.2**: Resource Constraints Investigation
-12. **Track 9.1**: Test Data Quality Validation
+8. **Track 7.2**: Configuration Mismatch Investigation
+9. **Track 8.1**: Cache Hit Rate Investigation
+10. **Track 8.2**: Resource Constraints Investigation
+11. **Track 9.1**: Test Data Quality Validation
 
 ---
 
