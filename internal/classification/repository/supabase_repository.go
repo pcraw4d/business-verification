@@ -1672,6 +1672,10 @@ func (r *SupabaseKeywordRepository) RemoveKeywordFromIndustry(ctx context.Contex
 func (r *SupabaseKeywordRepository) GetClassificationCodesByIndustry(ctx context.Context, industryID int) ([]*ClassificationCode, error) {
 	r.logger.Printf("🔍 Getting classification codes for industry ID: %d", industryID)
 
+	// Add query timeout (10 seconds)
+	queryCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
 	// Check if client is available
 	if r.client == nil {
 		return nil, fmt.Errorf("database client not available")
@@ -1683,6 +1687,7 @@ func (r *SupabaseKeywordRepository) GetClassificationCodesByIndustry(ctx context
 
 	// Optimized query with proper indexing and ordering
 	// First, try with is_active filter
+	// Note: Execute() will respect the queryCtx timeout if the HTTP client is configured with context support
 	response, _, err := postgrestClient.
 		From("classification_codes").
 		Select("id,industry_id,code_type,code,description,is_active", "", false).
@@ -1691,8 +1696,13 @@ func (r *SupabaseKeywordRepository) GetClassificationCodesByIndustry(ctx context
 		Order("code_type", &postgrest.OrderOpts{Ascending: true}).
 		Order("code", &postgrest.OrderOpts{Ascending: true}).
 		Execute()
+	
+	// Check if context was cancelled or timed out
+	if queryCtx.Err() != nil {
+		return nil, fmt.Errorf("query timeout or cancelled: %w", queryCtx.Err())
+	}
 
-	if err != nil {
+		if err != nil {
 		r.logger.Printf("⚠️ [ClassificationCodes] Query with is_active filter failed for industry %d: %v", industryID, err)
 		// Try without is_active filter as fallback (in case column doesn't exist or all are inactive)
 		response, _, err = postgrestClient.
@@ -1702,6 +1712,11 @@ func (r *SupabaseKeywordRepository) GetClassificationCodesByIndustry(ctx context
 			Order("code_type", &postgrest.OrderOpts{Ascending: true}).
 			Order("code", &postgrest.OrderOpts{Ascending: true}).
 			Execute()
+		
+		// Check if context was cancelled or timed out
+		if queryCtx.Err() != nil {
+			return nil, fmt.Errorf("query timeout or cancelled: %w", queryCtx.Err())
+		}
 
 		if err != nil {
 			return nil, fmt.Errorf("failed to get classification codes for industry %d: %w", industryID, err)
@@ -2531,6 +2546,10 @@ func (r *SupabaseKeywordRepository) GetIndustriesByKeyword(
 func (r *SupabaseKeywordRepository) GetClassificationCodesByType(ctx context.Context, codeType string) ([]*ClassificationCode, error) {
 	r.logger.Printf("🔍 Getting classification codes by type: %s", codeType)
 
+	// Add query timeout (10 seconds)
+	queryCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
 	// Check if client is available
 	if r.client == nil {
 		return nil, fmt.Errorf("database client not available")
@@ -2541,6 +2560,7 @@ func (r *SupabaseKeywordRepository) GetClassificationCodesByType(ctx context.Con
 	}
 
 	// Optimized query with proper indexing and ordering
+	// Note: Execute() will respect the queryCtx timeout if the HTTP client is configured with context support
 	response, _, err := postgrestClient.
 		From("classification_codes").
 		Select("id,industry_id,code_type,code,description,is_active", "", false).
@@ -2550,6 +2570,11 @@ func (r *SupabaseKeywordRepository) GetClassificationCodesByType(ctx context.Con
 		Order("code", &postgrest.OrderOpts{Ascending: true}).
 		Limit(5000, ""). // Limit to prevent memory issues with large datasets
 		Execute()
+	
+	// Check if context was cancelled or timed out
+	if queryCtx.Err() != nil {
+		return nil, fmt.Errorf("query timeout or cancelled: %w", queryCtx.Err())
+	}
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to get classification codes by type %s: %w", codeType, err)

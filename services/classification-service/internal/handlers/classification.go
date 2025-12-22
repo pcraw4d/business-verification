@@ -8,6 +8,8 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
+	"os"
 	"regexp"
 	"runtime"
 	"runtime/debug"
@@ -580,7 +582,7 @@ func (h *ClassificationHandler) getCacheKey(req *ClassificationRequest) string {
 	// This improves cache hit rates by treating "Acme Corp" and "acme corp" as the same
 	businessName := strings.TrimSpace(strings.ToLower(req.BusinessName))
 	description := strings.TrimSpace(strings.ToLower(req.Description))
-	websiteURL := strings.TrimSpace(strings.ToLower(req.WebsiteURL))
+	websiteURL := h.normalizeURL(strings.TrimSpace(req.WebsiteURL))
 	
 	// Create a hash of the normalized business name, description, and website URL
 	data := fmt.Sprintf("%s|%s|%s", businessName, description, websiteURL)
@@ -597,6 +599,38 @@ func (h *ClassificationHandler) getCacheKey(req *ClassificationRequest) string {
 		zap.String("business_name", req.BusinessName))
 	
 	return cacheKey
+}
+
+// normalizeURL normalizes URLs for cache key generation by removing www, trailing slashes, and query parameters
+// This improves cache hit rates by treating URLs like "https://www.example.com/" and "https://example.com" as the same
+func (h *ClassificationHandler) normalizeURL(urlStr string) string {
+	if urlStr == "" {
+		return ""
+	}
+	
+	// Parse the URL
+	parsedURL, err := url.Parse(urlStr)
+	if err != nil {
+		// If parsing fails, return lowercase version
+		return strings.ToLower(strings.TrimSpace(urlStr))
+	}
+	
+	// Remove www. prefix
+	host := parsedURL.Host
+	if strings.HasPrefix(host, "www.") {
+		host = host[4:]
+	}
+	parsedURL.Host = host
+	
+	// Remove trailing slash from path
+	parsedURL.Path = strings.TrimSuffix(parsedURL.Path, "/")
+	
+	// Remove query parameters and fragment
+	parsedURL.RawQuery = ""
+	parsedURL.Fragment = ""
+	
+	// Return normalized URL in lowercase
+	return strings.ToLower(parsedURL.String())
 }
 
 // validateResponse ensures all required frontend fields are present in the response
@@ -2334,7 +2368,8 @@ func (h *ClassificationHandler) processClassification(ctx context.Context, req *
 					zap.Duration("time_remaining", timeRemaining))
 				skipMultiPageAnalysis = true
 				skipMLClassification = true
-			} else if timeRemaining < 60*time.Second {
+			} else if timeRemaining < 30*time.Second {
+				// Reduced threshold from 60s to 30s to allow more multi-page analysis
 				h.logger.Info("Limited time remaining, skipping multi-page analysis",
 					zap.String("request_id", req.RequestID),
 					zap.Duration("time_remaining", timeRemaining))
@@ -5232,11 +5267,24 @@ func (h *ClassificationHandler) HandleHealth(w http.ResponseWriter, r *http.Requ
 		"llm_service_status":  llmStatus,
 		"classification_data": classificationData,
 		"features": map[string]interface{}{
-			"ml_enabled":             h.config.Classification.MLEnabled,
-			"keyword_method_enabled": h.config.Classification.KeywordMethodEnabled,
-			"ensemble_enabled":       h.config.Classification.EnsembleEnabled,
-			"cache_enabled":          h.config.Classification.CacheEnabled,
-			"llm_enabled":            h.config.Classification.LLMServiceURL != "",
+			"ml_enabled":                        h.config.Classification.MLEnabled,
+			"keyword_method_enabled":            h.config.Classification.KeywordMethodEnabled,
+			"ensemble_enabled":                  h.config.Classification.EnsembleEnabled,
+			"cache_enabled":                     h.config.Classification.CacheEnabled,
+			"redis_enabled":                     h.config.Classification.RedisEnabled,
+			"llm_enabled":                       h.config.Classification.LLMServiceURL != "",
+			"multi_page_analysis_enabled":       h.config.Classification.MultiPageAnalysisEnabled,
+			"fast_path_scraping_enabled":        h.config.Classification.FastPathScrapingEnabled,
+			"structured_data_extraction_enabled": h.config.Classification.StructuredDataExtractionEnabled,
+			"early_termination_enabled":          h.config.Classification.EnableEarlyTermination,
+			"early_termination_threshold":       h.config.Classification.EarlyTerminationConfidenceThreshold,
+			"min_content_length_for_ml":          h.config.Classification.MinContentLengthForML,
+		},
+		"service_urls": map[string]interface{}{
+			"python_ml_service_url":  os.Getenv("PYTHON_ML_SERVICE_URL"),
+			"playwright_service_url": os.Getenv("PLAYWRIGHT_SERVICE_URL"),
+			"embedding_service_url":   h.config.Classification.EmbeddingServiceURL,
+			"llm_service_url":         h.config.Classification.LLMServiceURL,
 		},
 	}
 

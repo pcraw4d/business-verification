@@ -127,14 +127,14 @@ func Load() (*Config, error) {
 			MaxConcurrentPages:      getEnvAsInt("CLASSIFICATION_MAX_CONCURRENT_PAGES", 3),
 			CrawlDelayMs:            getEnvAsInt("CLASSIFICATION_CRAWL_DELAY_MS", 500),
 			FastPathMaxPages:        getEnvAsInt("CLASSIFICATION_FAST_PATH_MAX_PAGES", 8),
-			WebsiteScrapingTimeout:  getEnvAsDuration("CLASSIFICATION_WEBSITE_SCRAPING_TIMEOUT", 15*time.Second), // Increased from 5s to 15s for better success rate
+			WebsiteScrapingTimeout:  getEnvAsDuration("CLASSIFICATION_WEBSITE_SCRAPING_TIMEOUT", 20*time.Second), // Aligned with timeout budget (Website: 20s)
 			// Website content caching
 			WebsiteContentCacheTTL:    getEnvAsDuration("WEBSITE_CONTENT_CACHE_TTL", 24*time.Hour),
 			EnableWebsiteContentCache: getEnvAsBool("ENABLE_WEBSITE_CONTENT_CACHE", true),
 			// Early termination configuration (Task 1.5)
 			EnableEarlyTermination:              getEnvAsBool("ENABLE_EARLY_TERMINATION", true),
-			EarlyTerminationConfidenceThreshold: getEnvAsFloat("EARLY_TERMINATION_CONFIDENCE_THRESHOLD", 0.85),
-			MinContentLengthForML:               getEnvAsInt("MIN_CONTENT_LENGTH_FOR_ML", 50),
+			EarlyTerminationConfidenceThreshold: getEnvAsFloat("EARLY_TERMINATION_CONFIDENCE_THRESHOLD", 0.70), // Reduced from 0.85 to allow more ML service usage
+			MinContentLengthForML:               getEnvAsInt("MIN_CONTENT_LENGTH_FOR_ML", 30), // Reduced from 50 to make ML service more accessible
 			SkipFullCrawlIfContentSufficient:    getEnvAsBool("SKIP_FULL_CRAWL_IF_CONTENT_SUFFICIENT", true),
 			// Priority 5.3: Ensemble weight configuration (adjustable based on accuracy)
 			PythonMLWeight:          getEnvAsFloat("PYTHON_ML_WEIGHT", 0.60),
@@ -153,6 +153,17 @@ func Load() (*Config, error) {
 	// Validate required Supabase configuration
 	if cfg.Supabase.URL == "" || cfg.Supabase.APIKey == "" || cfg.Supabase.ServiceRoleKey == "" {
 		return nil, fmt.Errorf("Supabase environment variables (SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY) must be set")
+	}
+
+	// Validate service URLs (warn if critical services are not configured)
+	// Note: These are warnings, not errors, as services may be optional or configured later
+	if cfg.Classification.MLEnabled && os.Getenv("PYTHON_ML_SERVICE_URL") == "" {
+		// Log warning but don't fail - service will work without ML
+		fmt.Printf("⚠️  WARNING: ML_ENABLED is true but PYTHON_ML_SERVICE_URL is not set. ML classification will be unavailable.\n")
+	}
+	if os.Getenv("PLAYWRIGHT_SERVICE_URL") == "" {
+		// Log info - Playwright is optional fallback
+		fmt.Printf("ℹ️  INFO: PLAYWRIGHT_SERVICE_URL is not set. Playwright scraping strategy will be disabled.\n")
 	}
 
 	return cfg, nil

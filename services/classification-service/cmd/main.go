@@ -68,6 +68,26 @@ func main() {
 		zap.String("supabase_url", cfg.Supabase.URL),
 		zap.Duration("read_timeout", cfg.Server.ReadTimeout),
 		zap.Duration("write_timeout", cfg.Server.WriteTimeout))
+	
+	// Log critical feature flags for monitoring
+	logger.Info("📋 Feature flags configuration",
+		zap.Bool("ml_enabled", cfg.Classification.MLEnabled),
+		zap.Bool("ensemble_enabled", cfg.Classification.EnsembleEnabled),
+		zap.Bool("keyword_method_enabled", cfg.Classification.KeywordMethodEnabled),
+		zap.Bool("multi_page_analysis_enabled", cfg.Classification.MultiPageAnalysisEnabled),
+		zap.Bool("early_termination_enabled", cfg.Classification.EnableEarlyTermination),
+		zap.Float64("early_termination_threshold", cfg.Classification.EarlyTerminationConfidenceThreshold),
+		zap.Bool("cache_enabled", cfg.Classification.CacheEnabled),
+		zap.Bool("redis_enabled", cfg.Classification.RedisEnabled))
+	
+	// Log service URLs for verification (masked for security)
+	pythonMLURL := os.Getenv("PYTHON_ML_SERVICE_URL")
+	playwrightURL := os.Getenv("PLAYWRIGHT_SERVICE_URL")
+	logger.Info("🔗 Service URLs configuration",
+		zap.Bool("python_ml_service_configured", pythonMLURL != ""),
+		zap.Bool("playwright_service_configured", playwrightURL != ""),
+		zap.String("embedding_service_url", cfg.Classification.EmbeddingServiceURL),
+		zap.String("llm_service_url", cfg.Classification.LLMServiceURL))
 
 	// Apply Go memory limit if provided (helps avoid OOM kills on Railway)
 	applyMemoryLimit(logger)

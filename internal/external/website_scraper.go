@@ -140,7 +140,8 @@ func NewWebsiteScraperWithStrategies(config *ScrapingConfig, logger *zap.Logger,
 	// The getClientWithContextTimeout will still respect context deadline, but base timeout needs to be higher
 	// to handle queue wait scenarios
 	if playwrightServiceURL != "" {
-		playwrightClient := &http.Client{Timeout: 60 * time.Second}
+		// Reduced timeout from 60s to 20s to match context deadline and prevent timeouts
+		playwrightClient := &http.Client{Timeout: 20 * time.Second}
 		strategies = append(strategies, &PlaywrightScraper{
 			serviceURL: playwrightServiceURL,
 			client:     playwrightClient,
@@ -340,6 +341,77 @@ func (s *WebsiteScraper) ScrapeWebsite(ctx context.Context, targetURL string) (*
 	return result, nil
 }
 
+// categorizeError categorizes errors for better debugging and monitoring
+func (s *WebsiteScraper) categorizeError(err error) string {
+	if err == nil {
+		return "none"
+	}
+	
+	errStr := strings.ToLower(err.Error())
+	
+	// DNS errors
+	if strings.Contains(errStr, "no such host") || strings.Contains(errStr, "dns") {
+		return "dns_error"
+	}
+	
+	// Network errors
+	if strings.Contains(errStr, "connection refused") || strings.Contains(errStr, "connection reset") {
+		return "network_error"
+	}
+	
+	// Timeout errors
+	if strings.Contains(errStr, "timeout") || strings.Contains(errStr, "deadline exceeded") {
+		return "timeout_error"
+	}
+	
+	// TLS/SSL errors
+	if strings.Contains(errStr, "tls") || strings.Contains(errStr, "ssl") || strings.Contains(errStr, "certificate") {
+		return "tls_error"
+	}
+	
+	// Context cancellation
+	if strings.Contains(errStr, "context canceled") {
+		return "context_cancelled"
+	}
+	
+	// HTTP/2 errors
+	if strings.Contains(errStr, "http/2") || strings.Contains(errStr, "stream error") {
+		return "http2_error"
+	}
+	
+	// Unknown error
+	return "unknown_error"
+}
+
+// isTransientError determines if an error is transient and should be retried
+func (s *WebsiteScraper) isTransientError(err error) bool {
+	if err == nil {
+		return false
+	}
+	
+	errStr := strings.ToLower(err.Error())
+	
+	// Transient errors that should be retried
+	transientPatterns := []string{
+		"timeout",
+		"deadline exceeded",
+		"connection reset",
+		"temporary failure",
+		"http/2",
+		"stream error",
+		"eof",
+		"broken pipe",
+	}
+	
+	for _, pattern := range transientPatterns {
+		if strings.Contains(errStr, pattern) {
+			return true
+		}
+	}
+	
+	return false
+}
+
 // performScrape performs a single scraping attempt
 func (s *WebsiteScraper) performScrape(ctx context.Context, targetURL string, attempt int) (*ScrapingResult, error) {
 	httpStartTime := time.Now()
@@ -371,11 +443,19 @@ func (s *WebsiteScraper) performScrape(ctx context.Context, targetURL string, at
 	resp, err := s.client.Do(req)
 	httpDuration := time.Since(httpStartTime)
 	if err != nil {
+		// Enhanced error categorization for better debugging
+		errCategory := s.categorizeError(err)
 		s.logger.Error("HTTP request failed",
 			zap.String("url", targetURL),
 			zap.Error(err),
+			zap.String("error_category", errCategory),
 			zap.String("stage", "http_request"),
 			zap.Duration("duration_ms", httpDuration))
+		
+		// Handle specific error types with appropriate retry logic
+		if s.isTransientError(err) {
+			return nil, fmt.Errorf("transient error (retryable): %w", err)
+		}
 		return nil, fmt.Errorf("request failed: %w", err)
 	}
 	defer resp.Body.Close()
@@ -386,7 +466,14 @@ func (s *WebsiteScraper) performScrape(ctx context.Context, targetURL string, at
 		zap.String("content_type", resp.Header.Get("Content-Type")),
 		zap.Duration("duration_ms", httpDuration))
 
-	// Check status code
+	// Check status code (including status 0 which indicates connection failure)
+	if resp.StatusCode == 0 {
+		s.logger.Warn("HTTP status 0 (connection failed before response)",
+			zap.String("url", targetURL),
+			zap.String("stage", "http_response"))
+		return nil, fmt.Errorf("connection failed: received status code 0")
+	}
+	
 	if resp.StatusCode != 200 {
 		s.logger.Warn("Non-200 status code",
 			zap.String("url", targetURL),

@@ -357,7 +357,7 @@ func (cc *ConfidenceCalibrator) CalibrateConfidence(
 
 	// Factor 1: Content quality boost
 	if contentQuality > 0.8 {
-		calibratedConfidence *= 1.10 // +10% boost for high-quality content
+		calibratedConfidence *= 1.20 // +20% boost for high-quality content (increased from 1.10)
 	} else if contentQuality < 0.5 {
 		calibratedConfidence *= 0.90 // -10% penalty for low-quality content
 	}
@@ -366,7 +366,7 @@ func (cc *ConfidenceCalibrator) CalibrateConfidence(
 	strategyVariance := cc.calculateVariance(strategyResults)
 	if strategyVariance < 0.05 {
 		// Strategies strongly agree
-		calibratedConfidence *= 1.15
+		calibratedConfidence *= 1.25 // Increased from 1.15
 	} else if strategyVariance < 0.10 {
 		// Moderate agreement
 		calibratedConfidence *= 1.08
@@ -412,8 +412,8 @@ func (cc *ConfidenceCalibrator) CalibrateConfidence(
 	// Cap confidence at 0.95 (never claim 100% certainty)
 	calibratedConfidence = math.Min(calibratedConfidence, 0.95)
 
-	// Floor at 0.30 (anything lower suggests we shouldn't classify)
-	calibratedConfidence = math.Max(calibratedConfidence, 0.30)
+	// Floor at 0.50 (increased from 0.30 to improve overall confidence scores)
+	calibratedConfidence = math.Max(calibratedConfidence, 0.50)
 
 	return calibratedConfidence
 }

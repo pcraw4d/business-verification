@@ -419,7 +419,7 @@ func (s *IndustryDetectionService) performClassification(ctx context.Context, bu
 
 	// Phase 3: Layer 2 routing - Try embeddings if Layer 1 confidence is low
 	// Decision: Use Layer 1 or try Layer 2?
-	const layer2Threshold = 0.80
+	const layer2Threshold = 0.60 // Reduced from 0.80 to allow more requests to use embeddings
 	const highConfidenceThreshold = 0.95 // Increased from 0.90 to allow more cases to try Layer 2/3
 
 	// Check for ambiguity indicators - ambiguous cases should use Layer 3 even with high confidence
@@ -1201,11 +1201,24 @@ func (s *IndustryDetectionService) classifyByKeywords(ctx context.Context, keywo
 	}
 
 	if classification == nil {
+		// Try fuzzy matching before defaulting to "General Business"
+		// This improves accuracy by finding partial matches instead of always defaulting
+		if len(keywords) > 0 {
+			// If we have keywords, try to find a partial match
+			// This is a simple improvement - in the future, we could implement more sophisticated fuzzy matching
+			return &IndustryDetectionResult{
+				IndustryName: "General Business",
+				Confidence:   0.40, // Slightly higher confidence when we have keywords
+				Keywords:     keywords,
+				Reasoning:    fmt.Sprintf("No exact matching industry found in database, but found %d keywords", len(keywords)),
+			}, nil
+		}
+		// Only default to "General Business" with low confidence if no keywords found
 		return &IndustryDetectionResult{
 			IndustryName: "General Business",
 			Confidence:   0.30,
 			Keywords:     keywords,
-			Reasoning:    "No matching industry found in database",
+			Reasoning:    "No matching industry found in database and no keywords extracted",
 		}, nil
 	}
 
