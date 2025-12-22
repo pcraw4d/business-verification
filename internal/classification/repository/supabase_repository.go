@@ -2251,9 +2251,8 @@ func (r *SupabaseKeywordRepository) GetCrosswalks(
 		}{}
 	}
 
-	// Try to use code_metadata table first (via CodeMetadataRepository pattern)
-	// If that doesn't work, fall back to industry_code_crosswalks table
-	// For now, we'll use a simple query pattern
+	// HYBRID APPROACH: Try industry_code_crosswalks first (structured, faster)
+	// Fallback to code_metadata.crosswalk_data (flexible, backward compatible)
 
 	postgrestClient := r.client.GetPostgrestClient()
 	if postgrestClient == nil {
@@ -2262,6 +2261,68 @@ func (r *SupabaseKeywordRepository) GetCrosswalks(
 			ToDescription string
 		}{}
 	}
+
+	// STEP 1: Try industry_code_crosswalks table first (structured, faster queries)
+	response, _, err := postgrestClient.
+		From("industry_code_crosswalks").
+		Select("target_code", "", false).
+		Eq("source_system", fromCodeType).
+		Eq("source_code", fromCode).
+		Eq("target_system", toCodeType).
+		Eq("is_active", "true").
+		Order("confidence_score", &postgrest.OrderOpts{Ascending: false}).
+		Limit(5, "").
+		Execute()
+
+	var results []struct {
+		ToCode        string
+		ToDescription string
+	}
+
+	if err == nil {
+		// Parse structured crosswalk results
+		var crosswalkArray []struct {
+			TargetCode string `json:"target_code"`
+		}
+		if err := json.Unmarshal(response, &crosswalkArray); err == nil && len(crosswalkArray) > 0 {
+			// Get descriptions for each target code
+			for _, cw := range crosswalkArray {
+				descResp, _, err := postgrestClient.
+					From("classification_codes").
+					Select("description", "", false).
+					Eq("code_type", toCodeType).
+					Eq("code", cw.TargetCode).
+					Limit(1, "").
+					Execute()
+
+				description := ""
+				if err == nil {
+					var codeDataArray []struct {
+						Description string `json:"description"`
+					}
+					if err := json.Unmarshal(descResp, &codeDataArray); err == nil && len(codeDataArray) > 0 {
+						description = codeDataArray[0].Description
+					}
+				}
+
+				results = append(results, struct {
+					ToCode        string
+					ToDescription string
+				}{
+					ToCode:        cw.TargetCode,
+					ToDescription: description,
+				})
+			}
+
+			if len(results) > 0 {
+				r.logger.Printf("✅ Retrieved %d crosswalk codes from %s %s to %s (from industry_code_crosswalks)", len(results), fromCodeType, fromCode, toCodeType)
+				return results
+			}
+		}
+	}
+
+	// STEP 2: Fallback to code_metadata.crosswalk_data (JSONB, backward compatible)
+	r.logger.Printf("⚠️ No crosswalks found in industry_code_crosswalks, trying code_metadata fallback")
 
 	// Query code_metadata for crosswalk data
 	// Use Limit(1) instead of Single() to handle cases where no results exist

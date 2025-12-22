@@ -24,9 +24,9 @@ AS $$
 BEGIN
     RETURN QUERY
     SELECT 
-        cc.code,
+        cc.code::text,  -- Cast VARCHAR(20) to text to match function return type
         cc.description,
-        similarity(cc.description, p_industry_name) as similarity
+        similarity(cc.description, p_industry_name)::double precision as similarity  -- Cast real to double precision to match function return type
     FROM classification_codes cc
     WHERE 
         cc.code_type = p_code_type
