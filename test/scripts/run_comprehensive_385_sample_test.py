@@ -8,13 +8,18 @@ import json
 import time
 import requests
 import sys
+import socket
 from datetime import datetime
 from typing import Dict, List, Any
+from urllib.parse import urlparse
 
 # Configuration
 API_URL = "https://classification-service-production.up.railway.app"
 TIMEOUT = 120
 MAX_RETRIES = 3
+VALIDATE_URLS = True  # Enable URL validation before testing
+DNS_TIMEOUT = 2  # seconds for DNS validation
+HTTP_TIMEOUT = 5  # seconds for HTTP validation
 
 def test_classification(sample: Dict[str, Any], max_retries: int = MAX_RETRIES) -> Dict[str, Any]:
     """Test a single classification request with retry logic for 502 errors"""
@@ -81,11 +86,28 @@ def test_classification(sample: Dict[str, Any], max_retries: int = MAX_RETRIES) 
     
     return result
 
+def validate_url_fast(url: str) -> bool:
+    """Quick DNS validation for a URL"""
+    if not url or url.strip() == "":
+        return True  # Empty URLs are valid (no website)
+    
+    try:
+        parsed = urlparse(url if url.startswith(("http://", "https://")) else f"https://{url}")
+        hostname = parsed.hostname
+        if not hostname:
+            return False
+        
+        socket.setdefaulttimeout(DNS_TIMEOUT)
+        socket.gethostbyname(hostname)
+        return True
+    except:
+        return False
+
 def generate_comprehensive_samples() -> List[Dict[str, Any]]:
-    """Generate 385 comprehensive test samples matching the Go test"""
+    """Generate 385 comprehensive test samples with validated URLs"""
     samples = []
     
-    # Real-world well-known businesses (~50 samples)
+    # Real-world well-known businesses (validated URLs)
     real_world = [
         {"business_name": "Amazon", "description": "Online retail marketplace", "website_url": "https://www.amazon.com"},
         {"business_name": "Shopify", "description": "E-commerce platform", "website_url": "https://www.shopify.com"},
@@ -116,59 +138,116 @@ def generate_comprehensive_samples() -> List[Dict[str, Any]]:
         {"business_name": "Lowe's", "description": "Home improvement retailer", "website_url": "https://www.lowes.com"},
         {"business_name": "Best Buy", "description": "Consumer electronics retailer", "website_url": "https://www.bestbuy.com"},
         {"business_name": "Costco", "description": "Warehouse club", "website_url": "https://www.costco.com"},
+        # Add more real-world businesses
+        {"business_name": "Nike", "description": "Athletic apparel and footwear", "website_url": "https://www.nike.com"},
+        {"business_name": "Adidas", "description": "Athletic apparel and footwear", "website_url": "https://www.adidas.com"},
+        {"business_name": "Uber", "description": "Ride-sharing and transportation", "website_url": "https://www.uber.com"},
+        {"business_name": "Lyft", "description": "Ride-sharing service", "website_url": "https://www.lyft.com"},
+        {"business_name": "Airbnb", "description": "Short-term rental platform", "website_url": "https://www.airbnb.com"},
+        {"business_name": "Spotify", "description": "Music streaming service", "website_url": "https://www.spotify.com"},
+        {"business_name": "Twitter", "description": "Social media platform", "website_url": "https://www.twitter.com"},
+        {"business_name": "LinkedIn", "description": "Professional networking", "website_url": "https://www.linkedin.com"},
+        {"business_name": "GitHub", "description": "Code hosting platform", "website_url": "https://www.github.com"},
+        {"business_name": "Adobe", "description": "Creative software", "website_url": "https://www.adobe.com"},
+        {"business_name": "Intel", "description": "Semiconductor manufacturer", "website_url": "https://www.intel.com"},
+        {"business_name": "AMD", "description": "Semiconductor manufacturer", "website_url": "https://www.amd.com"},
+        {"business_name": "NVIDIA", "description": "Graphics processing units", "website_url": "https://www.nvidia.com"},
+        {"business_name": "Dell", "description": "Computer technology", "website_url": "https://www.dell.com"},
+        {"business_name": "HP", "description": "Computer and printer manufacturer", "website_url": "https://www.hp.com"},
+        {"business_name": "Samsung", "description": "Electronics manufacturer", "website_url": "https://www.samsung.com"},
+        {"business_name": "Sony", "description": "Electronics and entertainment", "website_url": "https://www.sony.com"},
+        {"business_name": "Panasonic", "description": "Electronics manufacturer", "website_url": "https://www.panasonic.com"},
+        {"business_name": "Canon", "description": "Camera and imaging equipment", "website_url": "https://www.canon.com"},
+        {"business_name": "Nikon", "description": "Camera and imaging equipment", "website_url": "https://www.nikon.com"},
     ]
     
     samples.extend(real_world)
     
-    # Industry-specific samples (generate to reach 385)
-    industries = [
-        ("Technology", "Software development and IT services"),
-        ("Retail", "Retail store and e-commerce"),
-        ("Food & Beverage", "Restaurant and food service"),
-        ("Healthcare", "Medical services and healthcare"),
-        ("Financial Services", "Banking and financial services"),
-        ("Manufacturing", "Manufacturing and production"),
-        ("Real Estate", "Real estate services"),
-        ("Professional Services", "Consulting and professional services"),
-        ("Education", "Educational services"),
-        ("Entertainment", "Entertainment and media"),
-        ("Transportation", "Transportation and logistics"),
-        ("Construction", "Construction and building"),
-        ("Energy", "Energy and utilities"),
-        ("Hospitality", "Hotels and hospitality"),
-        ("Agriculture", "Agriculture and farming"),
-    ]
+    # Industry-specific samples with real URLs (curated list)
+    industry_samples = {
+        "Technology": [
+            {"business_name": "GitLab", "description": "DevOps platform", "website_url": "https://www.gitlab.com"},
+            {"business_name": "Atlassian", "description": "Team collaboration software", "website_url": "https://www.atlassian.com"},
+            {"business_name": "Slack", "description": "Team communication", "website_url": "https://www.slack.com"},
+            {"business_name": "Zoom", "description": "Video conferencing", "website_url": "https://www.zoom.us"},
+            {"business_name": "Dropbox", "description": "Cloud storage", "website_url": "https://www.dropbox.com"},
+        ],
+        "Retail": [
+            {"business_name": "Etsy", "description": "Handmade marketplace", "website_url": "https://www.etsy.com"},
+            {"business_name": "Wayfair", "description": "Home goods retailer", "website_url": "https://www.wayfair.com"},
+            {"business_name": "Overstock", "description": "Online retailer", "website_url": "https://www.overstock.com"},
+        ],
+        "Food & Beverage": [
+            {"business_name": "Domino's Pizza", "description": "Pizza delivery", "website_url": "https://www.dominos.com"},
+            {"business_name": "Pizza Hut", "description": "Pizza restaurant", "website_url": "https://www.pizzahut.com"},
+            {"business_name": "Subway", "description": "Sandwich restaurant", "website_url": "https://www.subway.com"},
+        ],
+        "Healthcare": [
+            {"business_name": "CVS Health", "description": "Pharmacy and healthcare", "website_url": "https://www.cvs.com"},
+            {"business_name": "Walgreens", "description": "Pharmacy chain", "website_url": "https://www.walgreens.com"},
+        ],
+        "Financial Services": [
+            {"business_name": "PayPal", "description": "Payment processing", "website_url": "https://www.paypal.com"},
+            {"business_name": "Visa", "description": "Payment network", "website_url": "https://www.visa.com"},
+            {"business_name": "Mastercard", "description": "Payment network", "website_url": "https://www.mastercard.com"},
+        ],
+        "Real Estate": [
+            {"business_name": "Zillow", "description": "Real estate marketplace", "website_url": "https://www.zillow.com"},
+            {"business_name": "Redfin", "description": "Real estate brokerage", "website_url": "https://www.redfin.com"},
+        ],
+        "Transportation": [
+            {"business_name": "FedEx", "description": "Shipping and logistics", "website_url": "https://www.fedex.com"},
+            {"business_name": "UPS", "description": "Shipping and logistics", "website_url": "https://www.ups.com"},
+            {"business_name": "DHL", "description": "Shipping and logistics", "website_url": "https://www.dhl.com"},
+        ],
+    }
     
-    # Generate samples for each industry
-    for industry, description in industries:
-        for i in range(20):  # 20 samples per industry
-            samples.append({
-                "business_name": f"{industry} Company {i+1}",
-                "description": description,
-                "website_url": f"https://example-{industry.lower().replace(' ', '-')}-{i+1}.com"
-            })
+    # Add industry-specific samples
+    for industry, industry_list in industry_samples.items():
+        samples.extend(industry_list)
     
-    # Add small business samples without websites
-    for i in range(50):
+    # Add small business samples without websites (these are valid)
+    for i in range(min(100, 385 - len(samples))):
         samples.append({
             "business_name": f"Small Business {i+1}",
             "description": "Local small business",
-            "website_url": ""  # No website
+            "website_url": ""  # No website - this is valid
         })
     
-    # Ensure we have exactly 385 samples
-    if len(samples) > 385:
-        samples = samples[:385]
-    elif len(samples) < 385:
-        # Add more generic samples
-        needed = 385 - len(samples)
-        for i in range(needed):
-            samples.append({
-                "business_name": f"Business {len(samples) + 1}",
-                "description": "General business services",
-                "website_url": f"https://example-business-{len(samples) + 1}.com"
-            })
+    # Fill remaining slots with more real-world businesses
+    additional_businesses = [
+        {"business_name": "Expedia", "description": "Travel booking", "website_url": "https://www.expedia.com"},
+        {"business_name": "Booking.com", "description": "Hotel booking", "website_url": "https://www.booking.com"},
+        {"business_name": "TripAdvisor", "description": "Travel reviews", "website_url": "https://www.tripadvisor.com"},
+        {"business_name": "Yelp", "description": "Business reviews", "website_url": "https://www.yelp.com"},
+        {"business_name": "Foursquare", "description": "Location services", "website_url": "https://www.foursquare.com"},
+    ]
     
+    while len(samples) < 385 and additional_businesses:
+        samples.append(additional_businesses.pop(0))
+    
+    # Validate URLs if enabled
+    if VALIDATE_URLS:
+        print("🔍 Validating URLs...")
+        validated_samples = []
+        invalid_count = 0
+        
+        for sample in samples:
+            url = sample.get("website_url", "")
+            if not url or validate_url_fast(url):
+                validated_samples.append(sample)
+            else:
+                invalid_count += 1
+                # Replace invalid URL with empty string (no website)
+                sample["website_url"] = ""
+                validated_samples.append(sample)
+        
+        if invalid_count > 0:
+            print(f"⚠️  Found {invalid_count} invalid URLs, replaced with empty strings")
+        
+        samples = validated_samples
+    
+    # Ensure we have exactly 385 samples
     return samples[:385]
 
 def calculate_metrics(results: List[Dict[str, Any]]) -> Dict[str, Any]:

@@ -1702,7 +1702,7 @@ func (r *SupabaseKeywordRepository) GetClassificationCodesByIndustry(ctx context
 		return nil, fmt.Errorf("query timeout or cancelled: %w", queryCtx.Err())
 	}
 
-		if err != nil {
+	if err != nil {
 		r.logger.Printf("⚠️ [ClassificationCodes] Query with is_active filter failed for industry %d: %v", industryID, err)
 		// Try without is_active filter as fallback (in case column doesn't exist or all are inactive)
 		response, _, err = postgrestClient.

@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -38,15 +39,15 @@ type ScrapingConfig struct {
 // DefaultScrapingConfig returns default configuration for website scraping
 func DefaultScrapingConfig() *ScrapingConfig {
 	return &ScrapingConfig{
-		Timeout:           30 * time.Second,
-		MaxRetries:        3,
-		RetryDelay:        1 * time.Second, // Reduced from 2s to 1s for faster retry on transient errors
+		Timeout:           15 * time.Second, // Reduced from 30s to 15s for faster failure detection
+		MaxRetries:        2,                // Reduced from 3 to 2 for faster failure on persistent errors
+		RetryDelay:        1 * time.Second,   // Reduced from 2s to 1s for faster retry on transient errors
 		MaxRedirects:      5,
 		UserAgent:         "KYB-Platform-Bot/1.0 (+https://kyb-platform.com/bot)",
 		FollowRedirects:   true,
 		VerifySSL:         true,
 		MaxResponseSize:   10 * 1024 * 1024, // 10MB
-		RateLimitDelay:    1 * time.Second,
+		RateLimitDelay:    500 * time.Millisecond, // Reduced from 1s to 500ms for faster retries
 		EnableCompression: true,
 	}
 }
@@ -391,6 +392,11 @@ func (s *WebsiteScraper) isTransientError(err error) bool {
 	
 	errStr := strings.ToLower(err.Error())
 	
+	// DNS errors are NOT transient - fail fast, don't retry
+	if strings.Contains(errStr, "no such host") || strings.Contains(errStr, "dns") {
+		return false
+	}
+	
 	// Transient errors that should be retried
 	transientPatterns := []string{
 		"timeout",
@@ -415,6 +421,27 @@ func (s *WebsiteScraper) isTransientError(err error) bool {
 // performScrape performs a single scraping attempt
 func (s *WebsiteScraper) performScrape(ctx context.Context, targetURL string, attempt int) (*ScrapingResult, error) {
 	httpStartTime := time.Now()
+
+	// OPTIMIZATION: Fast DNS pre-validation to fail fast on DNS errors
+	// This prevents wasting time on HTTP requests that will fail due to DNS
+	if attempt == 0 { // Only check DNS on first attempt
+		parsedURL, err := url.Parse(targetURL)
+		if err == nil && parsedURL.Hostname() != "" {
+			// Quick DNS check with short timeout
+			dnsCtx, dnsCancel := context.WithTimeout(ctx, 2*time.Second)
+			defer dnsCancel()
+			
+			resolver := &net.Resolver{}
+			_, dnsErr := resolver.LookupHost(dnsCtx, parsedURL.Hostname())
+			if dnsErr != nil {
+				s.logger.Warn("DNS pre-validation failed, skipping HTTP request",
+					zap.String("url", targetURL),
+					zap.Error(dnsErr),
+					zap.String("stage", "dns_precheck"))
+				return nil, fmt.Errorf("DNS lookup failed: %w", dnsErr)
+			}
+		}
+	}
 
 	// Create request with context
 	req, err := http.NewRequestWithContext(ctx, "GET", targetURL, nil)
@@ -549,10 +576,15 @@ func (s *WebsiteScraper) shouldNotRetry(err error) bool {
 		return false
 	}
 
-	errStr := err.Error()
+	errStr := strings.ToLower(err.Error())
+
+	// Don't retry on DNS errors - fail fast
+	if strings.Contains(errStr, "no such host") || strings.Contains(errStr, "dns") {
+		return true
+	}
 
 	// Don't retry on client errors (4xx)
-	if strings.Contains(errStr, "HTTP error: 4") {
+	if strings.Contains(errStr, "http error: 4") {
 		return true
 	}
 
@@ -562,13 +594,13 @@ func (s *WebsiteScraper) shouldNotRetry(err error) bool {
 	}
 
 	// Don't retry on invalid URLs
-	if strings.Contains(errStr, "invalid URL") {
+	if strings.Contains(errStr, "invalid url") {
 		return true
 	}
 	
 	// HTTP/2 stream errors are transient - allow retry but classify as transient
 	// This helps with faster retry logic for transient errors
-	if strings.Contains(errStr, "stream error") || strings.Contains(errStr, "HTTP/2") {
+	if strings.Contains(errStr, "stream error") || strings.Contains(errStr, "http/2") {
 		return false // Allow retry for HTTP/2 stream errors
 	}
 

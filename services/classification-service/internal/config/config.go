@@ -127,7 +127,7 @@ func Load() (*Config, error) {
 			MaxConcurrentPages:      getEnvAsInt("CLASSIFICATION_MAX_CONCURRENT_PAGES", 3),
 			CrawlDelayMs:            getEnvAsInt("CLASSIFICATION_CRAWL_DELAY_MS", 500),
 			FastPathMaxPages:        getEnvAsInt("CLASSIFICATION_FAST_PATH_MAX_PAGES", 8),
-			WebsiteScrapingTimeout:  getEnvAsDuration("CLASSIFICATION_WEBSITE_SCRAPING_TIMEOUT", 20*time.Second), // Aligned with timeout budget (Website: 20s)
+			WebsiteScrapingTimeout:  getEnvAsDuration("CLASSIFICATION_WEBSITE_SCRAPING_TIMEOUT", 15*time.Second), // Reduced from 20s to 15s for faster failure detection
 			// Website content caching
 			WebsiteContentCacheTTL:    getEnvAsDuration("WEBSITE_CONTENT_CACHE_TTL", 24*time.Hour),
 			EnableWebsiteContentCache: getEnvAsBool("ENABLE_WEBSITE_CONTENT_CACHE", true),

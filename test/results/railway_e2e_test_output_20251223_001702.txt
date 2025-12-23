@@ -1,0 +1,9 @@
+=== RUN   TestRailwayComprehensiveE2EClassification
+    railway_comprehensive_e2e_classification_test.go:40: Using Railway URL from environment: https://classification-service-production.up.railway.app
+    railway_comprehensive_e2e_classification_test.go:110: ✅ Service health check passed
+    railway_comprehensive_e2e_classification_test.go:52: 🚀 Starting Railway E2E FINAL VALIDATION test with 385 samples
+    railway_comprehensive_e2e_classification_test.go:509: 🚀 Starting comprehensive Railway E2E tests with 385 samples
+    railway_comprehensive_e2e_classification_test.go:550: Running test 4/385: Walmart
+    railway_comprehensive_e2e_classification_test.go:550: Running test 1/385: Amazon
+    railway_comprehensive_e2e_classification_test.go:550: Running test 2/385: Shopify
+    railway_comprehensive_e2e_classification_test.go:550: Running test 3/385: eBay
