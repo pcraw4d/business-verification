@@ -16,7 +16,6 @@ import (
 	"runtime"
 	"runtime/debug"
 	"strconv"
-	"sync/atomic"
 
 	"github.com/gorilla/mux"
 	"github.com/redis/go-redis/v9"
