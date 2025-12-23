@@ -60,6 +60,8 @@ def get_session():
 
 def test_classification(sample: Dict[str, Any], max_retries: int = MAX_RETRIES) -> Dict[str, Any]:
     """Test a single classification request with retry logic for 502/503/429 errors"""
+    global _session  # Declare global at function start
+    
     url = f"{API_URL}/v1/classify"
     
     result = {
@@ -124,7 +126,6 @@ def test_classification(sample: Dict[str, Any], max_retries: int = MAX_RETRIES) 
                 print(f"  ⚠️  Connection error (attempt {attempt + 1}/{max_retries}), retrying in {wait_time:.1f}s...", end="", flush=True)
                 time.sleep(wait_time)
                 # Reset session to clear connection pool
-                global _session
                 if _session:
                     _session.close()
                     _session = None
@@ -138,7 +139,6 @@ def test_classification(sample: Dict[str, Any], max_retries: int = MAX_RETRIES) 
                 print(f"  ⚠️  Error (attempt {attempt + 1}/{max_retries}), retrying in {wait_time:.1f}s...", end="", flush=True)
                 time.sleep(wait_time)
                 # Reset session to clear connection pool
-                global _session
                 if _session:
                     _session.close()
                     _session = None
