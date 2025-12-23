@@ -12,6 +12,10 @@ import socket
 from datetime import datetime
 from typing import Dict, List, Any
 from urllib.parse import urlparse
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
+import urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # Configuration
 API_URL = "https://classification-service-production.up.railway.app"
@@ -29,6 +33,22 @@ REQUEST_DELAY = 0.5  # Base delay between individual requests (seconds)
 RATE_LIMIT_BACKOFF_BASE = 2.0  # Base delay for exponential backoff on 429/503 errors
 MAX_BACKOFF_DELAY = 30.0  # Maximum backoff delay (seconds)
 
+# Create a shared session with controlled retry strategy
+_session = None
+def get_session():
+    """Get or create a shared requests session with controlled retry strategy"""
+    global _session
+    if _session is None:
+        _session = requests.Session()
+        retry_strategy = Retry(
+            total=0,  # Disable automatic retries at urllib3 level (we handle retries manually)
+            backoff_factor=0.1,
+        )
+        adapter = HTTPAdapter(max_retries=retry_strategy)
+        _session.mount('https://', adapter)
+        _session.mount('http://', adapter)
+    return _session
+
 def test_classification(sample: Dict[str, Any], max_retries: int = MAX_RETRIES) -> Dict[str, Any]:
     """Test a single classification request with retry logic for 502/503/429 errors"""
     url = f"{API_URL}/v1/classify"
@@ -43,11 +63,14 @@ def test_classification(sample: Dict[str, Any], max_retries: int = MAX_RETRIES) 
         "retry_count": 0
     }
     
+    # Get shared session with controlled retry strategy
+    session = get_session()
+    
     # Retry logic with exponential backoff for 502/503/429 errors
     for attempt in range(max_retries):
         try:
             start_time = time.time()
-            response = requests.post(
+            response = session.post(
                 url,
                 json=sample,
                 timeout=TIMEOUT,
