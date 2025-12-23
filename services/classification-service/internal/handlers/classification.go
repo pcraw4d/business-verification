@@ -5256,22 +5256,69 @@ func (h *ClassificationHandler) HandleHealth(w http.ResponseWriter, r *http.Requ
 	// Set response headers
 	w.Header().Set("Content-Type", "application/json")
 
-	// Create context with timeout
-	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+	// Create context with timeout for overall health check
+	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 	defer cancel()
 
-	// Check Supabase connectivity
+	// Check Supabase connectivity with individual timeout (concurrent)
 	supabaseHealthy := true
 	var supabaseError error
-	if err := h.supabaseClient.HealthCheck(ctx); err != nil {
+	supabaseChan := make(chan struct {
+		healthy bool
+		err     error
+	}, 1)
+	go func() {
+		supabaseCtx, supabaseCancel := context.WithTimeout(ctx, 2*time.Second)
+		defer supabaseCancel()
+		if err := h.supabaseClient.HealthCheck(supabaseCtx); err != nil {
+			supabaseChan <- struct {
+				healthy bool
+				err     error
+			}{false, err}
+		} else {
+			supabaseChan <- struct {
+				healthy bool
+				err     error
+			}{true, nil}
+		}
+	}()
+
+	// Get classification data with individual timeout (concurrent, non-blocking)
+	var classificationData map[string]interface{}
+	classificationChan := make(chan struct {
+		data map[string]interface{}
+		err  error
+	}, 1)
+	go func() {
+		classificationCtx, classificationCancel := context.WithTimeout(ctx, 2*time.Second)
+		defer classificationCancel()
+		data, err := h.supabaseClient.GetClassificationData(classificationCtx)
+		classificationChan <- struct {
+			data map[string]interface{}
+			err  error
+		}{data, err}
+	}()
+
+	// Wait for Supabase health check with timeout
+	select {
+	case result := <-supabaseChan:
+		supabaseHealthy = result.healthy
+		supabaseError = result.err
+	case <-ctx.Done():
 		supabaseHealthy = false
-		supabaseError = err
+		supabaseError = fmt.Errorf("supabase health check timeout: %v", ctx.Err())
 	}
 
-	// Get classification data
-	classificationData, err := h.supabaseClient.GetClassificationData(ctx)
-	if err != nil {
-		h.logger.Warn("Failed to get classification data", zap.Error(err))
+	// Wait for classification data with timeout (non-blocking)
+	select {
+	case result := <-classificationChan:
+		classificationData = result.data
+		if result.err != nil {
+			h.logger.Warn("Failed to get classification data", zap.Error(result.err))
+		}
+	case <-ctx.Done():
+		h.logger.Warn("Classification data fetch timeout", zap.Error(ctx.Err()))
+		// Continue without classification data
 	}
 
 	// Check Python ML service circuit breaker status if available

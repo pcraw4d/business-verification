@@ -776,9 +776,11 @@ func timeoutMiddleware(timeout time.Duration) func(http.Handler) http.Handler {
 				wrapped.mu.Lock()
 				if !wrapped.wroteHeader {
 					wrapped.wroteHeader = true
+					wrapped.timedOut = true // Mark as timed out to prevent further writes
 					wrapped.mu.Unlock()
 					errors.WriteError(w, r, http.StatusRequestTimeout, "REQUEST_TIMEOUT", "Request timeout", fmt.Sprintf("Request exceeded timeout of %v", timeout))
 				} else {
+					wrapped.timedOut = true // Mark as timed out even if header was written
 					wrapped.mu.Unlock()
 				}
 			}
@@ -791,12 +793,16 @@ type timeoutResponseWriter struct {
 	http.ResponseWriter
 	done        chan bool
 	wroteHeader bool
+	timedOut    bool
 	mu          sync.Mutex
 }
 
 func (tw *timeoutResponseWriter) WriteHeader(code int) {
 	tw.mu.Lock()
 	defer tw.mu.Unlock()
+	if tw.timedOut {
+		return // Don't write header if already timed out
+	}
 	if !tw.wroteHeader {
 		tw.wroteHeader = true
 		tw.ResponseWriter.WriteHeader(code)
@@ -806,6 +812,9 @@ func (tw *timeoutResponseWriter) WriteHeader(code int) {
 func (tw *timeoutResponseWriter) Write(b []byte) (int, error) {
 	tw.mu.Lock()
 	defer tw.mu.Unlock()
+	if tw.timedOut {
+		return 0, http.ErrHandlerTimeout // Return error if timed out
+	}
 	if !tw.wroteHeader {
 		tw.wroteHeader = true
 	}
