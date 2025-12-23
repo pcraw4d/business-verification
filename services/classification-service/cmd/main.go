@@ -9,12 +9,14 @@ import (
 	"os/signal"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 
 	"runtime"
 	"runtime/debug"
 	"strconv"
+	"sync/atomic"
 
 	"github.com/gorilla/mux"
 	"github.com/redis/go-redis/v9"
@@ -300,7 +302,7 @@ func main() {
 	router.Use(securityHeadersMiddleware())  // Add security headers
 	router.Use(loggingMiddleware(logger))
 	router.Use(corsMiddleware())
-	router.Use(rateLimitMiddleware())
+	router.Use(rateLimitMiddleware(cfg))
 	// Priority 3 Fix: Increased timeout to 120s to match worker pool timeout and allow website scraping (86s adaptive timeout)
 	router.Use(timeoutMiddleware(120 * time.Second)) // Increased from 30s to 120s for website scraping support
 
@@ -605,13 +607,35 @@ func securityHeadersMiddleware() func(http.Handler) http.Handler {
 }
 
 // rateLimitMiddleware adds enhanced rate limiting using golang.org/x/time/rate (Phase 5)
-func rateLimitMiddleware() func(http.Handler) http.Handler {
-	// Phase 5: Use token bucket rate limiter from golang.org/x/time/rate
-	// Default: 100 requests per minute per IP (allows bursts up to 10)
-	// Rate: 100 requests/minute = 100/60 requests/second ≈ 1.67 req/s
-	// Burst: Allow up to 10 requests in quick succession
-	rateLimitPerIP := rate.Limit(100.0 / 60.0) // 100 requests per minute
-	burstSize := 10
+// Fix 5.2: Enhanced with global rate limiting and overload protection
+func rateLimitMiddleware(cfg *config.Config) func(http.Handler) http.Handler {
+	// Get rate limiting configuration
+	globalRateLimit := cfg.Classification.GlobalRateLimit
+	if globalRateLimit == 0 {
+		globalRateLimit = 200 // Default: 200 requests per minute globally
+	}
+	perIPRateLimit := cfg.Classification.PerIPRateLimit
+	if perIPRateLimit == 0 {
+		perIPRateLimit = 100 // Default: 100 requests per minute per IP
+	}
+	burstSize := cfg.Classification.RateLimitBurst
+	if burstSize == 0 {
+		burstSize = 20 // Default: Allow bursts up to 20 requests
+	}
+	enableOverloadProtection := cfg.Classification.EnableOverloadProtection
+
+	// Global rate limiter (shared across all IPs)
+	globalLimiter := rate.NewLimiter(rate.Limit(float64(globalRateLimit)/60.0), burstSize*2)
+	rateLimitPerIP := rate.Limit(float64(perIPRateLimit) / 60.0)
+
+	// Overload protection: Track recent request rate
+	var (
+		recentRequests     int64
+		overloadWindowStart time.Time
+		overloadMu          sync.RWMutex
+	)
+	overloadWindowStart = time.Now()
+	overloadThreshold := int64(globalRateLimit * 2) // 2x the global rate limit
 
 	// Map to store rate limiters per IP address
 	var (
@@ -643,6 +667,30 @@ func rateLimitMiddleware() func(http.Handler) http.Handler {
 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Fix 5.2: Overload protection - Check global request rate
+			if enableOverloadProtection {
+				overloadMu.Lock()
+				// Reset counter every minute
+				if time.Since(overloadWindowStart) > time.Minute {
+					recentRequests = 0
+					overloadWindowStart = time.Now()
+				}
+				currentRequests := atomic.AddInt64(&recentRequests, 1)
+				overloadMu.Unlock()
+
+				// If overload threshold exceeded, reject request immediately
+				if currentRequests > overloadThreshold {
+					errors.WriteError(w, r, http.StatusServiceUnavailable, "SERVICE_OVERLOADED", "Service overloaded", "Service is currently overloaded. Please retry later.")
+					return
+				}
+			}
+
+			// Fix 5.2: Global rate limiting (applies to all requests)
+			if !globalLimiter.Allow() {
+				errors.WriteError(w, r, http.StatusTooManyRequests, "GLOBAL_RATE_LIMIT_EXCEEDED", "Global rate limit exceeded", fmt.Sprintf("Global rate limit exceeded. Limit: %d requests per minute", globalRateLimit))
+				return
+			}
+
 			// Extract client IP (consider X-Forwarded-For header for proxies)
 			clientIP := r.RemoteAddr
 			if forwardedFor := r.Header.Get("X-Forwarded-For"); forwardedFor != "" {
@@ -671,9 +719,9 @@ func rateLimitMiddleware() func(http.Handler) http.Handler {
 				mu.Unlock()
 			}
 
-			// Check if request is allowed
+			// Check if request is allowed (per-IP rate limiting)
 			if !limiter.Allow() {
-				errors.WriteError(w, r, http.StatusTooManyRequests, "RATE_LIMIT_EXCEEDED", "Rate limit exceeded", fmt.Sprintf("Too many requests from IP %s. Limit: 100 requests per minute", clientIP))
+				errors.WriteError(w, r, http.StatusTooManyRequests, "RATE_LIMIT_EXCEEDED", "Rate limit exceeded", fmt.Sprintf("Too many requests from IP %s. Limit: %d requests per minute", clientIP, perIPRateLimit))
 				return
 			}
 

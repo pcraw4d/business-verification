@@ -75,6 +75,11 @@ type ClassificationConfig struct {
 	EmbeddingServiceURL string // URL of the embedding service (optional)
 	// Phase 4: LLM service configuration
 	LLMServiceURL string // URL of the LLM service (optional)
+	// Rate limiting configuration (Fix 5.2)
+	GlobalRateLimit          int  // Global requests per minute
+	PerIPRateLimit           int  // Per-IP requests per minute
+	RateLimitBurst           int  // Burst size for rate limiting
+	EnableOverloadProtection bool // Circuit breaker for overload protection
 }
 
 // LoggingConfig holds logging configurations
@@ -103,6 +108,11 @@ func Load() (*Config, error) {
 			// Lower default concurrency to reduce memory pressure in production.
 			// Reduced from 40 to 20 to prevent OOM kills (50% reduction in memory pressure)
 			MaxConcurrentRequests: getEnvAsInt("MAX_CONCURRENT_REQUESTS", 20),
+			// Rate limiting configuration
+			GlobalRateLimit:      getEnvAsInt("GLOBAL_RATE_LIMIT", 200),      // Global requests per minute
+			PerIPRateLimit:       getEnvAsInt("PER_IP_RATE_LIMIT", 100),      // Per-IP requests per minute
+			RateLimitBurst:       getEnvAsInt("RATE_LIMIT_BURST", 20),        // Burst size for rate limiting
+			EnableOverloadProtection: getEnvAsBool("ENABLE_OVERLOAD_PROTECTION", true), // Circuit breaker for overload
 			// FIX #5: Changed default timeout from 10s to 120s to match worker timeout
 			RequestTimeout:       getEnvAsDuration("REQUEST_TIMEOUT", 120*time.Second),
 			CacheEnabled:         getEnvAsBool("CACHE_ENABLED", true),

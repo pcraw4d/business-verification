@@ -33,6 +33,7 @@ import (
 type cacheEntry struct {
 	response  *ClassificationResponse
 	expiresAt time.Time
+	lastUsed  time.Time // For LRU eviction (Fix 5.3)
 }
 
 // inFlightRequest represents a request that is currently being processed
@@ -391,6 +392,7 @@ type ClassificationHandler struct {
 	confidenceCalibrator *classification.ConfidenceCalibrator // OPTIMIZATION #5.2: Confidence calibration
 	cache                map[string]*cacheEntry
 	cacheMutex           sync.RWMutex
+	maxCacheSize         int // Fix 5.3: Maximum cache size for LRU eviction
 	redisCache           *cache.RedisCache // Distributed Redis cache (optional)
 	inFlightRequests     map[string]*inFlightRequest
 	inFlightMutex        sync.RWMutex
@@ -438,6 +440,8 @@ func NewClassificationHandler(
 		confidenceCalibrator: confidenceCalibrator,
 		pythonMLService:      pythonMLService,
 		cache:                make(map[string]*cacheEntry),
+		// Fix 5.3: Max cache size to prevent unbounded memory growth
+		maxCacheSize:         config.Classification.MaxConcurrentRequests * 10, // 10x concurrent requests
 		inFlightRequests:     make(map[string]*inFlightRequest),
 		requestQueue:         requestQueue,
 		serviceStartTime:     time.Now(), // Track when service started for uptime reporting
@@ -512,6 +516,7 @@ func NewClassificationHandler(
 }
 
 // cleanupCache periodically removes expired cache entries
+// Fix 5.3: Enhanced with memory-aware cleanup and LRU eviction
 // FIX #7: Accept context to allow graceful shutdown
 func (h *ClassificationHandler) cleanupCache(ctx context.Context) {
 	ticker := time.NewTicker(1 * time.Minute)
@@ -525,11 +530,69 @@ func (h *ClassificationHandler) cleanupCache(ctx context.Context) {
 		case <-ticker.C:
 			h.cacheMutex.Lock()
 			now := time.Now()
+			expiredCount := 0
+			
+			// Remove expired entries
 			for key, entry := range h.cache {
 				if now.After(entry.expiresAt) {
 					delete(h.cache, key)
+					expiredCount++
 				}
 			}
+			
+			// Fix 5.3: Check memory usage and evict LRU entries if memory is high
+			var memStats runtime.MemStats
+			runtime.ReadMemStats(&memStats)
+			memUsagePercent := float64(memStats.Alloc) / float64(memStats.Sys) * 100
+			
+			// If memory usage is high (>70%), evict least recently used entries
+			if memUsagePercent > 70 && len(h.cache) > 0 {
+				// Evict 20% of cache entries (LRU)
+				evictCount := len(h.cache) / 5
+				if evictCount < 1 {
+					evictCount = 1
+				}
+				
+				// Sort entries by lastUsed and evict oldest
+				type entryWithKey struct {
+					key      string
+					lastUsed time.Time
+				}
+				entries := make([]entryWithKey, 0, len(h.cache))
+				for k, e := range h.cache {
+					entries = append(entries, entryWithKey{k, e.lastUsed})
+				}
+				
+				// Sort by lastUsed (oldest first)
+				for i := 0; i < len(entries)-1; i++ {
+					for j := i + 1; j < len(entries); j++ {
+						if entries[i].lastUsed.After(entries[j].lastUsed) {
+							entries[i], entries[j] = entries[j], entries[i]
+						}
+					}
+				}
+				
+				// Evict oldest entries
+				evictedCount := 0
+				for i := 0; i < evictCount && i < len(entries); i++ {
+					delete(h.cache, entries[i].key)
+					evictedCount++
+				}
+				
+				if evictedCount > 0 {
+					h.logger.Info("Evicted LRU cache entries due to high memory usage",
+						zap.Int("evicted_count", evictedCount),
+						zap.Float64("mem_usage_percent", memUsagePercent),
+						zap.Int("cache_size_after", len(h.cache)))
+				}
+			}
+			
+			if expiredCount > 0 {
+				h.logger.Debug("Cache cleanup completed",
+					zap.Int("expired_count", expiredCount),
+					zap.Int("cache_size", len(h.cache)))
+			}
+			
 			h.cacheMutex.Unlock()
 		}
 	}
@@ -838,8 +901,13 @@ func (h *ClassificationHandler) getCachedResponse(key string) (*ClassificationRe
 		h.logger.Debug("Cache entry expired in in-memory cache",
 			zap.String("key", key),
 			zap.Time("expires_at", entry.expiresAt))
+		// Remove expired entry
+		delete(h.cache, key)
 		return nil, false
 	}
+
+	// Fix 5.3: Update lastUsed for LRU eviction
+	entry.lastUsed = time.Now()
 
 	keyPrefix := key
 	if len(key) > 16 {
@@ -896,9 +964,31 @@ func (h *ClassificationHandler) setCachedResponse(key string, response *Classifi
 	h.cacheMutex.Lock()
 	defer h.cacheMutex.Unlock()
 
+	// Fix 5.3: LRU eviction if cache is full
+	if h.maxCacheSize > 0 && len(h.cache) >= h.maxCacheSize {
+		// Find least recently used entry
+		var oldestKey string
+		var oldestTime time.Time
+		first := true
+		for k, e := range h.cache {
+			if first || e.lastUsed.Before(oldestTime) {
+				oldestKey = k
+				oldestTime = e.lastUsed
+				first = false
+			}
+		}
+		if oldestKey != "" {
+			delete(h.cache, oldestKey)
+			h.logger.Debug("Evicted LRU cache entry",
+				zap.String("key", oldestKey),
+				zap.Int("cache_size", len(h.cache)))
+		}
+	}
+
 	h.cache[key] = &cacheEntry{
 		response:  response,
 		expiresAt: time.Now().Add(h.config.Classification.CacheTTL),
+		lastUsed:  time.Now(), // Fix 5.3: Track last used time for LRU
 	}
 	keyPrefix := key
 	if len(key) > 16 {
@@ -2274,6 +2364,26 @@ func (h *ClassificationHandler) logRequestTrace(trace *requestTrace) {
 		"queue_depth":                trace.queueDepth,
 	}
 
+	// Identify slow stages (>5s) and bottlenecks
+	var slowStages []string
+	var bottleneckStage string
+	var maxStageDuration time.Duration
+	for stageName, duration := range stageDurations {
+		if duration > 5*time.Second {
+			slowStages = append(slowStages, stageName)
+		}
+		if duration > maxStageDuration {
+			maxStageDuration = duration
+			bottleneckStage = stageName
+		}
+	}
+
+	// Calculate stage percentage of total time
+	bottleneckPercentage := float64(0)
+	if trace.totalDuration > 0 && maxStageDuration > 0 {
+		bottleneckPercentage = float64(maxStageDuration) / float64(trace.totalDuration) * 100
+	}
+
 	// Log as structured JSON for easy parsing
 	h.logger.Info("📊 [TRACE-COMPLETE] Request trace complete",
 		zap.String("request_id", trace.requestID),
@@ -2282,6 +2392,35 @@ func (h *ClassificationHandler) logRequestTrace(trace *requestTrace) {
 		zap.Any("stage_durations", stageDurations),
 		zap.Any("trace_summary", traceSummary),
 		zap.Any("stages", trace.stages))
+
+	// Log performance warnings for slow operations
+	if len(slowStages) > 0 {
+		h.logger.Warn("⚠️ [PERF] Slow stages detected",
+			zap.String("request_id", trace.requestID),
+			zap.Strings("slow_stages", slowStages),
+			zap.Duration("total_duration", trace.totalDuration))
+	}
+
+	// Log bottleneck analysis
+	if bottleneckStage != "" && bottleneckPercentage > 50 {
+		h.logger.Warn("🚨 [PERF] Bottleneck detected",
+			zap.String("request_id", trace.requestID),
+			zap.String("bottleneck_stage", bottleneckStage),
+			zap.Duration("stage_duration", maxStageDuration),
+			zap.Float64("percentage_of_total", bottleneckPercentage),
+			zap.Duration("total_duration", trace.totalDuration))
+	}
+
+	// Log very slow requests (>30s)
+	if trace.totalDuration > 30*time.Second {
+		h.logger.Error("🚨 [PERF] Very slow request detected",
+			zap.String("request_id", trace.requestID),
+			zap.Duration("total_duration", trace.totalDuration),
+			zap.String("bottleneck_stage", bottleneckStage),
+			zap.Duration("bottleneck_duration", maxStageDuration),
+			zap.Float64("bottleneck_percentage", bottleneckPercentage),
+			zap.Any("stage_durations", stageDurations))
+	}
 }
 
 // processClassification processes a classification request
@@ -2339,8 +2478,25 @@ func (h *ClassificationHandler) processClassification(ctx context.Context, req *
 	var processingCtx context.Context = ctx
 	var cancelFunc context.CancelFunc = nil
 
+	// Fix 5.8: Graceful degradation - Check service load and skip expensive operations when overloaded
+	var memStats runtime.MemStats
+	runtime.ReadMemStats(&memStats)
+	memUsagePercent := float64(0)
+	if memStats.Sys > 0 {
+		memUsagePercent = float64(memStats.Alloc) / float64(memStats.Sys) * 100
+	}
+	queueSize := h.requestQueue.Size()
+	queueFullnessPercent := float64(0)
+	if h.config.Classification.MaxConcurrentRequests > 0 {
+		queueFullnessPercent = float64(queueSize) / float64(h.config.Classification.MaxConcurrentRequests) * 100
+	}
+	
+	// Determine if service is overloaded
+	isOverloaded := memUsagePercent > 70 || queueFullnessPercent > 80
+	
 	// Adaptive Timeout: Check time remaining and decide on operation scope
 	// Skip expensive operations if time is limited to prevent timeouts
+	// Fix 5.8: Also skip expensive operations when service is overloaded
 	var skipMultiPageAnalysis bool
 	var skipMLClassification bool
 
@@ -2361,24 +2517,35 @@ func (h *ClassificationHandler) processClassification(ctx context.Context, req *
 				zap.Duration("time_remaining", timeRemaining),
 				zap.Duration("elapsed_since_start", time.Since(startTime)))
 		} else {
-			// Check time remaining to decide on operation scope
-			if timeRemaining < 30*time.Second {
-				h.logger.Warn("Insufficient time remaining, using quick classification path",
+			// Fix 5.8: Graceful degradation - Skip expensive operations when overloaded
+			if isOverloaded {
+				h.logger.Info("🔄 [GRACEFUL-DEGRADATION] Service overloaded, skipping expensive operations",
 					zap.String("request_id", req.RequestID),
-					zap.Duration("time_remaining", timeRemaining))
+					zap.Float64("mem_usage_percent", memUsagePercent),
+					zap.Float64("queue_fullness_percent", queueFullnessPercent),
+					zap.Int("queue_size", queueSize))
 				skipMultiPageAnalysis = true
 				skipMLClassification = true
-			} else if timeRemaining < 30*time.Second {
-				// Reduced threshold from 60s to 30s to allow more multi-page analysis
-				h.logger.Info("Limited time remaining, skipping multi-page analysis",
+			} else {
+				// Check time remaining to decide on operation scope
+				if timeRemaining < 30*time.Second {
+					h.logger.Warn("Insufficient time remaining, using quick classification path",
+						zap.String("request_id", req.RequestID),
+						zap.Duration("time_remaining", timeRemaining))
+					skipMultiPageAnalysis = true
+					skipMLClassification = true
+				} else if timeRemaining < 60*time.Second {
+					// Reduced threshold from 60s to 30s to allow more multi-page analysis
+					h.logger.Info("Limited time remaining, skipping multi-page analysis",
+						zap.String("request_id", req.RequestID),
+						zap.Duration("time_remaining", timeRemaining))
+					skipMultiPageAnalysis = true
+				}
+				h.logger.Info("✅ [PROCESS-START] Starting classification processing with sufficient context time",
 					zap.String("request_id", req.RequestID),
-					zap.Duration("time_remaining", timeRemaining))
-				skipMultiPageAnalysis = true
+					zap.Duration("time_remaining", timeRemaining),
+					zap.Duration("elapsed_since_start", time.Since(startTime)))
 			}
-			h.logger.Info("✅ [PROCESS-START] Starting classification processing with sufficient context time",
-				zap.String("request_id", req.RequestID),
-				zap.Duration("time_remaining", timeRemaining),
-				zap.Duration("elapsed_since_start", time.Since(startTime)))
 		}
 	} else {
 		h.logger.Info("✅ [PROCESS-START] Starting classification processing (no deadline on context)",
@@ -5251,6 +5418,26 @@ func (h *ClassificationHandler) HandleHealth(w http.ResponseWriter, r *http.Requ
 		}
 	}
 
+	// Get performance metrics
+	var memStats runtime.MemStats
+	runtime.ReadMemStats(&memStats)
+	
+	queueSize := 0
+	if h.requestQueue != nil {
+		queueSize = h.requestQueue.Size()
+	}
+	
+	activeWorkers := 0
+	if h.WorkerPool != nil {
+		activeWorkers = h.WorkerPool.getActiveWorkerCount()
+	}
+	
+	// Calculate memory usage percentage
+	memUsagePercent := float64(0)
+	if memStats.Sys > 0 {
+		memUsagePercent = float64(memStats.Alloc) / float64(memStats.Sys) * 100
+	}
+
 	// Create health response
 	health := map[string]interface{}{
 		"status":    "healthy",
@@ -5285,6 +5472,30 @@ func (h *ClassificationHandler) HandleHealth(w http.ResponseWriter, r *http.Requ
 			"playwright_service_url": os.Getenv("PLAYWRIGHT_SERVICE_URL"),
 			"embedding_service_url":   h.config.Classification.EmbeddingServiceURL,
 			"llm_service_url":         h.config.Classification.LLMServiceURL,
+		},
+		"performance": map[string]interface{}{
+			"memory": map[string]interface{}{
+				"alloc_bytes":      memStats.Alloc,
+				"sys_bytes":        memStats.Sys,
+				"usage_percent":    memUsagePercent,
+				"num_gc":           memStats.NumGC,
+				"total_alloc_bytes": memStats.TotalAlloc,
+			},
+			"concurrency": map[string]interface{}{
+				"max_concurrent_requests": h.config.Classification.MaxConcurrentRequests,
+				"queue_size":              queueSize,
+				"active_workers":          activeWorkers,
+				"worker_pool_size": func() int {
+					if h.WorkerPool != nil {
+						return h.WorkerPool.workers
+					}
+					return 0
+				}(),
+			},
+			"cache": map[string]interface{}{
+				"enabled": h.config.Classification.CacheEnabled,
+				"size":    len(h.cache),
+			},
 		},
 	}
 
