@@ -21,8 +21,16 @@ VALIDATE_URLS = True  # Enable URL validation before testing
 DNS_TIMEOUT = 2  # seconds for DNS validation
 HTTP_TIMEOUT = 5  # seconds for HTTP validation
 
+# Throttling/Rate Limiting Configuration
+MAX_CONCURRENT_REQUESTS = 5  # Limit concurrent requests to prevent service overload
+BATCH_SIZE = 10  # Process requests in batches
+BATCH_DELAY = 2.0  # Delay between batches (seconds)
+REQUEST_DELAY = 0.5  # Base delay between individual requests (seconds)
+RATE_LIMIT_BACKOFF_BASE = 2.0  # Base delay for exponential backoff on 429/503 errors
+MAX_BACKOFF_DELAY = 30.0  # Maximum backoff delay (seconds)
+
 def test_classification(sample: Dict[str, Any], max_retries: int = MAX_RETRIES) -> Dict[str, Any]:
-    """Test a single classification request with retry logic for 502 errors"""
+    """Test a single classification request with retry logic for 502/503/429 errors"""
     url = f"{API_URL}/v1/classify"
     
     result = {
@@ -35,7 +43,7 @@ def test_classification(sample: Dict[str, Any], max_retries: int = MAX_RETRIES) 
         "retry_count": 0
     }
     
-    # Retry logic for 502 errors (transient cold start failures)
+    # Retry logic with exponential backoff for 502/503/429 errors
     for attempt in range(max_retries):
         try:
             start_time = time.time()
@@ -55,10 +63,11 @@ def test_classification(sample: Dict[str, Any], max_retries: int = MAX_RETRIES) 
                 result["success"] = True
                 result["response"] = response.json()
                 return result  # Success, no retry needed
-            elif response.status_code == 502 and attempt < max_retries - 1:
-                # 502 error - retry with exponential backoff
-                wait_time = (2 ** attempt) * 1.0  # 1s, 2s, 4s
-                print(f"  ⚠️  502 error (attempt {attempt + 1}/{max_retries}), retrying in {wait_time:.1f}s...", end="", flush=True)
+            elif response.status_code in [502, 503, 429] and attempt < max_retries - 1:
+                # 502/503/429 errors - retry with exponential backoff
+                wait_time = min(RATE_LIMIT_BACKOFF_BASE ** attempt, MAX_BACKOFF_DELAY)
+                error_name = {502: "502", 503: "503", 429: "429 (Rate Limited)"}[response.status_code]
+                print(f"  ⚠️  {error_name} error (attempt {attempt + 1}/{max_retries}), retrying in {wait_time:.1f}s...", end="", flush=True)
                 time.sleep(wait_time)
                 continue
             else:
@@ -331,26 +340,50 @@ def main():
     print()
     
     print(f"🚀 Running {len(samples)} classification tests...")
+    print(f"📊 Throttling: Batches of {BATCH_SIZE}, {BATCH_DELAY}s between batches, {REQUEST_DELAY}s between requests")
     print()
     
     results = []
     start_time = time.time()
     
-    for i, sample in enumerate(samples, 1):
-        business_name = sample.get("business_name", "Unknown")
-        print(f"Test {i}/{len(samples)}: {business_name}... ", end="", flush=True)
-        result = test_classification(sample)
-        results.append(result)
+    # Process requests in batches with throttling to prevent service overload
+    total_batches = (len(samples) + BATCH_SIZE - 1) // BATCH_SIZE
+    
+    for batch_num in range(total_batches):
+        batch_start = batch_num * BATCH_SIZE
+        batch_end = min(batch_start + BATCH_SIZE, len(samples))
+        batch_samples = samples[batch_start:batch_end]
         
-        if result["success"]:
-            latency_s = result["latency_ms"] / 1000
-            retry_info = f" (retries: {result['retry_count']})" if result["retry_count"] > 0 else ""
-            print(f"✅ ({latency_s:.2f}s{retry_info})")
-        else:
-            print(f"❌ {result.get('error', 'Unknown error')}")
+        print(f"📦 Batch {batch_num + 1}/{total_batches} ({len(batch_samples)} requests)...")
         
-        # Small delay to avoid rate limiting
-        time.sleep(0.3)
+        # Process batch sequentially with delays to prevent overwhelming the service
+        for i, sample in enumerate(batch_samples):
+            global_index = batch_start + i + 1
+            business_name = sample.get("business_name", "Unknown")
+            print(f"  Test {global_index}/{len(samples)}: {business_name}... ", end="", flush=True)
+            
+            result = test_classification(sample)
+            results.append(result)
+            
+            if result["success"]:
+                latency_s = result["latency_ms"] / 1000
+                retry_info = f" (retries: {result['retry_count']})" if result["retry_count"] > 0 else ""
+                print(f"✅ ({latency_s:.2f}s{retry_info})")
+            else:
+                error_msg = result.get('error', 'Unknown error')
+                # Truncate long error messages
+                if len(error_msg) > 80:
+                    error_msg = error_msg[:77] + "..."
+                print(f"❌ {error_msg}")
+            
+            # Delay between requests (except for last request in batch)
+            if i < len(batch_samples) - 1:
+                time.sleep(REQUEST_DELAY)
+        
+        # Delay between batches (except for last batch)
+        if batch_num < total_batches - 1:
+            print(f"  ⏸️  Waiting {BATCH_DELAY}s before next batch...")
+            time.sleep(BATCH_DELAY)
     
     total_duration = time.time() - start_time
     
