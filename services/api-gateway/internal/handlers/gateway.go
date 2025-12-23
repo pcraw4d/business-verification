@@ -232,8 +232,12 @@ func (h *GatewayHandler) enhancedClassificationProxy(w http.ResponseWriter, r *h
 }
 
 // getOriginalClassificationResponse gets the original response from the classification service
+// with retry logic for 502 errors (transient cold start failures)
 func (h *GatewayHandler) getOriginalClassificationResponse(r *http.Request, bodyBytes []byte) (map[string]interface{}, error) {
 	classificationURL := h.config.Services.ClassificationURL + "/classify"
+	maxRetries := 2 // Retry up to 2 times (3 total attempts)
+	retryDelay := 1 * time.Second
+
 	h.logger.Info("Proxying request to classification service",
 		zap.String("url", classificationURL),
 		zap.Int("body_size", len(bodyBytes)),
@@ -246,83 +250,132 @@ func (h *GatewayHandler) getOriginalClassificationResponse(r *http.Request, body
 	}
 	h.logger.Debug("Request body preview", zap.String("body", bodyPreview))
 
-	// Create a new request to the classification service with the body bytes
-	req, err := http.NewRequest(r.Method, classificationURL, bytes.NewBuffer(bodyBytes))
-	if err != nil {
-		h.logger.Error("Failed to create request to classification service", zap.Error(err))
-		return nil, fmt.Errorf("failed to create request: %w", err)
-	}
-
-	// Copy headers (but exclude some that shouldn't be forwarded)
-	for key, values := range r.Header {
-		// Skip hop-by-hop headers
-		if strings.EqualFold(key, "Connection") ||
-			strings.EqualFold(key, "Keep-Alive") ||
-			strings.EqualFold(key, "Proxy-Authenticate") ||
-			strings.EqualFold(key, "Proxy-Authorization") ||
-			strings.EqualFold(key, "Te") ||
-			strings.EqualFold(key, "Trailers") ||
-			strings.EqualFold(key, "Transfer-Encoding") ||
-			strings.EqualFold(key, "Upgrade") {
-			continue
+	// Retry logic for 502 errors (transient cold start failures)
+	var lastErr error
+	for attempt := 0; attempt <= maxRetries; attempt++ {
+		if attempt > 0 {
+			// Exponential backoff: 1s, 2s
+			waitTime := time.Duration(attempt) * retryDelay
+			h.logger.Info("Retrying classification service request",
+				zap.Int("attempt", attempt+1),
+				zap.Int("max_retries", maxRetries+1),
+				zap.Duration("wait_time", waitTime))
+			time.Sleep(waitTime)
 		}
-		for _, value := range values {
-			req.Header.Add(key, value)
+
+		// Create a new request to the classification service with the body bytes
+		req, err := http.NewRequest(r.Method, classificationURL, bytes.NewBuffer(bodyBytes))
+		if err != nil {
+			h.logger.Error("Failed to create request to classification service", zap.Error(err))
+			return nil, fmt.Errorf("failed to create request: %w", err)
 		}
-	}
 
-	// Ensure Content-Type is set
-	if req.Header.Get("Content-Type") == "" {
-		req.Header.Set("Content-Type", "application/json")
-	}
+		// Copy headers (but exclude some that shouldn't be forwarded)
+		for key, values := range r.Header {
+			// Skip hop-by-hop headers
+			if strings.EqualFold(key, "Connection") ||
+				strings.EqualFold(key, "Keep-Alive") ||
+				strings.EqualFold(key, "Proxy-Authenticate") ||
+				strings.EqualFold(key, "Proxy-Authorization") ||
+				strings.EqualFold(key, "Te") ||
+				strings.EqualFold(key, "Trailers") ||
+				strings.EqualFold(key, "Transfer-Encoding") ||
+				strings.EqualFold(key, "Upgrade") {
+				continue
+			}
+			for _, value := range values {
+				req.Header.Add(key, value)
+			}
+		}
 
-	// Set Content-Length explicitly
-	req.ContentLength = int64(len(bodyBytes))
+		// Ensure Content-Type is set
+		if req.Header.Get("Content-Type") == "" {
+			req.Header.Set("Content-Type", "application/json")
+		}
 
-	h.logger.Debug("Making request to classification service",
-		zap.String("url", classificationURL),
-		zap.String("content_type", req.Header.Get("Content-Type")),
-		zap.Int64("content_length", req.ContentLength))
+		// Set Content-Length explicitly
+		req.ContentLength = int64(len(bodyBytes))
 
-	// Make the request
-	resp, err := h.httpClient.Do(req)
-	if err != nil {
-		h.logger.Error("Failed to make request to classification service",
+		h.logger.Debug("Making request to classification service",
 			zap.String("url", classificationURL),
-			zap.Error(err))
-		return nil, fmt.Errorf("failed to make request to classification service: %w", err)
-	}
-	defer resp.Body.Close()
+			zap.String("content_type", req.Header.Get("Content-Type")),
+			zap.Int64("content_length", req.ContentLength),
+			zap.Int("attempt", attempt+1))
 
-	h.logger.Info("Received response from classification service",
-		zap.Int("status_code", resp.StatusCode),
-		zap.String("status", resp.Status))
+		// Make the request
+		resp, err := h.httpClient.Do(req)
+		if err != nil {
+			lastErr = fmt.Errorf("failed to make request to classification service: %w", err)
+			h.logger.Warn("Request to classification service failed",
+				zap.String("url", classificationURL),
+				zap.Error(err),
+				zap.Int("attempt", attempt+1))
+			
+			// Retry on network errors if not last attempt
+			if attempt < maxRetries {
+				continue
+			}
+			h.logger.Error("All retry attempts exhausted", zap.Error(lastErr))
+			return nil, lastErr
+		}
 
-	// Check response status
-	if resp.StatusCode != http.StatusOK {
-		bodyText, _ := io.ReadAll(resp.Body)
-		h.logger.Error("Classification service returned error",
+		h.logger.Info("Received response from classification service",
 			zap.Int("status_code", resp.StatusCode),
 			zap.String("status", resp.Status),
-			zap.String("response", string(bodyText)),
-			zap.String("url", classificationURL))
-		return nil, fmt.Errorf("classification service returned status %d: %s", resp.StatusCode, string(bodyText))
+			zap.Int("attempt", attempt+1))
+
+		// Check response status
+		if resp.StatusCode == http.StatusOK {
+			// Success - parse and return response
+			var response map[string]interface{}
+			if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+				resp.Body.Close()
+				h.logger.Error("Failed to decode classification response",
+					zap.Error(err),
+					zap.String("url", classificationURL))
+				return nil, fmt.Errorf("failed to decode classification response: %w", err)
+			}
+			resp.Body.Close()
+
+			h.logger.Info("Successfully received classification response",
+				zap.String("url", classificationURL),
+				zap.Any("response_keys", getMapKeys(response)),
+				zap.Int("attempt", attempt+1))
+
+			return response, nil
+		} else if resp.StatusCode == http.StatusBadGateway && attempt < maxRetries {
+			// 502 Bad Gateway - retry (likely transient cold start failure)
+			bodyText, _ := io.ReadAll(resp.Body)
+			resp.Body.Close()
+			lastErr = fmt.Errorf("classification service returned 502: %s", string(bodyText))
+			h.logger.Warn("Classification service returned 502, will retry",
+				zap.String("url", classificationURL),
+				zap.String("response", string(bodyText)),
+				zap.Int("attempt", attempt+1),
+				zap.Int("max_retries", maxRetries+1))
+			continue
+		} else {
+			// Non-retryable error or last attempt
+			bodyText, _ := io.ReadAll(resp.Body)
+			resp.Body.Close()
+			lastErr = fmt.Errorf("classification service returned status %d: %s", resp.StatusCode, string(bodyText))
+			h.logger.Error("Classification service returned error",
+				zap.Int("status_code", resp.StatusCode),
+				zap.String("status", resp.Status),
+				zap.String("response", string(bodyText)),
+				zap.String("url", classificationURL),
+				zap.Int("attempt", attempt+1))
+			
+			// Don't retry non-502 errors or if last attempt
+			return nil, lastErr
+		}
 	}
 
-	// Parse the response
-	var response map[string]interface{}
-	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
-		h.logger.Error("Failed to decode classification response",
-			zap.Error(err),
-			zap.String("url", classificationURL))
-		return nil, fmt.Errorf("failed to decode classification response: %w", err)
-	}
-
-	h.logger.Info("Successfully received classification response",
+	// All retries exhausted
+	h.logger.Error("All retry attempts exhausted for classification service",
 		zap.String("url", classificationURL),
-		zap.Any("response_keys", getMapKeys(response)))
-
-	return response, nil
+		zap.Error(lastErr))
+	return nil, lastErr
 }
 
 // Helper function to get keys from a map for logging
