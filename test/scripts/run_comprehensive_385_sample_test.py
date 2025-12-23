@@ -33,7 +33,7 @@ REQUEST_DELAY = 0.5  # Base delay between individual requests (seconds)
 RATE_LIMIT_BACKOFF_BASE = 2.0  # Base delay for exponential backoff on 429/503 errors
 MAX_BACKOFF_DELAY = 30.0  # Maximum backoff delay (seconds)
 
-# Create a shared session with controlled retry strategy
+# Create a shared session with controlled retry strategy and connection pooling
 _session = None
 def get_session():
     """Get or create a shared requests session with controlled retry strategy"""
@@ -44,9 +44,18 @@ def get_session():
             total=0,  # Disable automatic retries at urllib3 level (we handle retries manually)
             backoff_factor=0.1,
         )
-        adapter = HTTPAdapter(max_retries=retry_strategy)
+        adapter = HTTPAdapter(
+            max_retries=retry_strategy,
+            pool_connections=10,  # Number of connection pools to cache
+            pool_maxsize=20,  # Maximum number of connections to save in the pool
+        )
         _session.mount('https://', adapter)
         _session.mount('http://', adapter)
+        # Set default headers
+        _session.headers.update({
+            'Connection': 'keep-alive',
+            'User-Agent': 'E2E-Test-Script/1.0'
+        })
     return _session
 
 def test_classification(sample: Dict[str, Any], max_retries: int = MAX_RETRIES) -> Dict[str, Any]:
@@ -70,6 +79,7 @@ def test_classification(sample: Dict[str, Any], max_retries: int = MAX_RETRIES) 
     for attempt in range(max_retries):
         try:
             start_time = time.time()
+            # Create a fresh connection for each request to avoid pool exhaustion
             response = session.post(
                 url,
                 json=sample,
@@ -107,11 +117,32 @@ def test_classification(sample: Dict[str, Any], max_retries: int = MAX_RETRIES) 
             result["error"] = "Request timeout"
             result["latency_ms"] = TIMEOUT * 1000
             return result
+        except (requests.exceptions.ConnectionError, requests.exceptions.ChunkedEncodingError) as e:
+            # Connection errors - retry with exponential backoff
+            if attempt < max_retries - 1:
+                wait_time = min((2 ** attempt) * 1.0, MAX_BACKOFF_DELAY)
+                print(f"  ⚠️  Connection error (attempt {attempt + 1}/{max_retries}), retrying in {wait_time:.1f}s...", end="", flush=True)
+                time.sleep(wait_time)
+                # Reset session to clear connection pool
+                global _session
+                if _session:
+                    _session.close()
+                    _session = None
+                session = get_session()
+                continue
+            result["error"] = f"Connection error: {str(e)}"
+            return result
         except Exception as e:
-            if attempt < max_retries - 1 and "502" in str(e):
-                wait_time = (2 ** attempt) * 1.0
+            if attempt < max_retries - 1 and ("502" in str(e) or "HTTPSConnectionPool" in str(e) or "Connection" in str(e)):
+                wait_time = min((2 ** attempt) * 1.0, MAX_BACKOFF_DELAY)
                 print(f"  ⚠️  Error (attempt {attempt + 1}/{max_retries}), retrying in {wait_time:.1f}s...", end="", flush=True)
                 time.sleep(wait_time)
+                # Reset session to clear connection pool
+                global _session
+                if _session:
+                    _session.close()
+                    _session = None
+                session = get_session()
                 continue
             result["error"] = str(e)
             return result
