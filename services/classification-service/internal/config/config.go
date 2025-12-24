@@ -94,9 +94,11 @@ func Load() (*Config, error) {
 		Server: ServerConfig{
 			Port:         getEnvAsString("PORT", "8081"),
 			Host:         getEnvAsString("HOST", "0.0.0.0"),
-			ReadTimeout:  getEnvAsDuration("READ_TIMEOUT", 120*time.Second),  // Increased to 120s to accommodate long-running classification requests
-			WriteTimeout: getEnvAsDuration("WRITE_TIMEOUT", 120*time.Second), // Increased to 120s to accommodate long-running classification requests
-			IdleTimeout:  getEnvAsDuration("IDLE_TIMEOUT", 60*time.Second),
+		// ALIGNED TIMEOUTS: Read/Write timeouts set to 120s to match processing timeout
+		// This ensures HTTP server doesn't close connection before processing completes
+		ReadTimeout:  getEnvAsDuration("READ_TIMEOUT", 120*time.Second),  // Aligned with processing timeout (120s)
+		WriteTimeout: getEnvAsDuration("WRITE_TIMEOUT", 120*time.Second), // Aligned with processing timeout (120s)
+		IdleTimeout:  getEnvAsDuration("IDLE_TIMEOUT", 60*time.Second),
 		},
 		Supabase: SupabaseConfig{
 			URL:            getEnvAsString("SUPABASE_URL", ""),

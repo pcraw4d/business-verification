@@ -730,14 +730,16 @@ func rateLimitMiddleware(cfg *config.Config) func(http.Handler) http.Handler {
 }
 
 // timeoutMiddleware adds request timeout middleware (Phase 5)
-// Priority 3 Fix: Enhanced with timeout monitoring and logging
+// Priority 3 Fix: Enhanced with timeout monitoring, logging, and proper context propagation
+// ALIGNED TIMEOUTS: Ensures HTTP timeout (120s) matches processing timeout (120s)
 func timeoutMiddleware(timeout time.Duration) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			startTime := time.Now()
 			requestPath := r.URL.Path
 			
-			// Create context with timeout
+			// ALIGNED TIMEOUTS: Create context with timeout matching processing timeout
+			// This ensures HTTP timeout matches worker timeout (120s)
 			ctx, cancel := context.WithTimeout(r.Context(), timeout)
 			defer cancel()
 
@@ -748,7 +750,8 @@ func timeoutMiddleware(timeout time.Duration) func(http.Handler) http.Handler {
 				done:           done,
 			}
 
-			// Handle request in goroutine
+			// Handle request in goroutine with timeout context
+			// The context will be cancelled when timeout expires, propagating to all processing
 			go func() {
 				next.ServeHTTP(wrapped, r.WithContext(ctx))
 				done <- true
@@ -766,10 +769,15 @@ func timeoutMiddleware(timeout time.Duration) func(http.Handler) http.Handler {
 				}
 				return
 			case <-ctx.Done():
-				// Timeout occurred
+				// Timeout occurred - context cancelled
 				duration := time.Since(startTime)
-				log.Printf("❌ [TIMEOUT-MIDDLEWARE] Request timeout: %s %s (duration: %v, timeout: %v)",
-					r.Method, requestPath, duration, timeout)
+				timeoutReason := "deadline exceeded"
+				if ctx.Err() == context.Canceled {
+					timeoutReason = "cancelled"
+				}
+				
+				log.Printf("❌ [TIMEOUT-MIDDLEWARE] Request timeout: %s %s (duration: %v, timeout: %v, reason: %s)",
+					r.Method, requestPath, duration, timeout, timeoutReason)
 				
 				// FIX: Acquire lock BEFORE checking wroteHeader to prevent race condition
 				// This prevents concurrent map read/write errors
@@ -778,7 +786,8 @@ func timeoutMiddleware(timeout time.Duration) func(http.Handler) http.Handler {
 					wrapped.wroteHeader = true
 					wrapped.timedOut = true // Mark as timed out to prevent further writes
 					wrapped.mu.Unlock()
-					errors.WriteError(w, r, http.StatusRequestTimeout, "REQUEST_TIMEOUT", "Request timeout", fmt.Sprintf("Request exceeded timeout of %v", timeout))
+					errors.WriteError(w, r, http.StatusRequestTimeout, "REQUEST_TIMEOUT", "Request timeout", 
+						fmt.Sprintf("Request exceeded timeout of %v. Processing has been cancelled.", timeout))
 				} else {
 					wrapped.timedOut = true // Mark as timed out even if header was written
 					wrapped.mu.Unlock()

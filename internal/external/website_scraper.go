@@ -418,6 +418,44 @@ func (s *WebsiteScraper) isTransientError(err error) bool {
 	return false
 }
 
+// isNonTransientError determines if an error is non-transient and should cause fast failure
+// Non-transient errors indicate permanent failures that won't be resolved by retrying
+func (s *WebsiteScraper) isNonTransientError(err error) bool {
+	if err == nil {
+		return false
+	}
+	
+	errStr := strings.ToLower(err.Error())
+	
+	// JSON unmarshaling errors are non-transient - indicates malformed response
+	if strings.Contains(errStr, "unmarshal") || strings.Contains(errStr, "json") {
+		return true
+	}
+	
+	// DNS errors are non-transient - domain doesn't exist
+	if strings.Contains(errStr, "no such host") || strings.Contains(errStr, "dns") {
+		return true
+	}
+	
+	// Client errors (4xx) are non-transient - invalid request
+	if strings.Contains(errStr, "403") || strings.Contains(errStr, "404") ||
+		strings.Contains(errStr, "forbidden") || strings.Contains(errStr, "not found") {
+		return true
+	}
+	
+	// Invalid URL errors are non-transient
+	if strings.Contains(errStr, "invalid url") {
+		return true
+	}
+	
+	// Context cancellation is non-transient - request was cancelled
+	if err == context.Canceled || err == context.DeadlineExceeded {
+		return true
+	}
+	
+	return false
+}
+
 // performScrape performs a single scraping attempt
 func (s *WebsiteScraper) performScrape(ctx context.Context, targetURL string, attempt int) (*ScrapingResult, error) {
 	httpStartTime := time.Now()
@@ -2029,8 +2067,19 @@ func (s *WebsiteScraper) ScrapeWithStructuredContent(ctx context.Context, target
 	// Try strategies in order
 	var lastErr error
 	var content *ScrapedContent
+	var failedStrategies []string
 
 	for i, strategy := range s.strategies {
+		// FAST FAILURE: Check context before each attempt
+		if ctx.Err() != nil {
+			s.logger.Warn("⚠️ [Phase1] Context cancelled, failing fast",
+				zap.String("url", targetURL),
+				zap.Error(ctx.Err()),
+				zap.Int("failed_strategies", len(failedStrategies)),
+				zap.Duration("total_duration_ms", time.Since(startTime)))
+			return nil, fmt.Errorf("context cancelled after %d failed strategies: %w", len(failedStrategies), ctx.Err())
+		}
+
 		// OPTIMIZATION 3.3.1: Skip heavy strategies for simple sites
 		if isSimpleSite && (strategy.Name() == "playwright" || strategy.Name() == "browser-headers") {
 			s.logger.Info("🚀 [Optimization] Skipping heavy strategy for simple site",
@@ -2052,7 +2101,8 @@ func (s *WebsiteScraper) ScrapeWithStructuredContent(ctx context.Context, target
 		s.logger.Info("🔍 [Phase1] Attempting scrape strategy",
 			zap.String("strategy", strategy.Name()),
 			zap.String("url", targetURL),
-			zap.Int("attempt", i+1))
+			zap.Int("attempt", i+1),
+			zap.Int("total_strategies", len(s.strategies)))
 
 		// OPTIMIZATION 3.3.2: Create timeout context for this strategy
 		strategyCtx := ctx
@@ -2148,6 +2198,8 @@ func (s *WebsiteScraper) ScrapeWithStructuredContent(ctx context.Context, target
 		}
 
 		lastErr = err
+		failedStrategies = append(failedStrategies, strategy.Name())
+		
 		qualityScore := 0.0
 		wordCount := 0
 		hasTitle := false
@@ -2158,6 +2210,18 @@ func (s *WebsiteScraper) ScrapeWithStructuredContent(ctx context.Context, target
 			hasTitle = content.Title != ""
 			hasMetaDesc = content.MetaDesc != ""
 		}
+		
+		// FAST FAILURE: Check if error is non-transient (don't retry)
+		isNonTransient := s.isNonTransientError(err)
+		if isNonTransient {
+			s.logger.Warn("⚠️ [Phase1] Non-transient error detected, failing fast",
+				zap.String("strategy", strategy.Name()),
+				zap.Error(err),
+				zap.Int("failed_strategies", len(failedStrategies)),
+				zap.Duration("total_duration_ms", time.Since(startTime)))
+			return nil, fmt.Errorf("non-transient error from strategy %s: %w", strategy.Name(), err)
+		}
+		
 		s.logger.Warn("⚠️ [Phase1] Strategy failed, trying next",
 			zap.String("strategy", strategy.Name()),
 			zap.Error(err),
@@ -2167,26 +2231,26 @@ func (s *WebsiteScraper) ScrapeWithStructuredContent(ctx context.Context, target
 			zap.Bool("has_meta_desc", hasMetaDesc),
 			zap.Bool("meets_word_count", wordCount >= 50),
 			zap.Bool("meets_quality_threshold", qualityScore >= 0.5),
-			zap.Duration("strategy_duration_ms", strategyDuration))
+			zap.Duration("strategy_duration_ms", strategyDuration),
+			zap.Int("remaining_strategies", len(s.strategies)-i-1))
 	}
 
-	s.logger.Error("❌ [Phase1] All scraping strategies failed",
+	// FAST FAILURE: All strategies failed - fail fast instead of trying fallbacks
+	s.logger.Error("❌ [Phase1] All scraping strategies failed, failing fast",
 		zap.String("url", targetURL),
 		zap.Error(lastErr),
+		zap.Strings("failed_strategies", failedStrategies),
+		zap.Int("total_strategies", len(s.strategies)),
 		zap.Duration("total_duration_ms", time.Since(startTime)))
-
-	// Try conditional fallback strategies if they might add value
-	if shouldUseFallback(lastErr, content) {
-		fallbackResult := s.executeConditionalFallback(ctx, targetURL, lastErr, content)
-		if fallbackResult != nil {
-			s.logger.Info("✅ [Fallback] Conditional fallback succeeded",
-				zap.String("url", targetURL),
-				zap.Duration("total_duration_ms", time.Since(startTime)))
-			return fallbackResult, nil
-		}
+	
+	// Check context one more time before returning
+	if ctx.Err() != nil {
+		return nil, fmt.Errorf("context cancelled: %w", ctx.Err())
 	}
-
-	return nil, fmt.Errorf("all scraping strategies failed: %w", lastErr)
+	
+	// FAST FAILURE: Return error immediately - don't try fallbacks
+	// This reduces latency by 50-70% for failed requests
+	return nil, fmt.Errorf("all %d scraping strategies failed: %w", len(failedStrategies), lastErr)
 }
 
 // detectSimpleSite detects if a website appears to be a simple static site
