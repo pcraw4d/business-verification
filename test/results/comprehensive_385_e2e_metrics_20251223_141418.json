@@ -1,0 +1,2305 @@
+{
+  "timestamp": "2025-12-23T14:14:18.565759",
+  "api_url": "https://classification-service-production.up.railway.app",
+  "total_samples": 385,
+  "total_duration_seconds": 115.12,
+  "metrics": {
+    "total_requests": 175,
+    "successful_requests": 0,
+    "failed_requests": 175,
+    "error_rate_percent": 100.0,
+    "average_latency_ms": 0,
+    "p50_latency_ms": 0,
+    "p95_latency_ms": 0,
+    "p99_latency_ms": 0,
+    "classification_accuracy_percent": 0,
+    "code_generation_rate_percent": 0,
+    "average_confidence": 0,
+    "total_retries": 0,
+    "retry_rate_percent": 0.0,
+    "targets": {
+      "error_rate_target": "<5%",
+      "avg_latency_target": "<10s",
+      "accuracy_target": "\u226580%",
+      "code_generation_target": "\u226590%",
+      "confidence_target": ">50%"
+    }
+  },
+  "results": [
+    {
+      "sample": {
+        "business_name": "Amazon",
+        "description": "Online retail marketplace",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Shopify",
+        "description": "E-commerce platform",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "eBay",
+        "description": "Online auction and marketplace",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Walmart",
+        "description": "Retail corporation",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Target",
+        "description": "Retail store chain",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Microsoft",
+        "description": "Technology corporation",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Apple",
+        "description": "Consumer electronics and software",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Google",
+        "description": "Internet search and cloud services",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Meta",
+        "description": "Social media and technology company",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Stripe",
+        "description": "Payment processing platform",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Salesforce",
+        "description": "Cloud-based CRM platform",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Oracle",
+        "description": "Database and cloud services",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "IBM",
+        "description": "Technology and consulting services",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Starbucks",
+        "description": "Coffee chain",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "McDonald's",
+        "description": "Fast food restaurant chain",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Coca-Cola",
+        "description": "Beverage company",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "PepsiCo",
+        "description": "Food and beverage corporation",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Tesla",
+        "description": "Electric vehicle manufacturer",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Ford",
+        "description": "Automotive manufacturer",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "General Motors",
+        "description": "Automotive corporation",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Netflix",
+        "description": "Streaming video service",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Disney",
+        "description": "Entertainment and media company",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Bank of America",
+        "description": "Banking and financial services",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "JPMorgan Chase",
+        "description": "Investment bank",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Goldman Sachs",
+        "description": "Investment banking",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Home Depot",
+        "description": "Home improvement retailer",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Lowe's",
+        "description": "Home improvement retailer",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Best Buy",
+        "description": "Consumer electronics retailer",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Costco",
+        "description": "Warehouse club",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Nike",
+        "description": "Athletic apparel and footwear",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Adidas",
+        "description": "Athletic apparel and footwear",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Uber",
+        "description": "Ride-sharing and transportation",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Lyft",
+        "description": "Ride-sharing service",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Airbnb",
+        "description": "Short-term rental platform",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Spotify",
+        "description": "Music streaming service",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Twitter",
+        "description": "Social media platform",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "LinkedIn",
+        "description": "Professional networking",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "GitHub",
+        "description": "Code hosting platform",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Adobe",
+        "description": "Creative software",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Intel",
+        "description": "Semiconductor manufacturer",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "AMD",
+        "description": "Semiconductor manufacturer",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "NVIDIA",
+        "description": "Graphics processing units",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Dell",
+        "description": "Computer technology",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "HP",
+        "description": "Computer and printer manufacturer",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Samsung",
+        "description": "Electronics manufacturer",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Sony",
+        "description": "Electronics and entertainment",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Panasonic",
+        "description": "Electronics manufacturer",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Canon",
+        "description": "Camera and imaging equipment",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Nikon",
+        "description": "Camera and imaging equipment",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "GitLab",
+        "description": "DevOps platform",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Atlassian",
+        "description": "Team collaboration software",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Slack",
+        "description": "Team communication",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Zoom",
+        "description": "Video conferencing",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Dropbox",
+        "description": "Cloud storage",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Etsy",
+        "description": "Handmade marketplace",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Wayfair",
+        "description": "Home goods retailer",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Overstock",
+        "description": "Online retailer",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Domino's Pizza",
+        "description": "Pizza delivery",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Pizza Hut",
+        "description": "Pizza restaurant",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Subway",
+        "description": "Sandwich restaurant",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "CVS Health",
+        "description": "Pharmacy and healthcare",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Walgreens",
+        "description": "Pharmacy chain",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "PayPal",
+        "description": "Payment processing",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Visa",
+        "description": "Payment network",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Mastercard",
+        "description": "Payment network",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Zillow",
+        "description": "Real estate marketplace",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Redfin",
+        "description": "Real estate brokerage",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "FedEx",
+        "description": "Shipping and logistics",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "UPS",
+        "description": "Shipping and logistics",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "DHL",
+        "description": "Shipping and logistics",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 1",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 2",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 3",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 4",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 5",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 6",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 7",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 8",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 9",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 10",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 11",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 12",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 13",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 14",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 15",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 16",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 17",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 18",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 19",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 20",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 21",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 22",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 23",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 24",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 25",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 26",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 27",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 28",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 29",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 30",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 31",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 32",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 33",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 34",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 35",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 36",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 37",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 38",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 39",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 40",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 41",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 42",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 43",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 44",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 45",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 46",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 47",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 48",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 49",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 50",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 51",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 52",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 53",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 54",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 55",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 56",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 57",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 58",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 59",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 60",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 61",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 62",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 63",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 64",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 65",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 66",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 67",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 68",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 69",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 70",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 71",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 72",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 73",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 74",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 75",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 76",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 77",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 78",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 79",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 80",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 81",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 82",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 83",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 84",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 85",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 86",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 87",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 88",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 89",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 90",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 91",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 92",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 93",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 94",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 95",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 96",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 97",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 98",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 99",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Small Business 100",
+        "description": "Local small business",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Expedia",
+        "description": "Travel booking",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Booking.com",
+        "description": "Hotel booking",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "TripAdvisor",
+        "description": "Travel reviews",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Yelp",
+        "description": "Business reviews",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    },
+    {
+      "sample": {
+        "business_name": "Foursquare",
+        "description": "Location services",
+        "website_url": ""
+      },
+      "success": false,
+      "http_code": 0,
+      "latency_ms": 0,
+      "error": "HTTPSConnectionPool(host='classification-service-production.up.railway.app', port=443): Max retries exceeded with url: /v1/classify (Caused by NameResolutionError(\"HTTPSConnection(host='classification-service-production.up.railway.app', port=443): Failed to resolve 'classification-service-production.up.railway.app' ([Errno 8] nodename nor servname provided, or not known)\"))",
+      "response": null,
+      "retry_count": 0
+    }
+  ]
+}

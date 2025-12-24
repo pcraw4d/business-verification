@@ -166,11 +166,52 @@ func (g *ExplanationGenerator) extractConfidenceFactors(result *MultiStrategyRes
 	return factors
 }
 
+// ValidateKeywordsMatchIndustry checks if keywords are semantically related to the industry
+// Returns false if keywords clearly don't match the industry (e.g., "catering" keywords with "Utilities" industry)
+func (g *ExplanationGenerator) ValidateKeywordsMatchIndustry(keywords []string, industry string) bool {
+	if len(keywords) == 0 {
+		return true // No keywords to validate
+	}
+
+	industryLower := strings.ToLower(industry)
+	
+	// Define industry-keyword associations (negative validation)
+	// If keywords contain terms that strongly indicate a different industry, flag as mismatch
+	mismatchPatterns := map[string][]string{
+		"utilities": {"catering", "restaurant", "food", "wine", "dining", "menu", "chef", "kitchen", "bakery", "bar", "pub", "brewery", "winery"},
+		"food & beverage": {"electricity", "power", "gas", "water", "solar", "wind", "energy", "utility"},
+		"retail": {"electricity", "power", "gas", "water", "solar", "wind", "energy", "utility"},
+		"restaurant": {"electricity", "power", "gas", "water", "solar", "wind", "energy", "utility"},
+	}
+
+	// Check for obvious mismatches
+	if patterns, exists := mismatchPatterns[industryLower]; exists {
+		keywordsLower := strings.ToLower(strings.Join(keywords, " "))
+		for _, pattern := range patterns {
+			if strings.Contains(keywordsLower, pattern) {
+				return false // Mismatch detected
+			}
+		}
+	}
+
+	return true // No obvious mismatch
+}
+
 // generatePrimaryReason generates the primary reason for classification (Phase 2)
 func (g *ExplanationGenerator) generatePrimaryReason(result *MultiStrategyResult) string {
+	// Validate keywords match industry before generating explanation
+	keywordsValid := g.ValidateKeywordsMatchIndustry(result.Keywords, result.PrimaryIndustry)
+	
 	// Check method first
 	if strings.Contains(result.Method, "fast_path") {
 		if len(result.Keywords) > 0 {
+			if !keywordsValid {
+				// Use generic explanation when keywords don't match industry
+				return fmt.Sprintf(
+					"Classified as '%s' based on business information analysis",
+					result.PrimaryIndustry,
+				)
+			}
 			return fmt.Sprintf(
 				"Strong match based on clear industry indicator '%s' found in business information",
 				result.Keywords[0],
@@ -212,6 +253,15 @@ func (g *ExplanationGenerator) generatePrimaryReason(result *MultiStrategyResult
 	// Generate reason based on dominant strategy
 	if keywordScore > 0.85 {
 		if len(result.Keywords) > 0 {
+			// Validate keywords match industry before including them in explanation
+			if !keywordsValid {
+				// Use generic explanation when keywords don't match industry
+				return fmt.Sprintf(
+					"Classified as '%s' based on business information analysis (confidence: %.0f%%)",
+					result.PrimaryIndustry,
+					result.Confidence*100,
+				)
+			}
 			keywordStr := strings.Join(result.Keywords[:minIntForExplanation(3, len(result.Keywords))], ", ")
 			return fmt.Sprintf(
 				"Classified as '%s' based on strong keyword matches: %s",
@@ -241,6 +291,14 @@ func (g *ExplanationGenerator) generatePrimaryReason(result *MultiStrategyResult
 
 	// Multi-strategy ensemble or fallback
 	if len(result.Keywords) > 0 {
+		// Validate keywords match industry
+		if !keywordsValid {
+			// Use generic explanation when keywords don't match industry
+			return fmt.Sprintf(
+				"Classification as '%s' based on business information analysis",
+				result.PrimaryIndustry,
+			)
+		}
 		return fmt.Sprintf(
 			"Classification as '%s' based on keyword analysis and business information",
 			result.PrimaryIndustry,
@@ -260,6 +318,13 @@ func (g *ExplanationGenerator) generateSupportingFactors(
 	contentQuality float64,
 ) []string {
 	factors := []string{}
+
+	// Factor: Keyword-industry validation warning
+	keywordsValid := g.ValidateKeywordsMatchIndustry(result.Keywords, result.PrimaryIndustry)
+	if !keywordsValid && len(result.Keywords) > 0 {
+		factors = append(factors,
+			"⚠️ Note: Some keywords may not align with detected industry - classification may require review")
+	}
 
 	// Factor: Content quality
 	if contentQuality > 0.8 {

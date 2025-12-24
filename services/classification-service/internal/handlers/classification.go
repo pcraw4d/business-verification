@@ -3702,6 +3702,7 @@ func (h *ClassificationHandler) generateEnhancedClassification(ctx context.Conte
 
 	// Early termination: Skip ML if Go classification has high confidence (Task 1.5)
 	// Also skip if skipMLClassification flag is set (adaptive timeout)
+	// FIX: Add keyword-industry validation to prevent early termination when keywords don't match industry
 	skipML := skipMLClassification
 	if !skipML && h.config.Classification.EnableEarlyTermination && goErr == nil && goResult != nil {
 		threshold := h.config.Classification.EarlyTerminationConfidenceThreshold
@@ -3709,11 +3710,28 @@ func (h *ClassificationHandler) generateEnhancedClassification(ctx context.Conte
 			threshold = 0.85 // Default threshold
 		}
 		if goResult.ConfidenceScore >= threshold {
-			skipML = true
-			h.logger.Info("Early termination: Skipping ML service due to high keyword confidence",
-				zap.String("request_id", req.RequestID),
-				zap.Float64("confidence", goResult.ConfidenceScore),
-				zap.Float64("threshold", threshold))
+			// Validate that keywords match the detected industry before early termination
+			explanationGenerator := classification.NewExplanationGenerator()
+			keywordsValid := explanationGenerator.ValidateKeywordsMatchIndustry(goResult.Keywords, goResult.PrimaryIndustry)
+			
+			if keywordsValid {
+				skipML = true
+				h.logger.Info("Early termination: Skipping ML service due to high keyword confidence",
+					zap.String("request_id", req.RequestID),
+					zap.Float64("confidence", goResult.ConfidenceScore),
+					zap.Float64("threshold", threshold),
+					zap.String("industry", goResult.PrimaryIndustry))
+			} else {
+				// Keywords don't match industry - don't skip ML, it may correct the classification
+				h.logger.Warn("⚠️ [EARLY-TERMINATION] Skipping early termination: Keywords don't match detected industry",
+					zap.String("request_id", req.RequestID),
+					zap.String("industry", goResult.PrimaryIndustry),
+					zap.Strings("keywords", goResult.Keywords),
+					zap.Float64("confidence", goResult.ConfidenceScore),
+					zap.String("reason", "keyword_industry_mismatch"))
+				// Force ML classification to potentially correct the classification
+				skipML = false
+			}
 		}
 	}
 	if skipMLClassification {

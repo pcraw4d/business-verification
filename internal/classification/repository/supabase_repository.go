@@ -3004,12 +3004,15 @@ func (r *SupabaseKeywordRepository) ClassifyBusinessByKeywords(ctx context.Conte
 					}
 				}
 			} else if strings.Contains(normalizedKeyword, keyword) || strings.Contains(keyword, normalizedKeyword) {
-				// Traditional substring matching
-				for _, match := range matches {
-					// Reduce weight for partial matches
-					partialWeight := match.Weight * 0.5
-					industryScores[match.IndustryID] += partialWeight
-					industryMatches[match.IndustryID] = append(industryMatches[match.IndustryID], match.Keyword)
+				// Traditional substring matching with validation to prevent false positives
+				// Only proceed if the substring match is valid (not a false positive like "cater" matching "catering")
+				if r.isValidSubstringMatch(normalizedKeyword, keyword) {
+					for _, match := range matches {
+						// Reduce weight for partial matches
+						partialWeight := match.Weight * 0.5
+						industryScores[match.IndustryID] += partialWeight
+						industryMatches[match.IndustryID] = append(industryMatches[match.IndustryID], match.Keyword)
+					}
 				}
 			}
 		}
@@ -4005,12 +4008,15 @@ func (r *SupabaseKeywordRepository) classifyBusinessByContextualKeywordsBasic(ct
 					}
 				}
 			} else if strings.Contains(normalizedKeyword, keyword) || strings.Contains(keyword, normalizedKeyword) {
-				// Traditional substring matching with context multiplier
-				for _, match := range matches {
-					// Reduce weight for partial matches but apply context multiplier
-					partialWeight := match.Weight * 0.5 * contextMultiplier
-					industryScores[match.IndustryID] += partialWeight
-					industryMatches[match.IndustryID] = append(industryMatches[match.IndustryID], match.Keyword)
+				// Traditional substring matching with validation to prevent false positives
+				// Only proceed if the substring match is valid (not a false positive like "cater" matching "catering")
+				if r.isValidSubstringMatch(normalizedKeyword, keyword) {
+					for _, match := range matches {
+						// Reduce weight for partial matches but apply context multiplier
+						partialWeight := match.Weight * 0.5 * contextMultiplier
+						industryScores[match.IndustryID] += partialWeight
+						industryMatches[match.IndustryID] = append(industryMatches[match.IndustryID], match.Keyword)
+					}
 				}
 			}
 		}
@@ -7122,6 +7128,54 @@ func (r *SupabaseKeywordRepository) hasPhraseOverlap(phrase1, phrase2 string) bo
 
 	// At least one meaningful word should overlap
 	return overlaps > 0
+}
+
+// isValidSubstringMatch validates that a substring match is not a false positive
+// Prevents matches like "cater" matching "catering" which are semantically different
+func (r *SupabaseKeywordRepository) isValidSubstringMatch(inputKeyword, databaseKeyword string) bool {
+	inputLower := strings.ToLower(strings.TrimSpace(inputKeyword))
+	dbLower := strings.ToLower(strings.TrimSpace(databaseKeyword))
+
+	// If they're the same, it's valid (but should be handled by exact match)
+	if inputLower == dbLower {
+		return true
+	}
+
+	// If both are phrases (multi-word), allow substring matching
+	// Phrases are less likely to have false positives
+	if strings.Contains(inputLower, " ") && strings.Contains(dbLower, " ") {
+		return true
+	}
+
+	// For single-word matches, require minimum length to prevent false positives
+	// Examples: "cater" (5 chars) matching "catering" (8 chars) = false positive
+	//           "catering" (8 chars) matching "catering service" (phrase) = valid
+	minLength := 6 // Minimum length for substring matches to be considered valid
+
+	// If the shorter keyword is too short, reject the match
+	// This prevents "cater" (5 chars) from matching "catering" (8 chars)
+	if len(inputLower) < minLength && len(dbLower) < minLength {
+		return false
+	}
+
+	// Use word boundary checking for single-word matches
+	// Only allow if the shorter string appears as a complete word in the longer string
+	shorter := inputLower
+	longer := dbLower
+	if len(dbLower) < len(inputLower) {
+		shorter = dbLower
+		longer = inputLower
+	}
+
+	// Check if shorter appears as a complete word (with word boundaries)
+	// Using regex for word boundary matching
+	wordBoundaryPattern := regexp.MustCompile(`\b` + regexp.QuoteMeta(shorter) + `\b`)
+	if wordBoundaryPattern.MatchString(longer) {
+		return true
+	}
+
+	// If no word boundary match, reject to prevent false positives
+	return false
 }
 
 // parseClassificationCodesResponse parses the Supabase response for classification codes

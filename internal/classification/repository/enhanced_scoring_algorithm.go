@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -413,24 +414,27 @@ func (esa *EnhancedScoringAlgorithm) findPartialMatches(
 			continue
 		}
 
-		// Check for substring matches
+		// Check for substring matches with validation to prevent false positives
 		if strings.Contains(normalizedKeyword, keyword) || strings.Contains(keyword, normalizedKeyword) {
-			for _, match := range industryMatches {
-				contextMultiplier := esa.getContextMultiplier(contextualKeyword.Context)
-				partialMultiplier := 0.5 // Reduced weight for partial matches
-				finalWeight := match.Weight * partialMultiplier * contextMultiplier
+			// Only proceed if the substring match is valid (not a false positive like "cater" matching "catering")
+			if esa.isValidSubstringMatch(normalizedKeyword, keyword) {
+				for _, match := range industryMatches {
+					contextMultiplier := esa.getContextMultiplier(contextualKeyword.Context)
+					partialMultiplier := 0.5 // Reduced weight for partial matches
+					finalWeight := match.Weight * partialMultiplier * contextMultiplier
 
-				matches = append(matches, KeywordMatch{
-					InputKeyword:      normalizedKeyword,
-					MatchedKeyword:    match.Keyword,
-					MatchType:         "partial",
-					BaseWeight:        match.Weight,
-					ContextMultiplier: contextMultiplier,
-					FinalWeight:       finalWeight,
-					Confidence:        esa.calculateMatchConfidence("partial", match.Weight, contextMultiplier),
-					Source:            contextualKeyword.Context,
-					IndustryID:        match.IndustryID,
-				})
+					matches = append(matches, KeywordMatch{
+						InputKeyword:      normalizedKeyword,
+						MatchedKeyword:    match.Keyword,
+						MatchType:         "partial",
+						BaseWeight:        match.Weight,
+						ContextMultiplier: contextMultiplier,
+						FinalWeight:       finalWeight,
+						Confidence:        esa.calculateMatchConfidence("partial", match.Weight, contextMultiplier),
+						Source:            contextualKeyword.Context,
+						IndustryID:        match.IndustryID,
+					})
+				}
 			}
 		}
 	}
@@ -827,6 +831,54 @@ func (esa *EnhancedScoringAlgorithm) calculateMatchConfidence(matchType string, 
 	}
 
 	return math.Max(0.1, math.Min(1.0, confidence))
+}
+
+// isValidSubstringMatch validates that a substring match is not a false positive
+// Prevents matches like "cater" matching "catering" which are semantically different
+func (esa *EnhancedScoringAlgorithm) isValidSubstringMatch(inputKeyword, databaseKeyword string) bool {
+	inputLower := strings.ToLower(strings.TrimSpace(inputKeyword))
+	dbLower := strings.ToLower(strings.TrimSpace(databaseKeyword))
+
+	// If they're the same, it's valid (but should be handled by exact match)
+	if inputLower == dbLower {
+		return true
+	}
+
+	// If both are phrases (multi-word), allow substring matching
+	// Phrases are less likely to have false positives
+	if strings.Contains(inputLower, " ") && strings.Contains(dbLower, " ") {
+		return true
+	}
+
+	// For single-word matches, require minimum length to prevent false positives
+	// Examples: "cater" (5 chars) matching "catering" (8 chars) = false positive
+	//           "catering" (8 chars) matching "catering service" (phrase) = valid
+	minLength := 6 // Minimum length for substring matches to be considered valid
+
+	// If the shorter keyword is too short, reject the match
+	// This prevents "cater" (5 chars) from matching "catering" (8 chars)
+	if len(inputLower) < minLength && len(dbLower) < minLength {
+		return false
+	}
+
+	// Use word boundary checking for single-word matches
+	// Only allow if the shorter string appears as a complete word in the longer string
+	shorter := inputLower
+	longer := dbLower
+	if len(dbLower) < len(inputLower) {
+		shorter = dbLower
+		longer = inputLower
+	}
+
+	// Check if shorter appears as a complete word (with word boundaries)
+	// Using regex for word boundary matching
+	wordBoundaryPattern := regexp.MustCompile(`\b` + regexp.QuoteMeta(shorter) + `\b`)
+	if wordBoundaryPattern.MatchString(longer) {
+		return true
+	}
+
+	// If no word boundary match, reject to prevent false positives
+	return false
 }
 
 func (esa *EnhancedScoringAlgorithm) hasPhraseOverlap(phrase1, phrase2 string) bool {

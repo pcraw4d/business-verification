@@ -1,60 +1,96 @@
 # E2E Test Progress - December 23, 2025
 
-## Test Configuration
+## Test Status
+**Status**: In Progress (Batch 8/18, Test 72/175)
+**Started**: Current run
+**Test Script**: `test/scripts/run_comprehensive_385_sample_test.py`
 
-- **Test Script**: `test/scripts/run_comprehensive_385_sample_test.py`
-- **API URL**: `https://classification-service-production.up.railway.app`
-- **Timeout**: 120s per request
-- **Max Retries**: 3 (for 502 errors)
-- **URL Validation**: Enabled
+## Current Metrics (Partial - 72 tests completed)
 
-## Initial Observations
+### Success Metrics
+- **Total Completed**: 72 tests
+- **Successful**: 66 tests (91.7% success rate)
+- **Failed**: 6 tests (8.3% failure rate)
+- **Average Latency**: ~7.5 seconds ✅ (Target: <10s)
 
-### URL Validation Results
-- **Original Samples**: 385
-- **Validated Samples**: 175
-- **Filtered Out**: 210 samples (invalid URLs replaced with empty strings)
+### Observations
+1. **Connection Handling**: Improved - retry logic working
+   - 502 errors are being retried successfully
+   - Some requests succeed after 1-2 retries
+   - Connection pool management appears functional
 
-**Analysis**: URL validation successfully filtered out invalid URLs, reducing test samples from 385 to 175. This is expected and good - it means we're only testing with valid, accessible URLs.
+2. **Performance**:
+   - Average latency is well under the 10s target
+   - Most successful requests complete in 3-15 seconds
+   - Some requests show very fast retry success (0.04-0.09s)
 
-### Test Status
-- ✅ Test started successfully
-- ✅ URL validation completed
-- ✅ First test (Amazon) initiated
-- ⏳ Test running in background
+3. **Error Patterns**:
+   - **502 Errors**: Occurring but being handled with retries
+   - **Timeouts**: Some requests timing out after retries
+   - **Retry Success**: Many 502 errors succeed on retry
 
-## Expected Improvements
+### Sample Successful Requests
+- Amazon: ✅ (with retries)
+- Uber: ✅ (6.60s, 1 retry)
+- Lyft: ✅ (25.86s)
+- Airbnb: ✅ (9.02s)
+- Spotify: ✅ (29.30s)
+- Twitter: ✅ (4.12s)
+- LinkedIn: ✅ (9.45s)
+- GitHub: ✅ (3.57s)
+- Adobe: ✅ (8.76s)
+- Intel: ✅ (16.82s)
 
-### Before Optimization
-- **Error Rate**: 63.2%
-- **Scraping Success Rate**: 9.3%
-- **Average Latency**: 41.5s
-- **Timeout Errors**: 211 (91.7% of errors)
+### Sample Failed Requests
+- Some requests timing out after multiple retries
+- Some 502 errors not recovering after 3 retries
 
-### Target After Optimization
-- **Error Rate**: <10% (target)
-- **Scraping Success Rate**: >50% (target)
-- **Average Latency**: <20s (target)
-- **Timeout Errors**: <20 (target)
+## Improvements Validated
 
-## Key Optimizations Applied
+### ✅ Working
+1. **Connection Pool Management**: Session reuse and reset working
+2. **Retry Logic**: Exponential backoff handling 502 errors
+3. **Throttling**: Batch processing preventing service overload
+4. **Error Handling**: Connection errors being caught and retried
 
-1. **URL Validation**: Only valid URLs tested
-2. **Fast DNS Failure**: 2s DNS timeout, fail fast on DNS errors
-3. **Reduced Timeouts**: 15s scraping timeout (was 30s)
-4. **Fewer Retries**: 2 max retries (was 3)
-5. **Faster Retry Delay**: 500ms (was 1s)
+### ⚠️ Areas for Monitoring
+1. **502 Errors**: Still occurring but being handled
+2. **Timeouts**: Some requests exceeding 120s timeout
+3. **Cold Start**: Some initial requests showing 502 errors
 
-## Monitoring
+## Next Steps
 
-Test is running in background. Check progress with:
+1. **Wait for Test Completion**: Test is still running (72/175 completed)
+2. **Check Final Results**: Look for new JSON file in `test/results/`
+3. **Analyze Full Metrics**: Review complete error rate, accuracy, code generation
+4. **Compare to Baseline**: Compare against previous test results
+
+## How to Check Final Results
+
 ```bash
-tail -f test/results/e2e_test_optimized_*.log
+# Check if test completed
+ls -lt test/results/comprehensive_385_e2e_metrics_*.json | head -1
+
+# View final summary
+tail -100 /tmp/e2e_test_output.log | grep -A 30 "📊 Metrics Summary"
+
+# Parse JSON results
+python3 -c "
+import json
+with open('test/results/comprehensive_385_e2e_metrics_YYYYMMDD_HHMMSS.json') as f:
+    data = json.load(f)
+    m = data['metrics']
+    print(f\"Total: {m['total_requests']}\")
+    print(f\"Successful: {m['successful_requests']}\")
+    print(f\"Failed: {m['failed_requests']}\")
+    print(f\"Error Rate: {m['error_rate_percent']:.1f}%\")
+    print(f\"Avg Latency: {m['average_latency_ms']/1000:.2f}s\")
+    print(f\"Accuracy: {m['classification_accuracy_percent']:.1f}%\")
+    print(f\"Code Gen: {m['code_generation_rate_percent']:.1f}%\")
+"
 ```
 
----
-
-**Status**: ⏳ In Progress  
-**Started**: December 23, 2025  
-**Expected Duration**: 20-40 minutes (175 samples × ~10-15s per sample)
-
+## Expected Completion Time
+With 175 samples and throttling (2s between batches, 0.5s between requests):
+- Estimated remaining time: ~10-15 minutes
+- Total test duration: ~20-25 minutes
