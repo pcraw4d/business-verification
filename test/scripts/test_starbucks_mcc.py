@@ -38,8 +38,9 @@ def test_starbucks_classification():
     print("Sending classification request...")
     
     try:
+        # Add nocache parameter to bypass cache and get fresh results
         response = requests.post(
-            f"{API_URL}/classify",
+            f"{API_URL}/classify?nocache=true",
             json=test_data,
             timeout=TIMEOUT,
             verify=False
