@@ -1805,26 +1805,35 @@ func (g *ClassificationCodeGenerator) fillGapsWithCrosswalks(codes *Classificati
 	return codes
 }
 
-// ensureTop3MCC ensures exactly 3 MCC codes
+// ensureTop3MCC ensures exactly 3 MCC codes (trims if more, keeps all if fewer)
 func (g *ClassificationCodeGenerator) ensureTop3MCC(codes []MCCCode) []MCCCode {
 	if len(codes) > 3 {
 		return codes[:3]
 	}
-	return codes
-}
-
-// ensureTop3SIC ensures exactly 3 SIC codes
-func (g *ClassificationCodeGenerator) ensureTop3SIC(codes []SICCode) []SICCode {
-	if len(codes) > 3 {
-		return codes[:3]
+	if len(codes) < 3 {
+		g.logger.Printf("⚠️ [ensureTop3] Only %d MCC codes available (target: 3)", len(codes))
 	}
 	return codes
 }
 
-// ensureTop3NAICS ensures exactly 3 NAICS codes
+// ensureTop3SIC ensures exactly 3 SIC codes (trims if more, keeps all if fewer)
+func (g *ClassificationCodeGenerator) ensureTop3SIC(codes []SICCode) []SICCode {
+	if len(codes) > 3 {
+		return codes[:3]
+	}
+	if len(codes) < 3 {
+		g.logger.Printf("⚠️ [ensureTop3] Only %d SIC codes available (target: 3)", len(codes))
+	}
+	return codes
+}
+
+// ensureTop3NAICS ensures exactly 3 NAICS codes (trims if more, keeps all if fewer)
 func (g *ClassificationCodeGenerator) ensureTop3NAICS(codes []NAICSCode) []NAICSCode {
 	if len(codes) > 3 {
 		return codes[:3]
+	}
+	if len(codes) < 3 {
+		g.logger.Printf("⚠️ [ensureTop3] Only %d NAICS codes available (target: 3)", len(codes))
 	}
 	return codes
 }
