@@ -1294,12 +1294,15 @@ func (h *ClassificationHandler) HandleClassification(w http.ResponseWriter, r *h
 	// Generate cache key for deduplication
 	cacheKey := h.getCacheKey(&req)
 
+	// Check if cache should be bypassed (for testing or when fixes are deployed)
+	bypassCache := r.URL.Query().Get("bypass_cache") == "true" || r.URL.Query().Get("nocache") == "true"
+
 	// Track cache lookup duration
 	cacheLookupStart := time.Now()
 	var cacheLookupDuration time.Duration
 
-	// Check cache first if enabled
-	if h.config.Classification.CacheEnabled {
+	// Check cache first if enabled and not bypassed
+	if h.config.Classification.CacheEnabled && !bypassCache {
 		if cachedResponse, found := h.getCachedResponse(cacheKey); found {
 			cacheLookupDuration = time.Since(cacheLookupStart)
 			// Cache hit - set FromCache flag and log metrics
@@ -1307,13 +1310,85 @@ func (h *ClassificationHandler) HandleClassification(w http.ResponseWriter, r *h
 			cachedResponse.CachedAt = &time.Time{}
 			*cachedResponse.CachedAt = time.Now()
 			cacheLookupDuration = time.Since(cacheLookupStart)
+			
+			// FIX: Validate cached response to ensure explanation is present
+			// Cached responses may have been stored before explanation generation was implemented
+			h.validateResponse(cachedResponse, &req)
+			
+			// FIX: If explanation is still missing, generate it now
+			if cachedResponse.Classification != nil && cachedResponse.Classification.Explanation == nil {
+				h.logger.Warn("⚠️ [CACHE-FIX] Cached response missing explanation, generating now",
+					zap.String("request_id", req.RequestID),
+					zap.String("business_name", req.BusinessName))
+				
+				// Generate explanation for cached response
+				explanationGenerator := classification.NewExplanationGenerator()
+				multiResult := &classification.MultiStrategyResult{
+					PrimaryIndustry: cachedResponse.PrimaryIndustry,
+					Confidence:      cachedResponse.ConfidenceScore,
+					Keywords:        func() []string {
+						if cachedResponse.Classification != nil && cachedResponse.Classification.WebsiteContent != nil {
+							// Try to extract keywords from metadata or use empty list
+							if cachedResponse.Metadata != nil {
+								if keywords, ok := cachedResponse.Metadata["keywords"].([]interface{}); ok {
+									result := make([]string, 0, len(keywords))
+									for _, k := range keywords {
+										if str, ok := k.(string); ok {
+											result = append(result, str)
+										}
+									}
+									return result
+								}
+							}
+						}
+						return []string{}
+					}(),
+					Reasoning: func() string {
+						if cachedResponse.Metadata != nil {
+							if reasoning, ok := cachedResponse.Metadata["classification_reasoning"].(string); ok {
+								return reasoning
+							}
+						}
+						return ""
+					}(),
+					Method: "cached",
+					Strategies: []classification.ClassificationStrategy{},
+				}
+				
+				contentQuality := 0.7
+				if cachedResponse.ConfidenceScore > 0.8 {
+					contentQuality = 0.85
+				} else if cachedResponse.ConfidenceScore < 0.5 {
+					contentQuality = 0.5
+				}
+				
+				// Generate explanation
+				cachedResponse.Classification.Explanation = explanationGenerator.GenerateExplanation(
+					multiResult,
+					nil, // Codes not available from cache
+					contentQuality,
+				)
+				
+				// Fallback if explanation generation fails
+				if cachedResponse.Classification.Explanation == nil {
+					cachedResponse.Classification.Explanation = &classification.ClassificationExplanation{
+						PrimaryReason:     fmt.Sprintf("Classified as '%s' based on cached classification data", cachedResponse.PrimaryIndustry),
+						SupportingFactors: []string{fmt.Sprintf("Confidence score: %.0f%%", cachedResponse.ConfidenceScore*100)},
+						KeyTermsFound:     []string{},
+						MethodUsed:        "cached",
+						ProcessingPath:    cachedResponse.ProcessingPath,
+					}
+				}
+			}
+			
 			h.logger.Info("✅ [CACHE-HIT] Classification served from cache",
 				zap.String("request_id", req.RequestID),
 				zap.String("business_name", req.BusinessName),
 				zap.String("cache_key", cacheKey),
 				zap.Duration("cache_ttl", h.config.Classification.CacheTTL),
 				zap.Duration("cache_lookup_duration", cacheLookupDuration),
-				zap.Duration("response_time", time.Since(startTime)))
+				zap.Duration("response_time", time.Since(startTime)),
+				zap.Bool("has_explanation", cachedResponse.Classification != nil && cachedResponse.Classification.Explanation != nil))
 			w.Header().Set("X-Cache", "HIT")
 			w.Header().Set("Cache-Control", fmt.Sprintf("public, max-age=%d", int(h.config.Classification.CacheTTL.Seconds())))
 			json.NewEncoder(w).Encode(cachedResponse)
@@ -1810,9 +1885,79 @@ func (h *ClassificationHandler) handleClassificationStreaming(w http.ResponseWri
 	cacheKey := h.getCacheKey(&req)
 	if h.config.Classification.CacheEnabled {
 		if cached, found := h.getCachedResponse(cacheKey); found {
+			// FIX: Validate cached response to ensure explanation is present
+			h.validateResponse(cached, &req)
+			
+			// FIX: If explanation is still missing, generate it now
+			if cached.Classification != nil && cached.Classification.Explanation == nil {
+				h.logger.Warn("⚠️ [CACHE-FIX] Cached response missing explanation, generating now",
+					zap.String("request_id", req.RequestID),
+					zap.String("business_name", req.BusinessName))
+				
+				// Generate explanation for cached response
+				explanationGenerator := classification.NewExplanationGenerator()
+				multiResult := &classification.MultiStrategyResult{
+					PrimaryIndustry: cached.PrimaryIndustry,
+					Confidence:      cached.ConfidenceScore,
+					Keywords:        func() []string {
+						if cached.Classification != nil && cached.Classification.WebsiteContent != nil {
+							// Try to extract keywords from metadata or use empty list
+							if cached.Metadata != nil {
+								if keywords, ok := cached.Metadata["keywords"].([]interface{}); ok {
+									result := make([]string, 0, len(keywords))
+									for _, k := range keywords {
+										if str, ok := k.(string); ok {
+											result = append(result, str)
+										}
+									}
+									return result
+								}
+							}
+						}
+						return []string{}
+					}(),
+					Reasoning: func() string {
+						if cached.Metadata != nil {
+							if reasoning, ok := cached.Metadata["classification_reasoning"].(string); ok {
+								return reasoning
+							}
+						}
+						return ""
+					}(),
+					Method: "cached",
+					Strategies: []classification.ClassificationStrategy{},
+				}
+				
+				contentQuality := 0.7
+				if cached.ConfidenceScore > 0.8 {
+					contentQuality = 0.85
+				} else if cached.ConfidenceScore < 0.5 {
+					contentQuality = 0.5
+				}
+				
+				// Generate explanation
+				cached.Classification.Explanation = explanationGenerator.GenerateExplanation(
+					multiResult,
+					nil, // Codes not available from cache
+					contentQuality,
+				)
+				
+				// Fallback if explanation generation fails
+				if cached.Classification.Explanation == nil {
+					cached.Classification.Explanation = &classification.ClassificationExplanation{
+						PrimaryReason:     fmt.Sprintf("Classified as '%s' based on cached classification data", cached.PrimaryIndustry),
+						SupportingFactors: []string{fmt.Sprintf("Confidence score: %.0f%%", cached.ConfidenceScore*100)},
+						KeyTermsFound:     []string{},
+						MethodUsed:        "cached",
+						ProcessingPath:    cached.ProcessingPath,
+					}
+				}
+			}
+			
 			h.logger.Info("Cache hit for streaming request",
 				zap.String("request_id", req.RequestID),
-				zap.String("cache_key", cacheKey))
+				zap.String("cache_key", cacheKey),
+				zap.Bool("has_explanation", cached.Classification != nil && cached.Classification.Explanation != nil))
 			h.sendStreamMessage(flusher, map[string]interface{}{
 				"type":       "progress",
 				"request_id": req.RequestID,
