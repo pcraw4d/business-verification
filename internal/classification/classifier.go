@@ -712,12 +712,16 @@ func (g *ClassificationCodeGenerator) getMCCCandidates(
 
 	// Strategy 1: Direct industry lookup
 	if industryName != "" {
+		g.logger.Printf("🔍 [MCC] Looking up industry: %s", industryName)
 		industry, err := g.repo.GetIndustryByName(ctx, industryName)
 		if err == nil && industry != nil {
+			g.logger.Printf("✅ [MCC] Found industry: %s (ID: %d)", industry.Name, industry.ID)
 			industryCodes, err := g.repo.GetCachedClassificationCodes(ctx, industry.ID)
 			if err == nil {
+				mccCount := 0
 				for _, code := range industryCodes {
 					if code.CodeType == "MCC" {
+						mccCount++
 						key := code.Code
 						if _, exists := candidates[key]; !exists {
 							candidates[key] = &CodeResult{
@@ -728,6 +732,51 @@ func (g *ClassificationCodeGenerator) getMCCCandidates(
 							}
 						}
 					}
+				}
+				g.logger.Printf("📊 [MCC] Found %d MCC codes from industry lookup", mccCount)
+			} else {
+				g.logger.Printf("⚠️ [MCC] Failed to get cached classification codes for industry %s: %v", industryName, err)
+			}
+		} else {
+			g.logger.Printf("⚠️ [MCC] Industry lookup failed for '%s': %v", industryName, err)
+			
+			// Fallback: Try parent industry "Food & Beverage" for food-related industries
+			parentIndustries := map[string]string{
+				"Cafes & Coffee Shops": "Food & Beverage",
+				"Restaurants":          "Food & Beverage",
+				"Fast Food":            "Food & Beverage",
+				"Bars & Pubs":          "Food & Beverage",
+				"Catering":             "Food & Beverage",
+			}
+			
+			if parentName, hasParent := parentIndustries[industryName]; hasParent {
+				g.logger.Printf("🔄 [MCC] Trying parent industry fallback: %s", parentName)
+				parentIndustry, err := g.repo.GetIndustryByName(ctx, parentName)
+				if err == nil && parentIndustry != nil {
+					g.logger.Printf("✅ [MCC] Found parent industry: %s (ID: %d)", parentIndustry.Name, parentIndustry.ID)
+					parentCodes, err := g.repo.GetCachedClassificationCodes(ctx, parentIndustry.ID)
+					if err == nil {
+						mccCount := 0
+						for _, code := range parentCodes {
+							if code.CodeType == "MCC" {
+								mccCount++
+								key := code.Code
+								if _, exists := candidates[key]; !exists {
+									candidates[key] = &CodeResult{
+										Code:        code.Code,
+										Description: code.Description,
+										Confidence:  0.85, // Slightly lower confidence for parent industry
+										Source:      "industry_match_fallback",
+									}
+								}
+							}
+						}
+						g.logger.Printf("📊 [MCC] Found %d MCC codes from parent industry fallback", mccCount)
+					} else {
+						g.logger.Printf("⚠️ [MCC] Failed to get cached classification codes for parent industry %s: %v", parentName, err)
+					}
+				} else {
+					g.logger.Printf("⚠️ [MCC] Parent industry lookup failed for '%s': %v", parentName, err)
 				}
 			}
 		}
@@ -1308,12 +1357,15 @@ func (g *ClassificationCodeGenerator) fillGapsWithCrosswalks(codes *Classificati
 
 	// Strategy 3: If SIC has codes but MCC doesn't, use reverse crosswalks
 	if len(codes.SIC) > 0 && len(codes.MCC) < 3 {
+		g.logger.Printf("🔗 [Gap Fill] SIC codes present (%d) but MCC missing (%d), using crosswalks", len(codes.SIC), len(codes.MCC))
+		mccAdded := 0
 		for _, sic := range codes.SIC {
 			if len(codes.MCC) >= 3 {
 				break
 			}
 
 			xwalks := g.repo.GetCrosswalks(ctx, "SIC", sic.Code, "MCC")
+			g.logger.Printf("🔗 [Gap Fill] Found %d crosswalks from SIC %s to MCC", len(xwalks), sic.Code)
 			for _, xw := range xwalks {
 				found := false
 				for _, existing := range codes.MCC {
@@ -1330,6 +1382,7 @@ func (g *ClassificationCodeGenerator) fillGapsWithCrosswalks(codes *Classificati
 						Confidence:  sic.Confidence * 0.80,
 						Source:      "crosswalk_gap_fill",
 					})
+					mccAdded++
 
 					if len(codes.MCC) >= 3 {
 						break
@@ -1337,16 +1390,20 @@ func (g *ClassificationCodeGenerator) fillGapsWithCrosswalks(codes *Classificati
 				}
 			}
 		}
+		g.logger.Printf("✅ [Gap Fill] Added %d MCC codes from SIC crosswalks", mccAdded)
 	}
 
 	// Strategy 4: If NAICS has codes but MCC doesn't, use reverse crosswalks
 	if len(codes.NAICS) > 0 && len(codes.MCC) < 3 {
+		g.logger.Printf("🔗 [Gap Fill] NAICS codes present (%d) but MCC missing (%d), using crosswalks", len(codes.NAICS), len(codes.MCC))
+		mccAdded := 0
 		for _, naics := range codes.NAICS {
 			if len(codes.MCC) >= 3 {
 				break
 			}
 
 			xwalks := g.repo.GetCrosswalks(ctx, "NAICS", naics.Code, "MCC")
+			g.logger.Printf("🔗 [Gap Fill] Found %d crosswalks from NAICS %s to MCC", len(xwalks), naics.Code)
 			for _, xw := range xwalks {
 				found := false
 				for _, existing := range codes.MCC {
@@ -1363,6 +1420,7 @@ func (g *ClassificationCodeGenerator) fillGapsWithCrosswalks(codes *Classificati
 						Confidence:  naics.Confidence * 0.80,
 						Source:      "crosswalk_gap_fill",
 					})
+					mccAdded++
 
 					if len(codes.MCC) >= 3 {
 						break
@@ -1370,6 +1428,7 @@ func (g *ClassificationCodeGenerator) fillGapsWithCrosswalks(codes *Classificati
 				}
 			}
 		}
+		g.logger.Printf("✅ [Gap Fill] Added %d MCC codes from NAICS crosswalks", mccAdded)
 	}
 
 	// Strategy 5: If SIC has codes but NAICS doesn't, use crosswalks
@@ -1407,6 +1466,12 @@ func (g *ClassificationCodeGenerator) fillGapsWithCrosswalks(codes *Classificati
 
 	g.logger.Printf("🔗 [Phase 2] Gap filling completed: %d MCC, %d SIC, %d NAICS",
 		len(codes.MCC), len(codes.SIC), len(codes.NAICS))
+
+	// Final check: Warn if MCC codes are missing but NAICS/SIC are present
+	if len(codes.MCC) == 0 && (len(codes.NAICS) > 0 || len(codes.SIC) > 0) {
+		g.logger.Printf("⚠️ [Gap Fill] WARNING: MCC codes missing but NAICS (%d) or SIC (%d) codes present", 
+			len(codes.NAICS), len(codes.SIC))
+	}
 
 	return codes
 }

@@ -4324,6 +4324,15 @@ func (h *ClassificationHandler) runGoClassification(ctx context.Context, req *Cl
 				zap.Int("mcc_count", len(codesInfo.MCC)),
 				zap.Int("sic_count", len(codesInfo.SIC)),
 				zap.Int("naics_count", len(codesInfo.NAICS)))
+			
+			// Warn if MCC codes are missing but other codes are present
+			if len(codesInfo.MCC) == 0 && (len(codesInfo.NAICS) > 0 || len(codesInfo.SIC) > 0) {
+				h.logger.Warn("MCC codes missing but NAICS/SIC codes present",
+					zap.String("request_id", req.RequestID),
+					zap.String("industry", industryResult.IndustryName),
+					zap.Int("naics_count", len(codesInfo.NAICS)),
+					zap.Int("sic_count", len(codesInfo.SIC)))
+			}
 		}
 	}
 
