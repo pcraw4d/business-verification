@@ -1616,8 +1616,10 @@ func (g *ClassificationCodeGenerator) fillGapsWithCrosswalks(codes *Classificati
 		// Try to get industry codes from the database based on existing codes
 		// If we have MCC codes, use them to infer industry and get NAICS/SIC
 		if len(codes.MCC) > 0 {
+			g.logger.Printf("🔄 [Gap Fill] Found %d MCC codes, using them to infer NAICS/SIC", len(codes.MCC))
 			// Use MCC codes to find related NAICS/SIC via industry lookup
 			for _, mcc := range codes.MCC {
+				g.logger.Printf("🔄 [Gap Fill] Processing MCC code: %s", mcc.Code)
 				// Try to find industries that use this MCC code
 				// Then get NAICS/SIC codes from those industries
 				if len(codes.NAICS) < 3 {
@@ -1625,6 +1627,7 @@ func (g *ClassificationCodeGenerator) fillGapsWithCrosswalks(codes *Classificati
 					// This is a simplified approach - in production, you'd query the database
 					// For now, we'll use common food/beverage NAICS codes as fallback
 					if strings.HasPrefix(mcc.Code, "58") || strings.HasPrefix(mcc.Code, "54") {
+						g.logger.Printf("🔄 [Gap Fill] MCC code %s is food/beverage related, adding NAICS fallback codes", mcc.Code)
 						// Food/beverage related MCC codes
 						foodBeverageNAICS := []struct {
 							Code        string
@@ -1632,9 +1635,10 @@ func (g *ClassificationCodeGenerator) fillGapsWithCrosswalks(codes *Classificati
 						}{
 							{"722511", "Full-Service Restaurants"},
 							{"722513", "Limited-Service Restaurants"},
-							{"311920", "Coffee and Tea Manufacturing"},
+							{"722515", "Snack and Nonalcoholic Beverage Bars"},
 						}
 						
+						naicsAdded := 0
 						for _, naics := range foodBeverageNAICS {
 							found := false
 							for _, existing := range codes.NAICS {
@@ -1651,17 +1655,21 @@ func (g *ClassificationCodeGenerator) fillGapsWithCrosswalks(codes *Classificati
 									Confidence:  mcc.Confidence * 0.75,
 									Source:      "industry_fallback",
 								})
+								naicsAdded++
+								g.logger.Printf("✅ [Gap Fill] Added NAICS code: %s (%s)", naics.Code, naics.Description)
 							}
 							
 							if len(codes.NAICS) >= 3 {
 								break
 							}
 						}
+						g.logger.Printf("✅ [Gap Fill] Added %d NAICS codes from fallback (total: %d)", naicsAdded, len(codes.NAICS))
 					}
 					
 					if len(codes.SIC) < 3 {
 						// Try to get SIC codes from industries that use this MCC
 						if strings.HasPrefix(mcc.Code, "58") || strings.HasPrefix(mcc.Code, "54") {
+							g.logger.Printf("🔄 [Gap Fill] MCC code %s is food/beverage related, adding SIC fallback codes", mcc.Code)
 							// Food/beverage related MCC codes
 							foodBeverageSIC := []struct {
 								Code        string
@@ -1669,9 +1677,11 @@ func (g *ClassificationCodeGenerator) fillGapsWithCrosswalks(codes *Classificati
 							}{
 								{"5812", "Eating Places"},
 								{"5813", "Drinking Places (Alcoholic Beverages)"},
-								{"2095", "Roasted Coffee"},
+								{"5814", "Caterers"},
+								{"5819", "Eating and Drinking Places, Not Elsewhere Classified"},
 							}
 							
+							sicAdded := 0
 							for _, sic := range foodBeverageSIC {
 								found := false
 								for _, existing := range codes.SIC {
@@ -1688,12 +1698,15 @@ func (g *ClassificationCodeGenerator) fillGapsWithCrosswalks(codes *Classificati
 										Confidence:  mcc.Confidence * 0.75,
 										Source:      "industry_fallback",
 									})
+									sicAdded++
+									g.logger.Printf("✅ [Gap Fill] Added SIC code: %s (%s)", sic.Code, sic.Description)
 								}
 								
 								if len(codes.SIC) >= 3 {
 									break
 								}
 							}
+							g.logger.Printf("✅ [Gap Fill] Added %d SIC codes from fallback (total: %d)", sicAdded, len(codes.SIC))
 						}
 					}
 				}
