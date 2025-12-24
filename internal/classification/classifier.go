@@ -963,12 +963,16 @@ func (g *ClassificationCodeGenerator) getSICCandidates(
 
 	// Strategy 1: Direct industry lookup
 	if industryName != "" {
+		g.logger.Printf("🔍 [SIC] Looking up industry: %s", industryName)
 		industry, err := g.repo.GetIndustryByName(ctx, industryName)
 		if err == nil && industry != nil {
+			g.logger.Printf("✅ [SIC] Found industry: %s (ID: %d)", industry.Name, industry.ID)
 			industryCodes, err := g.repo.GetCachedClassificationCodes(ctx, industry.ID)
 			if err == nil {
+				sicCount := 0
 				for _, code := range industryCodes {
 					if code.CodeType == "SIC" {
+						sicCount++
 						key := code.Code
 						if _, exists := candidates[key]; !exists {
 							candidates[key] = &CodeResult{
@@ -979,6 +983,51 @@ func (g *ClassificationCodeGenerator) getSICCandidates(
 							}
 						}
 					}
+				}
+				g.logger.Printf("📊 [SIC] Found %d SIC codes from industry lookup", sicCount)
+			} else {
+				g.logger.Printf("⚠️ [SIC] Failed to get cached classification codes for industry %s: %v", industryName, err)
+			}
+		} else {
+			g.logger.Printf("⚠️ [SIC] Industry lookup failed for '%s': %v", industryName, err)
+			
+			// Fallback: Try parent industry "Food & Beverage" for food-related industries
+			parentIndustries := map[string]string{
+				"Cafes & Coffee Shops": "Food & Beverage",
+				"Restaurants":          "Food & Beverage",
+				"Fast Food":            "Food & Beverage",
+				"Bars & Pubs":          "Food & Beverage",
+				"Catering":             "Food & Beverage",
+			}
+			
+			if parentName, hasParent := parentIndustries[industryName]; hasParent {
+				g.logger.Printf("🔄 [SIC] Trying parent industry fallback: %s", parentName)
+				parentIndustry, err := g.repo.GetIndustryByName(ctx, parentName)
+				if err == nil && parentIndustry != nil {
+					g.logger.Printf("✅ [SIC] Found parent industry: %s (ID: %d)", parentIndustry.Name, parentIndustry.ID)
+					parentCodes, err := g.repo.GetCachedClassificationCodes(ctx, parentIndustry.ID)
+					if err == nil {
+						sicCount := 0
+						for _, code := range parentCodes {
+							if code.CodeType == "SIC" {
+								sicCount++
+								key := code.Code
+								if _, exists := candidates[key]; !exists {
+									candidates[key] = &CodeResult{
+										Code:        code.Code,
+										Description: code.Description,
+										Confidence:  0.85, // Slightly lower confidence for parent industry
+										Source:      "industry_match_fallback",
+									}
+								}
+							}
+						}
+						g.logger.Printf("📊 [SIC] Found %d SIC codes from parent industry fallback", sicCount)
+					} else {
+						g.logger.Printf("⚠️ [SIC] Failed to get cached classification codes for parent industry %s: %v", parentName, err)
+					}
+				} else {
+					g.logger.Printf("⚠️ [SIC] Parent industry lookup failed for '%s': %v", parentName, err)
 				}
 			}
 		}
@@ -1073,12 +1122,16 @@ func (g *ClassificationCodeGenerator) getNAICSCandidates(
 
 	// Strategy 1: Direct industry lookup
 	if industryName != "" {
+		g.logger.Printf("🔍 [NAICS] Looking up industry: %s", industryName)
 		industry, err := g.repo.GetIndustryByName(ctx, industryName)
 		if err == nil && industry != nil {
+			g.logger.Printf("✅ [NAICS] Found industry: %s (ID: %d)", industry.Name, industry.ID)
 			industryCodes, err := g.repo.GetCachedClassificationCodes(ctx, industry.ID)
 			if err == nil {
+				naicsCount := 0
 				for _, code := range industryCodes {
 					if code.CodeType == "NAICS" {
+						naicsCount++
 						key := code.Code
 						if _, exists := candidates[key]; !exists {
 							candidates[key] = &CodeResult{
@@ -1089,6 +1142,51 @@ func (g *ClassificationCodeGenerator) getNAICSCandidates(
 							}
 						}
 					}
+				}
+				g.logger.Printf("📊 [NAICS] Found %d NAICS codes from industry lookup", naicsCount)
+			} else {
+				g.logger.Printf("⚠️ [NAICS] Failed to get cached classification codes for industry %s: %v", industryName, err)
+			}
+		} else {
+			g.logger.Printf("⚠️ [NAICS] Industry lookup failed for '%s': %v", industryName, err)
+			
+			// Fallback: Try parent industry "Food & Beverage" for food-related industries
+			parentIndustries := map[string]string{
+				"Cafes & Coffee Shops": "Food & Beverage",
+				"Restaurants":          "Food & Beverage",
+				"Fast Food":            "Food & Beverage",
+				"Bars & Pubs":          "Food & Beverage",
+				"Catering":             "Food & Beverage",
+			}
+			
+			if parentName, hasParent := parentIndustries[industryName]; hasParent {
+				g.logger.Printf("🔄 [NAICS] Trying parent industry fallback: %s", parentName)
+				parentIndustry, err := g.repo.GetIndustryByName(ctx, parentName)
+				if err == nil && parentIndustry != nil {
+					g.logger.Printf("✅ [NAICS] Found parent industry: %s (ID: %d)", parentIndustry.Name, parentIndustry.ID)
+					parentCodes, err := g.repo.GetCachedClassificationCodes(ctx, parentIndustry.ID)
+					if err == nil {
+						naicsCount := 0
+						for _, code := range parentCodes {
+							if code.CodeType == "NAICS" {
+								naicsCount++
+								key := code.Code
+								if _, exists := candidates[key]; !exists {
+									candidates[key] = &CodeResult{
+										Code:        code.Code,
+										Description: code.Description,
+										Confidence:  0.85, // Slightly lower confidence for parent industry
+										Source:      "industry_match_fallback",
+									}
+								}
+							}
+						}
+						g.logger.Printf("📊 [NAICS] Found %d NAICS codes from parent industry fallback", naicsCount)
+					} else {
+						g.logger.Printf("⚠️ [NAICS] Failed to get cached classification codes for parent industry %s: %v", parentName, err)
+					}
+				} else {
+					g.logger.Printf("⚠️ [NAICS] Parent industry lookup failed for '%s': %v", parentName, err)
 				}
 			}
 		}
@@ -1433,12 +1531,15 @@ func (g *ClassificationCodeGenerator) fillGapsWithCrosswalks(codes *Classificati
 
 	// Strategy 5: If SIC has codes but NAICS doesn't, use crosswalks
 	if len(codes.SIC) > 0 && len(codes.NAICS) < 3 {
+		g.logger.Printf("🔗 [Gap Fill] SIC codes present (%d) but NAICS has only %d, using crosswalks", len(codes.SIC), len(codes.NAICS))
+		naicsAdded := 0
 		for _, sic := range codes.SIC {
 			if len(codes.NAICS) >= 3 {
 				break
 			}
 
 			xwalks := g.repo.GetCrosswalks(ctx, "SIC", sic.Code, "NAICS")
+			g.logger.Printf("🔗 [Gap Fill] Found %d crosswalks from SIC %s to NAICS", len(xwalks), sic.Code)
 			for _, xw := range xwalks {
 				found := false
 				for _, existing := range codes.NAICS {
@@ -1455,6 +1556,7 @@ func (g *ClassificationCodeGenerator) fillGapsWithCrosswalks(codes *Classificati
 						Confidence:  sic.Confidence * 0.80,
 						Source:      "crosswalk_gap_fill",
 					})
+					naicsAdded++
 
 					if len(codes.NAICS) >= 3 {
 						break
@@ -1462,6 +1564,45 @@ func (g *ClassificationCodeGenerator) fillGapsWithCrosswalks(codes *Classificati
 				}
 			}
 		}
+		g.logger.Printf("✅ [Gap Fill] Added %d NAICS codes from SIC crosswalks", naicsAdded)
+	}
+	
+	// Strategy 6: If NAICS has codes but SIC doesn't, use reverse crosswalks
+	if len(codes.NAICS) > 0 && len(codes.SIC) < 3 {
+		g.logger.Printf("🔗 [Gap Fill] NAICS codes present (%d) but SIC has only %d, using crosswalks", len(codes.NAICS), len(codes.SIC))
+		sicAdded := 0
+		for _, naics := range codes.NAICS {
+			if len(codes.SIC) >= 3 {
+				break
+			}
+
+			xwalks := g.repo.GetCrosswalks(ctx, "NAICS", naics.Code, "SIC")
+			g.logger.Printf("🔗 [Gap Fill] Found %d crosswalks from NAICS %s to SIC", len(xwalks), naics.Code)
+			for _, xw := range xwalks {
+				found := false
+				for _, existing := range codes.SIC {
+					if existing.Code == xw.ToCode {
+						found = true
+						break
+					}
+				}
+
+				if !found {
+					codes.SIC = append(codes.SIC, SICCode{
+						Code:        xw.ToCode,
+						Description: xw.ToDescription,
+						Confidence:  naics.Confidence * 0.80,
+						Source:      "crosswalk_gap_fill",
+					})
+					sicAdded++
+
+					if len(codes.SIC) >= 3 {
+						break
+					}
+				}
+			}
+		}
+		g.logger.Printf("✅ [Gap Fill] Added %d SIC codes from NAICS crosswalks", sicAdded)
 	}
 
 	g.logger.Printf("🔗 [Phase 2] Gap filling completed: %d MCC, %d SIC, %d NAICS",
@@ -1471,6 +1612,74 @@ func (g *ClassificationCodeGenerator) fillGapsWithCrosswalks(codes *Classificati
 	if len(codes.MCC) == 0 && (len(codes.NAICS) > 0 || len(codes.SIC) > 0) {
 		g.logger.Printf("⚠️ [Gap Fill] WARNING: MCC codes missing but NAICS (%d) or SIC (%d) codes present", 
 			len(codes.NAICS), len(codes.SIC))
+		
+		// Final fallback: Use industry default codes if available
+		// This handles cases where crosswalks don't exist
+		// Note: ctx is already defined at function start (line 1387)
+		
+		// Try to get industry from the first available code's context
+		// If we have NAICS/SIC codes, try to infer industry and get its default MCC codes
+		if len(codes.NAICS) > 0 || len(codes.SIC) > 0 {
+			// Common industry-to-MCC mappings for food/beverage businesses
+			foodBeverageMCCs := []struct {
+				Code        string
+				Description string
+			}{
+				{"5812", "Eating Places, Restaurants"},
+				{"5814", "Fast Food Restaurants"},
+				{"5499", "Miscellaneous Food Stores"},
+			}
+			
+			// Check if this looks like a food/beverage business based on codes
+			isFoodBeverage := false
+			for _, naics := range codes.NAICS {
+				// Food/beverage NAICS codes typically start with 31, 44, or 72
+				if strings.HasPrefix(naics.Code, "31") || strings.HasPrefix(naics.Code, "44") || 
+				   strings.HasPrefix(naics.Code, "72") {
+					isFoodBeverage = true
+					break
+				}
+			}
+			
+			if !isFoodBeverage {
+				for _, sic := range codes.SIC {
+					// Food/beverage SIC codes typically start with 20, 54, or 58
+					if strings.HasPrefix(sic.Code, "20") || strings.HasPrefix(sic.Code, "54") || 
+					   strings.HasPrefix(sic.Code, "58") {
+						isFoodBeverage = true
+						break
+					}
+				}
+			}
+			
+			if isFoodBeverage {
+				g.logger.Printf("🔄 [Gap Fill] Using food/beverage default MCC codes as final fallback")
+				for _, mcc := range foodBeverageMCCs {
+					// Check if already present
+					found := false
+					for _, existing := range codes.MCC {
+						if existing.Code == mcc.Code {
+							found = true
+							break
+						}
+					}
+					
+					if !found && len(codes.MCC) < 3 {
+						codes.MCC = append(codes.MCC, MCCCode{
+							Code:        mcc.Code,
+							Description: mcc.Description,
+							Confidence:  0.70, // Lower confidence for fallback
+							Source:      "industry_fallback",
+						})
+					}
+					
+					if len(codes.MCC) >= 3 {
+						break
+					}
+				}
+				g.logger.Printf("✅ [Gap Fill] Added %d MCC codes from industry fallback", len(codes.MCC))
+			}
+		}
 	}
 
 	return codes
