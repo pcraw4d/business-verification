@@ -1717,6 +1717,17 @@ func (g *ClassificationCodeGenerator) fillGapsWithCrosswalks(codes *Classificati
 			len(codes.MCC), len(codes.SIC), len(codes.NAICS))
 	}
 
+	// Re-sort codes by confidence after gap filling to ensure proper ordering
+	sort.Slice(codes.MCC, func(i, j int) bool {
+		return codes.MCC[i].Confidence > codes.MCC[j].Confidence
+	})
+	sort.Slice(codes.SIC, func(i, j int) bool {
+		return codes.SIC[i].Confidence > codes.SIC[j].Confidence
+	})
+	sort.Slice(codes.NAICS, func(i, j int) bool {
+		return codes.NAICS[i].Confidence > codes.NAICS[j].Confidence
+	})
+
 	// Final check: Warn if MCC codes are missing but NAICS/SIC are present
 	if len(codes.MCC) == 0 && (len(codes.NAICS) > 0 || len(codes.SIC) > 0) {
 		g.logger.Printf("⚠️ [Gap Fill] WARNING: MCC codes missing but NAICS (%d) or SIC (%d) codes present", 
