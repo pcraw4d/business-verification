@@ -37,9 +37,6 @@ func (v *CodeValidator) ValidateCodeIndustryMatch(
 		return 0.0, fmt.Errorf("code, codeType, and industryName are required")
 	}
 
-	// Normalize industry name for matching
-	normalizedIndustry := strings.ToLower(strings.TrimSpace(industryName))
-
 	// Step 1: Get industry by name
 	industry, err := v.repo.GetIndustryByName(ctx, industryName)
 	if err != nil {
