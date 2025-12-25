@@ -136,7 +136,8 @@ TEST_SAMPLES = [
 
 def test_classification(sample: Dict[str, Any], max_retries: int = MAX_RETRIES) -> Dict[str, Any]:
     """Test a single classification request with retry logic"""
-    url = f"{API_URL}/v1/classify"
+    # Add cache bypass to ensure fresh results with latest code
+    url = f"{API_URL}/v1/classify?nocache=true"
     
     result = {
         "sample": sample,
