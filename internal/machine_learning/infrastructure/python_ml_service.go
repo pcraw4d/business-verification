@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"kyb-platform/internal/resilience"
+	"kyb-platform/pkg/utils"
 )
 
 // PythonMLService represents the Python ML service for all ML models
@@ -442,19 +443,39 @@ func (pms *PythonMLService) ClassifyFast(
 		defer cancel()
 		httpReq = httpReq.WithContext(fastCtx)
 
-		resp, doErr := pms.httpClient.Do(httpReq)
-		if doErr != nil {
-			return fmt.Errorf("failed to execute request: %w", doErr)
+		// Execute request with retry logic for transient errors
+		retryConfig := utils.DefaultRetryConfig()
+		var resp *http.Response
+		var doErr error
+
+		retryErr := utils.RetryWithExponentialBackoff(fastCtx, retryConfig, func() error {
+			resp, doErr = pms.httpClient.Do(httpReq)
+			if doErr != nil {
+				return doErr
+			}
+
+			// Check HTTP status code
+			if resp.StatusCode == http.StatusOK {
+				return nil // Success
+			}
+
+			// Create HTTP error for retry logic
+			body, _ := io.ReadAll(resp.Body)
+			resp.Body.Close()
+			httpErr := &utils.HTTPError{
+				StatusCode: resp.StatusCode,
+				Message:    http.StatusText(resp.StatusCode),
+			}
+			if len(body) > 0 {
+				httpErr.Message = string(body)
+			}
+			return httpErr
+		})
+
+		if retryErr != nil {
+			return fmt.Errorf("failed to execute request after retries: %w", retryErr)
 		}
 		defer resp.Body.Close()
-
-		if resp.StatusCode != http.StatusOK {
-			body, _ := io.ReadAll(resp.Body)
-			if len(body) > 0 {
-				return fmt.Errorf("Python service returned status %d: %s", resp.StatusCode, string(body))
-			}
-			return fmt.Errorf("Python service returned status %d", resp.StatusCode)
-		}
 
 		// Parse response
 		var respData EnhancedClassificationResponse
@@ -516,7 +537,7 @@ func (pms *PythonMLService) ClassifyEnhanced(
 			return fmt.Errorf("failed to marshal request: %w", marshalErr)
 		}
 
-		// Make HTTP request
+		// Make HTTP request with retry logic
 		httpReq, createErr := http.NewRequestWithContext(
 			ctx,
 			"POST",
@@ -529,21 +550,39 @@ func (pms *PythonMLService) ClassifyEnhanced(
 
 		httpReq.Header.Set("Content-Type", "application/json")
 
-		// Execute request
-		resp, doErr := pms.httpClient.Do(httpReq)
-		if doErr != nil {
-			return fmt.Errorf("failed to execute request: %w", doErr)
+		// Execute request with retry logic for transient errors
+		retryConfig := utils.DefaultRetryConfig()
+		var resp *http.Response
+		var doErr error
+
+		retryErr := utils.RetryWithExponentialBackoff(ctx, retryConfig, func() error {
+			resp, doErr = pms.httpClient.Do(httpReq)
+			if doErr != nil {
+				return doErr
+			}
+
+			// Check HTTP status code
+			if resp.StatusCode == http.StatusOK {
+				return nil // Success
+			}
+
+			// Create HTTP error for retry logic
+			body, _ := io.ReadAll(resp.Body)
+			resp.Body.Close()
+			httpErr := &utils.HTTPError{
+				StatusCode: resp.StatusCode,
+				Message:    http.StatusText(resp.StatusCode),
+			}
+			if len(body) > 0 {
+				httpErr.Message = string(body)
+			}
+			return httpErr
+		})
+
+		if retryErr != nil {
+			return fmt.Errorf("failed to execute request after retries: %w", retryErr)
 		}
 		defer resp.Body.Close()
-
-		if resp.StatusCode != http.StatusOK {
-			// Read error response body for better error messages
-			body, _ := io.ReadAll(resp.Body)
-			if len(body) > 0 {
-				return fmt.Errorf("Python service returned status %d: %s", resp.StatusCode, string(body))
-			}
-			return fmt.Errorf("Python service returned status %d", resp.StatusCode)
-		}
 
 		// Parse response
 		var respData EnhancedClassificationResponse
@@ -787,9 +826,25 @@ func (pms *PythonMLService) startHealthMonitoring(ctx context.Context) {
 			// Automatic circuit breaker recovery: if service is healthy and circuit is open,
 			// reset the circuit breaker to allow recovery
 			cbState := pms.circuitBreaker.GetState()
+			cbStats := pms.circuitBreaker.GetStats()
+			
+			// Log circuit breaker state transitions for observability
+			stateHistory := pms.circuitBreaker.GetStateHistory()
+			if len(stateHistory) > 0 {
+				latestChange := stateHistory[len(stateHistory)-1]
+				// Log if state changed recently (within last 30 seconds)
+				if time.Since(latestChange.Timestamp) < 30*time.Second {
+					pms.logger.Printf("🔄 [CircuitBreaker] State transition: %s (reason: %s, time: %v ago)",
+						latestChange.State.String(), latestChange.Reason, time.Since(latestChange.Timestamp))
+				}
+			}
+			
+			// Log current circuit breaker metrics
+			pms.logger.Printf("📊 [CircuitBreaker] State: %s, Failures: %d, Successes: %d, Last failure: %v ago",
+				cbStats.State, cbStats.FailureCount, cbStats.SuccessCount, time.Since(cbStats.LastFailure))
+			
 			if healthCheck.Status == "pass" && cbState == resilience.CircuitOpen {
 				// Check if enough time has passed since the circuit opened
-				cbStats := pms.circuitBreaker.GetStats()
 				timeSinceOpen := time.Since(cbStats.StateChange)
 				
 				// Only reset if circuit has been open for at least the timeout period

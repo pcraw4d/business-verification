@@ -80,6 +80,10 @@ type ClassificationConfig struct {
 	PerIPRateLimit           int  // Per-IP requests per minute
 	RateLimitBurst           int  // Burst size for rate limiting
 	EnableOverloadProtection bool // Circuit breaker for overload protection
+	// Retry configuration for external dependencies
+	MaxRetries      int           // Maximum retries for external calls (default: 3)
+	BaseRetryDelay  time.Duration // Base delay for exponential backoff (default: 100ms)
+	MaxRetryDelay   time.Duration // Maximum delay between retries (default: 1s)
 }
 
 // LoggingConfig holds logging configurations
@@ -115,6 +119,10 @@ func Load() (*Config, error) {
 			PerIPRateLimit:       getEnvAsInt("PER_IP_RATE_LIMIT", 100),      // Per-IP requests per minute
 			RateLimitBurst:       getEnvAsInt("RATE_LIMIT_BURST", 20),        // Burst size for rate limiting
 			EnableOverloadProtection: getEnvAsBool("ENABLE_OVERLOAD_PROTECTION", true), // Circuit breaker for overload
+			// Retry configuration for external dependencies
+			MaxRetries:     getEnvAsInt("MAX_RETRIES", 3),                    // Maximum retries for external calls
+			BaseRetryDelay: getEnvAsDuration("BASE_RETRY_DELAY", 100*time.Millisecond), // Base delay for exponential backoff
+			MaxRetryDelay:  getEnvAsDuration("MAX_RETRY_DELAY", 1*time.Second), // Maximum delay between retries
 			// FIX #5: Changed default timeout from 10s to 120s to match worker timeout
 			RequestTimeout:       getEnvAsDuration("REQUEST_TIMEOUT", 120*time.Second),
 			CacheEnabled:         getEnvAsBool("CACHE_ENABLED", true),

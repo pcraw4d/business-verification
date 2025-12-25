@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"go.uber.org/zap"
+	"kyb-platform/pkg/utils"
 )
 
 // FlexibleTime handles flexible time unmarshaling for defensive JSON parsing
@@ -206,14 +207,45 @@ func (c *HrequestsClient) Scrape(ctx context.Context, url string) (*ScrapedConte
 		zap.String("url", url),
 		zap.String("service_url", c.serviceURL))
 
-	// Execute request
-	resp, err := c.client.Do(req)
+	// Execute request with retry logic for transient errors
+	retryConfig := utils.DefaultRetryConfig()
+	var resp *http.Response
+
+	retryErr := utils.RetryWithExponentialBackoff(ctx, retryConfig, func() error {
+		// Recreate request body reader for each retry (it gets consumed)
+		jsonBody, _ := json.Marshal(reqBody)
+		req.Body = io.NopCloser(bytes.NewReader(jsonBody))
+		
+		var doErr error
+		resp, doErr = c.client.Do(req)
+		if doErr != nil {
+			return doErr
+		}
+
+		// Check HTTP status code
+		if resp.StatusCode == http.StatusOK {
+			return nil // Success
+		}
+
+		// Create HTTP error for retry logic
+		body, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		httpErr := &utils.HTTPError{
+			StatusCode: resp.StatusCode,
+			Message:    http.StatusText(resp.StatusCode),
+		}
+		if len(body) > 0 {
+			httpErr.Message = truncateStringLocal(string(body), 200)
+		}
+		return httpErr
+	})
+
 	duration := time.Since(startTime)
 
-	if err != nil {
-		c.logger.Warn("⚠️ [Hrequests] HTTP request failed",
+	if retryErr != nil {
+		c.logger.Warn("⚠️ [Hrequests] HTTP request failed after retries",
 			zap.String("url", url),
-			zap.Error(err),
+			zap.Error(retryErr),
 			zap.Duration("duration", duration))
 		
 		// Check if error is due to context cancellation
@@ -221,7 +253,7 @@ func (c *HrequestsClient) Scrape(ctx context.Context, url string) (*ScrapedConte
 			return nil, ctx.Err()
 		}
 		
-		return nil, fmt.Errorf("hrequests service request failed: %w", err)
+		return nil, fmt.Errorf("hrequests service request failed after retries: %w", retryErr)
 	}
 	defer resp.Body.Close()
 
@@ -237,15 +269,6 @@ func (c *HrequestsClient) Scrape(ctx context.Context, url string) (*ScrapedConte
 			zap.String("url", url),
 			zap.Error(err))
 		return nil, fmt.Errorf("failed to read response body: %w", err)
-	}
-
-	// Handle non-200 status codes
-	if resp.StatusCode != http.StatusOK {
-		c.logger.Warn("⚠️ [Hrequests] Service returned error status",
-			zap.String("url", url),
-			zap.Int("status_code", resp.StatusCode),
-			zap.String("response_body", truncateStringLocal(string(body), 500)))
-		return nil, fmt.Errorf("hrequests service returned status %d: %s", resp.StatusCode, truncateStringLocal(string(body), 200))
 	}
 
 	// Validate response content-type

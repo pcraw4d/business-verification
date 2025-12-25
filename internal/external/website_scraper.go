@@ -279,14 +279,14 @@ func (s *WebsiteScraper) ScrapeWebsite(ctx context.Context, targetURL string) (*
 	var attempt int
 	for attempt = 0; attempt <= s.config.MaxRetries; attempt++ {
 		if attempt > 0 {
-			// Calculate exponential backoff delay for faster retry on transient errors
-			retryDelay := s.config.RetryDelay
-			if attempt > 0 {
-				// Exponential backoff: 1s, 2s, 4s for subsequent retries (capped at 5s)
-				retryDelay = time.Duration(math.Pow(2, float64(attempt))) * time.Second
-				if retryDelay > 5*time.Second {
-					retryDelay = 5 * time.Second
-				}
+			// Calculate exponential backoff delay: baseDelay * 2^attempt
+			// Base delay: 100ms, Max delay: 1s (matching retry utility)
+			baseDelay := 100 * time.Millisecond
+			maxDelay := 1 * time.Second
+			// Exponential backoff: 100ms, 200ms, 400ms for subsequent retries
+			retryDelay := baseDelay * time.Duration(1<<uint(attempt))
+			if retryDelay > maxDelay {
+				retryDelay = maxDelay
 			}
 			
 			s.logger.Info("Retrying website scraping",
@@ -457,8 +457,54 @@ func (s *WebsiteScraper) isNonTransientError(err error) bool {
 }
 
 // performScrape performs a single scraping attempt
+// isComplexSite determines if a website is likely complex (e.g., e-commerce, dynamic content)
+// Complex sites may need longer timeouts
+func (s *WebsiteScraper) isComplexSite(targetURL string) bool {
+	parsedURL, err := url.Parse(targetURL)
+	if err != nil {
+		return false
+	}
+
+	hostname := strings.ToLower(parsedURL.Hostname())
+	path := parsedURL.Path
+
+	// Known complex site patterns
+	complexPatterns := []string{
+		"cvs.com", "walmart.com", "amazon.com", "target.com",
+		"pharmacy", "retail", "shop", "store", "cart", "checkout",
+	}
+
+	for _, pattern := range complexPatterns {
+		if strings.Contains(hostname, pattern) || strings.Contains(path, pattern) {
+			return true
+		}
+	}
+
+	// Complex paths with many segments often indicate dynamic sites
+	pathSegments := strings.Split(strings.Trim(path, "/"), "/")
+	if len(pathSegments) > 3 {
+		return true
+	}
+
+	return false
+}
+
 func (s *WebsiteScraper) performScrape(ctx context.Context, targetURL string, attempt int) (*ScrapingResult, error) {
 	httpStartTime := time.Now()
+
+	// Adaptive timeout: Use longer timeout for complex sites
+	baseTimeout := s.config.Timeout
+	if s.isComplexSite(targetURL) {
+		// Increase timeout for complex sites (e.g., CVS Pharmacy)
+		baseTimeout = 10 * time.Second
+		s.logger.Info("Using extended timeout for complex site",
+			zap.String("url", targetURL),
+			zap.Duration("timeout", baseTimeout))
+	}
+
+	// Create context with adaptive timeout
+	scrapeCtx, scrapeCancel := context.WithTimeout(ctx, baseTimeout)
+	defer scrapeCancel()
 
 	// OPTIMIZATION: Fast DNS pre-validation to fail fast on DNS errors
 	// This prevents wasting time on HTTP requests that will fail due to DNS
@@ -466,7 +512,7 @@ func (s *WebsiteScraper) performScrape(ctx context.Context, targetURL string, at
 		parsedURL, err := url.Parse(targetURL)
 		if err == nil && parsedURL.Hostname() != "" {
 			// Quick DNS check with short timeout
-			dnsCtx, dnsCancel := context.WithTimeout(ctx, 2*time.Second)
+			dnsCtx, dnsCancel := context.WithTimeout(scrapeCtx, 2*time.Second)
 			defer dnsCancel()
 			
 			resolver := &net.Resolver{}
@@ -481,8 +527,8 @@ func (s *WebsiteScraper) performScrape(ctx context.Context, targetURL string, at
 		}
 	}
 
-	// Create request with context
-	req, err := http.NewRequestWithContext(ctx, "GET", targetURL, nil)
+	// Create request with adaptive timeout context
+	req, err := http.NewRequestWithContext(scrapeCtx, "GET", targetURL, nil)
 	if err != nil {
 		s.logger.Error("Failed to create HTTP request",
 			zap.String("url", targetURL),
@@ -499,10 +545,8 @@ func (s *WebsiteScraper) performScrape(ctx context.Context, targetURL string, at
 	req.Header.Set("Connection", "keep-alive")
 	req.Header.Set("Upgrade-Insecure-Requests", "1")
 
-	// Add rate limiting delay
-	if attempt > 0 {
-		time.Sleep(s.config.RateLimitDelay)
-	}
+	// Note: Exponential backoff delay is handled in the retry loop above
+	// No additional delay needed here
 
 	// Execute request
 	resp, err := s.client.Do(req)

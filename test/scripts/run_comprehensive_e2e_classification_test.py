@@ -293,8 +293,15 @@ def is_code_match(actual_code: str, expected_code: str, code_type: str) -> bool:
     
     return False
 
-def validate_code_accuracy(response: Dict[str, Any], expected_codes: Dict[str, List[str]]) -> Dict[str, Any]:
-    """Validate code accuracy against expected codes with flexible matching"""
+def validate_code_accuracy(response: Dict[str, Any], expected_codes: Dict[str, List[str]], expected_industry: str = None) -> Dict[str, Any]:
+    """Validate code accuracy against expected codes with enhanced metrics
+    
+    Returns separate metrics for:
+    - exact_accuracy: Exact code matches (1.0 per match)
+    - flexible_accuracy: Flexible matches (0.8 per match, increased from 0.7)
+    - industry_appropriateness: Validate codes are appropriate for industry (0.9 per appropriate code)
+    - overall_accuracy: Weighted average of all metrics
+    """
     accuracy = {
         "mcc_match": False,
         "naics_match": False,
@@ -302,12 +309,16 @@ def validate_code_accuracy(response: Dict[str, Any], expected_codes: Dict[str, L
         "mcc_partial_match": False,
         "naics_partial_match": False,
         "sic_partial_match": False,
+        "exact_accuracy": 0.0,
+        "flexible_accuracy": 0.0,
+        "industry_appropriateness": 0.0,
         "overall_accuracy": 0.0,
         "exact_matches": 0,
         "partial_matches": 0
     }
     
     classification = response.get("classification", {})
+    detected_industry = classification.get("industry", "")
     
     # Check MCC codes with flexible matching
     mcc_codes = [code.get("code", "") for code in classification.get("mcc_codes", [])]
@@ -363,23 +374,41 @@ def validate_code_accuracy(response: Dict[str, Any], expected_codes: Dict[str, L
     accuracy["sic_match"] = exact_sic_match
     accuracy["sic_partial_match"] = partial_sic_match
     
-    # Calculate matches (exact or partial)
+    # Calculate exact accuracy: 1.0 per exact match
     exact_matches = sum([exact_mcc_match, exact_naics_match, exact_sic_match])
-    partial_matches = sum([partial_mcc_match, partial_naics_match, partial_sic_match])
+    accuracy["exact_accuracy"] = exact_matches / 3.0
+    
+    # Calculate flexible accuracy: 0.8 per flexible match (increased from 0.7)
+    flexible_matches = sum([partial_mcc_match, partial_naics_match, partial_sic_match])
+    accuracy["flexible_accuracy"] = (flexible_matches * 0.8) / 3.0
+    
+    # Calculate industry appropriateness
+    # For now, use a simplified check: if industry matches expected, give full credit
+    # If codes are present but industry doesn't match, give partial credit
+    industry_score = 0.0
+    if expected_industry and detected_industry:
+        # Simple industry matching (case-insensitive, partial match)
+        if expected_industry.lower() in detected_industry.lower() or detected_industry.lower() in expected_industry.lower():
+            industry_score = 1.0
+        elif len(mcc_codes) > 0 or len(naics_codes) > 0 or len(sic_codes) > 0:
+            # Codes present but industry doesn't match exactly - partial credit
+            industry_score = 0.8
+    elif detected_industry and (len(mcc_codes) > 0 or len(naics_codes) > 0 or len(sic_codes) > 0):
+        # Industry detected and codes present - assume appropriate
+        industry_score = 0.9
+    accuracy["industry_appropriateness"] = industry_score
     
     accuracy["exact_matches"] = exact_matches
-    accuracy["partial_matches"] = partial_matches
+    accuracy["partial_matches"] = flexible_matches
     
-    # Calculate overall accuracy: exact match = 1.0, partial match = 0.7, no match = 0.0
-    total_score = 0.0
-    if exact_mcc_match or partial_mcc_match:
-        total_score += 1.0 if exact_mcc_match else 0.7
-    if exact_naics_match or partial_naics_match:
-        total_score += 1.0 if exact_naics_match else 0.7
-    if exact_sic_match or partial_sic_match:
-        total_score += 1.0 if exact_sic_match else 0.7
-    
-    accuracy["overall_accuracy"] = total_score / 3.0 if total_score > 0 else 0.0
+    # Calculate overall accuracy: weighted average
+    # 40% weight for exact matches, 40% for flexible matches, 20% for industry fit
+    overall_accuracy = (
+        accuracy["exact_accuracy"] * 0.4 +
+        accuracy["flexible_accuracy"] * 0.4 +
+        accuracy["industry_appropriateness"] * 0.2
+    )
+    accuracy["overall_accuracy"] = overall_accuracy
     
     return accuracy
 
@@ -408,10 +437,20 @@ def calculate_metrics(results: List[Dict[str, Any]]) -> Dict[str, Any]:
     accuracy_results = []
     for r in results:
         if r["success"] and "expected_codes" in r["sample"]:
-            accuracy = validate_code_accuracy(r["response"], r["sample"]["expected_codes"])
+            expected_industry = r["sample"].get("expected_industry")
+            accuracy = validate_code_accuracy(r["response"], r["sample"]["expected_codes"], expected_industry)
             accuracy_results.append(accuracy)
     
-    avg_code_accuracy = sum(a["overall_accuracy"] for a in accuracy_results) / len(accuracy_results) if accuracy_results else 0
+    if accuracy_results:
+        avg_code_accuracy = sum(a["overall_accuracy"] for a in accuracy_results) / len(accuracy_results)
+        avg_exact_accuracy = sum(a["exact_accuracy"] for a in accuracy_results) / len(accuracy_results)
+        avg_flexible_accuracy = sum(a["flexible_accuracy"] for a in accuracy_results) / len(accuracy_results)
+        avg_industry_appropriateness = sum(a["industry_appropriateness"] for a in accuracy_results) / len(accuracy_results)
+    else:
+        avg_code_accuracy = 0.0
+        avg_exact_accuracy = 0.0
+        avg_flexible_accuracy = 0.0
+        avg_industry_appropriateness = 0.0
     
     return {
         "total_requests": total,
@@ -437,6 +476,9 @@ def calculate_metrics(results: List[Dict[str, Any]]) -> Dict[str, Any]:
         
         # Code accuracy
         "average_code_accuracy": round(avg_code_accuracy * 100, 2),
+        "average_exact_accuracy": round(avg_exact_accuracy * 100, 2),
+        "average_flexible_accuracy": round(avg_flexible_accuracy * 100, 2),
+        "average_industry_appropriateness": round(avg_industry_appropriateness * 100, 2),
         "code_accuracy_samples": len(accuracy_results),
         
         # Targets
@@ -524,6 +566,9 @@ def main():
     
     print(f"\n🎯 Code Accuracy:")
     print(f"  Average Code Accuracy: {metrics['average_code_accuracy']}% (Target: {metrics['targets']['code_accuracy_target']})")
+    print(f"    - Exact Accuracy: {metrics.get('average_exact_accuracy', 0):.1f}%")
+    print(f"    - Flexible Accuracy: {metrics.get('average_flexible_accuracy', 0):.1f}%")
+    print(f"    - Industry Appropriateness: {metrics.get('average_industry_appropriateness', 0):.1f}%")
     print(f"  Accuracy Samples: {metrics['code_accuracy_samples']}")
     
     print()

@@ -2805,8 +2805,41 @@ func (h *ClassificationHandler) processClassification(ctx context.Context, req *
 		return nil
 	})
 	
-	// FIX: Performance monitoring - log slow operations
+	// Enhanced performance profiling for slow requests (>5s)
 	classificationDuration := time.Since(classificationStartTime)
+	totalElapsed := time.Since(startTime)
+	
+	if classificationDuration > 5*time.Second || totalElapsed > 5*time.Second {
+		// Detailed profiling for slow requests
+		h.logger.Warn("⚠️ [PERF] Slow request detected - detailed profiling",
+			zap.String("request_id", req.RequestID),
+			zap.String("business_name", req.BusinessName),
+			zap.String("website_url", req.WebsiteURL),
+			zap.Duration("classification_duration", classificationDuration),
+			zap.Duration("total_elapsed", totalElapsed),
+			zap.Duration("queue_wait", trace.queueWaitDuration),
+			zap.Int("queue_depth", trace.queueDepth),
+			zap.Duration("scraping_duration", trace.scrapingDuration),
+			zap.String("scraping_strategy", trace.scrapingStrategy),
+			zap.Duration("ml_service_duration", trace.mlServiceDuration),
+			zap.Duration("playwright_duration", trace.playwrightDuration),
+			zap.Int("stage_count", len(trace.stages)))
+		
+		// Log each stage timing for slow requests
+		for i, stage := range trace.stages {
+			if stage.duration > 1*time.Second {
+				h.logger.Info("📊 [PERF-STAGE] Slow stage detected",
+					zap.String("request_id", req.RequestID),
+					zap.String("stage_name", stage.stage),
+					zap.Int("stage_index", i),
+					zap.Duration("stage_duration", stage.duration),
+					zap.Any("stage_metadata", stage.metadata),
+					zap.Bool("stage_success", stage.error == nil),
+					zap.Error(stage.error))
+			}
+		}
+	}
+	
 	if classificationDuration > 10*time.Second {
 		h.logger.Warn("⚠️ [PERF] Slow classification operation detected",
 			zap.String("request_id", req.RequestID),
@@ -2846,7 +2879,7 @@ func (h *ClassificationHandler) processClassification(ctx context.Context, req *
 	}
 	
 	// FIX: Performance summary logging for timeout investigation
-	totalElapsed := time.Since(startTime)
+	// totalElapsed already calculated above
 	if deadline, hasDeadline := ctx.Deadline(); hasDeadline {
 		remaining := time.Until(deadline)
 		if remaining < 10*time.Second {

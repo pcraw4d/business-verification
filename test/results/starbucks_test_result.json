@@ -1,11 +1,36 @@
 {
-  "request_id": "req_1766609859164648633",
+  "request_id": "req_1766637250229734928",
   "business_name": "Starbucks Coffee",
   "description": "Coffee shop chain and retail coffee products",
   "primary_industry": "Cafes & Coffee Shops",
   "classification": {
     "industry": "Cafes & Coffee Shops",
-    "mcc_codes": [],
+    "mcc_codes": [
+      {
+        "code": "5812",
+        "description": "Eating Places, Restaurants",
+        "confidence": 0.7,
+        "source": [
+          "industry_fallback"
+        ]
+      },
+      {
+        "code": "5814",
+        "description": "Fast Food Restaurants",
+        "confidence": 0.7,
+        "source": [
+          "industry_fallback"
+        ]
+      },
+      {
+        "code": "5499",
+        "description": "Miscellaneous Food Stores",
+        "confidence": 0.7,
+        "source": [
+          "industry_fallback"
+        ]
+      }
+    ],
     "naics_codes": [
       {
         "code": "311920",
@@ -13,6 +38,22 @@
         "confidence": 0.85,
         "source": [
           "keyword"
+        ]
+      },
+      {
+        "code": "722511",
+        "description": "Full-Service Restaurants",
+        "confidence": 0.6,
+        "source": [
+          "industry_fallback"
+        ]
+      },
+      {
+        "code": "722513",
+        "description": "Limited-Service Restaurants",
+        "confidence": 0.6,
+        "source": [
+          "industry_fallback"
         ]
       }
     ],
@@ -23,6 +64,22 @@
         "confidence": 0.85,
         "source": [
           "keyword"
+        ]
+      },
+      {
+        "code": "5812",
+        "description": "Eating Places",
+        "confidence": 0.6,
+        "source": [
+          "industry_fallback"
+        ]
+      },
+      {
+        "code": "5813",
+        "description": "Drinking Places (Alcoholic Beverages)",
+        "confidence": 0.6,
+        "source": [
+          "industry_fallback"
         ]
       }
     ],
@@ -71,9 +128,9 @@
       "Regular risk assessments recommended"
     ],
     "industry_benchmark": 40,
-    "previous_risk_score": 17.65,
+    "previous_risk_score": 28.65,
     "assessment_methodology": "comprehensive_automated_analysis",
-    "assessment_timestamp": "2025-12-24T20:57:41.282157138Z",
+    "assessment_timestamp": "2025-12-25T04:34:12.74336723Z",
     "data_sources": [
       "business_registry",
       "industry_database",
@@ -81,11 +138,11 @@
       "regulatory_database",
       "risk_intelligence"
     ],
-    "processing_time": 2115258468
+    "processing_time": 2512257365
   },
   "verification_status": {
     "status": "COMPLETE",
-    "processing_time": 2115258468,
+    "processing_time": 2512257365,
     "data_sources": [
       "business_registry",
       "industry_database",
@@ -131,18 +188,18 @@
       }
     ],
     "overall_score": 0.9299999999999999,
-    "completed_at": "2025-12-24T20:57:41.28218811Z"
+    "completed_at": "2025-12-25T04:34:12.74342255Z"
   },
   "confidence_score": 0.95,
   "explanation": "Primary industry identified as 'Cafes & Coffee Shops' with 95% confidence. Fast path: obvious keyword 'coffee' matched industry 'Cafes & Coffee Shops' Website URL provided: https://starbucks.com. Keywords matched: coffee.",
   "data_source": "smart_crawling_classification_service",
   "status": "success",
   "success": true,
-  "timestamp": "2025-12-24T20:57:41.28227357Z",
-  "processing_time": 2115400919,
+  "timestamp": "2025-12-25T04:34:12.74354759Z",
+  "processing_time": 2512469136,
   "metadata": {
     "classification_reasoning": "Primary industry identified as 'Cafes & Coffee Shops' with 95% confidence. Fast path: obvious keyword 'coffee' matched industry 'Cafes & Coffee Shops' Website URL provided: https://starbucks.com. Keywords matched: coffee.",
-    "classification_time_ms": 2040,
+    "classification_time_ms": 2478,
     "codeGeneration": {
       "industriesAnalyzed": [
         "Cafes & Coffee Shops"
@@ -154,7 +211,7 @@
         "industry",
         "keyword"
       ],
-      "totalCodesGenerated": 2
+      "totalCodesGenerated": 9
     },
     "early_exit": true,
     "fallback_type": "",
@@ -178,7 +235,7 @@
         "cafes_&_coffee_shops"
       ],
       "analysis_method": "layer1_llm_pending",
-      "processing_time": 60609543,
+      "processing_time": 152842959,
       "overall_relevance": 0.95,
       "content_quality": 0.95,
       "structured_data": {
@@ -187,7 +244,7 @@
       }
     }
   },
-  "llm_processing_id": "llm_industry_detection_1766609859948600769_1766609860238839995",
+  "llm_processing_id": "llm_industry_detection_1766637250879593965_1766637251201708602",
   "llm_status": "processing",
   "from_cache": false,
   "processing_path": "layer1"
