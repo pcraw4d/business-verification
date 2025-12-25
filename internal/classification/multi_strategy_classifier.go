@@ -23,6 +23,9 @@ type MultiStrategyClassifier struct {
 	logger           *log.Logger
 	calibrator       *ConfidenceCalibrator
 	predictiveCache  *cache.PredictiveCache // Phase 2.3: Predictive caching
+
+	// Tesla 502 fix: Request deduplication to prevent recursive calls
+	inFlightClassifications sync.Map // key: "businessName|websiteURL", value: chan *MultiStrategyResult
 }
 
 // NewMultiStrategyClassifier creates a new multi-strategy classifier
@@ -132,24 +135,69 @@ type MultiStrategyResult struct {
 
 // ClassifyWithMultiStrategy performs classification using multiple strategies
 // Enhanced with predictive caching (Phase 2.3)
+// Tesla 502 fix: Added request deduplication and depth tracking to prevent recursive calls
 func (msc *MultiStrategyClassifier) ClassifyWithMultiStrategy(
 	ctx context.Context,
 	businessName, description, websiteURL string,
 ) (*MultiStrategyResult, error) {
 	startTime := time.Now()
+
+	// Tesla 502 fix: Check call depth to prevent recursive calls
+	depth := getClassificationDepth(ctx)
+	if depth > 2 {
+		msc.logger.Printf("⚠️ [MultiStrategy] Recursive call detected (depth: %d) for: %s - returning error", depth, businessName)
+		return nil, fmt.Errorf("recursive classification call detected (depth: %d), maximum depth exceeded", depth)
+	}
+	ctx = withClassificationDepth(ctx, depth+1)
+
+	// Tesla 502 fix: Check if same classification is already in progress (deduplication)
+	requestKey := fmt.Sprintf("%s|%s", businessName, websiteURL)
+	if existingChan, inFlight := msc.inFlightClassifications.Load(requestKey); inFlight {
+		msc.logger.Printf("⏳ [MultiStrategy] Classification already in progress for: %s - waiting for result", businessName)
+		// Wait for result with timeout
+		resultChan := existingChan.(chan *MultiStrategyResult)
+		select {
+		case result := <-resultChan:
+			msc.logger.Printf("✅ [MultiStrategy] Received result from in-flight classification for: %s", businessName)
+			return result, nil
+		case <-ctx.Done():
+			msc.logger.Printf("❌ [MultiStrategy] Context cancelled while waiting for in-flight classification: %s", businessName)
+			return nil, ctx.Err()
+		case <-time.After(120 * time.Second):
+			msc.logger.Printf("⚠️ [MultiStrategy] Timeout waiting for in-flight classification: %s", businessName)
+			// Remove from map and continue with new classification
+			msc.inFlightClassifications.Delete(requestKey)
+		}
+	}
+
+	// Create result channel and mark as in-flight
+	resultChan := make(chan *MultiStrategyResult, 1)
+	msc.inFlightClassifications.Store(requestKey, resultChan)
+	defer func() {
+		// Clean up after completion
+		msc.inFlightClassifications.Delete(requestKey)
+		close(resultChan)
+	}()
+
 	msc.logger.Printf("🚀 [MultiStrategy] Starting multi-strategy classification for: %s", businessName)
 
 	// Phase 2.3: Check predictive cache first
 	if msc.predictiveCache != nil {
 		if cached, found := msc.predictiveCache.Get(businessName, description, websiteURL); found {
 			msc.logger.Printf("✅ [MultiStrategy] Cache HIT for: %s", businessName)
-			return &MultiStrategyResult{
+			cachedResult := &MultiStrategyResult{
 				PrimaryIndustry: cached.PrimaryIndustry,
 				Confidence:      cached.Confidence,
 				Keywords:        cached.Keywords,
 				Reasoning:       cached.Reasoning + " (from cache)",
 				ProcessingTime:  time.Since(startTime),
-			}, nil
+			}
+			// Tesla 502 fix: Send cached result to channel
+			select {
+			case resultChan <- cachedResult:
+			default:
+			}
+			return cachedResult, nil
 		}
 		msc.logger.Printf("📊 [MultiStrategy] Cache MISS for: %s", businessName)
 		
@@ -173,6 +221,11 @@ func (msc *MultiStrategyClassifier) ClassifyWithMultiStrategy(
 		fastResult.ProcessingTime = time.Since(startTime)
 		msc.logger.Printf("⚡ [Phase 2] Fast path succeeded: %s (confidence: %.2f%%, duration: %v)",
 			fastResult.PrimaryIndustry, fastResult.Confidence*100, fastResult.ProcessingTime)
+		// Tesla 502 fix: Send fast path result to channel
+		select {
+		case resultChan <- fastResult:
+		default:
+		}
 		return fastResult, nil
 	}
 
@@ -468,6 +521,15 @@ func (msc *MultiStrategyClassifier) ClassifyWithMultiStrategy(
 			Reasoning:       result.Reasoning,
 		}
 		msc.predictiveCache.Set(businessName, description, websiteURL, cachedResult)
+	}
+
+	// Tesla 502 fix: Send result to channel for deduplication
+	select {
+	case resultChan <- result:
+		// Result sent successfully
+	default:
+		// Channel full or closed, but we still return the result
+		msc.logger.Printf("⚠️ [MultiStrategy] Could not send result to channel (may be closed): %s", businessName)
 	}
 	
 	return result, nil

@@ -164,6 +164,10 @@ type SupabaseKeywordRepository struct {
 	rateMutex   sync.Mutex
 	minDelay    time.Duration // Minimum delay between requests to same domain
 
+	// Blocked domain tracking (403 errors) - Tesla 502 fix
+	blockedDomains map[string]time.Time // Domain -> time when blocked
+	blockedMutex   sync.RWMutex         // Thread-safe access to blocked domains
+
 	// Session management for cookies and referer tracking
 	sessionManager *scrapingSessionManager
 
@@ -678,6 +682,7 @@ func NewSupabaseKeywordRepositoryWithScraper(client *database.SupabaseClient, lo
 		rateLimiter:         make(map[string]time.Time),
 		rateMutex:           sync.Mutex{},
 		minDelay:            getRateLimitDelay(),
+		blockedDomains:      make(map[string]time.Time),
 		sessionManager:      newScrapingSessionManager(),
 		segmenter:           word_segmentation.NewSegmenter(),
 		entityRecognizer:    nlp.NewEntityRecognizer(),
@@ -745,6 +750,8 @@ func NewSupabaseKeywordRepositoryWithInterface(client SupabaseClientInterface, l
 		rateLimiter: make(map[string]time.Time),
 		rateMutex:   sync.Mutex{},
 		minDelay:    getRateLimitDelay(), // Configurable delay (default: 3s, min: 2s, max: 10s)
+		// Blocked domain tracking (403 errors) - Tesla 502 fix
+		blockedDomains: make(map[string]time.Time),
 		// Session management for cookies and referer tracking
 		sessionManager: newScrapingSessionManager(),
 		// Word segmentation for compound domain names
@@ -2760,6 +2767,16 @@ func (r *SupabaseKeywordRepository) ClassifyBusiness(ctx context.Context, busine
 	funcStartTime := time.Now()
 	if deadline, hasDeadline := ctx.Deadline(); hasDeadline {
 		timeRemaining := time.Until(deadline)
+		// Tesla 502 fix: Fail fast if time remaining is negative
+		if timeRemaining < 0 {
+			r.logger.Printf("❌ [ClassifyBusiness] Context deadline exceeded (negative time: %v) - failing fast", timeRemaining)
+			return nil, fmt.Errorf("context deadline exceeded: %v remaining", timeRemaining)
+		}
+		// Tesla 502 fix: Skip expensive operations if time remaining is < 5 seconds
+		if timeRemaining < 5*time.Second {
+			r.logger.Printf("⚠️ [ClassifyBusiness] Insufficient time remaining (%v) - skipping expensive operations", timeRemaining)
+			return nil, fmt.Errorf("insufficient time remaining for classification: %v", timeRemaining)
+		}
 		r.logger.Printf("⏱️ [PROFILING] ClassifyBusiness entry - time remaining: %v", timeRemaining)
 	}
 
@@ -3590,7 +3607,23 @@ func (r *SupabaseKeywordRepository) ClassifyBusinessByContextualKeywords(ctx con
 
 	if deadline, hasDeadline := ctx.Deadline(); hasDeadline {
 		timeRemaining := time.Until(deadline)
-		if timeRemaining < defaultClassificationTimeout {
+		// Tesla 502 fix: Fail fast if time remaining is negative
+		if timeRemaining < 0 {
+			r.logger.Printf("❌ [ClassifyBusinessByContextualKeywords] Context deadline exceeded (negative time: %v) - failing fast", timeRemaining)
+			return nil, fmt.Errorf("context deadline exceeded: %v remaining", timeRemaining)
+		}
+		// Tesla 502 fix: Skip expensive operations if time remaining is < 5 seconds
+		if timeRemaining < 5*time.Second {
+			r.logger.Printf("⚠️ [ClassifyBusinessByContextualKeywords] Insufficient time remaining (%v) - skipping expensive operations", timeRemaining)
+			return nil, fmt.Errorf("insufficient time remaining for classification: %v", timeRemaining)
+		}
+		// Tesla 502 fix: Only create separate context if parent has < 10 seconds remaining
+		if timeRemaining < 10*time.Second {
+			// Use parent context if it has insufficient time
+			classificationCtx = ctx
+			cancel = func() {} // No-op cancel
+			r.logger.Printf("⏱️ [TIMEOUT] Using parent context deadline: %v (insufficient time for separate context)", timeRemaining)
+		} else if timeRemaining < defaultClassificationTimeout {
 			// Use parent context if it has a shorter deadline
 			classificationCtx = ctx
 			cancel = func() {} // No-op cancel
@@ -4919,6 +4952,11 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromHomepageWithRetry(ctx con
 			}
 			if resp.StatusCode == 403 {
 				// Forbidden - stop immediately, do not retry
+				// Tesla 502 fix: Mark domain as blocked to skip rate limiting in future requests
+				if parsedURL != nil {
+					domain := parsedURL.Hostname()
+					r.markDomainBlocked(domain)
+				}
 				r.logger.Printf("🚫 [HomepageRetry] Access forbidden (403) for %s - stopping immediately", websiteURL)
 				return []string{} // Stop immediately
 			}
@@ -5366,6 +5404,12 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromWebsite(ctx context.Conte
 	}
 	if resp.StatusCode == 403 {
 		// Forbidden - stop immediately, do not retry
+		// Tesla 502 fix: Mark domain as blocked to skip rate limiting in future requests
+		parsedURL, err := url.Parse(websiteURL)
+		if err == nil && parsedURL != nil {
+			domain := parsedURL.Hostname()
+			r.markDomainBlocked(domain)
+		}
 		r.logger.Printf("🚫 [SinglePage] Access forbidden (403) for %s - stopping immediately", websiteURL)
 		return []string{}
 	}
@@ -6206,8 +6250,15 @@ func (r *SupabaseKeywordRepository) getCachedDNSResolutionWithKey(cacheKey, host
 // applyRateLimit applies rate limiting with jitter to avoid thundering herd.
 // If crawlDelay is provided and greater than the configured minDelay, it will be used instead.
 // Phase 9.3: Performance optimization to respect rate limits and add jitter
+// Tesla 502 fix: Skip rate limiting for blocked domains (403 errors)
 func (r *SupabaseKeywordRepository) applyRateLimit(domain string, crawlDelay ...time.Duration) {
 	if domain == "" {
+		return
+	}
+
+	// Tesla 502 fix: Check if domain is blocked before applying rate limiting
+	if r.isDomainBlocked(domain) {
+		r.logger.Printf("⏭️ [RateLimit] Skipping rate limiting for blocked domain: %s (403 detected previously)", domain)
 		return
 	}
 
@@ -6260,6 +6311,54 @@ func (r *SupabaseKeywordRepository) applyRateLimit(domain string, crawlDelay ...
 
 	// Update last request time
 	r.rateLimiter[domain] = time.Now()
+}
+
+// isDomainBlocked checks if a domain is in the blocked list (403 errors)
+// Returns true if domain is blocked and entry is recent (< 1 hour old)
+func (r *SupabaseKeywordRepository) isDomainBlocked(domain string) bool {
+	if domain == "" {
+		return false
+	}
+
+	r.blockedMutex.RLock()
+	defer r.blockedMutex.RUnlock()
+
+	blockedTime, exists := r.blockedDomains[domain]
+	if !exists {
+		return false
+	}
+
+	// Check if entry is recent (< 1 hour old)
+	age := time.Since(blockedTime)
+	return age < 1*time.Hour
+}
+
+// markDomainBlocked marks a domain as blocked (403 error detected)
+func (r *SupabaseKeywordRepository) markDomainBlocked(domain string) {
+	if domain == "" {
+		return
+	}
+
+	r.blockedMutex.Lock()
+	defer r.blockedMutex.Unlock()
+
+	// Clean up old entries (older than 1 hour) to prevent memory leak
+	now := time.Now()
+	cutoff := now.Add(-1 * time.Hour)
+	cleanedCount := 0
+	for key, blockedTime := range r.blockedDomains {
+		if blockedTime.Before(cutoff) {
+			delete(r.blockedDomains, key)
+			cleanedCount++
+		}
+	}
+	if cleanedCount > 0 {
+		r.logger.Printf("🧹 [BlockedDomains] Cleaned up %d old blocked domain entries", cleanedCount)
+	}
+
+	// Mark domain as blocked
+	r.blockedDomains[domain] = now
+	r.logger.Printf("🚫 [BlockedDomains] Marked domain as blocked: %s (will skip rate limiting)", domain)
 }
 
 // extractBusinessKeywords extracts business-relevant keywords from text content

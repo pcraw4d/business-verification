@@ -167,6 +167,9 @@ type contextKey string
 const (
 	// ClassificationContextKey is the key for storing ClassificationContext in context.Context
 	ClassificationContextKey contextKey = "classification_context"
+	// ClassificationDepthKey is the key for storing classification call depth in context.Context
+	// Tesla 502 fix: Track depth to prevent recursive calls
+	ClassificationDepthKey contextKey = "classification_depth"
 )
 
 // WithClassificationContext adds a ClassificationContext to the context
@@ -178,5 +181,20 @@ func WithClassificationContext(ctx context.Context, cc *ClassificationContext) c
 func GetClassificationContext(ctx context.Context) (*ClassificationContext, bool) {
 	cc, ok := ctx.Value(ClassificationContextKey).(*ClassificationContext)
 	return cc, ok
+}
+
+// getClassificationDepth retrieves the classification call depth from context
+// Returns 0 if not set (first call)
+func getClassificationDepth(ctx context.Context) int {
+	depth, ok := ctx.Value(ClassificationDepthKey).(int)
+	if !ok {
+		return 0
+	}
+	return depth
+}
+
+// withClassificationDepth adds classification depth to context
+func withClassificationDepth(ctx context.Context, depth int) context.Context {
+	return context.WithValue(ctx, ClassificationDepthKey, depth)
 }
 

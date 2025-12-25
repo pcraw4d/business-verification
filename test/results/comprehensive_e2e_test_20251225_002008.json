@@ -1,0 +1,2662 @@
+{
+  "timestamp": "2025-12-25T00:20:08.683424",
+  "api_url": "https://classification-service-production.up.railway.app",
+  "metrics": {
+    "total_requests": 10,
+    "successful_requests": 9,
+    "failed_requests": 1,
+    "error_rate_percent": 10.0,
+    "average_latency_ms": 3893.46,
+    "p50_latency_ms": 3400.53,
+    "p95_latency_ms": 6218.35,
+    "p99_latency_ms": 6218.35,
+    "min_latency_ms": 2563.3,
+    "max_latency_ms": 6218.35,
+    "frontend_completeness_percent": 100.0,
+    "industry_present_rate": 100.0,
+    "top3_mcc_present_rate": 100.0,
+    "top3_naics_present_rate": 100.0,
+    "top3_sic_present_rate": 100.0,
+    "explanation_present_rate": 100,
+    "average_code_accuracy": 27.11,
+    "average_exact_accuracy": 18.52,
+    "average_flexible_accuracy": 5.93,
+    "average_industry_appropriateness": 86.67,
+    "code_accuracy_samples": 9,
+    "targets": {
+      "error_rate_target": "<5%",
+      "avg_latency_target": "<30s",
+      "p95_latency_target": "<60s",
+      "frontend_completeness_target": "100%",
+      "code_accuracy_target": "\u226570%"
+    }
+  },
+  "results": [
+    {
+      "sample": {
+        "business_name": "Microsoft Corporation",
+        "description": "Software development, cloud computing, and enterprise solutions",
+        "website_url": "https://microsoft.com",
+        "expected_industry": "Technology",
+        "expected_codes": {
+          "mcc": [
+            "5734"
+          ],
+          "naics": [
+            "541511"
+          ],
+          "sic": [
+            "7371"
+          ]
+        }
+      },
+      "success": true,
+      "http_code": 200,
+      "latency_ms": 3133.5859298706055,
+      "error": null,
+      "response": {
+        "request_id": "req_1766639835075462908",
+        "business_name": "Microsoft Corporation",
+        "description": "Software development, cloud computing, and enterprise solutions",
+        "primary_industry": "Technology",
+        "classification": {
+          "industry": "Technology",
+          "mcc_codes": [
+            {
+              "code": "1711",
+              "description": "Air Conditioning, Heating and Plumbing Contractors",
+              "confidence": 0.9,
+              "source": [
+                "industry"
+              ]
+            },
+            {
+              "code": "2842",
+              "description": "Sanitation, Polishing and Specialty Cleaning Preparations",
+              "confidence": 0.9,
+              "source": [
+                "industry"
+              ]
+            },
+            {
+              "code": "3000",
+              "description": "United Airlines",
+              "confidence": 0.9,
+              "source": [
+                "industry"
+              ]
+            }
+          ],
+          "naics_codes": [
+            {
+              "code": "115114",
+              "description": "Postharvest Crop Activities (except Cotton Ginning)",
+              "confidence": 0.9,
+              "source": [
+                "industry"
+              ]
+            },
+            {
+              "code": "115210",
+              "description": "Support Activities for Animal Production",
+              "confidence": 0.9,
+              "source": [
+                "industry"
+              ]
+            },
+            {
+              "code": "115310",
+              "description": "Support Activities for Forestry",
+              "confidence": 0.9,
+              "source": [
+                "industry"
+              ]
+            }
+          ],
+          "sic_codes": [
+            {
+              "code": "1711",
+              "description": "Plumbing, Heating and Air-Conditioning",
+              "confidence": 0.9,
+              "source": [
+                "industry"
+              ]
+            },
+            {
+              "code": "1721",
+              "description": "Painting and Paper Hanging",
+              "confidence": 0.9,
+              "source": [
+                "industry"
+              ]
+            },
+            {
+              "code": "1743",
+              "description": "Terrazzo, Tile, Marble, and Mosaic Work",
+              "confidence": 0.9,
+              "source": [
+                "industry"
+              ]
+            }
+          ],
+          "website_content": {
+            "scraped": true,
+            "content_length": 0,
+            "keywords_found": 1
+          },
+          "explanation": {
+            "primary_reason": "Classified as 'Technology' based on strong keyword matches: cloud",
+            "supporting_factors": [
+              "High-quality business information with comprehensive details",
+              "Industry-specific terms found: cloud",
+              "Very high confidence score (95%)"
+            ],
+            "key_terms_found": [
+              "cloud"
+            ],
+            "confidence_factors": {
+              "keyword": 0.855,
+              "multi_strategy": 0.95,
+              "overall_confidence": 0.95
+            },
+            "method_used": "multi_strategy",
+            "processing_path": "fast_path"
+          }
+        },
+        "risk_assessment": {
+          "overall_risk_score": 30.65,
+          "risk_level": "Medium Risk",
+          "risk_score": 30.65,
+          "categories": {
+            "cybersecurity": 52,
+            "financial": 30,
+            "operational": 25,
+            "regulatory": 20
+          },
+          "risk_factors": [
+            "Standard business name structure"
+          ],
+          "detected_risks": [
+            "No specific high-risk indicators detected"
+          ],
+          "recommendations": [
+            "Implement robust cybersecurity measures",
+            "Regular security assessments recommended"
+          ],
+          "industry_benchmark": 45,
+          "previous_risk_score": 37.65,
+          "assessment_methodology": "comprehensive_automated_analysis",
+          "assessment_timestamp": "2025-12-25T05:17:17.993636421Z",
+          "data_sources": [
+            "business_registry",
+            "industry_database",
+            "website_analysis",
+            "regulatory_database",
+            "risk_intelligence"
+          ],
+          "processing_time": 2917428242
+        },
+        "verification_status": {
+          "status": "COMPLETE",
+          "processing_time": 2917428242,
+          "data_sources": [
+            "business_registry",
+            "industry_database",
+            "website_analysis",
+            "risk_intelligence",
+            "regulatory_database"
+          ],
+          "checks": [
+            {
+              "check_type": "Business Name Verification",
+              "status": "PASS",
+              "confidence": 0.95,
+              "details": "Business name validated against multiple databases",
+              "source": "business_registry"
+            },
+            {
+              "check_type": "Industry Classification",
+              "status": "PASS",
+              "confidence": 0.95,
+              "details": "Classified as Technology with 95% confidence",
+              "source": "industry_database"
+            },
+            {
+              "check_type": "Website Analysis",
+              "status": "PASS",
+              "confidence": 0.95,
+              "details": "Website analyzed and validated",
+              "source": "website_analysis"
+            },
+            {
+              "check_type": "Risk Assessment",
+              "status": "PASS",
+              "confidence": 0.88,
+              "details": "Comprehensive risk analysis completed",
+              "source": "risk_intelligence"
+            },
+            {
+              "check_type": "Regulatory Compliance",
+              "status": "PASS",
+              "confidence": 0.92,
+              "details": "No regulatory violations detected",
+              "source": "regulatory_database"
+            }
+          ],
+          "overall_score": 0.9299999999999999,
+          "completed_at": "2025-12-25T05:17:17.993677337Z"
+        },
+        "confidence_score": 0.95,
+        "explanation": "Primary industry identified as 'Technology' with 95% confidence. Fast path: obvious keyword 'cloud' matched industry 'Technology' Website URL provided: https://microsoft.com. Keywords matched: cloud.",
+        "data_source": "smart_crawling_classification_service",
+        "status": "success",
+        "success": true,
+        "timestamp": "2025-12-25T05:17:17.993708696Z",
+        "processing_time": 2917549393,
+        "metadata": {
+          "classification_reasoning": "Primary industry identified as 'Technology' with 95% confidence. Fast path: obvious keyword 'cloud' matched industry 'Technology' Website URL provided: https://microsoft.com. Keywords matched: cloud.",
+          "classification_time_ms": 2889,
+          "codeGeneration": {
+            "industriesAnalyzed": [
+              "Technology"
+            ],
+            "industryMatches": 9,
+            "keywordMatches": 0,
+            "method": "industry_only",
+            "sources": [
+              "industry",
+              "keyword"
+            ],
+            "totalCodesGenerated": 9
+          },
+          "early_exit": true,
+          "fallback_type": "",
+          "fallback_used": false,
+          "method_weights": {
+            "database_driven": 100
+          },
+          "scraping_strategy": "early_exit",
+          "scraping_time_ms": 0,
+          "service": "classification-service",
+          "smart_crawling_enabled": true,
+          "version": "2.0.0",
+          "website_analysis": {
+            "success": true,
+            "pages_analyzed": 0,
+            "relevant_pages": 0,
+            "keywords_extracted": [
+              "cloud"
+            ],
+            "industry_signals": [
+              "technology"
+            ],
+            "analysis_method": "layer1",
+            "processing_time": 45634296,
+            "overall_relevance": 0.95,
+            "content_quality": 0.95,
+            "structured_data": {
+              "business_type": "Business",
+              "industry": "Technology"
+            }
+          }
+        },
+        "from_cache": false,
+        "processing_path": "layer1"
+      },
+      "retry_count": 0,
+      "validation": {
+        "industry_present": true,
+        "top3_mcc_present": true,
+        "top3_naics_present": true,
+        "top3_sic_present": true,
+        "explanation_present": true,
+        "all_requirements_met": true
+      }
+    },
+    {
+      "sample": {
+        "business_name": "Starbucks Coffee",
+        "description": "Coffee shop chain and retail coffee products",
+        "website_url": "https://starbucks.com",
+        "expected_industry": "Food & Beverage",
+        "expected_codes": {
+          "mcc": [
+            "5812"
+          ],
+          "naics": [
+            "722511"
+          ],
+          "sic": [
+            "5812"
+          ]
+        }
+      },
+      "success": true,
+      "http_code": 200,
+      "latency_ms": 2563.3039474487305,
+      "error": null,
+      "response": {
+        "request_id": "req_1766639838631233739",
+        "business_name": "Starbucks Coffee",
+        "description": "Coffee shop chain and retail coffee products",
+        "primary_industry": "Cafes & Coffee Shops",
+        "classification": {
+          "industry": "Cafes & Coffee Shops",
+          "mcc_codes": [
+            {
+              "code": "5812",
+              "description": "Eating Places, Restaurants",
+              "confidence": 0.7,
+              "source": [
+                "industry_fallback"
+              ]
+            },
+            {
+              "code": "5814",
+              "description": "Fast Food Restaurants",
+              "confidence": 0.7,
+              "source": [
+                "industry_fallback"
+              ]
+            },
+            {
+              "code": "5499",
+              "description": "Miscellaneous Food Stores",
+              "confidence": 0.7,
+              "source": [
+                "industry_fallback"
+              ]
+            }
+          ],
+          "naics_codes": [
+            {
+              "code": "311920",
+              "description": "Coffee and Tea Manufacturing",
+              "confidence": 0.85,
+              "source": [
+                "keyword"
+              ]
+            },
+            {
+              "code": "722511",
+              "description": "Full-Service Restaurants",
+              "confidence": 0.6,
+              "source": [
+                "industry_fallback"
+              ]
+            },
+            {
+              "code": "722513",
+              "description": "Limited-Service Restaurants",
+              "confidence": 0.6,
+              "source": [
+                "industry_fallback"
+              ]
+            }
+          ],
+          "sic_codes": [
+            {
+              "code": "2095",
+              "description": "Roasted Coffee",
+              "confidence": 0.85,
+              "source": [
+                "keyword"
+              ]
+            },
+            {
+              "code": "5812",
+              "description": "Eating Places",
+              "confidence": 0.6,
+              "source": [
+                "industry_fallback"
+              ]
+            },
+            {
+              "code": "5813",
+              "description": "Drinking Places (Alcoholic Beverages)",
+              "confidence": 0.6,
+              "source": [
+                "industry_fallback"
+              ]
+            }
+          ],
+          "website_content": {
+            "scraped": true,
+            "content_length": 0,
+            "keywords_found": 1
+          },
+          "explanation": {
+            "primary_reason": "Classified as 'Cafes & Coffee Shops' based on strong keyword matches: coffee",
+            "supporting_factors": [
+              "High-quality business information with comprehensive details",
+              "Industry-specific terms found: coffee",
+              "Very high confidence score (95%)"
+            ],
+            "key_terms_found": [
+              "coffee"
+            ],
+            "confidence_factors": {
+              "keyword": 0.855,
+              "multi_strategy": 0.95,
+              "overall_confidence": 0.95
+            },
+            "method_used": "multi_strategy",
+            "processing_path": "fast_path"
+          }
+        },
+        "risk_assessment": {
+          "overall_risk_score": 26.65,
+          "risk_level": "Medium Risk",
+          "risk_score": 26.65,
+          "categories": {
+            "cybersecurity": 32,
+            "financial": 30,
+            "operational": 25,
+            "regulatory": 20
+          },
+          "risk_factors": [
+            "Standard business name structure"
+          ],
+          "detected_risks": [
+            "No specific high-risk indicators detected"
+          ],
+          "recommendations": [
+            "Continue monitoring business operations",
+            "Regular risk assessments recommended"
+          ],
+          "industry_benchmark": 40,
+          "previous_risk_score": 17.65,
+          "assessment_methodology": "comprehensive_automated_analysis",
+          "assessment_timestamp": "2025-12-25T05:17:21.008140384Z",
+          "data_sources": [
+            "business_registry",
+            "industry_database",
+            "website_analysis",
+            "regulatory_database",
+            "risk_intelligence"
+          ],
+          "processing_time": 2376488279
+        },
+        "verification_status": {
+          "status": "COMPLETE",
+          "processing_time": 2376488279,
+          "data_sources": [
+            "business_registry",
+            "industry_database",
+            "website_analysis",
+            "risk_intelligence",
+            "regulatory_database"
+          ],
+          "checks": [
+            {
+              "check_type": "Business Name Verification",
+              "status": "PASS",
+              "confidence": 0.95,
+              "details": "Business name validated against multiple databases",
+              "source": "business_registry"
+            },
+            {
+              "check_type": "Industry Classification",
+              "status": "PASS",
+              "confidence": 0.95,
+              "details": "Classified as Cafes & Coffee Shops with 95% confidence",
+              "source": "industry_database"
+            },
+            {
+              "check_type": "Website Analysis",
+              "status": "PASS",
+              "confidence": 0.95,
+              "details": "Website analyzed and validated",
+              "source": "website_analysis"
+            },
+            {
+              "check_type": "Risk Assessment",
+              "status": "PASS",
+              "confidence": 0.88,
+              "details": "Comprehensive risk analysis completed",
+              "source": "risk_intelligence"
+            },
+            {
+              "check_type": "Regulatory Compliance",
+              "status": "PASS",
+              "confidence": 0.92,
+              "details": "No regulatory violations detected",
+              "source": "regulatory_database"
+            }
+          ],
+          "overall_score": 0.9299999999999999,
+          "completed_at": "2025-12-25T05:17:21.008178795Z"
+        },
+        "confidence_score": 0.95,
+        "explanation": "Primary industry identified as 'Cafes & Coffee Shops' with 95% confidence. Fast path: obvious keyword 'coffee' matched industry 'Cafes & Coffee Shops' Website URL provided: https://starbucks.com. Keywords matched: coffee.",
+        "data_source": "smart_crawling_classification_service",
+        "status": "success",
+        "success": true,
+        "timestamp": "2025-12-25T05:17:21.008283762Z",
+        "processing_time": 2376665376,
+        "metadata": {
+          "classification_reasoning": "Primary industry identified as 'Cafes & Coffee Shops' with 95% confidence. Fast path: obvious keyword 'coffee' matched industry 'Cafes & Coffee Shops' Website URL provided: https://starbucks.com. Keywords matched: coffee.",
+          "classification_time_ms": 2335,
+          "codeGeneration": {
+            "industriesAnalyzed": [
+              "Cafes & Coffee Shops"
+            ],
+            "industryMatches": 0,
+            "keywordMatches": 2,
+            "method": "keyword_only",
+            "sources": [
+              "industry",
+              "keyword"
+            ],
+            "totalCodesGenerated": 9
+          },
+          "early_exit": true,
+          "fallback_type": "",
+          "fallback_used": false,
+          "method_weights": {
+            "database_driven": 100
+          },
+          "scraping_strategy": "early_exit",
+          "scraping_time_ms": 0,
+          "service": "classification-service",
+          "smart_crawling_enabled": true,
+          "version": "2.0.0",
+          "website_analysis": {
+            "success": true,
+            "pages_analyzed": 0,
+            "relevant_pages": 0,
+            "keywords_extracted": [
+              "coffee"
+            ],
+            "industry_signals": [
+              "cafes_&_coffee_shops"
+            ],
+            "analysis_method": "layer1_llm_pending",
+            "processing_time": 135488798,
+            "overall_relevance": 0.95,
+            "content_quality": 0.95,
+            "structured_data": {
+              "business_type": "Business",
+              "industry": "Cafes & Coffee Shops"
+            }
+          }
+        },
+        "llm_processing_id": "llm_industry_detection_1766639839068340757_1766639839394343840",
+        "llm_status": "processing",
+        "from_cache": false,
+        "processing_path": "layer1"
+      },
+      "retry_count": 0,
+      "validation": {
+        "industry_present": true,
+        "top3_mcc_present": true,
+        "top3_naics_present": true,
+        "top3_sic_present": true,
+        "explanation_present": true,
+        "all_requirements_met": true
+      }
+    },
+    {
+      "sample": {
+        "business_name": "Home Depot",
+        "description": "Home improvement retailer selling tools, building materials, and garden supplies",
+        "website_url": "https://homedepot.com",
+        "expected_industry": "Retail",
+        "expected_codes": {
+          "mcc": [
+            "5200"
+          ],
+          "naics": [
+            "444110"
+          ],
+          "sic": [
+            "5211"
+          ]
+        }
+      },
+      "success": true,
+      "http_code": 200,
+      "latency_ms": 4730.243921279907,
+      "error": null,
+      "response": {
+        "request_id": "req_1766639841835323386",
+        "business_name": "Home Depot",
+        "description": "Home improvement retailer selling tools, building materials, and garden supplies",
+        "primary_industry": "Investment Services",
+        "classification": {
+          "industry": "Investment Services",
+          "mcc_codes": [
+            {
+              "code": "3351",
+              "description": "Affiliated Auto Rental",
+              "confidence": 0.75,
+              "source": [
+                "keyword"
+              ]
+            },
+            {
+              "code": "3354",
+              "description": "Action Auto Rental",
+              "confidence": 0.75,
+              "source": [
+                "keyword"
+              ]
+            },
+            {
+              "code": "3355",
+              "description": "Sixt Car Rental",
+              "confidence": 0.75,
+              "source": [
+                "keyword"
+              ]
+            }
+          ],
+          "naics_codes": [
+            {
+              "code": "524126",
+              "description": "Direct Property and Casualty Insurance Carriers",
+              "confidence": 0.9,
+              "source": [
+                "keyword"
+              ]
+            },
+            {
+              "code": "531190",
+              "description": "Lessors of Other Real Estate Property",
+              "confidence": 0.9,
+              "source": [
+                "keyword"
+              ]
+            },
+            {
+              "code": "531311",
+              "description": "Residential Property Managers",
+              "confidence": 0.9,
+              "source": [
+                "keyword"
+              ]
+            }
+          ],
+          "sic_codes": [
+            {
+              "code": "6517",
+              "description": "Lessors of Railroad Property",
+              "confidence": 0.9,
+              "source": [
+                "keyword"
+              ]
+            },
+            {
+              "code": "6519",
+              "description": "Lessors of Real Property, Not Elsewhere Classified",
+              "confidence": 0.9,
+              "source": [
+                "keyword"
+              ]
+            },
+            {
+              "code": "6512",
+              "description": "Operators of Nonresidential Buildings",
+              "confidence": 0.75,
+              "source": [
+                "keyword"
+              ]
+            }
+          ],
+          "website_content": {
+            "scraped": true,
+            "content_length": 0,
+            "keywords_found": 2
+          },
+          "explanation": {
+            "primary_reason": "Classified as 'Investment Services' based on strong keyword matches: property, property management",
+            "supporting_factors": [
+              "High-quality business information with comprehensive details",
+              "Industry-specific terms found: property, property management",
+              "Very high confidence score (95%)"
+            ],
+            "key_terms_found": [
+              "property",
+              "property management"
+            ],
+            "confidence_factors": {
+              "keyword": 0.855,
+              "multi_strategy": 0.95,
+              "overall_confidence": 0.95
+            },
+            "method_used": "multi_strategy",
+            "processing_path": "full_strategy"
+          }
+        },
+        "risk_assessment": {
+          "overall_risk_score": 26.65,
+          "risk_level": "Medium Risk",
+          "risk_score": 26.65,
+          "categories": {
+            "cybersecurity": 32,
+            "financial": 30,
+            "operational": 25,
+            "regulatory": 20
+          },
+          "risk_factors": [
+            "Standard business name structure"
+          ],
+          "detected_risks": [
+            "No specific high-risk indicators detected"
+          ],
+          "recommendations": [
+            "Continue monitoring business operations",
+            "Regular risk assessments recommended"
+          ],
+          "industry_benchmark": 40,
+          "previous_risk_score": 22.65,
+          "assessment_methodology": "comprehensive_automated_analysis",
+          "assessment_timestamp": "2025-12-25T05:17:26.28072601Z",
+          "data_sources": [
+            "business_registry",
+            "industry_database",
+            "website_analysis",
+            "regulatory_database",
+            "risk_intelligence"
+          ],
+          "processing_time": 4444127248
+        },
+        "verification_status": {
+          "status": "COMPLETE",
+          "processing_time": 4444127248,
+          "data_sources": [
+            "business_registry",
+            "industry_database",
+            "website_analysis",
+            "risk_intelligence",
+            "regulatory_database"
+          ],
+          "checks": [
+            {
+              "check_type": "Business Name Verification",
+              "status": "PASS",
+              "confidence": 0.95,
+              "details": "Business name validated against multiple databases",
+              "source": "business_registry"
+            },
+            {
+              "check_type": "Industry Classification",
+              "status": "PASS",
+              "confidence": 0.95,
+              "details": "Classified as Investment Services with 95% confidence",
+              "source": "industry_database"
+            },
+            {
+              "check_type": "Website Analysis",
+              "status": "PASS",
+              "confidence": 0.95,
+              "details": "Website analyzed and validated",
+              "source": "website_analysis"
+            },
+            {
+              "check_type": "Risk Assessment",
+              "status": "PASS",
+              "confidence": 0.88,
+              "details": "Comprehensive risk analysis completed",
+              "source": "risk_intelligence"
+            },
+            {
+              "check_type": "Regulatory Compliance",
+              "status": "PASS",
+              "confidence": 0.92,
+              "details": "No regulatory violations detected",
+              "source": "regulatory_database"
+            }
+          ],
+          "overall_score": 0.9299999999999999,
+          "completed_at": "2025-12-25T05:17:26.280761158Z"
+        },
+        "confidence_score": 0.95,
+        "explanation": "Primary industry identified as 'Investment Services' with 95% confidence. Combined 4 classification strategies using weighted average. Contributions: co_occurrence(0.72), keyword(1.00). Strategies: co_occurrence(0.72), keyword(1.00), entity(1.00), topic(0.46). Final confidence: 0.58 Website URL provided: https://homedepot.com. Keywords matched: property, property management.",
+        "data_source": "smart_crawling_classification_service",
+        "status": "success",
+        "success": true,
+        "timestamp": "2025-12-25T05:17:26.280874529Z",
+        "processing_time": 4444305814,
+        "metadata": {
+          "classification_reasoning": "Primary industry identified as 'Investment Services' with 95% confidence. Combined 4 classification strategies using weighted average. Contributions: co_occurrence(0.72), keyword(1.00). Strategies: co_occurrence(0.72), keyword(1.00), entity(1.00), topic(0.46). Final confidence: 0.58 Website URL provided: https://homedepot.com. Keywords matched: property, property management.",
+          "classification_time_ms": 4433,
+          "codeGeneration": {
+            "industriesAnalyzed": [
+              "Investment Services"
+            ],
+            "industryMatches": 0,
+            "keywordMatches": 9,
+            "method": "keyword_only",
+            "sources": [
+              "industry",
+              "keyword"
+            ],
+            "totalCodesGenerated": 9
+          },
+          "early_exit": true,
+          "fallback_type": "",
+          "fallback_used": false,
+          "method_weights": {
+            "database_driven": 100
+          },
+          "scraping_strategy": "early_exit",
+          "scraping_time_ms": 0,
+          "service": "classification-service",
+          "smart_crawling_enabled": true,
+          "version": "2.0.0",
+          "website_analysis": {
+            "success": true,
+            "pages_analyzed": 0,
+            "relevant_pages": 0,
+            "keywords_extracted": [
+              "property",
+              "property management"
+            ],
+            "industry_signals": [
+              "investment_services"
+            ],
+            "analysis_method": "layer1",
+            "processing_time": 886714989,
+            "overall_relevance": 0.95,
+            "content_quality": 0.95,
+            "structured_data": {
+              "business_type": "Business",
+              "industry": "Investment Services"
+            }
+          }
+        },
+        "from_cache": false,
+        "processing_path": "layer1"
+      },
+      "retry_count": 0,
+      "validation": {
+        "industry_present": true,
+        "top3_mcc_present": true,
+        "top3_naics_present": true,
+        "top3_sic_present": true,
+        "explanation_present": true,
+        "all_requirements_met": true
+      }
+    },
+    {
+      "sample": {
+        "business_name": "Bank of America",
+        "description": "Banking and financial services including checking, savings, loans, and investments",
+        "website_url": "https://bankofamerica.com",
+        "expected_industry": "Financial Services",
+        "expected_codes": {
+          "mcc": [
+            "6011"
+          ],
+          "naics": [
+            "522110"
+          ],
+          "sic": [
+            "6021"
+          ]
+        }
+      },
+      "success": true,
+      "http_code": 200,
+      "latency_ms": 2670.5751419067383,
+      "error": null,
+      "response": {
+        "request_id": "req_1766639846936713472",
+        "business_name": "Bank of America",
+        "description": "Banking and financial services including checking, savings, loans, and investments",
+        "primary_industry": "Banking",
+        "classification": {
+          "industry": "Banking",
+          "mcc_codes": [
+            {
+              "code": "4812",
+              "description": "Telecommunication Equipment Including Telephone Sales",
+              "confidence": 0.75,
+              "source": [
+                "keyword"
+              ]
+            },
+            {
+              "code": "5044",
+              "description": "Office, Photographic, Photocopy and Microfilm Equipment",
+              "confidence": 0.75,
+              "source": [
+                "keyword"
+              ]
+            },
+            {
+              "code": "7829",
+              "description": "Motion Picture and Video Tape Production and Distribution",
+              "confidence": 0.75,
+              "source": [
+                "keyword"
+              ]
+            }
+          ],
+          "naics_codes": [
+            {
+              "code": "522110",
+              "description": "Commercial Banking",
+              "confidence": 0.9500000000000001,
+              "source": [
+                "keyword"
+              ]
+            },
+            {
+              "code": "523110",
+              "description": "Investment Banking and Securities Dealing",
+              "confidence": 0.9,
+              "source": [
+                "keyword"
+              ]
+            },
+            {
+              "code": "522130",
+              "description": "Credit Unions",
+              "confidence": 0.85,
+              "source": [
+                "keyword"
+              ]
+            }
+          ],
+          "sic_codes": [
+            {
+              "code": "6082",
+              "description": "Foreign Trade and International Banking Institutions",
+              "confidence": 0.9,
+              "source": [
+                "keyword"
+              ]
+            },
+            {
+              "code": "6099",
+              "description": "Functions Related to Depository Banking, Not Elsewhere Classified",
+              "confidence": 0.9,
+              "source": [
+                "keyword"
+              ]
+            },
+            {
+              "code": "6061",
+              "description": "Credit Unions, Federally Chartered",
+              "confidence": 0.85,
+              "source": [
+                "keyword"
+              ]
+            }
+          ],
+          "website_content": {
+            "scraped": true,
+            "content_length": 0,
+            "keywords_found": 1
+          },
+          "explanation": {
+            "primary_reason": "Classified as 'Banking' based on strong keyword matches: banking",
+            "supporting_factors": [
+              "High-quality business information with comprehensive details",
+              "Industry-specific terms found: banking",
+              "Very high confidence score (95%)"
+            ],
+            "key_terms_found": [
+              "banking"
+            ],
+            "confidence_factors": {
+              "keyword": 0.855,
+              "multi_strategy": 0.95,
+              "overall_confidence": 0.95
+            },
+            "method_used": "multi_strategy",
+            "processing_path": "fast_path"
+          }
+        },
+        "risk_assessment": {
+          "overall_risk_score": 26.65,
+          "risk_level": "Medium Risk",
+          "risk_score": 26.65,
+          "categories": {
+            "cybersecurity": 32,
+            "financial": 30,
+            "operational": 25,
+            "regulatory": 20
+          },
+          "risk_factors": [
+            "Standard business name structure"
+          ],
+          "detected_risks": [
+            "No specific high-risk indicators detected"
+          ],
+          "recommendations": [
+            "Continue monitoring business operations",
+            "Regular risk assessments recommended"
+          ],
+          "industry_benchmark": 40,
+          "previous_risk_score": 25.65,
+          "assessment_methodology": "comprehensive_automated_analysis",
+          "assessment_timestamp": "2025-12-25T05:17:29.399192996Z",
+          "data_sources": [
+            "business_registry",
+            "industry_database",
+            "website_analysis",
+            "regulatory_database",
+            "risk_intelligence"
+          ],
+          "processing_time": 2462113236
+        },
+        "verification_status": {
+          "status": "COMPLETE",
+          "processing_time": 2462113236,
+          "data_sources": [
+            "business_registry",
+            "industry_database",
+            "website_analysis",
+            "risk_intelligence",
+            "regulatory_database"
+          ],
+          "checks": [
+            {
+              "check_type": "Business Name Verification",
+              "status": "PASS",
+              "confidence": 0.95,
+              "details": "Business name validated against multiple databases",
+              "source": "business_registry"
+            },
+            {
+              "check_type": "Industry Classification",
+              "status": "PASS",
+              "confidence": 0.95,
+              "details": "Classified as Banking with 95% confidence",
+              "source": "industry_database"
+            },
+            {
+              "check_type": "Website Analysis",
+              "status": "PASS",
+              "confidence": 0.95,
+              "details": "Website analyzed and validated",
+              "source": "website_analysis"
+            },
+            {
+              "check_type": "Risk Assessment",
+              "status": "PASS",
+              "confidence": 0.88,
+              "details": "Comprehensive risk analysis completed",
+              "source": "risk_intelligence"
+            },
+            {
+              "check_type": "Regulatory Compliance",
+              "status": "PASS",
+              "confidence": 0.92,
+              "details": "No regulatory violations detected",
+              "source": "regulatory_database"
+            }
+          ],
+          "overall_score": 0.9299999999999999,
+          "completed_at": "2025-12-25T05:17:29.399268535Z"
+        },
+        "confidence_score": 0.95,
+        "explanation": "Primary industry identified as 'Banking' with 95% confidence. Fast path: obvious keyword 'banking' matched industry 'Banking' Website URL provided: https://bankofamerica.com. Keywords matched: banking.",
+        "data_source": "smart_crawling_classification_service",
+        "status": "success",
+        "success": true,
+        "timestamp": "2025-12-25T05:17:29.399416175Z",
+        "processing_time": 2462375506,
+        "metadata": {
+          "classification_reasoning": "Primary industry identified as 'Banking' with 95% confidence. Fast path: obvious keyword 'banking' matched industry 'Banking' Website URL provided: https://bankofamerica.com. Keywords matched: banking.",
+          "classification_time_ms": 2445,
+          "codeGeneration": {
+            "industriesAnalyzed": [
+              "Banking"
+            ],
+            "industryMatches": 0,
+            "keywordMatches": 9,
+            "method": "keyword_only",
+            "sources": [
+              "industry",
+              "keyword"
+            ],
+            "totalCodesGenerated": 9
+          },
+          "early_exit": true,
+          "fallback_type": "",
+          "fallback_used": false,
+          "method_weights": {
+            "database_driven": 100
+          },
+          "scraping_strategy": "early_exit",
+          "scraping_time_ms": 0,
+          "service": "classification-service",
+          "smart_crawling_enabled": true,
+          "version": "2.0.0",
+          "website_analysis": {
+            "success": true,
+            "pages_analyzed": 0,
+            "relevant_pages": 0,
+            "keywords_extracted": [
+              "banking"
+            ],
+            "industry_signals": [
+              "banking"
+            ],
+            "analysis_method": "layer1",
+            "processing_time": 42020999,
+            "overall_relevance": 0.95,
+            "content_quality": 0.95,
+            "structured_data": {
+              "business_type": "Business",
+              "industry": "Banking"
+            }
+          }
+        },
+        "from_cache": false,
+        "processing_path": "layer1"
+      },
+      "retry_count": 0,
+      "validation": {
+        "industry_present": true,
+        "top3_mcc_present": true,
+        "top3_naics_present": true,
+        "top3_sic_present": true,
+        "explanation_present": true,
+        "all_requirements_met": true
+      }
+    },
+    {
+      "sample": {
+        "business_name": "Amazon",
+        "description": "E-commerce platform and cloud computing services",
+        "website_url": "https://amazon.com",
+        "expected_industry": "E-commerce",
+        "expected_codes": {
+          "mcc": [
+            "5999"
+          ],
+          "naics": [
+            "454110"
+          ],
+          "sic": [
+            "5961"
+          ]
+        }
+      },
+      "success": true,
+      "http_code": 200,
+      "latency_ms": 3400.526762008667,
+      "error": null,
+      "response": {
+        "request_id": "req_1766639850058433622",
+        "business_name": "Amazon",
+        "description": "E-commerce platform and cloud computing services",
+        "primary_industry": "Software Development",
+        "classification": {
+          "industry": "Software Development",
+          "mcc_codes": [
+            {
+              "code": "7371",
+              "description": "Computer Programming Services",
+              "confidence": 0.98,
+              "source": [
+                "industry",
+                "keyword"
+              ]
+            },
+            {
+              "code": "7379",
+              "description": "Computer Related Services",
+              "confidence": 0.9,
+              "source": [
+                "industry"
+              ]
+            },
+            {
+              "code": "1711",
+              "description": "Air Conditioning, Heating and Plumbing Contractors",
+              "confidence": 0.75,
+              "source": [
+                "keyword"
+              ]
+            }
+          ],
+          "naics_codes": [
+            {
+              "code": "511210",
+              "description": "Software Publishers",
+              "confidence": 0.98,
+              "source": [
+                "industry",
+                "keyword"
+              ]
+            },
+            {
+              "code": "541519",
+              "description": "Other Computer Related Services",
+              "confidence": 0.98,
+              "source": [
+                "industry",
+                "keyword"
+              ]
+            },
+            {
+              "code": "518210",
+              "description": "Data Processing, Hosting, and Related Services",
+              "confidence": 0.9,
+              "source": [
+                "industry"
+              ]
+            }
+          ],
+          "sic_codes": [
+            {
+              "code": "7371",
+              "description": "Computer Programming Services",
+              "confidence": 0.98,
+              "source": [
+                "industry",
+                "keyword"
+              ]
+            },
+            {
+              "code": "7372",
+              "description": "Prepackaged Software",
+              "confidence": 0.98,
+              "source": [
+                "industry",
+                "keyword"
+              ]
+            },
+            {
+              "code": "7378",
+              "description": "Computer Maintenance and Repair",
+              "confidence": 0.98,
+              "source": [
+                "industry",
+                "keyword"
+              ]
+            }
+          ],
+          "website_content": {
+            "scraped": true,
+            "content_length": 0,
+            "keywords_found": 1
+          },
+          "explanation": {
+            "primary_reason": "Classified as 'Software Development' based on strong keyword matches: platform",
+            "supporting_factors": [
+              "High-quality business information with comprehensive details",
+              "Industry-specific terms found: platform",
+              "Very high confidence score (95%)"
+            ],
+            "key_terms_found": [
+              "platform"
+            ],
+            "confidence_factors": {
+              "keyword": 0.855,
+              "multi_strategy": 0.95,
+              "overall_confidence": 0.95
+            },
+            "method_used": "multi_strategy",
+            "processing_path": "fast_path"
+          }
+        },
+        "risk_assessment": {
+          "overall_risk_score": 26.65,
+          "risk_level": "Medium Risk",
+          "risk_score": 26.65,
+          "categories": {
+            "cybersecurity": 32,
+            "financial": 30,
+            "operational": 25,
+            "regulatory": 20
+          },
+          "risk_factors": [
+            "Standard business name structure"
+          ],
+          "detected_risks": [
+            "No specific high-risk indicators detected"
+          ],
+          "recommendations": [
+            "Continue monitoring business operations",
+            "Regular risk assessments recommended"
+          ],
+          "industry_benchmark": 40,
+          "previous_risk_score": 29.65,
+          "assessment_methodology": "comprehensive_automated_analysis",
+          "assessment_timestamp": "2025-12-25T05:17:33.380689009Z",
+          "data_sources": [
+            "business_registry",
+            "industry_database",
+            "website_analysis",
+            "regulatory_database",
+            "risk_intelligence"
+          ],
+          "processing_time": 3321675231
+        },
+        "verification_status": {
+          "status": "COMPLETE",
+          "processing_time": 3321675231,
+          "data_sources": [
+            "business_registry",
+            "industry_database",
+            "website_analysis",
+            "risk_intelligence",
+            "regulatory_database"
+          ],
+          "checks": [
+            {
+              "check_type": "Business Name Verification",
+              "status": "PASS",
+              "confidence": 0.95,
+              "details": "Business name validated against multiple databases",
+              "source": "business_registry"
+            },
+            {
+              "check_type": "Industry Classification",
+              "status": "PASS",
+              "confidence": 0.95,
+              "details": "Classified as Software Development with 95% confidence",
+              "source": "industry_database"
+            },
+            {
+              "check_type": "Website Analysis",
+              "status": "PASS",
+              "confidence": 0.95,
+              "details": "Website analyzed and validated",
+              "source": "website_analysis"
+            },
+            {
+              "check_type": "Risk Assessment",
+              "status": "PASS",
+              "confidence": 0.88,
+              "details": "Comprehensive risk analysis completed",
+              "source": "risk_intelligence"
+            },
+            {
+              "check_type": "Regulatory Compliance",
+              "status": "PASS",
+              "confidence": 0.92,
+              "details": "No regulatory violations detected",
+              "source": "regulatory_database"
+            }
+          ],
+          "overall_score": 0.9299999999999999,
+          "completed_at": "2025-12-25T05:17:33.380741446Z"
+        },
+        "confidence_score": 0.95,
+        "explanation": "Primary industry identified as 'Software Development' with 95% confidence. Fast path: obvious keyword 'platform' matched industry 'Software Development' Website URL provided: https://amazon.com. Keywords matched: platform.",
+        "data_source": "smart_crawling_classification_service",
+        "status": "success",
+        "success": true,
+        "timestamp": "2025-12-25T05:17:33.380771532Z",
+        "processing_time": 3321809560,
+        "metadata": {
+          "classification_reasoning": "Primary industry identified as 'Software Development' with 95% confidence. Fast path: obvious keyword 'platform' matched industry 'Software Development' Website URL provided: https://amazon.com. Keywords matched: platform.",
+          "classification_time_ms": 3308,
+          "codeGeneration": {
+            "industriesAnalyzed": [
+              "Software Development"
+            ],
+            "industryMatches": 8,
+            "keywordMatches": 7,
+            "method": "hybrid",
+            "sources": [
+              "industry",
+              "keyword"
+            ],
+            "totalCodesGenerated": 9
+          },
+          "early_exit": true,
+          "fallback_type": "",
+          "fallback_used": false,
+          "method_weights": {
+            "database_driven": 100
+          },
+          "scraping_strategy": "early_exit",
+          "scraping_time_ms": 0,
+          "service": "classification-service",
+          "smart_crawling_enabled": true,
+          "version": "2.0.0",
+          "website_analysis": {
+            "success": true,
+            "pages_analyzed": 0,
+            "relevant_pages": 0,
+            "keywords_extracted": [
+              "platform"
+            ],
+            "industry_signals": [
+              "software_development"
+            ],
+            "analysis_method": "layer1_llm_pending",
+            "processing_time": 40075293,
+            "overall_relevance": 0.95,
+            "content_quality": 0.95,
+            "structured_data": {
+              "business_type": "Business",
+              "industry": "Software Development"
+            }
+          }
+        },
+        "llm_processing_id": "llm_industry_detection_1766639850659786071_1766639851224195495",
+        "llm_status": "processing",
+        "from_cache": false,
+        "processing_path": "layer1"
+      },
+      "retry_count": 0,
+      "validation": {
+        "industry_present": true,
+        "top3_mcc_present": true,
+        "top3_naics_present": true,
+        "top3_sic_present": true,
+        "explanation_present": true,
+        "all_requirements_met": true
+      }
+    },
+    {
+      "sample": {
+        "business_name": "Tesla Inc",
+        "description": "Electric vehicle manufacturer and energy storage solutions",
+        "website_url": "https://tesla.com",
+        "expected_industry": "Manufacturing",
+        "expected_codes": {
+          "mcc": [
+            "5511"
+          ],
+          "naics": [
+            "336111"
+          ],
+          "sic": [
+            "3711"
+          ]
+        }
+      },
+      "success": false,
+      "http_code": 502,
+      "latency_ms": 31723.73914718628,
+      "error": "HTTP 502: {\"status\":\"error\",\"code\":502,\"message\":\"Application failed to respond\",\"request_id\":\"dg2zc87aT_qHFb1yPvyhXg\"}",
+      "response": null,
+      "retry_count": 2,
+      "validation": {
+        "industry_present": false,
+        "top3_mcc_present": false,
+        "top3_naics_present": false,
+        "top3_sic_present": false,
+        "explanation_present": false,
+        "all_requirements_met": false
+      }
+    },
+    {
+      "sample": {
+        "business_name": "CVS Pharmacy",
+        "description": "Pharmacy and retail health services",
+        "website_url": "https://cvs.com",
+        "expected_industry": "Healthcare",
+        "expected_codes": {
+          "mcc": [
+            "5912"
+          ],
+          "naics": [
+            "446110"
+          ],
+          "sic": [
+            "5912"
+          ]
+        }
+      },
+      "success": true,
+      "http_code": 200,
+      "latency_ms": 6218.350648880005,
+      "error": null,
+      "response": {
+        "request_id": "req_1766639988552411467",
+        "business_name": "CVS Pharmacy",
+        "description": "Pharmacy and retail health services",
+        "primary_industry": "Healthcare",
+        "classification": {
+          "industry": "Healthcare",
+          "mcc_codes": [
+            {
+              "code": "742",
+              "description": "Veterinary Services",
+              "confidence": 0.98,
+              "source": [
+                "industry",
+                "keyword"
+              ]
+            },
+            {
+              "code": "8734",
+              "description": "Testing Laboratories (Non-Medical)",
+              "confidence": 0.98,
+              "source": [
+                "industry",
+                "keyword"
+              ]
+            },
+            {
+              "code": "8743",
+              "description": "Testing Laboratories (Non-Medical)",
+              "confidence": 0.98,
+              "source": [
+                "industry",
+                "keyword"
+              ]
+            }
+          ],
+          "naics_codes": [
+            {
+              "code": "524114",
+              "description": "Direct Health and Medical Insurance Carriers",
+              "confidence": 0.98,
+              "source": [
+                "industry",
+                "keyword"
+              ]
+            },
+            {
+              "code": "524128",
+              "description": "Other Direct Insurance (except Life, Health, and Medical) Carriers",
+              "confidence": 0.98,
+              "source": [
+                "industry",
+                "keyword"
+              ]
+            },
+            {
+              "code": "525120",
+              "description": "Health and Welfare Funds",
+              "confidence": 0.98,
+              "source": [
+                "industry",
+                "keyword"
+              ]
+            }
+          ],
+          "sic_codes": [
+            {
+              "code": "6324",
+              "description": "Hospital and Medical Service Plans",
+              "confidence": 0.98,
+              "source": [
+                "industry",
+                "keyword"
+              ]
+            },
+            {
+              "code": "6371",
+              "description": "Pension, Health, and Welfare Funds",
+              "confidence": 0.98,
+              "source": [
+                "industry",
+                "keyword"
+              ]
+            },
+            {
+              "code": "8082",
+              "description": "Home Health Care Services",
+              "confidence": 0.98,
+              "source": [
+                "keyword"
+              ]
+            }
+          ],
+          "website_content": {
+            "scraped": true,
+            "content_length": 0,
+            "keywords_found": 1
+          },
+          "explanation": {
+            "primary_reason": "Classified as 'Healthcare' based on strong keyword matches: health",
+            "supporting_factors": [
+              "High-quality business information with comprehensive details",
+              "Industry-specific terms found: health",
+              "Very high confidence score (95%)"
+            ],
+            "key_terms_found": [
+              "health"
+            ],
+            "confidence_factors": {
+              "keyword": 0.855,
+              "multi_strategy": 0.95,
+              "overall_confidence": 0.95
+            },
+            "method_used": "multi_strategy",
+            "processing_path": "fast_path"
+          }
+        },
+        "risk_assessment": {
+          "overall_risk_score": 34.15,
+          "risk_level": "Medium Risk",
+          "risk_score": 34.15,
+          "categories": {
+            "cybersecurity": 32,
+            "financial": 30,
+            "operational": 25,
+            "regulatory": 50
+          },
+          "risk_factors": [
+            "Standard business name structure"
+          ],
+          "detected_risks": [
+            "No specific high-risk indicators detected"
+          ],
+          "recommendations": [
+            "Continue monitoring business operations",
+            "Regular risk assessments recommended"
+          ],
+          "industry_benchmark": 40,
+          "previous_risk_score": 38.15,
+          "assessment_methodology": "comprehensive_automated_analysis",
+          "assessment_timestamp": "2025-12-25T05:19:54.668462784Z",
+          "data_sources": [
+            "business_registry",
+            "industry_database",
+            "website_analysis",
+            "regulatory_database",
+            "risk_intelligence"
+          ],
+          "processing_time": 6115724735
+        },
+        "verification_status": {
+          "status": "COMPLETE",
+          "processing_time": 6115724735,
+          "data_sources": [
+            "business_registry",
+            "industry_database",
+            "website_analysis",
+            "risk_intelligence",
+            "regulatory_database"
+          ],
+          "checks": [
+            {
+              "check_type": "Business Name Verification",
+              "status": "PASS",
+              "confidence": 0.95,
+              "details": "Business name validated against multiple databases",
+              "source": "business_registry"
+            },
+            {
+              "check_type": "Industry Classification",
+              "status": "PASS",
+              "confidence": 0.95,
+              "details": "Classified as Healthcare with 95% confidence",
+              "source": "industry_database"
+            },
+            {
+              "check_type": "Website Analysis",
+              "status": "PASS",
+              "confidence": 0.95,
+              "details": "Website analyzed and validated",
+              "source": "website_analysis"
+            },
+            {
+              "check_type": "Risk Assessment",
+              "status": "PASS",
+              "confidence": 0.88,
+              "details": "Comprehensive risk analysis completed",
+              "source": "risk_intelligence"
+            },
+            {
+              "check_type": "Regulatory Compliance",
+              "status": "PASS",
+              "confidence": 0.92,
+              "details": "No regulatory violations detected",
+              "source": "regulatory_database"
+            }
+          ],
+          "overall_score": 0.9299999999999999,
+          "completed_at": "2025-12-25T05:19:54.668497673Z"
+        },
+        "confidence_score": 0.95,
+        "explanation": "Primary industry identified as 'Healthcare' with 95% confidence. Fast path: obvious keyword 'health' matched industry 'Healthcare' Website URL provided: https://cvs.com. Keywords matched: health.",
+        "data_source": "smart_crawling_classification_service",
+        "status": "success",
+        "success": true,
+        "timestamp": "2025-12-25T05:19:54.668541807Z",
+        "processing_time": 6115838426,
+        "metadata": {
+          "classification_reasoning": "Primary industry identified as 'Healthcare' with 95% confidence. Fast path: obvious keyword 'health' matched industry 'Healthcare' Website URL provided: https://cvs.com. Keywords matched: health.",
+          "classification_time_ms": 6112,
+          "codeGeneration": {
+            "industriesAnalyzed": [
+              "Healthcare"
+            ],
+            "industryMatches": 8,
+            "keywordMatches": 9,
+            "method": "hybrid",
+            "sources": [
+              "industry",
+              "keyword"
+            ],
+            "totalCodesGenerated": 9
+          },
+          "early_exit": true,
+          "fallback_type": "",
+          "fallback_used": false,
+          "method_weights": {
+            "database_driven": 100
+          },
+          "scraping_strategy": "early_exit",
+          "scraping_time_ms": 0,
+          "service": "classification-service",
+          "smart_crawling_enabled": true,
+          "version": "2.0.0",
+          "website_analysis": {
+            "success": true,
+            "pages_analyzed": 0,
+            "relevant_pages": 0,
+            "keywords_extracted": [
+              "health"
+            ],
+            "industry_signals": [
+              "healthcare"
+            ],
+            "analysis_method": "layer1_llm_pending",
+            "processing_time": 39257346,
+            "overall_relevance": 0.95,
+            "content_quality": 0.95,
+            "structured_data": {
+              "business_type": "Business",
+              "industry": "Healthcare"
+            }
+          }
+        },
+        "llm_processing_id": "llm_industry_detection_1766639990609135588_1766639992516132086",
+        "llm_status": "processing",
+        "from_cache": false,
+        "processing_path": "layer1"
+      },
+      "retry_count": 0,
+      "validation": {
+        "industry_present": true,
+        "top3_mcc_present": true,
+        "top3_naics_present": true,
+        "top3_sic_present": true,
+        "explanation_present": true,
+        "all_requirements_met": true
+      }
+    },
+    {
+      "sample": {
+        "business_name": "Uber Technologies",
+        "description": "Ridesharing and food delivery platform",
+        "website_url": "https://uber.com",
+        "expected_industry": "Transportation",
+        "expected_codes": {
+          "mcc": [
+            "4121"
+          ],
+          "naics": [
+            "485310"
+          ],
+          "sic": [
+            "4121"
+          ]
+        }
+      },
+      "success": true,
+      "http_code": 200,
+      "latency_ms": 3284.3079566955566,
+      "error": null,
+      "response": {
+        "request_id": "req_1766639995275321063",
+        "business_name": "Uber Technologies",
+        "description": "Ridesharing and food delivery platform",
+        "primary_industry": "Software Development",
+        "classification": {
+          "industry": "Software Development",
+          "mcc_codes": [
+            {
+              "code": "7371",
+              "description": "Computer Programming Services",
+              "confidence": 0.98,
+              "source": [
+                "industry",
+                "keyword"
+              ]
+            },
+            {
+              "code": "7379",
+              "description": "Computer Related Services",
+              "confidence": 0.9,
+              "source": [
+                "industry"
+              ]
+            },
+            {
+              "code": "1711",
+              "description": "Air Conditioning, Heating and Plumbing Contractors",
+              "confidence": 0.75,
+              "source": [
+                "keyword"
+              ]
+            }
+          ],
+          "naics_codes": [
+            {
+              "code": "511210",
+              "description": "Software Publishers",
+              "confidence": 0.98,
+              "source": [
+                "industry",
+                "keyword"
+              ]
+            },
+            {
+              "code": "541519",
+              "description": "Other Computer Related Services",
+              "confidence": 0.98,
+              "source": [
+                "industry",
+                "keyword"
+              ]
+            },
+            {
+              "code": "518210",
+              "description": "Data Processing, Hosting, and Related Services",
+              "confidence": 0.9,
+              "source": [
+                "industry"
+              ]
+            }
+          ],
+          "sic_codes": [
+            {
+              "code": "7371",
+              "description": "Computer Programming Services",
+              "confidence": 0.98,
+              "source": [
+                "industry",
+                "keyword"
+              ]
+            },
+            {
+              "code": "7372",
+              "description": "Prepackaged Software",
+              "confidence": 0.98,
+              "source": [
+                "industry",
+                "keyword"
+              ]
+            },
+            {
+              "code": "7378",
+              "description": "Computer Maintenance and Repair",
+              "confidence": 0.98,
+              "source": [
+                "industry",
+                "keyword"
+              ]
+            }
+          ],
+          "website_content": {
+            "scraped": true,
+            "content_length": 0,
+            "keywords_found": 1
+          },
+          "explanation": {
+            "primary_reason": "Classified as 'Software Development' based on strong keyword matches: platform",
+            "supporting_factors": [
+              "High-quality business information with comprehensive details",
+              "Industry-specific terms found: platform",
+              "Very high confidence score (95%)"
+            ],
+            "key_terms_found": [
+              "platform"
+            ],
+            "confidence_factors": {
+              "keyword": 0.855,
+              "multi_strategy": 0.95,
+              "overall_confidence": 0.95
+            },
+            "method_used": "multi_strategy",
+            "processing_path": "fast_path"
+          }
+        },
+        "risk_assessment": {
+          "overall_risk_score": 26.65,
+          "risk_level": "Medium Risk",
+          "risk_score": 26.65,
+          "categories": {
+            "cybersecurity": 32,
+            "financial": 30,
+            "operational": 25,
+            "regulatory": 20
+          },
+          "risk_factors": [
+            "Standard business name structure"
+          ],
+          "detected_risks": [
+            "No specific high-risk indicators detected"
+          ],
+          "recommendations": [
+            "Continue monitoring business operations",
+            "Regular risk assessments recommended"
+          ],
+          "industry_benchmark": 40,
+          "previous_risk_score": 34.65,
+          "assessment_methodology": "comprehensive_automated_analysis",
+          "assessment_timestamp": "2025-12-25T05:19:58.363081457Z",
+          "data_sources": [
+            "business_registry",
+            "industry_database",
+            "website_analysis",
+            "regulatory_database",
+            "risk_intelligence"
+          ],
+          "processing_time": 3087145166
+        },
+        "verification_status": {
+          "status": "COMPLETE",
+          "processing_time": 3087145166,
+          "data_sources": [
+            "business_registry",
+            "industry_database",
+            "website_analysis",
+            "risk_intelligence",
+            "regulatory_database"
+          ],
+          "checks": [
+            {
+              "check_type": "Business Name Verification",
+              "status": "PASS",
+              "confidence": 0.95,
+              "details": "Business name validated against multiple databases",
+              "source": "business_registry"
+            },
+            {
+              "check_type": "Industry Classification",
+              "status": "PASS",
+              "confidence": 0.95,
+              "details": "Classified as Software Development with 95% confidence",
+              "source": "industry_database"
+            },
+            {
+              "check_type": "Website Analysis",
+              "status": "PASS",
+              "confidence": 0.95,
+              "details": "Website analyzed and validated",
+              "source": "website_analysis"
+            },
+            {
+              "check_type": "Risk Assessment",
+              "status": "PASS",
+              "confidence": 0.88,
+              "details": "Comprehensive risk analysis completed",
+              "source": "risk_intelligence"
+            },
+            {
+              "check_type": "Regulatory Compliance",
+              "status": "PASS",
+              "confidence": 0.92,
+              "details": "No regulatory violations detected",
+              "source": "regulatory_database"
+            }
+          ],
+          "overall_score": 0.9299999999999999,
+          "completed_at": "2025-12-25T05:19:58.363100699Z"
+        },
+        "confidence_score": 0.95,
+        "explanation": "Primary industry identified as 'Software Development' with 95% confidence. Fast path: obvious keyword 'platform' matched industry 'Software Development' Website URL provided: https://uber.com. Keywords matched: platform.",
+        "data_source": "smart_crawling_classification_service",
+        "status": "success",
+        "success": true,
+        "timestamp": "2025-12-25T05:19:58.363195827Z",
+        "processing_time": 3087298795,
+        "metadata": {
+          "classification_reasoning": "Primary industry identified as 'Software Development' with 95% confidence. Fast path: obvious keyword 'platform' matched industry 'Software Development' Website URL provided: https://uber.com. Keywords matched: platform.",
+          "classification_time_ms": 3081,
+          "codeGeneration": {
+            "industriesAnalyzed": [
+              "Software Development"
+            ],
+            "industryMatches": 8,
+            "keywordMatches": 7,
+            "method": "hybrid",
+            "sources": [
+              "industry",
+              "keyword"
+            ],
+            "totalCodesGenerated": 9
+          },
+          "early_exit": true,
+          "fallback_type": "",
+          "fallback_used": false,
+          "method_weights": {
+            "database_driven": 100
+          },
+          "scraping_strategy": "early_exit",
+          "scraping_time_ms": 0,
+          "service": "classification-service",
+          "smart_crawling_enabled": true,
+          "version": "2.0.0",
+          "website_analysis": {
+            "success": true,
+            "pages_analyzed": 0,
+            "relevant_pages": 0,
+            "keywords_extracted": [
+              "platform"
+            ],
+            "industry_signals": [
+              "software_development"
+            ],
+            "analysis_method": "layer1_llm_pending",
+            "processing_time": 71874546,
+            "overall_relevance": 0.95,
+            "content_quality": 0.95,
+            "structured_data": {
+              "business_type": "Business",
+              "industry": "Software Development"
+            }
+          }
+        },
+        "llm_processing_id": "llm_industry_detection_1766639995896708958_1766639996318696906",
+        "llm_status": "processing",
+        "from_cache": false,
+        "processing_path": "layer1"
+      },
+      "retry_count": 0,
+      "validation": {
+        "industry_present": true,
+        "top3_mcc_present": true,
+        "top3_naics_present": true,
+        "top3_sic_present": true,
+        "explanation_present": true,
+        "all_requirements_met": true
+      }
+    },
+    {
+      "sample": {
+        "business_name": "Netflix",
+        "description": "Streaming video and entertainment service",
+        "website_url": "https://netflix.com",
+        "expected_industry": "Entertainment",
+        "expected_codes": {
+          "mcc": [
+            "7829"
+          ],
+          "naics": [
+            "515210"
+          ],
+          "sic": [
+            "7812"
+          ]
+        }
+      },
+      "success": true,
+      "http_code": 200,
+      "latency_ms": 4626.385927200317,
+      "error": null,
+      "response": {
+        "request_id": "req_1766639999072295901",
+        "business_name": "Netflix",
+        "description": "Streaming video and entertainment service",
+        "primary_industry": "Arts, Entertainment, and Recreation",
+        "classification": {
+          "industry": "Arts, Entertainment, and Recreation",
+          "mcc_codes": [
+            {
+              "code": "7032",
+              "description": "Sporting and Recreational Camps",
+              "confidence": 0.98,
+              "source": [
+                "industry",
+                "keyword"
+              ]
+            },
+            {
+              "code": "7832",
+              "description": "Motion Picture Theaters",
+              "confidence": 0.98,
+              "source": [
+                "industry",
+                "keyword"
+              ]
+            },
+            {
+              "code": "7922",
+              "description": "Theatrical Producers and Ticket Agencies",
+              "confidence": 0.7200000000000001,
+              "source": [
+                "crosswalk_gap_fill"
+              ]
+            }
+          ],
+          "naics_codes": [
+            {
+              "code": "711110",
+              "description": "Theater Companies and Dinner Theaters",
+              "confidence": 0.98,
+              "source": [
+                "industry",
+                "keyword"
+              ]
+            },
+            {
+              "code": "711120",
+              "description": "Dance Companies",
+              "confidence": 0.98,
+              "source": [
+                "industry",
+                "keyword"
+              ]
+            },
+            {
+              "code": "711130",
+              "description": "Musical Groups and Artists",
+              "confidence": 0.98,
+              "source": [
+                "industry",
+                "keyword"
+              ]
+            }
+          ],
+          "sic_codes": [
+            {
+              "code": "7032",
+              "description": "Sporting and Recreational Camps",
+              "confidence": 0.98,
+              "source": [
+                "industry",
+                "keyword"
+              ]
+            },
+            {
+              "code": "7929",
+              "description": "Bands, Orchestras, Actors, and Other Entertainers and Entertainment Groups",
+              "confidence": 0.9,
+              "source": [
+                "keyword"
+              ]
+            },
+            {
+              "code": "7997",
+              "description": "Membership Sports and Recreation Clubs",
+              "confidence": 0.2203703641891479,
+              "source": [
+                "trigram"
+              ]
+            }
+          ],
+          "website_content": {
+            "scraped": true,
+            "content_length": 0,
+            "keywords_found": 1
+          },
+          "explanation": {
+            "primary_reason": "Classified as 'Arts, Entertainment, and Recreation' based on strong keyword matches: entertainment",
+            "supporting_factors": [
+              "High-quality business information with comprehensive details",
+              "Industry-specific terms found: entertainment",
+              "Very high confidence score (95%)"
+            ],
+            "key_terms_found": [
+              "entertainment"
+            ],
+            "confidence_factors": {
+              "keyword": 0.855,
+              "multi_strategy": 0.95,
+              "overall_confidence": 0.95
+            },
+            "method_used": "multi_strategy",
+            "processing_path": "fast_path"
+          }
+        },
+        "risk_assessment": {
+          "overall_risk_score": 26.65,
+          "risk_level": "Medium Risk",
+          "risk_score": 26.65,
+          "categories": {
+            "cybersecurity": 32,
+            "financial": 30,
+            "operational": 25,
+            "regulatory": 20
+          },
+          "risk_factors": [
+            "Standard business name structure"
+          ],
+          "detected_risks": [
+            "No specific high-risk indicators detected"
+          ],
+          "recommendations": [
+            "Continue monitoring business operations",
+            "Regular risk assessments recommended"
+          ],
+          "industry_benchmark": 40,
+          "previous_risk_score": 19.65,
+          "assessment_methodology": "comprehensive_automated_analysis",
+          "assessment_timestamp": "2025-12-25T05:20:03.496119725Z",
+          "data_sources": [
+            "business_registry",
+            "industry_database",
+            "website_analysis",
+            "regulatory_database",
+            "risk_intelligence"
+          ],
+          "processing_time": 4423165313
+        },
+        "verification_status": {
+          "status": "COMPLETE",
+          "processing_time": 4423165313,
+          "data_sources": [
+            "business_registry",
+            "industry_database",
+            "website_analysis",
+            "risk_intelligence",
+            "regulatory_database"
+          ],
+          "checks": [
+            {
+              "check_type": "Business Name Verification",
+              "status": "PASS",
+              "confidence": 0.95,
+              "details": "Business name validated against multiple databases",
+              "source": "business_registry"
+            },
+            {
+              "check_type": "Industry Classification",
+              "status": "PASS",
+              "confidence": 0.95,
+              "details": "Classified as Arts, Entertainment, and Recreation with 95% confidence",
+              "source": "industry_database"
+            },
+            {
+              "check_type": "Website Analysis",
+              "status": "PASS",
+              "confidence": 0.95,
+              "details": "Website analyzed and validated",
+              "source": "website_analysis"
+            },
+            {
+              "check_type": "Risk Assessment",
+              "status": "PASS",
+              "confidence": 0.88,
+              "details": "Comprehensive risk analysis completed",
+              "source": "risk_intelligence"
+            },
+            {
+              "check_type": "Regulatory Compliance",
+              "status": "PASS",
+              "confidence": 0.92,
+              "details": "No regulatory violations detected",
+              "source": "regulatory_database"
+            }
+          ],
+          "overall_score": 0.9299999999999999,
+          "completed_at": "2025-12-25T05:20:03.496159529Z"
+        },
+        "confidence_score": 0.95,
+        "explanation": "Primary industry identified as 'Arts, Entertainment, and Recreation' with 95% confidence. Fast path: obvious keyword 'entertainment' matched industry 'Arts, Entertainment, and Recreation' Website URL provided: https://netflix.com. Keywords matched: entertainment.",
+        "data_source": "smart_crawling_classification_service",
+        "status": "success",
+        "success": true,
+        "timestamp": "2025-12-25T05:20:03.496191661Z",
+        "processing_time": 4423269896,
+        "metadata": {
+          "classification_reasoning": "Primary industry identified as 'Arts, Entertainment, and Recreation' with 95% confidence. Fast path: obvious keyword 'entertainment' matched industry 'Arts, Entertainment, and Recreation' Website URL provided: https://netflix.com. Keywords matched: entertainment.",
+          "classification_time_ms": 4419,
+          "codeGeneration": {
+            "industriesAnalyzed": [
+              "Arts, Entertainment, and Recreation"
+            ],
+            "industryMatches": 6,
+            "keywordMatches": 7,
+            "method": "hybrid",
+            "sources": [
+              "industry",
+              "keyword"
+            ],
+            "totalCodesGenerated": 9
+          },
+          "early_exit": true,
+          "fallback_type": "",
+          "fallback_used": false,
+          "method_weights": {
+            "database_driven": 100
+          },
+          "scraping_strategy": "early_exit",
+          "scraping_time_ms": 0,
+          "service": "classification-service",
+          "smart_crawling_enabled": true,
+          "version": "2.0.0",
+          "website_analysis": {
+            "success": true,
+            "pages_analyzed": 0,
+            "relevant_pages": 0,
+            "keywords_extracted": [
+              "entertainment"
+            ],
+            "industry_signals": [
+              "arts,_entertainment,_and_recreation"
+            ],
+            "analysis_method": "layer1_llm_pending",
+            "processing_time": 132219100,
+            "overall_relevance": 0.95,
+            "content_quality": 0.95,
+            "structured_data": {
+              "business_type": "Business",
+              "industry": "Arts, Entertainment, and Recreation"
+            }
+          }
+        },
+        "llm_processing_id": "llm_industry_detection_1766639999944178681_1766640000645095553",
+        "llm_status": "processing",
+        "from_cache": false,
+        "processing_path": "layer1"
+      },
+      "retry_count": 0,
+      "validation": {
+        "industry_present": true,
+        "top3_mcc_present": true,
+        "top3_naics_present": true,
+        "top3_sic_present": true,
+        "explanation_present": true,
+        "all_requirements_met": true
+      }
+    },
+    {
+      "sample": {
+        "business_name": "Whole Foods Market",
+        "description": "Organic and natural foods grocery store",
+        "website_url": "https://wholefoodsmarket.com",
+        "expected_industry": "Retail",
+        "expected_codes": {
+          "mcc": [
+            "5411"
+          ],
+          "naics": [
+            "445110"
+          ],
+          "sic": [
+            "5411"
+          ]
+        }
+      },
+      "success": true,
+      "http_code": 200,
+      "latency_ms": 4413.8360023498535,
+      "error": null,
+      "response": {
+        "request_id": "req_1766640004179753007",
+        "business_name": "Whole Foods Market",
+        "description": "Organic and natural foods grocery store",
+        "primary_industry": "Catering",
+        "classification": {
+          "industry": "Catering",
+          "mcc_codes": [
+            {
+              "code": "5200",
+              "description": "Home Supply Warehouse Stores",
+              "confidence": 0.9,
+              "source": [
+                "keyword"
+              ]
+            },
+            {
+              "code": "5211",
+              "description": "Building Materials, Lumber Stores",
+              "confidence": 0.9,
+              "source": [
+                "keyword"
+              ]
+            },
+            {
+              "code": "5251",
+              "description": "Hardware Stores",
+              "confidence": 0.9,
+              "source": [
+                "keyword"
+              ]
+            }
+          ],
+          "naics_codes": [
+            {
+              "code": "445110",
+              "description": "Supermarkets and Grocery Stores",
+              "confidence": 0.9,
+              "source": [
+                "keyword"
+              ]
+            },
+            {
+              "code": "445120",
+              "description": "Convenience Stores",
+              "confidence": 0.9,
+              "source": [
+                "keyword"
+              ]
+            },
+            {
+              "code": "445291",
+              "description": "Baked Goods Stores",
+              "confidence": 0.9,
+              "source": [
+                "keyword"
+              ]
+            }
+          ],
+          "sic_codes": [
+            {
+              "code": "5251",
+              "description": "Hardware Stores",
+              "confidence": 0.9,
+              "source": [
+                "keyword"
+              ]
+            },
+            {
+              "code": "5261",
+              "description": "Retail Nurseries, Lawn and Garden Supply Stores",
+              "confidence": 0.9,
+              "source": [
+                "keyword"
+              ]
+            },
+            {
+              "code": "5311",
+              "description": "Department Stores",
+              "confidence": 0.9,
+              "source": [
+                "keyword"
+              ]
+            }
+          ],
+          "website_content": {
+            "scraped": true,
+            "content_length": 0,
+            "keywords_found": 13
+          },
+          "explanation": {
+            "primary_reason": "Classified as 'Catering' based on strong keyword matches: store, catering, corporate catering",
+            "supporting_factors": [
+              "High-quality business information with comprehensive details",
+              "Multiple industry-specific terms found (13 total)",
+              "Very high confidence score (95%)"
+            ],
+            "key_terms_found": [
+              "store",
+              "catering",
+              "corporate catering",
+              "catering service",
+              "drop off catering",
+              "catering menu",
+              "catering company",
+              "party catering",
+              "event catering",
+              "wedding catering",
+              "catering services",
+              "catering business",
+              "full service catering"
+            ],
+            "confidence_factors": {
+              "keyword": 0.855,
+              "multi_strategy": 0.95,
+              "overall_confidence": 0.95
+            },
+            "method_used": "multi_strategy",
+            "processing_path": "full_strategy"
+          }
+        },
+        "risk_assessment": {
+          "overall_risk_score": 26.65,
+          "risk_level": "Medium Risk",
+          "risk_score": 26.65,
+          "categories": {
+            "cybersecurity": 32,
+            "financial": 30,
+            "operational": 25,
+            "regulatory": 20
+          },
+          "risk_factors": [
+            "Standard business name structure"
+          ],
+          "detected_risks": [
+            "No specific high-risk indicators detected"
+          ],
+          "recommendations": [
+            "Continue monitoring business operations",
+            "Regular risk assessments recommended"
+          ],
+          "industry_benchmark": 40,
+          "previous_risk_score": 24.65,
+          "assessment_methodology": "comprehensive_automated_analysis",
+          "assessment_timestamp": "2025-12-25T05:20:08.353046276Z",
+          "data_sources": [
+            "business_registry",
+            "industry_database",
+            "website_analysis",
+            "regulatory_database",
+            "risk_intelligence"
+          ],
+          "processing_time": 4172075084
+        },
+        "verification_status": {
+          "status": "COMPLETE",
+          "processing_time": 4172075084,
+          "data_sources": [
+            "business_registry",
+            "industry_database",
+            "website_analysis",
+            "risk_intelligence",
+            "regulatory_database"
+          ],
+          "checks": [
+            {
+              "check_type": "Business Name Verification",
+              "status": "PASS",
+              "confidence": 0.95,
+              "details": "Business name validated against multiple databases",
+              "source": "business_registry"
+            },
+            {
+              "check_type": "Industry Classification",
+              "status": "PASS",
+              "confidence": 0.95,
+              "details": "Classified as Catering with 95% confidence",
+              "source": "industry_database"
+            },
+            {
+              "check_type": "Website Analysis",
+              "status": "PASS",
+              "confidence": 0.95,
+              "details": "Website analyzed and validated",
+              "source": "website_analysis"
+            },
+            {
+              "check_type": "Risk Assessment",
+              "status": "PASS",
+              "confidence": 0.88,
+              "details": "Comprehensive risk analysis completed",
+              "source": "risk_intelligence"
+            },
+            {
+              "check_type": "Regulatory Compliance",
+              "status": "PASS",
+              "confidence": 0.92,
+              "details": "No regulatory violations detected",
+              "source": "regulatory_database"
+            }
+          ],
+          "overall_score": 0.9299999999999999,
+          "completed_at": "2025-12-25T05:20:08.353122892Z"
+        },
+        "confidence_score": 0.95,
+        "explanation": "Primary industry identified as 'Catering' with 95% confidence. Combined 4 classification strategies using weighted average. Contributions: co_occurrence(0.85), keyword(1.00). Strategies: entity(1.00), topic(0.46), co_occurrence(0.85), keyword(1.00). Final confidence: 0.61 Website URL provided: https://wholefoodsmarket.com. Keywords matched: store, catering, corporate catering, catering service, drop off catering, catering menu, catering company, party catering, event catering, wedding catering, catering services, catering business, full service catering.",
+        "data_source": "smart_crawling_classification_service",
+        "status": "success",
+        "success": true,
+        "timestamp": "2025-12-25T05:20:08.353288242Z",
+        "processing_time": 4172502491,
+        "metadata": {
+          "classification_reasoning": "Primary industry identified as 'Catering' with 95% confidence. Combined 4 classification strategies using weighted average. Contributions: co_occurrence(0.85), keyword(1.00). Strategies: entity(1.00), topic(0.46), co_occurrence(0.85), keyword(1.00). Final confidence: 0.61 Website URL provided: https://wholefoodsmarket.com. Keywords matched: store, catering, corporate catering, catering service, drop off catering, catering menu, catering company, party catering, event catering, wedding catering, catering services, catering business, full service catering.",
+          "classification_time_ms": 4149,
+          "codeGeneration": {
+            "industriesAnalyzed": [
+              "Catering"
+            ],
+            "industryMatches": 0,
+            "keywordMatches": 9,
+            "method": "keyword_only",
+            "sources": [
+              "industry",
+              "keyword"
+            ],
+            "totalCodesGenerated": 9
+          },
+          "early_exit": true,
+          "fallback_type": "",
+          "fallback_used": false,
+          "method_weights": {
+            "database_driven": 100
+          },
+          "scraping_strategy": "early_exit",
+          "scraping_time_ms": 0,
+          "service": "classification-service",
+          "smart_crawling_enabled": true,
+          "version": "2.0.0",
+          "website_analysis": {
+            "success": true,
+            "pages_analyzed": 0,
+            "relevant_pages": 0,
+            "keywords_extracted": [
+              "store",
+              "catering",
+              "corporate catering",
+              "catering service",
+              "drop off catering",
+              "catering menu",
+              "catering company",
+              "party catering",
+              "event catering",
+              "wedding catering",
+              "catering services",
+              "catering business",
+              "full service catering"
+            ],
+            "industry_signals": [
+              "catering"
+            ],
+            "analysis_method": "layer1_llm_pending",
+            "processing_time": 1402186630,
+            "overall_relevance": 0.95,
+            "content_quality": 0.95,
+            "structured_data": {
+              "business_type": "Business",
+              "industry": "Catering"
+            }
+          }
+        },
+        "llm_processing_id": "llm_industry_detection_1766640004456232280_1766640006078428290",
+        "llm_status": "processing",
+        "from_cache": false,
+        "processing_path": "layer1"
+      },
+      "retry_count": 0,
+      "validation": {
+        "industry_present": true,
+        "top3_mcc_present": true,
+        "top3_naics_present": true,
+        "top3_sic_present": true,
+        "explanation_present": true,
+        "all_requirements_met": true
+      }
+    }
+  ]
+}

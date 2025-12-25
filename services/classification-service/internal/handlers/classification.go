@@ -2602,6 +2602,13 @@ func (h *ClassificationHandler) processClassification(ctx context.Context, req *
 		ctxInfo["has_deadline"] = true
 		timeRemaining := time.Until(deadline)
 		ctxInfo["time_remaining_ms"] = timeRemaining.Milliseconds()
+		// Tesla 502 fix: Fail fast if time remaining is negative
+		if timeRemaining < 0 {
+			h.logger.Warn("❌ [PROCESS-START] Context deadline exceeded (negative time remaining)",
+				zap.String("request_id", req.RequestID),
+				zap.Duration("time_remaining", timeRemaining))
+			return nil, fmt.Errorf("context deadline exceeded: %v remaining", timeRemaining)
+		}
 	}
 
 	h.logger.Info("🔧 [PROCESS-START] Starting processClassification",
@@ -2890,6 +2897,23 @@ func (h *ClassificationHandler) processClassification(ctx context.Context, req *
 				zap.Duration("classification_duration", classificationTime))
 		}
 	}
+	// Tesla 502 fix: Early warning system for timeout monitoring
+	if totalElapsed > 50*time.Second {
+		h.logger.Error("🚨 [TIMEOUT-MONITOR] Request exceeded 50 seconds - approaching Railway timeout threshold",
+			zap.String("request_id", req.RequestID),
+			zap.Duration("total_elapsed", totalElapsed),
+			zap.Duration("classification_duration", classificationTime),
+			zap.String("business_name", req.BusinessName),
+			zap.String("website_url", req.WebsiteURL))
+	} else if totalElapsed > 25*time.Second {
+		h.logger.Warn("⚠️ [TIMEOUT-MONITOR] Request exceeded 25 seconds - early warning",
+			zap.String("request_id", req.RequestID),
+			zap.Duration("total_elapsed", totalElapsed),
+			zap.Duration("classification_duration", classificationTime),
+			zap.String("business_name", req.BusinessName),
+			zap.String("website_url", req.WebsiteURL))
+	}
+
 	h.logger.Info("✅ [PERF-SUMMARY] Request processing complete",
 		zap.String("request_id", req.RequestID),
 		zap.Duration("total_elapsed", totalElapsed),
