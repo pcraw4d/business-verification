@@ -264,7 +264,11 @@ func (p *AsyncLLMProcessor) ProcessAsync(
 				if llmCtx.Err() == context.DeadlineExceeded {
 					result.Status = AsyncLLMStatusTimeout
 					result.Error = "LLM processing timed out"
-					p.logger.Printf("⏱️ [AsyncLLM] Timeout for %s after %v", processingID, p.timeout)
+					elapsed := time.Since(result.StartedAt)
+					p.logger.Printf("⏱️ [AsyncLLM] Timeout for %s after %.1fs (timeout: %v)", 
+						processingID, elapsed.Seconds(), p.timeout)
+					// Note: Timeout metrics would be tracked here if metrics were available
+					// For now, we rely on logging and async result status for observability
 				} else {
 					result.Status = AsyncLLMStatusFailed
 					result.Error = err.Error()
@@ -273,8 +277,9 @@ func (p *AsyncLLMProcessor) ProcessAsync(
 			} else {
 				result.Status = AsyncLLMStatusCompleted
 				result.Result = llmResult
-				p.logger.Printf("✅ [AsyncLLM] Completed for %s (confidence: %.2f%%)", 
-					processingID, llmResult.Confidence*100)
+				elapsed := time.Since(result.StartedAt)
+				p.logger.Printf("✅ [AsyncLLM] Completed for %s (confidence: %.2f%%, duration: %.1fs)", 
+					processingID, llmResult.Confidence*100, elapsed.Seconds())
 			}
 		})
 	}()

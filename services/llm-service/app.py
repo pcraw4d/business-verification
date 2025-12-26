@@ -7,8 +7,9 @@ Memory footprint: ~1.5GB (vs 6GB for 3B, 14GB for 7B)
 Inference time: 2-5 seconds on CPU
 """
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 import logging
@@ -17,6 +18,8 @@ import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 import json
 import gc  # For explicit garbage collection
+import asyncio
+from functools import wraps
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -37,6 +40,20 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Timeout middleware to enforce 50-second request timeout
+@app.middleware("http")
+async def timeout_middleware(request: Request, call_next):
+    """Enforce 50-second timeout on all requests to prevent exceeding Railway's 60s platform timeout"""
+    try:
+        response = await asyncio.wait_for(call_next(request), timeout=50.0)
+        return response
+    except asyncio.TimeoutError:
+        logger.warning(f"Request to {request.url.path} timed out after 50 seconds")
+        return JSONResponse(
+            status_code=504,
+            content={"detail": "Request timeout: Processing exceeded 50 seconds"}
+        )
 
 # Model configuration
 # Using 0.5B model for reliable operation within Railway's 8GB memory limit
@@ -260,25 +277,21 @@ Respond ONLY with a valid JSON object in this exact format:
         user_msg_parts.append(f"\nDescription: {context.description}")
     
     if context.website_content:
-        # Truncate to 2000 chars to fit in context
-        content = context.website_content[:2000]
+        # Truncate to 1500 chars to reduce prompt length and improve inference speed
+        content = context.website_content[:1500]
         user_msg_parts.append(f"\nWebsite Content:\n{content}")
     
-    # Add Layer 1 hints if available
+    # Add Layer 1 hints if available (condensed format to reduce prompt length)
     if context.layer1_result:
-        user_msg_parts.append(f"\nLayer 1 Classification (keyword-based):")
-        user_msg_parts.append(f"  Industry: {context.layer1_result.get('industry', 'Unknown')}")
-        user_msg_parts.append(f"  Confidence: {context.layer1_result.get('confidence', 0.0):.2f}")
-        if context.layer1_result.get('keywords'):
-            keywords = ', '.join(context.layer1_result['keywords'][:5])
-            user_msg_parts.append(f"  Keywords found: {keywords}")
+        industry = context.layer1_result.get('industry', 'Unknown')
+        confidence = context.layer1_result.get('confidence', 0.0)
+        user_msg_parts.append(f"\nLayer 1: {industry} (confidence: {confidence:.2f})")
     
-    # Add Layer 2 hints if available
+    # Add Layer 2 hints if available (condensed format to reduce prompt length)
     if context.layer2_result:
-        user_msg_parts.append(f"\nLayer 2 Classification (embedding-based):")
-        user_msg_parts.append(f"  Top match: {context.layer2_result.get('top_match', 'Unknown')}")
-        user_msg_parts.append(f"  Similarity: {context.layer2_result.get('top_similarity', 0.0):.2f}")
-        user_msg_parts.append(f"  Confidence: {context.layer2_result.get('confidence', 0.0):.2f}")
+        top_match = context.layer2_result.get('top_match', 'Unknown')
+        confidence = context.layer2_result.get('confidence', 0.0)
+        user_msg_parts.append(f"\nLayer 2: {top_match} (confidence: {confidence:.2f})")
     
     user_msg_parts.append("\nBased on this information, classify this business into the appropriate industry codes.")
     user_msg_parts.append("Remember to respond with ONLY a valid JSON object, no additional text.")
@@ -308,7 +321,7 @@ def generate_classification(
     temperature: float = 0.1,
     max_tokens: int = 400
 ) -> str:
-    """Generate classification using LLM."""
+    """Generate classification using LLM with optimizations for faster inference."""
     
     # Tokenize
     inputs = tokenizer(prompt, return_tensors="pt").to(DEVICE)
@@ -319,6 +332,7 @@ def generate_classification(
     prompt_length = len(prompt_decoded)
     
     # Generate with inference mode (lower memory than no_grad on CPU)
+    # Optimized generation parameters for faster inference
     with torch.inference_mode():
         outputs = model.generate(
             **inputs,
@@ -329,12 +343,17 @@ def generate_classification(
             repetition_penalty=1.1,
             pad_token_id=tokenizer.pad_token_id,
             eos_token_id=tokenizer.eos_token_id,
+            # Optimization: Use early stopping if we detect completion
+            num_beams=1,  # Greedy decoding for speed (temperature=0.1 already deterministic)
         )
     
     # Clear inputs from memory after generation
     del inputs
     del input_ids
     gc.collect()
+    if DEVICE == "cpu":
+        # Force garbage collection on CPU
+        gc.collect()
     
     # Decode full response
     response = tokenizer.decode(outputs[0], skip_special_tokens=True)

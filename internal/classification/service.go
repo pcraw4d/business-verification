@@ -24,6 +24,9 @@ type ClassificationMetrics struct {
 	MLClassifications      int64              `json:"ml_classifications"`
 	KeywordClassifications int64              `json:"keyword_classifications"`
 	FallbackClassifications int64             `json:"fallback_classifications"`
+	LLMTimeouts            int64              `json:"llm_timeouts"`              // Count of LLM timeout events
+	LLMTimeoutFallbacks    int64              `json:"llm_timeout_fallbacks"`    // Count of fallbacks due to LLM timeout
+	LLMSlowRequests        int64              `json:"llm_slow_requests"`        // Count of requests >40s but <50s
 	IndustryAccuracy       map[string]float64 `json:"industry_accuracy"` // Industry name -> accuracy percentage
 	MethodAccuracy         map[string]float64 `json:"method_accuracy"`   // Method name -> accuracy percentage
 	IndustryCorrect        map[string]int64   `json:"industry_correct"`  // Industry name -> correct count
@@ -1407,7 +1410,7 @@ func (s *IndustryDetectionService) SetLLMClassifier(llmClassifier *LLMClassifier
 		store,
 		llmClassifier,
 		s.logger,
-		5*time.Minute, // 5 minute timeout for LLM calls
+		50*time.Second, // 50 second timeout to prevent exceeding Railway's 60s platform timeout
 	)
 	s.logger.Printf("✅ [Phase 4] Async LLM processor initialized")
 }

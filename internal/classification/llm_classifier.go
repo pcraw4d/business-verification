@@ -44,7 +44,7 @@ func NewLLMClassifier(llmServiceURL string, logger *log.Logger) *LLMClassifier {
 	return &LLMClassifier{
 		llmServiceURL: llmServiceURL,
 		httpClient: &http.Client{
-			Timeout:   300 * time.Second, // LLM on CPU can take 200+ seconds
+			Timeout:   50 * time.Second, // 50s timeout to prevent exceeding Railway's 60s platform timeout
 			Transport: transport,
 		},
 		logger: logger,
@@ -87,7 +87,7 @@ func (l *LLMClassifier) ClassifyWithLLM(
 			"website_content": websiteContent,
 		},
 		"temperature": 0.1, // Low temperature for consistency
-		"max_tokens":  800,
+		"max_tokens":  400, // Reduced from 800 to 400 for faster inference
 	}
 
 	// Add Layer 1 context if available
@@ -183,13 +183,24 @@ func (l *LLMClassifier) callLLMService(
 	ctx context.Context,
 	reqBody map[string]interface{},
 ) (map[string]interface{}, error) {
+	startTime := time.Now()
+	
+	// Create a context with 50-second timeout if parent context doesn't have a deadline
+	// This ensures we don't exceed Railway's 60s platform timeout
+	llmCtx := ctx
+	var cancel context.CancelFunc
+	if _, hasDeadline := ctx.Deadline(); !hasDeadline {
+		llmCtx, cancel = context.WithTimeout(ctx, 50*time.Second)
+		defer cancel()
+	}
+	
 	reqBodyJSON, err := json.Marshal(reqBody)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
 	req, err := http.NewRequestWithContext(
-		ctx,
+		llmCtx,
 		"POST",
 		l.llmServiceURL+"/classify",
 		bytes.NewReader(reqBodyJSON),
@@ -203,7 +214,23 @@ func (l *LLMClassifier) callLLMService(
 	l.logger.Printf("📡 [Layer 3] Calling LLM service: %s", l.llmServiceURL)
 
 	resp, err := l.httpClient.Do(req)
+	elapsed := time.Since(startTime)
+	
+	// Log warning if request took longer than 40 seconds (track slow requests)
+	if elapsed >= 40*time.Second && elapsed < 50*time.Second {
+		l.logger.Printf("⚠️ [Layer 3] LLM service call approaching timeout (elapsed: %.1fs, timeout: 50s)", elapsed.Seconds())
+		// Note: Slow request metrics would be tracked here if metrics were available
+		// For now, we rely on logging for observability
+	}
+	
 	if err != nil {
+		// Check if error is due to context timeout
+		if llmCtx.Err() == context.DeadlineExceeded {
+			l.logger.Printf("⏱️ [Layer 3] LLM service call timed out after %.1fs", elapsed.Seconds())
+			// Note: Timeout metrics would be tracked here if metrics were available
+			// For now, we rely on logging for observability
+			return nil, fmt.Errorf("LLM service call timed out after 50 seconds: %w", err)
+		}
 		return nil, fmt.Errorf("LLM service request failed: %w", err)
 	}
 	defer resp.Body.Close()
@@ -218,7 +245,9 @@ func (l *LLMClassifier) callLLMService(
 	}
 
 	if processingTime, ok := result["processing_time_ms"].(float64); ok {
-		l.logger.Printf("📊 [Layer 3] LLM service response (processing_time: %.0fms)", processingTime)
+		l.logger.Printf("📊 [Layer 3] LLM service response (processing_time: %.0fms, total_elapsed: %.1fs)", processingTime, elapsed.Seconds())
+	} else {
+		l.logger.Printf("📊 [Layer 3] LLM service response (total_elapsed: %.1fs)", elapsed.Seconds())
 	}
 
 	return result, nil
